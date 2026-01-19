@@ -20,6 +20,10 @@ config/icon="res://icon.svg"
 Log="*res://logic/utils/Logger.gd"
 IdGenerator="*res://logic/utils/IdGenerator.gd"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/attribute_set_generator/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
