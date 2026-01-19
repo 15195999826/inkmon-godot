@@ -17,12 +17,12 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Log="*res://logic/utils/Logger.gd"
-IdGenerator="*res://logic/utils/IdGenerator.gd"
+Log="*uid://dmtf3o6rxb83"
+IdGenerator="*uid://dxrx1d5qcxo75"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/attribute_set_generator/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
+enabled=PackedStringArray("res://addons/logic-game-framework/plugin.cfg")
 
 [physics]
 
