@@ -1,0 +1,83 @@
+extends AbilityComponent
+class_name NoInstanceComponent
+
+const TYPE := "NoInstanceComponent"
+
+var _triggers: Array = []
+var _trigger_mode: String = "any"
+var _actions: Array = []
+
+func _init(config: Dictionary):
+	type = TYPE
+	_triggers = config.get("triggers", [])
+	_trigger_mode = str(config.get("triggerMode", "any"))
+	_actions = config.get("actions", [])
+
+func get_triggers() -> Array:
+	return _triggers
+
+func matches_event(event: Dictionary, context: Dictionary) -> bool:
+	return _check_triggers(event, context)
+
+func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
+	if _check_triggers(event, context):
+		_execute_actions(event, context, gameplay_state)
+		return true
+	return false
+
+func _check_triggers(event: Dictionary, context: Dictionary) -> bool:
+	if _triggers.is_empty():
+		return false
+	if _trigger_mode == "any":
+		for trigger in _triggers:
+			if _match_trigger(trigger, event, context):
+				return true
+		return false
+	for trigger in _triggers:
+		if not _match_trigger(trigger, event, context):
+			return false
+	return true
+
+func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary) -> bool:
+	if event.get("kind", "") != str(trigger.get("eventKind", "")):
+		return false
+	if trigger.has("filter") and trigger["filter"] is Callable:
+		return trigger["filter"].call(event, context)
+	return true
+
+func _execute_actions(event: Dictionary, context: Dictionary, gameplay_state) -> void:
+	var exec_context = _build_execution_context(event, context, gameplay_state)
+	for action in _actions:
+		if action != null and action.has_method("execute"):
+			action.execute(exec_context)
+		else:
+			Log.warning("NoInstanceComponent", "NoInstanceComponent missing action.execute")
+
+func _build_execution_context(event: Dictionary, context: Dictionary, gameplay_state):
+	var ability = context.get("ability", null)
+	return ExecutionContext.create_execution_context({
+		"eventChain": [event],
+		"gameplayState": gameplay_state,
+		"eventCollector": GameWorld.get_instance().event_collector,
+		"ability": {
+			"id": ability.id if ability != null else "",
+			"configId": ability.config_id if ability != null else "",
+			"owner": context.get("owner", null),
+			"source": context.get("owner", null),
+		},
+	})
+
+func serialize() -> Dictionary:
+	return {
+		"triggersCount": _triggers.size(),
+		"triggerMode": _trigger_mode,
+		"actionsCount": _actions.size(),
+	}
+
+static func create_event_trigger(event_kind: String, filter_callable = null) -> Dictionary:
+	var trigger := {
+		"eventKind": event_kind,
+	}
+	if filter_callable != null:
+		trigger["filter"] = filter_callable
+	return trigger

@@ -1,8 +1,6 @@
 extends RefCounted
 class_name TagContainer
 
-const _TAG_LOGGER_CATEGORY := Logger.CATEGORY_TAG
-
 var owner_id: String
 var _loose_tags: Dictionary = {}
 var _auto_duration_tags: Array = []
@@ -19,9 +17,7 @@ func add_loose_tag(tag: String, stacks: int = 1) -> void:
 	_loose_tags[tag] = current + stacks
 	var new_count := get_tag_stacks(tag)
 
-	Logger.debug_log(_TAG_LOGGER_CATEGORY, "添加 LooseTag: %s" % tag, {
-		"actorId": owner_id,
-	})
+	Log.debug("TagContainer", "添加 LooseTag: %s" % tag)
 
 	if old_count != new_count:
 		_notify_tag_changed(tag, old_count, new_count)
@@ -36,15 +32,10 @@ func remove_loose_tag(tag: String, stacks: int = -1) -> bool:
 	var old_count := get_tag_stacks(tag)
 	if stacks < 0 or stacks >= current:
 		_loose_tags.erase(tag)
-		Logger.debug_log(_TAG_LOGGER_CATEGORY, "移除 LooseTag: %s" % tag, {
-			"actorId": owner_id,
-		})
+		Log.debug("TagContainer", "移除 LooseTag: %s" % tag)
 	else:
 		_loose_tags[tag] = current - stacks
-		Logger.debug_log(_TAG_LOGGER_CATEGORY, "减少 LooseTag 层数: %s" % tag, {
-			"actorId": owner_id,
-			"remainingStacks": current - stacks,
-		})
+		Log.debug("TagContainer", "减少 LooseTag 层数: %s" % tag)
 
 	var new_count := get_tag_stacks(tag)
 	if old_count != new_count:
@@ -67,12 +58,7 @@ func add_auto_duration_tag(tag: String, duration: float) -> void:
 	})
 	var new_count := get_tag_stacks(tag)
 
-	Logger.debug_log(_TAG_LOGGER_CATEGORY, "添加 AutoDurationTag: %s" % tag, {
-		"actorId": owner_id,
-		"duration": duration,
-		"expiresAt": expires_at,
-		"totalStacks": get_auto_duration_tag_stacks(tag),
-	})
+	Log.debug("TagContainer", "添加 AutoDurationTag: %s" % tag)
 
 	if old_count != new_count:
 		_notify_tag_changed(tag, old_count, new_count)
@@ -103,11 +89,7 @@ func cleanup_expired_tags() -> void:
 	for tag in tag_old_counts.keys():
 		var old_count := int(tag_old_counts[tag])
 		var new_count := get_tag_stacks(tag)
-		Logger.debug_log(_TAG_LOGGER_CATEGORY, "AutoDurationTag 层过期: %s" % tag, {
-			"actorId": owner_id,
-			"remainingStacks": new_count,
-			"removedLayers": int(removed_counts.get(tag, 0)),
-		})
+		Log.debug("TagContainer", "AutoDurationTag 层过期: %s" % tag)
 		if old_count != new_count:
 			_notify_tag_changed(tag, old_count, new_count)
 
@@ -131,10 +113,7 @@ func add_component_tags(component_id: String, tags: Dictionary) -> void:
 	var tag_list := []
 	for tag in tags.keys():
 		tag_list.append("%s:%s" % [str(tag), str(tags[tag])])
-	Logger.debug_log(_TAG_LOGGER_CATEGORY, "添加 ComponentTags: %s" % ", ".join(tag_list), {
-		"actorId": owner_id,
-		"abilityId": component_id,
-	})
+	Log.debug("TagContainer", "添加 ComponentTags: %s" % ", ".join(tag_list))
 
 	for tag in old_counts.keys():
 		var old_count := int(old_counts[tag])
@@ -146,7 +125,7 @@ func remove_component_tags(component_id: String) -> void:
 	if not _component_tags.has(component_id):
 		return
 
-	var tags := _component_tags[component_id]
+	var tags: Dictionary = _component_tags[component_id]
 	if tags.is_empty():
 		_component_tags.erase(component_id)
 		return
@@ -160,10 +139,7 @@ func remove_component_tags(component_id: String) -> void:
 	var tag_list := []
 	for tag in tags.keys():
 		tag_list.append("%s:%s" % [str(tag), str(tags[tag])])
-	Logger.debug_log(_TAG_LOGGER_CATEGORY, "移除 ComponentTags: %s" % ", ".join(tag_list), {
-		"actorId": owner_id,
-		"abilityId": component_id,
-	})
+	Log.debug("TagContainer", "移除 ComponentTags: %s" % ", ".join(tag_list))
 
 	for tag in old_counts.keys():
 		var old_count := int(old_counts[tag])
@@ -224,16 +200,16 @@ func tick(dt: float, logic_time: float = -1.0) -> void:
 func on_tag_changed(callback: Callable) -> Callable:
 	_callbacks.append(callback)
 	return func() -> void:
-		_callbacks.erase(callback)
+		var index := _callbacks.find(callback)
+		if index != -1:
+			_callbacks.remove_at(index)
 
 func _notify_tag_changed(tag: String, old_count: int, new_count: int) -> void:
 	for callback in _callbacks:
 		if callback.is_valid():
 			callback.call(tag, old_count, new_count, self)
 		else:
-			Logger.get_logger().error("Error in tag changed callback", {
-				"tag": tag,
-			})
+			Log.error("TagContainer", "Error in tag changed callback")
 
 func get_snapshot() -> Dictionary:
 	return get_all_tags().duplicate()

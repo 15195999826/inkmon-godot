@@ -1,0 +1,235 @@
+extends RefCounted
+class_name Ability
+
+const STATE_PENDING := "pending"
+const STATE_GRANTED := "granted"
+const STATE_EXPIRED := "expired"
+
+var id: String
+var config_id: String
+var source: ActorRef
+var owner: ActorRef
+var display_name: String = ""
+var description: String = ""
+var icon: String = ""
+var tags: Array = []
+
+var _state: String = STATE_PENDING
+var _expire_reason: String = ""
+var _components: Array = []
+var _lifecycle_context = null
+var _execution_instances: Array = []
+var _on_triggered_callbacks: Array = []
+var _on_execution_callbacks: Array = []
+
+func _init(config: Dictionary, owner_value: ActorRef, source_value: ActorRef = null):
+	id = IdGenerator.generate("ability")
+	config_id = str(config.get("configId", ""))
+	owner = owner_value
+	source = source_value if source_value != null else owner_value
+	display_name = str(config.get("displayName", ""))
+	description = str(config.get("description", ""))
+	icon = str(config.get("icon", ""))
+	tags = config.get("tags", [])
+
+	var all_components: Array = []
+	var active_components: Array = config.get("activeUseComponents", [])
+	for input in active_components:
+		all_components.append(_resolve_component(input))
+	var components: Array = config.get("components", [])
+	for input in components:
+		all_components.append(_resolve_component(input))
+
+	_components = all_components
+
+	for component in _components:
+		if component != null and component.has_method("initialize"):
+			component.initialize(self)
+
+func get_state() -> String:
+	return _state
+
+func is_granted() -> bool:
+	return _state == STATE_GRANTED
+
+func is_expired() -> bool:
+	return _state == STATE_EXPIRED
+
+func get_expire_reason() -> String:
+	return _expire_reason
+
+func get_component(ctor) -> Variant:
+	for component in _components:
+		if _component_matches(component, ctor):
+			return component
+	return null
+
+func get_components(ctor) -> Array:
+	var results := []
+	for component in _components:
+		if _component_matches(component, ctor):
+			results.append(component)
+	return results
+
+func has_component(ctor) -> bool:
+	for component in _components:
+		if _component_matches(component, ctor):
+			return true
+	return false
+
+func _component_matches(component, ctor) -> bool:
+	if typeof(component) != TYPE_OBJECT:
+		return false
+	if typeof(ctor) == TYPE_STRING:
+		return component.get_class() == ctor
+	if ctor is Script:
+		return component.get_script() == ctor
+	return component.get_class() == str(ctor)
+
+func get_all_components() -> Array:
+	return _components
+
+func tick(dt: float) -> void:
+	if _state == STATE_EXPIRED:
+		return
+	for component in _components:
+		if component != null and component.has_method("get_state") and component.get_state() == "active":
+			if component.has_method("on_tick"):
+				component.on_tick(dt)
+
+func tick_executions(dt: float) -> Array:
+	if _state == STATE_EXPIRED:
+		return []
+	var all_triggered := []
+	for instance in _execution_instances:
+		if instance != null and instance.has_method("is_executing") and instance.is_executing():
+			var triggered: Array = instance.tick(dt)
+			all_triggered.append_array(triggered)
+	var filtered := []
+	for instance in _execution_instances:
+		if instance != null and instance.has_method("is_executing") and instance.is_executing():
+			filtered.append(instance)
+	_execution_instances = filtered
+	return all_triggered
+
+func activate_new_execution_instance(config: Dictionary):
+	var instance = AbilityExecutionInstance.new({
+		"timelineId": config.get("timelineId", ""),
+		"tagActions": config.get("tagActions", {}),
+		"eventChain": config.get("eventChain", []),
+		"gameplayState": config.get("gameplayState", null),
+		"abilityInfo": {
+			"id": id,
+			"configId": config_id,
+			"owner": owner,
+			"source": source,
+		},
+	})
+	_execution_instances.append(instance)
+	for callback in _on_execution_callbacks:
+		if callback.is_valid():
+			callback.call(instance)
+	instance.tick(0)
+	return instance
+
+func get_executing_instances() -> Array:
+	var executing := []
+	for instance in _execution_instances:
+		if instance != null and instance.has_method("is_executing") and instance.is_executing():
+			executing.append(instance)
+	return executing
+
+func get_all_execution_instances() -> Array:
+	return _execution_instances
+
+func cancel_all_executions() -> void:
+	for instance in _execution_instances:
+		if instance != null and instance.has_method("cancel"):
+			instance.cancel()
+	_execution_instances = []
+
+func receive_event(event: Dictionary, context: Dictionary, gameplay_state) -> void:
+	if _state == STATE_EXPIRED:
+		return
+	var triggered_components := []
+	for component in _components:
+		if component != null and component.has_method("get_state") and component.get_state() == "active":
+			if component.has_method("on_event"):
+				var triggered = component.on_event(event, context, gameplay_state)
+				if triggered:
+					triggered_components.append(component.type)
+	if not triggered_components.is_empty():
+		for callback in _on_triggered_callbacks:
+			if callback.is_valid():
+				callback.call(event, triggered_components)
+
+func add_triggered_listener(callback: Callable) -> Callable:
+	_on_triggered_callbacks.append(callback)
+	return func() -> void:
+		var index := _on_triggered_callbacks.find(callback)
+		if index != -1:
+			_on_triggered_callbacks.remove_at(index)
+
+func add_execution_activated_listener(callback: Callable) -> Callable:
+	_on_execution_callbacks.append(callback)
+	return func() -> void:
+		var index := _on_execution_callbacks.find(callback)
+		if index != -1:
+			_on_execution_callbacks.remove_at(index)
+
+func apply_effects(context: Dictionary) -> void:
+	if _state == STATE_GRANTED:
+		Log.warning("Ability", "Ability already granted: %s" % id)
+		return
+	_state = STATE_GRANTED
+	_lifecycle_context = context
+	for component in _components:
+		if component != null and component.has_method("on_apply"):
+			component.on_apply(context)
+
+func remove_effects() -> void:
+	if _lifecycle_context == null:
+		return
+	for component in _components:
+		if component != null and component.has_method("on_remove"):
+			component.on_remove(_lifecycle_context)
+	_lifecycle_context = null
+
+func expire(reason: String) -> void:
+	if _state == STATE_EXPIRED:
+		return
+	_expire_reason = reason
+	remove_effects()
+	_state = STATE_EXPIRED
+
+func has_tag(tag: String) -> bool:
+	return tags.has(tag)
+
+func serialize() -> Dictionary:
+	var components := []
+	for component in _components:
+		if component != null and component.has_method("serialize"):
+			components.append({
+				"type": component.type,
+				"data": component.serialize(),
+			})
+	var instances := []
+	for instance in _execution_instances:
+		if instance != null and instance.has_method("serialize"):
+			instances.append(instance.serialize())
+	return {
+		"id": id,
+		"configId": config_id,
+		"source": source,
+		"owner": owner,
+		"state": _state,
+		"displayName": display_name,
+		"tags": tags,
+		"components": components,
+		"executionInstances": instances,
+	}
+
+func _resolve_component(input):
+	if input is Callable:
+		return input.call()
+	return input

@@ -1,5 +1,4 @@
 extends RefCounted
-class_name IdGenerator
 
 static var _counter: int = 0
 
@@ -16,7 +15,7 @@ var _prefix: String
 func _init(prefix: String = ""):
 	_prefix = prefix
 
-func generate() -> String:
+func generate_with_prefix() -> String:
 	return IdGenerator.generate_id(_prefix)
 
 static func generate(prefix: String = "") -> String:

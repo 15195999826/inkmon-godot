@@ -1,0 +1,145 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  // ============================================================
+  // LomoMarketplace 项目配置
+  // 包含: logic-game-framework, InkMon 生态, Claude Code 插件
+  // ============================================================
+  "google_auth": true,
+  // ============================================================
+  // 智能体配置
+  // Temperature 指南:
+  //   0.0-0.1: 精确任务 (代码生成、逻辑推理、调试)
+  //   0.2-0.3: 平衡任务 (代码审查、架构设计)
+  //   0.5-0.7: 创意任务 (UI设计、文档撰写)
+  // ============================================================
+  "agents": {
+    // ==================== 核心编排 ====================
+    // 主编排器 - 需要稳定的决策能力
+    "Sisyphus": {
+      // "model": "anthropic/claude-opus-4-5",
+      // "model": "xaio/XAIO-C-4-5-Opus",
+      // "model": "zhipuai-coding-plan/glm-4.7",
+      // "model": "github-copilot/claude-opus-4.5",
+      "model": "xaio/XAIO-O-G5-2-Codex",
+      "temperature": 0.1 // 低温度确保稳定的任务分配和决策
+    },
+    // ==================== 专家顾问 ====================
+    // Oracle - 架构设计和深度调试 (只读顾问)
+    // 需要严谨的逻辑推理，低温度
+    "oracle": {
+      "model": "github-copilot/gpt-5.2-codex",
+      // "model": "anthropic/claude-opus-4-5",
+      // "model": "github-copilot/claude-opus-4.5",
+      "temperature": 0.15 // 略高于 0.1 允许一些创造性建议
+    },
+    // ==================== 探索代理 ====================
+    // Librarian - 文档/代码库分析 (快速便宜)
+    "librarian": {
+      // "model": "zhipuai-coding-plan/glm-4.7",
+      "model": "xaio/GLM-4.7",
+      "temperature": 0.1 // 搜索任务需要精确
+    },
+    // Explore - 快速代码库探索 (极速)
+    "explore": {
+      "model": "zhipuai-coding-plan/glm-4.7",
+      "temperature": 0.0 // 纯搜索，无需创造性
+    },
+    // ==================== 专业领域 ====================
+    // Frontend UI/UX - 需要创意
+    "frontend-ui-ux-engineer": {
+      "model": "google/antigravity-gemini-3-pro-high",
+      "temperature": 0.6 // 高温度激发 UI 创意
+    },
+    // Document Writer - 技术文档需要清晰但有表达力
+    "document-writer": {
+      "model": "anthropic/claude-sonnet-4-5",
+      //  "model": "xaio/XAIO-C-4-5-Opus",
+      //  "model": "xaio/XAIO-C-4-5-Sonnet"
+      "temperature": 0.4 // 中等温度平衡准确性和可读性
+    },
+    // Multimodal Looker - 图像/PDF 分析需要精确
+    "multimodal-looker": {
+      "model": "google/antigravity-gemini-3-flash",
+      "temperature": 0.1 // 分析任务需要精确
+    }
+  },
+  // ============================================================
+  // Sisyphus 编排器配置
+  // 控制 Sisyphus 与 OpenCode 原生模式的共存
+  // ============================================================
+  "sisyphus_agent": {
+    // disabled: true 会完全禁用 Sisyphus，恢复原生 OpenCode 模式
+    "disabled": false,
+    // 启用 OpenCode-Builder (原生 build agent)，与 Sisyphus 共存
+    "default_builder_enabled": true,
+    // 保留原生 plan agent，设为 false 可同时使用 Prometheus 和原生 plan
+    "replace_plan": false,
+    // 启用 Prometheus (Planner) agent
+    "planner_enabled": true
+  },
+  // ============================================================
+  // LSP 配置
+  // ============================================================
+  "lsp": {
+
+  },
+  // ============================================================
+  // 后台任务并发配置
+  // ============================================================
+  "background_task": {
+    "defaultConcurrency": 5,
+    "providerConcurrency": {
+      "anthropic": 3,
+      "google": 8
+    }
+  },
+  // ============================================================
+  // 禁用的钩子 - 根据项目需求调整
+  // ============================================================
+  "disabled_hooks": [],
+  // ============================================================
+  // 禁用的 MCP - 项目已有自己的 MCP
+  // ============================================================
+  "disabled_mcps": [],
+  // ============================================================
+  // Claude Code 兼容性
+  // 让 Claude Code 的配置在 OpenCode 中也能用
+  // 如果你从未用过 Claude Code，保持 true 也没副作用
+  // ============================================================
+  "claude_code": {
+    "mcp": true, // 加载 ~/.claude/.mcp.json, ./.mcp.json 中的 MCP 配置
+    "commands": true, // 加载 ~/.claude/commands/ 中的斜杠命令
+    "skills": true, // 加载 ~/.claude/skills/ 中的技能
+    "agents": true, // 加载 ~/.claude/agents/*.md 中的自定义智能体
+    "hooks": true, // 执行 ~/.claude/settings.json 中的钩子 (PreToolUse/PostToolUse/Stop)
+    "plugins": true // 加载 ~/.claude/plugins/ 中的 Claude Code 市场插件
+  },
+  // ============================================================
+  // Git Master 配置
+  // ============================================================
+  "git_master": {
+    "commit_footer": true,
+    "include_co_authored_by": true
+  },
+  // ============================================================
+  // Ralph Loop - 无人值守持续工作模式
+  // 智能体回复结束后，系统自动发送新消息继续推进，直到任务完成
+  // 适合：睡前启动的大型重构、批量处理等长任务
+  // ============================================================
+  "ralph_loop": {
+    "enabled": false, // 需要时手动改为 true
+    "default_max_iterations": 100 // 最大迭代次数，防止无限循环
+  },
+  // ============================================================
+  // 实验性功能
+  // ============================================================
+  "experimental": {
+    // 预防性压缩阈值：上下文窗口使用率达到此比例时自动压缩会话历史
+    // 范围 0.5~0.95，越低越早压缩（保守），越高越晚压缩（激进）
+    "preemptive_compaction_threshold": 0.95,
+    // 是否截断所有工具输出（防止单次搜索吃掉整个上下文）
+    // false = 只截断特定工具 (Grep/Glob/LSP/AST-grep)
+    // true = 截断所有工具输出
+    "truncate_all_tool_outputs": false
+  }
+}

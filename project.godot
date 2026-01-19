@@ -15,6 +15,11 @@ run/main_scene="res://scenes/Simulation.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Log="*res://logic/utils/Logger.gd"
+IdGenerator="*res://logic/utils/IdGenerator.gd"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
