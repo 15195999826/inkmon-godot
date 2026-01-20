@@ -26,24 +26,18 @@ func _init(config: Dictionary, owner_value: ActorRef, source_value: ActorRef = n
 	id = IdGenerator.generate("ability")
 	config_id = str(config.get("configId", ""))
 	owner = owner_value
-	source = source_value if source_value != null else owner_value
+	source = source_value if source_value else owner_value
 	display_name = str(config.get("displayName", ""))
 	description = str(config.get("description", ""))
 	icon = str(config.get("icon", ""))
 	tags = config.get("tags", [])
 
-	var all_components: Array = []
 	var active_components: Array = config.get("activeUseComponents", [])
-	for input in active_components:
-		all_components.append(_resolve_component(input))
-	var components: Array = config.get("components", [])
-	for input in components:
-		all_components.append(_resolve_component(input))
-
-	_components = all_components
+	var passive_components: Array = config.get("components", [])
+	_components = _resolve_components(active_components + passive_components)
 
 	for component in _components:
-		if component != null and component.has_method("initialize"):
+		if component and component.has_method("initialize"):
 			component.initialize(self)
 
 func get_state() -> String:
@@ -93,7 +87,7 @@ func tick(dt: float) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	for component in _components:
-		if component != null and component.has_method("get_state") and component.get_state() == "active":
+		if component and component.has_method("get_state") and component.get_state() == "active":
 			if component.has_method("on_tick"):
 				component.on_tick(dt)
 
@@ -102,14 +96,9 @@ func tick_executions(dt: float) -> Array:
 		return []
 	var all_triggered := []
 	for instance in _execution_instances:
-		if instance != null and instance.has_method("is_executing") and instance.is_executing():
-			var triggered: Array = instance.tick(dt)
-			all_triggered.append_array(triggered)
-	var filtered := []
-	for instance in _execution_instances:
-		if instance != null and instance.has_method("is_executing") and instance.is_executing():
-			filtered.append(instance)
-	_execution_instances = filtered
+		if _is_executing_instance(instance):
+			all_triggered.append_array(instance.tick(dt))
+	_execution_instances = _execution_instances.filter(_is_executing_instance)
 	return all_triggered
 
 func activate_new_execution_instance(config: Dictionary):
@@ -133,18 +122,14 @@ func activate_new_execution_instance(config: Dictionary):
 	return instance
 
 func get_executing_instances() -> Array:
-	var executing := []
-	for instance in _execution_instances:
-		if instance != null and instance.has_method("is_executing") and instance.is_executing():
-			executing.append(instance)
-	return executing
+	return _execution_instances.filter(_is_executing_instance)
 
 func get_all_execution_instances() -> Array:
 	return _execution_instances
 
 func cancel_all_executions() -> void:
 	for instance in _execution_instances:
-		if instance != null and instance.has_method("cancel"):
+		if instance and instance.has_method("cancel"):
 			instance.cancel()
 	_execution_instances = []
 
@@ -153,11 +138,11 @@ func receive_event(event: Dictionary, context: Dictionary, gameplay_state) -> vo
 		return
 	var triggered_components := []
 	for component in _components:
-		if component != null and component.has_method("get_state") and component.get_state() == "active":
-			if component.has_method("on_event"):
-				var triggered = component.on_event(event, context, gameplay_state)
-				if triggered:
-					triggered_components.append(component.type)
+		if typeof(component) != TYPE_OBJECT:
+			continue
+		if component.has_method("on_event"):
+			if component.on_event(event, context, gameplay_state):
+				triggered_components.append(_get_component_name(component))
 	if not triggered_components.is_empty():
 		for callback in _on_triggered_callbacks:
 			if callback.is_valid():
@@ -184,14 +169,14 @@ func apply_effects(context: Dictionary) -> void:
 	_state = STATE_GRANTED
 	_lifecycle_context = context
 	for component in _components:
-		if component != null and component.has_method("on_apply"):
+		if component and component.has_method("on_apply"):
 			component.on_apply(context)
 
 func remove_effects() -> void:
 	if _lifecycle_context == null:
 		return
 	for component in _components:
-		if component != null and component.has_method("on_remove"):
+		if component and component.has_method("on_remove"):
 			component.on_remove(_lifecycle_context)
 	_lifecycle_context = null
 
@@ -206,17 +191,17 @@ func has_tag(tag: String) -> bool:
 	return tags.has(tag)
 
 func serialize() -> Dictionary:
-	var components := []
+	var serialized_components := []
 	for component in _components:
-		if component != null and component.has_method("serialize"):
-			components.append({
+		if component and component.has_method("serialize"):
+			serialized_components.append({
 				"type": component.type,
 				"data": component.serialize(),
 			})
-	var instances := []
+	var serialized_instances := []
 	for instance in _execution_instances:
-		if instance != null and instance.has_method("serialize"):
-			instances.append(instance.serialize())
+		if instance and instance.has_method("serialize"):
+			serialized_instances.append(instance.serialize())
 	return {
 		"id": id,
 		"configId": config_id,
@@ -225,11 +210,25 @@ func serialize() -> Dictionary:
 		"state": _state,
 		"displayName": display_name,
 		"tags": tags,
-		"components": components,
-		"executionInstances": instances,
+		"components": serialized_components,
+		"executionInstances": serialized_instances,
 	}
 
-func _resolve_component(input):
-	if input is Callable:
-		return input.call()
-	return input
+func _resolve_components(inputs: Array) -> Array:
+	var result := []
+	for input in inputs:
+		if input is Callable:
+			result.append(input.call())
+		else:
+			result.append(input)
+	return result
+
+func _is_executing_instance(instance) -> bool:
+	return instance and instance.has_method("is_executing") and instance.is_executing()
+
+func _get_component_name(component) -> String:
+	if component.has_method("get_type"):
+		return str(component.get_type())
+	if "type" in component:
+		return str(component.type)
+	return component.get_class()

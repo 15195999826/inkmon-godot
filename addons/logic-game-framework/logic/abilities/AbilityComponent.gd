@@ -12,6 +12,9 @@ func initialize(ability) -> void:
 	_ability = ability
 	_state = "active"
 
+func is_active() -> bool:
+	return _state == "active"
+
 func mark_expired() -> void:
 	_state = "expired"
 

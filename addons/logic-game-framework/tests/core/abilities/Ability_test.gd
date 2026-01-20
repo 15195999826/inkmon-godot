@@ -28,14 +28,8 @@ func _init() -> void:
 func _test_lifecycle() -> void:
 	var owner := ActorRef.new("actor-1")
 	var component := TestComponent.new()
-	var ability := Ability.new({
-		"configId": "fire",
-		"components": [func(): return component],
-	}, owner)
-	var context := {
-		"owner": owner,
-		"ability": ability,
-	}
+	var ability := Ability.new({ "configId": "fire", "components": [func(): return component] }, owner)
+	var context := { "owner": owner, "ability": ability }
 
 	ability.apply_effects(context)
 	TestFramework.assert_equal(Ability.STATE_GRANTED, ability.get_state())
@@ -51,46 +45,31 @@ func _test_lifecycle() -> void:
 func _test_triggered_listener() -> void:
 	var owner := ActorRef.new("actor-2")
 	var component := TestComponent.new()
-	var ability := Ability.new({
-		"configId": "storm",
-		"components": [func(): return component],
-	}, owner)
-	var context := {
-		"owner": owner,
-		"ability": ability,
-	}
+	var ability := Ability.new({ "configId": "storm", "components": [func(): return component] }, owner)
+	var context := { "owner": owner, "ability": ability }
 	ability.apply_effects(context)
 
-	var triggered_event = null
-	var triggered_components := []
+	var result := { "event": {}, "components": [] }
 	ability.add_triggered_listener(func(event: Dictionary, components: Array) -> void:
-		triggered_event = event
-		triggered_components = components
+		result["event"] = event
+		result["components"] = components
 	)
 
-	var event := { "kind": "hit" }
-	ability.receive_event(event, context, null)
+	ability.receive_event({ "kind": "hit" }, context, null)
 
 	TestFramework.assert_true(component.event_hit)
-	TestFramework.assert_true(triggered_event != null)
-	TestFramework.assert_equal("hit", triggered_event.get("kind", ""))
-	TestFramework.assert_equal(1, triggered_components.size())
-	TestFramework.assert_equal("TestComponent", triggered_components[0])
+	TestFramework.assert_true(not result["event"].is_empty())
+	TestFramework.assert_equal("hit", str(result["event"].get("kind", "")))
+	TestFramework.assert_equal(1, result["components"].size())
+	TestFramework.assert_equal("TestComponent", result["components"][0])
 
 func _test_execution_instances() -> void:
 	var registry := TimelineRegistry.new()
-	registry.register({
-		"id": "t-ability",
-		"totalDuration": 1.0,
-		"tags": {},
-	})
+	registry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
 	TimelineRegistry.set_timeline_registry(registry)
 
 	var owner := ActorRef.new("actor-3")
-	var ability := Ability.new({
-		"configId": "blink",
-		"components": [],
-	}, owner)
+	var ability := Ability.new({ "configId": "blink", "components": [] }, owner)
 
 	ability.activate_new_execution_instance({
 		"timelineId": "t-ability",

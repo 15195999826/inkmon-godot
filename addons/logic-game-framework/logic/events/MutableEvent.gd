@@ -19,8 +19,7 @@ func add_modification(modification: Dictionary) -> void:
 	_modifications.append(modification)
 
 func add_modifications(modifications: Array) -> void:
-	for modification in modifications:
-		_modifications.append(modification)
+	_modifications.append_array(modifications)
 
 func cancel(handler_id: String, reason: String) -> void:
 	cancelled = true
@@ -32,65 +31,30 @@ func get_current_value(field: String):
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return original_value
 
-	var field_mods := []
-	for mod in _modifications:
-		if mod.get("field", "") == field:
-			field_mods.append(mod)
-	if field_mods.is_empty():
+	var grouped := _get_grouped_field_mods(field)
+	if grouped.is_empty:
 		return original_value
 
-	var sets := []
-	var adds := []
-	var muls := []
-	for mod in field_mods:
-		match mod.get("operation", ""):
-			"set":
-				sets.append(mod)
-			"add":
-				adds.append(mod)
-			"multiply":
-				muls.append(mod)
-
-	var value := float(original_value)
-	if not sets.is_empty():
-		value = float(sets[sets.size() - 1].get("value", value))
-
-	for mod in adds:
-		value += float(mod.get("value", 0.0))
-
-	for mod in muls:
-		value *= float(mod.get("value", 1.0))
-
-	return value
+	return _compute_value(float(original_value), grouped)
 
 func to_final_event() -> Dictionary:
 	if _modifications.is_empty():
 		return original
 
-	var modified_fields := {}
-	for mod in _modifications:
-		modified_fields[mod.get("field", "")] = true
-
 	var final_event := original.duplicate(true)
-	for field in modified_fields.keys():
+	for field in _get_modified_fields():
 		final_event[field] = get_current_value(field)
 	return final_event
 
 func get_original_values() -> Dictionary:
 	var result := {}
-	var modified_fields := {}
-	for mod in _modifications:
-		modified_fields[mod.get("field", "")] = true
-	for field in modified_fields.keys():
+	for field in _get_modified_fields():
 		result[field] = original.get(field, null)
 	return result
 
 func get_final_values() -> Dictionary:
 	var result := {}
-	var modified_fields := {}
-	for mod in _modifications:
-		modified_fields[mod.get("field", "")] = true
-	for field in modified_fields.keys():
+	for field in _get_modified_fields():
 		result[field] = get_current_value(field)
 	return result
 
@@ -99,57 +63,25 @@ func get_field_computation_steps(field: String):
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 
-	var field_mods := []
-	for mod in _modifications:
-		if mod.get("field", "") == field:
-			field_mods.append(mod)
-	if field_mods.is_empty():
+	var grouped := _get_grouped_field_mods(field)
+	if grouped.is_empty:
 		return null
-
-	var sets := []
-	var adds := []
-	var muls := []
-	for mod in field_mods:
-		match mod.get("operation", ""):
-			"set":
-				sets.append(mod)
-			"add":
-				adds.append(mod)
-			"multiply":
-				muls.append(mod)
 
 	var steps := []
 	var value := float(original_value)
-	if not sets.is_empty():
-		var last_set: Dictionary = sets[sets.size() - 1]
+
+	if not grouped.sets.is_empty():
+		var last_set: Dictionary = grouped.sets[-1]
 		value = float(last_set.get("value", value))
-		steps.append({
-			"sourceId": last_set.get("sourceId", "unknown"),
-			"sourceName": last_set.get("sourceName", null),
-			"operation": "set",
-			"value": last_set.get("value", 0.0),
-			"resultValue": value,
-		})
+		steps.append(_create_step(last_set, "set", value))
 
-	for mod in adds:
-		value += float(mod.get("value", 0.0))
-		steps.append({
-			"sourceId": mod.get("sourceId", "unknown"),
-			"sourceName": mod.get("sourceName", null),
-			"operation": "add",
-			"value": mod.get("value", 0.0),
-			"resultValue": value,
-		})
-
-	for mod in muls:
+	for mod in grouped.muls:
 		value *= float(mod.get("value", 1.0))
-		steps.append({
-			"sourceId": mod.get("sourceId", "unknown"),
-			"sourceName": mod.get("sourceName", null),
-			"operation": "multiply",
-			"value": mod.get("value", 1.0),
-			"resultValue": value,
-		})
+		steps.append(_create_step(mod, "multiply", value))
+
+	for mod in grouped.adds:
+		value += float(mod.get("value", 0.0))
+		steps.append(_create_step(mod, "add", value))
 
 	return {
 		"field": field,
@@ -159,14 +91,10 @@ func get_field_computation_steps(field: String):
 	}
 
 func get_all_computation_steps() -> Array:
-	var modified_fields := {}
-	for mod in _modifications:
-		modified_fields[mod.get("field", "")] = true
-
 	var records := []
-	for field in modified_fields.keys():
+	for field in _get_modified_fields():
 		var record = get_field_computation_steps(str(field))
-		if record != null:
+		if record:
 			records.append(record)
 	return records
 
@@ -175,20 +103,68 @@ func format_computation_log(field: String) -> String:
 	if record == null:
 		return "%s: no modifications" % field
 
-	var lines := []
-	lines.append("%s: %s 	 	%s" % [field, str(record["originalValue"]), str(record["finalValue"])])
+	var lines := ["%s: %s \t \t%s" % [field, str(record["originalValue"]), str(record["finalValue"])]]
 
 	for step in record["steps"]:
-		var source_name: String = str(step.get("sourceName", ""))
-		var source_id: String = str(step.get("sourceId", "unknown"))
-		var source: String = source_name
-		if source == "":
-			source = source_id
-		var op_sign := "="
-		if step.get("operation", "") == "add":
-			op_sign = "+" if float(step.get("value", 0.0)) >= 0 else ""
-		elif step.get("operation", "") == "multiply":
-			op_sign = "x"
+		var source: String = str(step.get("sourceName", "")) if step.get("sourceName") else str(step.get("sourceId", "unknown"))
+		var op_sign := _get_operation_sign(step)
 		lines.append("  [%s] %s%s -> %s" % [source, op_sign, str(step.get("value", "")), str(step.get("resultValue", ""))])
 
 	return "\n".join(lines)
+
+func _get_modified_fields() -> Array:
+	var fields := {}
+	for mod in _modifications:
+		fields[mod.get("field", "")] = true
+	return fields.keys()
+
+func _get_grouped_field_mods(field: String) -> Dictionary:
+	var sets := []
+	var adds := []
+	var muls := []
+
+	for mod in _modifications:
+		if mod.get("field", "") != field:
+			continue
+		match mod.get("operation", ""):
+			"set":
+				sets.append(mod)
+			"add":
+				adds.append(mod)
+			"multiply":
+				muls.append(mod)
+
+	return {
+		"sets": sets,
+		"adds": adds,
+		"muls": muls,
+		"is_empty": sets.is_empty() and adds.is_empty() and muls.is_empty(),
+	}
+
+func _compute_value(base_value: float, grouped: Dictionary) -> float:
+	var value := base_value
+	if not grouped.sets.is_empty():
+		value = float(grouped.sets[-1].get("value", value))
+	for mod in grouped.muls:
+		value *= float(mod.get("value", 1.0))
+	for mod in grouped.adds:
+		value += float(mod.get("value", 0.0))
+	return value
+
+func _create_step(mod: Dictionary, operation: String, result_value: float) -> Dictionary:
+	return {
+		"sourceId": mod.get("sourceId", "unknown"),
+		"sourceName": mod.get("sourceName", null),
+		"operation": operation,
+		"value": mod.get("value", 0.0),
+		"resultValue": result_value,
+	}
+
+func _get_operation_sign(step: Dictionary) -> String:
+	match step.get("operation", ""):
+		"add":
+			return "+" if float(step.get("value", 0.0)) >= 0 else ""
+		"multiply":
+			return "x"
+		_:
+			return "="
