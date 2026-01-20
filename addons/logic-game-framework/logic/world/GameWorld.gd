@@ -62,7 +62,7 @@ func get_instances() -> Array:
 	return _instances.values()
 
 func get_instances_by_type(type_value: String) -> Array:
-	return _instances.values().filter(func(inst): return inst and inst.type == type_value)
+	return _instances.values().filter(func(inst): return inst and _matches_instance_type(inst, type_value))
 
 func destroy_instance(id_value: String) -> bool:
 	if not _instances.has(id_value):
@@ -115,3 +115,10 @@ func _end_all_instances() -> void:
 
 func _is_running_instance(instance) -> bool:
 	return instance and instance.has_method("is_running") and instance.is_running()
+
+func _matches_instance_type(instance, type_value: String) -> bool:
+	if "type" in instance:
+		return instance.type == type_value
+	if instance.has_method("type"):
+		return instance.type() == type_value
+	return false

@@ -75,13 +75,13 @@ func get_field_computation_steps(field: String):
 		value = float(last_set.get("value", value))
 		steps.append(_create_step(last_set, "set", value))
 
-	for mod in grouped.muls:
-		value *= float(mod.get("value", 1.0))
-		steps.append(_create_step(mod, "multiply", value))
-
 	for mod in grouped.adds:
 		value += float(mod.get("value", 0.0))
 		steps.append(_create_step(mod, "add", value))
+
+	for mod in grouped.muls:
+		value *= float(mod.get("value", 1.0))
+		steps.append(_create_step(mod, "multiply", value))
 
 	return {
 		"field": field,
@@ -145,10 +145,10 @@ func _compute_value(base_value: float, grouped: Dictionary) -> float:
 	var value := base_value
 	if not grouped.sets.is_empty():
 		value = float(grouped.sets[-1].get("value", value))
-	for mod in grouped.muls:
-		value *= float(mod.get("value", 1.0))
 	for mod in grouped.adds:
 		value += float(mod.get("value", 0.0))
+	for mod in grouped.muls:
+		value *= float(mod.get("value", 1.0))
 	return value
 
 func _create_step(mod: Dictionary, operation: String, result_value: float) -> Dictionary:

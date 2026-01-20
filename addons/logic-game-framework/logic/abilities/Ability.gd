@@ -140,6 +140,8 @@ func receive_event(event: Dictionary, context: Dictionary, gameplay_state) -> vo
 	for component in _components:
 		if typeof(component) != TYPE_OBJECT:
 			continue
+		if not _is_active_component(component):
+			continue
 		if component.has_method("on_event"):
 			if component.on_event(event, context, gameplay_state):
 				triggered_components.append(_get_component_name(component))
@@ -225,6 +227,13 @@ func _resolve_components(inputs: Array) -> Array:
 
 func _is_executing_instance(instance) -> bool:
 	return instance and instance.has_method("is_executing") and instance.is_executing()
+
+func _is_active_component(component) -> bool:
+	if component.has_method("is_active"):
+		return component.is_active()
+	if component.has_method("get_state"):
+		return component.get_state() == "active"
+	return true
 
 func _get_component_name(component) -> String:
 	if component.has_method("get_type"):
