@@ -2,17 +2,13 @@ extends RefCounted
 class_name ExampleHeroAttributeSet
 
 var _raw: RawAttributeSet
-var _modifier_target: Dictionary
-var modifierTarget: Dictionary
 
 func _init() -> void:
-	var attr_set := AttributeFactory.define_attributes({
+	_raw = RawAttributeSet.new()
+	_raw.apply_config({
 		"attack": { "baseValue": 12.0 },
 		"maxHp": { "baseValue": 120.0 },
 	})
-	_raw = attr_set["_raw"] as RawAttributeSet
-	_modifier_target = attr_set["_modifierTarget"] as Dictionary
-	modifierTarget = _modifier_target
 
 
 var attack: float:

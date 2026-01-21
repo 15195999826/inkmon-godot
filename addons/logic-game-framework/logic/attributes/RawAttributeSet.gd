@@ -248,6 +248,32 @@ func get_global_hooks() -> Dictionary:
 func clear_global_hooks() -> void:
 	_global_hooks = {}
 
+func apply_config(config: Dictionary) -> void:
+	for name in config.keys():
+		var cfg: Dictionary = config[name]
+		define_attribute(
+			str(name),
+			float(cfg.get("baseValue", 0.0)),
+			cfg.get("minValue", null),
+			cfg.get("maxValue", null)
+		)
+
+func on_attribute_changed(attribute_name: String, callback: Callable) -> Callable:
+	var filtered_listener := func(event: Dictionary) -> void:
+		if event.get("attributeName", "") == attribute_name:
+			callback.call(event)
+	add_change_listener(filtered_listener)
+	return func() -> void:
+		remove_change_listener(filtered_listener)
+
+static func from_config(config: Dictionary) -> RawAttributeSet:
+	var attr_set := RawAttributeSet.new()
+	attr_set.apply_config(config)
+	return attr_set
+
+static func restore_attributes(data: Dictionary) -> RawAttributeSet:
+	return RawAttributeSet.deserialize(data)
+
 func serialize() -> Dictionary:
 	var result := {}
 	for name in _base_values.keys():

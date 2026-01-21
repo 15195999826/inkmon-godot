@@ -68,11 +68,10 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	lines.append("class_name %s" % set_class_name)
 	lines.append("")
 	lines.append("var _raw: RawAttributeSet")
-	lines.append("var _modifier_target: Dictionary")
-	lines.append("var modifierTarget: Dictionary")
 	lines.append("")
 	lines.append("func _init() -> void:")
-	lines.append("\tvar attr_set := AttributeFactory.define_attributes({")
+	lines.append("\t_raw = RawAttributeSet.new()")
+	lines.append("\t_raw.apply_config({")
 	
 	var attr_names: Array = attr_defs.keys()
 	attr_names.sort()
@@ -88,9 +87,6 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 		lines.append(line)
 
 	lines.append("\t})")
-	lines.append("\t_raw = attr_set[\"_raw\"] as RawAttributeSet")
-	lines.append("\t_modifier_target = attr_set[\"_modifierTarget\"] as Dictionary")
-	lines.append("\tmodifierTarget = _modifier_target")
 	lines.append("")
 
 	for attr_name in attr_names:

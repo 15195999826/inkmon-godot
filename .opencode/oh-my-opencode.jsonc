@@ -20,14 +20,16 @@
       // "model": "xaio/XAIO-C-4-5-Opus",
       // "model": "zhipuai-coding-plan/glm-4.7",
       // "model": "github-copilot/claude-opus-4.5",
-      "model": "xaio/XAIO-O-G5-2-Codex",
+      // "model": "xaio/XAIO-O-G5-2-Codex",
+      "model": "github-copilot/gpt-5.2-codex",
       "temperature": 0.1 // 低温度确保稳定的任务分配和决策
     },
     // ==================== 专家顾问 ====================
     // Oracle - 架构设计和深度调试 (只读顾问)
     // 需要严谨的逻辑推理，低温度
     "oracle": {
-      "model": "github-copilot/gpt-5.2-codex",
+      "model": "xaio/XAIO-O-G5-2-Codex",
+      // "model": "github-copilot/gpt-5.2-codex",
       // "model": "anthropic/claude-opus-4-5",
       // "model": "github-copilot/claude-opus-4.5",
       "temperature": 0.15 // 略高于 0.1 允许一些创造性建议
@@ -52,7 +54,7 @@
     },
     // Document Writer - 技术文档需要清晰但有表达力
     "document-writer": {
-      "model": "anthropic/claude-sonnet-4-5",
+      "model": "github-copilot/claude-sonnet-4.5",
       //  "model": "xaio/XAIO-C-4-5-Opus",
       //  "model": "xaio/XAIO-C-4-5-Sonnet"
       "temperature": 0.4 // 中等温度平衡准确性和可读性
@@ -61,6 +63,13 @@
     "multimodal-looker": {
       "model": "google/antigravity-gemini-3-flash",
       "temperature": 0.1 // 分析任务需要精确
+    }
+  },
+  "categories": {
+    "code-review": {
+      "model": "anthropic/claude-sonnet-4-5",
+      "temperature": 0.2,
+      "prompt_append": "review the code changes carefully and suggest improvements focusing on code quality, performance, and best practices."
     }
   },
   // ============================================================

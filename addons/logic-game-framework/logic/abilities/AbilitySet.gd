@@ -7,7 +7,7 @@ const REVOKE_REASON_REPLACED := "replaced"
 const REVOKE_REASON_MANUAL := "manual"
 
 var owner: ActorRef
-var _modifier_target = null
+var _attributes = null
 var _abilities: Array = []
 var tag_container: TagContainer
 var _on_granted_callbacks: Array = []
@@ -15,7 +15,7 @@ var _on_revoked_callbacks: Array = []
 
 func _init(config: Dictionary):
 	owner = config.get("owner")
-	_modifier_target = config.get("modifierTarget", null)
+	_attributes = config.get("attributes", null)
 	tag_container = TagContainer.create(owner.id)
 
 func get_event_processor() -> EventProcessor:
@@ -188,7 +188,7 @@ func serialize() -> Dictionary:
 func _create_lifecycle_context(ability: Ability) -> Dictionary:
 	return {
 		"owner": owner,
-		"attributes": _modifier_target,
+		"attributes": _attributes,
 		"ability": ability,
 		"abilitySet": self,
 		"eventProcessor": get_event_processor(),
@@ -220,10 +220,10 @@ func _notify_revoked(ability: Ability, reason: String, expire_reason: String) ->
 		else:
 			Log.error("AbilitySet", "Error in ability revoked callback")
 
-static func create(owner_value: ActorRef, modifier_target) -> AbilitySet:
+static func create(owner_value: ActorRef, attributes) -> AbilitySet:
 	return AbilitySet.new({
 		"owner": owner_value,
-		"modifierTarget": modifier_target,
+		"attributes": attributes,
 	})
 
 static func is_ability_set_provider(obj) -> bool:

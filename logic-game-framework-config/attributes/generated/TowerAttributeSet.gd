@@ -2,17 +2,13 @@ extends RefCounted
 class_name TowerAttributeSet
 
 var _raw: RawAttributeSet
-var _modifier_target: Dictionary
-var modifierTarget: Dictionary
 
 func _init() -> void:
-	var attr_set := AttributeFactory.define_attributes({
+	_raw = RawAttributeSet.new()
+	_raw.apply_config({
 		"maxHp": { "baseValue": 300.0 },
 		"range": { "baseValue": 5.0 },
 	})
-	_raw = attr_set["_raw"] as RawAttributeSet
-	_modifier_target = attr_set["_modifierTarget"] as Dictionary
-	modifierTarget = _modifier_target
 
 
 var maxHp: float:
