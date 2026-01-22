@@ -18,10 +18,10 @@
     "Sisyphus": {
       // "model": "anthropic/claude-opus-4-5",
       // "model": "xaio/XAIO-C-4-5-Opus",
-      // "model": "zhipuai-coding-plan/glm-4.7",
+      "model": "zhipuai-coding-plan/glm-4.7",
       // "model": "github-copilot/claude-opus-4.5",
       // "model": "xaio/XAIO-O-G5-2-Codex",
-      "model": "github-copilot/gpt-5.2-codex",
+      // "model": "github-copilot/gpt-5.2-codex",
       "temperature": 0.1 // 低温度确保稳定的任务分配和决策
     },
     // ==================== 专家顾问 ====================

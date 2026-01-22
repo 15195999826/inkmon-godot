@@ -64,9 +64,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	var target = targets[0] if targets.size() > 0 else null
 
-	var projectile_config := ParamResolver.resolve_param(projectile_config_resolver.call(ctx), ctx)
-	var direction_value := ParamResolver.resolve_param(direction_resolver.call(ctx), ctx)
-	var custom_data_value := ParamResolver.resolve_param(custom_data_resolver.call(ctx), ctx)
+	var projectile_config_raw = projectile_config_resolver.call(ctx)
+	var direction_raw = direction_resolver.call(ctx)
+	var custom_data_raw = custom_data_resolver.call(ctx)
+
+	var projectile_config: Dictionary = projectile_config_raw if projectile_config_raw is Dictionary else {}
+	var direction_value: Variant = direction_raw
+	var custom_data_value: Variant = custom_data_raw if custom_data_raw else {}
 
 	var source = ctx.ability.source if ctx.ability else {"id": "unknown"}
 
