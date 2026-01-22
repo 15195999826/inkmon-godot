@@ -11,22 +11,23 @@ func _init(modifier_configs: Array):
 	modifier_prefix = IdGenerator.generate("statmod")
 	type = "StatModifierComponent"
 
-func on_apply(context) -> void:
-	applied_modifiers = []
+	func on_apply(context) -> void:
+		applied_modifiers = []
 
-	for i in range(configs.size()):
-		var config = configs[i]
-		var modifier := AttributeModifier._create_modifier(
-			"%s_%d" % [modifier_prefix, i],
-			config.get("attributeName", ""),
-			config.get("modifierType", ""),
-			config.get("value", 0.0) * current_scale,
-			context.ability.id
-		)
-		applied_modifiers.append(modifier)
+		for i in range(configs.size()):
+			var config = configs[i]
+			var modifier = AttributeModifier._create_modifier(
+				"%s_%d" % [modifier_prefix, i],
+				config.get("attributeName", ""),
+				config.get("modifierType", ""),
+				config.get("value", 0.0) * current_scale,
+				context.ability.id
+			)
+			if modifier:
+				applied_modifiers.append(modifier)
 
-	for modifier in applied_modifiers:
-		context.attributes.add_modifier(modifier)
+		for modifier in applied_modifiers:
+			context.attributes.add_modifier(modifier)
 
 func on_remove(context) -> void:
 	context.attributes.remove_modifiers_by_source(context.ability.id)

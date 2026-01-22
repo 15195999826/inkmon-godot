@@ -7,7 +7,7 @@ const PROJECTILE_MISS_EVENT := "projectileMiss"
 const PROJECTILE_DESPAWN_EVENT := "projectileDespawn"
 const PROJECTILE_PIERCE_EVENT := "projectilePierce"
 
-static func create_projectile_launched_event(projectile_id: String, source, start_position: Vector3, projectile_type: String, speed: float, target = null, target_position: Vector3 = Vector3.ZERO, has_target_position: bool = false) -> Dictionary:
+static func create_projectile_launched_event(projectile_id: String, source, start_position: Vector3, projectile_type: String, speed: float, target = null, target_position = null) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_LAUNCHED_EVENT,
 		"projectileId": projectile_id,
@@ -18,7 +18,7 @@ static func create_projectile_launched_event(projectile_id: String, source, star
 	}
 	if target != null:
 		payload["target"] = target
-	if has_target_position:
+	if target_position != null and target_position is Vector3 and target_position != Vector3.ZERO:
 		payload["targetPosition"] = target_position
 	return payload
 

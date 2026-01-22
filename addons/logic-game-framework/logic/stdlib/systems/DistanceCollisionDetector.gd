@@ -11,6 +11,7 @@ func detect(projectile: ProjectileActor, potential_targets: Array) -> Dictionary
 		return {"hit": false}
 
 	var projectile_pos = projectile.position
+	var z_coord = projectile_pos.z if typeof(projectile_pos) == TYPE_VECTOR3 else 0.0
 
 	for target in potential_targets:
 		if not target.position:
@@ -24,7 +25,7 @@ func detect(projectile: ProjectileActor, potential_targets: Array) -> Dictionary
 			return {
 				"hit": true,
 				"target": target.to_ref(),
-				"hitPosition": Vector3(projectile_pos.x, projectile_pos.y, projectile.position.z if projectile.position.z else 0.0),
+				"hitPosition": Vector3(projectile_pos.x, projectile_pos.y, z_coord),
 			}
 
 	return {"hit": false}

@@ -116,6 +116,14 @@ func _mark_for_removal(projectile: ProjectileActor) -> void:
 	pending_removal[projectile.id] = true
 
 func _process_pending_removal(actors: Array) -> void:
+	# Remove marked projectiles from actors array
+	var i = 0
+	while i < actors.size():
+		var actor = actors[i]
+		if actor is ProjectileActor and pending_removal.has(actor.id):
+			actors.remove_at(i)
+		else:
+			i += 1
 	pending_removal.clear()
 
 func _emit_hit_event(projectile: ProjectileActor, target, hit_position: Vector3) -> void:

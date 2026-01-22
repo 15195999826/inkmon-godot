@@ -131,10 +131,19 @@ func _subscribe_actor(actor) -> void:
 	if not actor.has_method("setupRecording"):
 		return
 
+	var state := {
+		"current_frame": current_frame,
+		"tick_interval": config.get("tickInterval", 100),
+		"pending_events": pending_events,
+		"is_recording": is_recording,
+	}
+
 	var ctx = {
 		"actorId": actor_id,
-		"getLogicTime": func(): return current_frame * config.get("tickInterval",100),
-		"pushEvent": func(event): pending_events.append(event),
+		"getLogicTime": func(): return state.current_frame * state.tick_interval,
+		"pushEvent": func(event):
+			if state.is_recording:
+				state.pending_events.append(event),
 	}
 
 	var unsubscribes := []

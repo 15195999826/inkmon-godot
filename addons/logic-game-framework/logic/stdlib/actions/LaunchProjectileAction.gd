@@ -37,6 +37,8 @@ func _init(params: Dictionary):
 		custom_data_resolver = func(_ctx): return null
 
 func _get_position_resolver(resolver) -> Callable:
+	if resolver == null:
+		return func(_ctx): return null
 	if resolver is Callable:
 		return resolver
 	if resolver is Vector3:
@@ -57,7 +59,7 @@ func on_projectile_pierce(action) -> LaunchProjectileAction:
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var start_position := start_position_resolver.call(ctx)
-	if not (start_position is Vector3):
+	if start_position == null:
 		return ActionResult.create_failure_result("Cannot resolve start position")
 
 	var target_position = target_position_resolver.call(ctx)
@@ -69,8 +71,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var custom_data_raw = custom_data_resolver.call(ctx)
 
 	var projectile_config: Dictionary = projectile_config_raw if projectile_config_raw is Dictionary else {}
-	var direction_value: Variant = direction_raw
-	var custom_data_value: Variant = custom_data_raw if custom_data_raw else {}
+	var direction_value = direction_raw
+	var custom_data_value = custom_data_raw if custom_data_raw else {}
 
 	var source = ctx.ability.source if ctx.ability else {"id": "unknown"}
 

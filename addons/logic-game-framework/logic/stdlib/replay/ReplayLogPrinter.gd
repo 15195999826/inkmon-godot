@@ -32,7 +32,7 @@ static func print_record(record: Dictionary) -> void:
 
 	print("## Timeline (%d frames with events)" % timeline.size())
 	for frame_data in timeline:
-		var frame_val = frame_data.get("frame",0)
+		var frame_val = frame_data.get("frame", 0)
 		var events = frame_data.get("events", [])
 		if events.is_empty():
 			continue
