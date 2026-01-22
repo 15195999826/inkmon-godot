@@ -35,8 +35,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		if target is Dictionary and target.has("id"):
 			target_actor_ids.append(target.id)
 
-	var cue_id := ParamResolver.resolve_param(cue_id_resolver.call(ctx), ctx)
-	var params_value := ParamResolver.resolve_param(params_resolver.call(ctx), ctx)
+	var cue_id = ParamResolver.resolve_param(cue_id_resolver.call(ctx), ctx)
+	var params_value = ParamResolver.resolve_param(params_resolver.call(ctx), ctx)
 
 	var event = GameEvent.create_stage_cue_event(
 		source_actor_id,
