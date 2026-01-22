@@ -1,8 +1,6 @@
 extends RefCounted
 class_name Actor
 
-const ActorRef = preload("res://addons/logic-game-framework/logic/types/ActorRef.gd")
-
 var _id: String = ""
 var type: String = "actor"
 var _state: String = "active"

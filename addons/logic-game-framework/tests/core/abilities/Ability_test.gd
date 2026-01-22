@@ -64,9 +64,8 @@ func _test_triggered_listener() -> void:
 	TestFramework.assert_equal("TestComponent", result["components"][0])
 
 func _test_execution_instances() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
-	TimelineRegistry.set_timeline_registry(registry)
+	TimelineRegistry.reset()
+	TimelineRegistry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
 
 	var owner := ActorRef.new("actor-3")
 	var ability := Ability.new({ "configId": "blink", "components": [] }, owner)

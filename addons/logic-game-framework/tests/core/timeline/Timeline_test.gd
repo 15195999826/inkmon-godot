@@ -5,15 +5,14 @@ func _init() -> void:
 	TestFramework.register_test("TimelineRegistry validates timelines", _test_validate)
 
 func _test_register() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({ "id": "timeline-1", "totalDuration": 1.0, "tags": { "start": 0.0 } })
-	TimelineRegistry.set_timeline_registry(registry)
+	TimelineRegistry.reset()
+	TimelineRegistry.register({ "id": "timeline-1", "totalDuration": 1.0, "tags": { "start": 0.0 } })
 
-	TestFramework.assert_true(registry.has("timeline-1"))
-	TestFramework.assert_true(registry.get_timeline("timeline-1") != null)
-	TestFramework.assert_equal(1, registry.get_all_ids().size())
+	TestFramework.assert_true(TimelineRegistry.has("timeline-1"))
+	TestFramework.assert_true(TimelineRegistry.get_timeline("timeline-1") != null)
+	TestFramework.assert_equal(1, TimelineRegistry.get_all_ids().size())
 
-	var tags := TimelineRegistry.get_sorted_tags(registry.get_timeline("timeline-1"))
+	var tags := TimelineRegistry.get_sorted_tags(TimelineRegistry.get_timeline("timeline-1"))
 	TestFramework.assert_equal(1, tags.size())
 	TestFramework.assert_equal("start", tags[0]["name"])
 

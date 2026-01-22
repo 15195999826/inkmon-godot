@@ -9,6 +9,10 @@ const AUTOLOAD_LOG := "Log"
 const AUTOLOAD_LOG_PATH := "res://addons/logic-game-framework/logic/utils/Logger.gd"
 const AUTOLOAD_ID_GENERATOR := "IdGenerator"
 const AUTOLOAD_ID_GENERATOR_PATH := "res://addons/logic-game-framework/logic/utils/IdGenerator.gd"
+const AUTOLOAD_GAME_WORLD := "GameWorld"
+const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/logic/world/GameWorld.gd"
+const AUTOLOAD_TIMELINE_REGISTRY := "TimelineRegistry"
+const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/logic/timeline/Timeline.gd"
 
 var _menu: PopupMenu
 
@@ -44,10 +48,14 @@ func _run_attribute_set_generator() -> void:
 func _register_autoloads() -> void:
 	_ensure_autoload(AUTOLOAD_LOG, AUTOLOAD_LOG_PATH)
 	_ensure_autoload(AUTOLOAD_ID_GENERATOR, AUTOLOAD_ID_GENERATOR_PATH)
+	_ensure_autoload(AUTOLOAD_GAME_WORLD, AUTOLOAD_GAME_WORLD_PATH)
+	_ensure_autoload(AUTOLOAD_TIMELINE_REGISTRY, AUTOLOAD_TIMELINE_REGISTRY_PATH)
 
 func _unregister_autoloads() -> void:
 	_remove_autoload_if_matches(AUTOLOAD_LOG, AUTOLOAD_LOG_PATH)
 	_remove_autoload_if_matches(AUTOLOAD_ID_GENERATOR, AUTOLOAD_ID_GENERATOR_PATH)
+	_remove_autoload_if_matches(AUTOLOAD_GAME_WORLD, AUTOLOAD_GAME_WORLD_PATH)
+	_remove_autoload_if_matches(AUTOLOAD_TIMELINE_REGISTRY, AUTOLOAD_TIMELINE_REGISTRY_PATH)
 
 func _ensure_autoload(name: String, path: String) -> void:
 	if ProjectSettings.has_setting("autoload/%s" % name):

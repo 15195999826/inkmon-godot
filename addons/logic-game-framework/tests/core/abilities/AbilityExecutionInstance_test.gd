@@ -15,8 +15,8 @@ func _init() -> void:
 	TestFramework.register_test("AbilityExecutionInstance completes and cancels", _test_complete_cancel)
 
 func _test_trigger_tags() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-tags",
 		"totalDuration": 1.0,
 		"tags": {
@@ -24,7 +24,6 @@ func _test_trigger_tags() -> void:
 			"impact": 0.5,
 		},
 	})
-	TimelineRegistry.set_timeline_registry(registry)
 	GameWorld.init()
 
 	var action := TestAction.new()
@@ -55,15 +54,14 @@ func _test_trigger_tags() -> void:
 	TestFramework.assert_equal(2, action.calls.size())
 
 func _test_wildcard() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-wild",
 		"totalDuration": 1.0,
 		"tags": {
 			"hit-1": 0.2,
 		},
 	})
-	TimelineRegistry.set_timeline_registry(registry)
 	GameWorld.init()
 
 	var action := TestAction.new()
@@ -88,13 +86,12 @@ func _test_wildcard() -> void:
 	TestFramework.assert_equal(1, action.calls.size())
 
 func _test_complete_cancel() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-complete",
 		"totalDuration": 0.1,
 		"tags": {},
 	})
-	TimelineRegistry.set_timeline_registry(registry)
 
 	var instance := AbilityExecutionInstance.new({
 		"timelineId": "t-complete",
@@ -108,13 +105,12 @@ func _test_complete_cancel() -> void:
 	instance.tick(0.1)
 	TestFramework.assert_true(instance.is_completed())
 
-	var registry_cancel := TimelineRegistry.new()
-	registry_cancel.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-cancel",
 		"totalDuration": 1.0,
 		"tags": {},
 	})
-	TimelineRegistry.set_timeline_registry(registry_cancel)
 
 	var cancelled := AbilityExecutionInstance.new({
 		"timelineId": "t-cancel",

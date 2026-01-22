@@ -34,7 +34,7 @@ func _init() -> void:
 
 func _test_world_instances() -> void:
 	GameWorld.init()
-	var world = GameWorld.get_instance()
+	var world = GameWorld
 	var instance = world.create_instance(func():
 		return DummyInstance.new("inst-1")
 	)

@@ -58,7 +58,7 @@ func _build_execution_context(event: Dictionary, context: Dictionary, gameplay_s
 	return ExecutionContext.create_execution_context({
 		"eventChain": [event],
 		"gameplayState": gameplay_state,
-		"eventCollector": GameWorld.get_instance().event_collector,
+		"eventCollector": GameWorld.event_collector,
 		"ability": {
 			"id": ability.id if ability != null else "",
 			"configId": ability.config_id if ability != null else "",

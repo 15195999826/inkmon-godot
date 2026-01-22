@@ -1,35 +1,25 @@
-extends RefCounted
-class_name GameWorld
-
-static var _instance: GameWorld = null
+extends Node
 
 var _instances: Dictionary = {}
 var event_processor: EventProcessor
 var event_collector: EventCollector
 var _initialized := false
 
-func _init(config: Dictionary = {}):
-	event_processor = EventProcessor.create_event_processor(config.get("eventProcessor", {}))
+func _init():
+	event_processor = EventProcessor.create_event_processor({})
 	event_collector = EventCollector.new()
 
-static func init(config: Dictionary = {}) -> GameWorld:
-	if _instance:
+func init(config: Dictionary = {}) -> void:
+	if _initialized:
 		Log.warning("GameWorld", "GameWorld already initialized, reinitializing...")
-		_instance.shutdown()
-	_instance = GameWorld.new(config)
-	_instance.initialize()
-	return _instance
+		shutdown()
+	event_processor = EventProcessor.create_event_processor(config.get("eventProcessor", {}))
+	event_collector = EventCollector.new()
+	initialize()
 
-static func get_instance() -> GameWorld:
-	if not _instance:
-		_instance = GameWorld.new()
-		_instance.initialize()
-	return _instance
-
-static func destroy() -> void:
-	if _instance:
-		_instance.shutdown()
-		_instance = null
+func destroy() -> void:
+	if _initialized:
+		shutdown()
 
 func initialize() -> void:
 	if _initialized:

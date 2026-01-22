@@ -19,7 +19,7 @@ var _triggered_tags: Dictionary = {}
 func _init(config: Dictionary):
 	id = IdGenerator.generate("execution")
 	timeline_id = str(config.get("timelineId", ""))
-	_timeline = TimelineRegistry.get_timeline_registry().get_timeline(timeline_id)
+	_timeline = TimelineRegistry.get_timeline(timeline_id)
 	_tag_actions = config.get("tagActions", {})
 	_event_chain = config.get("eventChain", [])
 	_gameplay_state = config.get("gameplayState", null)
@@ -126,7 +126,7 @@ func _build_execution_context(current_tag: String):
 	return ExecutionContext.create_execution_context({
 		"eventChain": _event_chain,
 		"gameplayState": _gameplay_state,
-		"eventCollector": GameWorld.get_instance().event_collector,
+		"eventCollector": GameWorld.event_collector,
 		"ability": {
 			"id": _ability_info.get("id", ""),
 			"configId": _ability_info.get("configId", ""),

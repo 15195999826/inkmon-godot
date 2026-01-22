@@ -22,7 +22,7 @@ func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
 	return ExecutionContext.create_execution_context({
 		"eventChain": [event],
 		"gameplayState": state,
-		"eventCollector": GameWorld.get_instance().event_collector,
+		"eventCollector": GameWorld.event_collector,
 		"ability": {},
 	})
 

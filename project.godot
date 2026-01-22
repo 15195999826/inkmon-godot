@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 Log="*uid://dmtf3o6rxb83"
 IdGenerator="*uid://dxrx1d5qcxo75"
+GameWorld="*uid://bg0r8jxi1runb"
+TimelineRegistry="*uid://ljxq0i0ntjqp"
 
 [editor_plugins]
 

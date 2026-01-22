@@ -1,5 +1,4 @@
-extends RefCounted
-class_name TimelineRegistry
+extends Node
 
 var _timelines: Dictionary = {}
 
@@ -25,13 +24,8 @@ func has(timeline_id: String) -> bool:
 func get_all_ids() -> Array:
 	return _timelines.keys()
 
-static var _global_registry: TimelineRegistry = TimelineRegistry.new()
-
-static func get_timeline_registry() -> TimelineRegistry:
-	return _global_registry
-
-static func set_timeline_registry(registry: TimelineRegistry) -> void:
-	_global_registry = registry if registry else TimelineRegistry.new()
+func reset() -> void:
+	_timelines = {}
 
 static func get_tag_time(timeline: Dictionary, tag_name: String):
 	var tags = timeline.get("tags", {})

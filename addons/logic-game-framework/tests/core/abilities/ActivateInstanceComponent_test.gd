@@ -5,13 +5,12 @@ func _init() -> void:
 	TestFramework.register_test("ActivateInstanceComponent all trigger", _test_all_trigger)
 
 func _test_any_trigger() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-any",
 		"totalDuration": 1.0,
 		"tags": {},
 	})
-	TimelineRegistry.set_timeline_registry(registry)
 
 	var owner := ActorRef.new("actor-1")
 	var component := ActivateInstanceComponent.new({
@@ -38,13 +37,12 @@ func _test_any_trigger() -> void:
 	TestFramework.assert_equal(1, ability.get_executing_instances().size())
 
 func _test_all_trigger() -> void:
-	var registry := TimelineRegistry.new()
-	registry.register({
+	TimelineRegistry.reset()
+	TimelineRegistry.register({
 		"id": "t-all",
 		"totalDuration": 1.0,
 		"tags": {},
 	})
-	TimelineRegistry.set_timeline_registry(registry)
 
 	var owner := ActorRef.new("actor-2")
 	var component := ActivateInstanceComponent.new({

@@ -19,7 +19,7 @@ func _init(config: Dictionary):
 	tag_container = TagContainer.create(owner.id)
 
 func get_event_processor() -> EventProcessor:
-	return GameWorld.get_instance().event_processor
+	return GameWorld.event_processor
 
 func add_loose_tag(tag: String, stacks: int = 1) -> void:
 	tag_container.add_loose_tag(tag, stacks)
