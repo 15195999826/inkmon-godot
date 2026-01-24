@@ -124,6 +124,10 @@ static func is_death_event(event: Dictionary) -> bool:
 	return event.get("kind") == "death"
 
 
+static func is_stage_cue_event(event: Dictionary) -> bool:
+	return event.get("kind") == "stageCue"
+
+
 # ========== 辅助函数 ==========
 
 static func _damage_type_to_string(damage_type: DamageType) -> String:

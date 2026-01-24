@@ -32,8 +32,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets = get_targets(ctx)
 	var target_actor_ids := []
 	for target in targets:
-		if target is Dictionary and target.has("id"):
+		# 支持 ActorRef 对象和 Dictionary 两种格式
+		if target is ActorRef:
 			target_actor_ids.append(target.id)
+		elif target is Dictionary and target.has("id"):
+			target_actor_ids.append(target["id"])
 
 	var cue_id_raw = cue_id_resolver.call(ctx)
 	var params_raw = params_resolver.call(ctx)
@@ -48,7 +51,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		params_value
 	)
 
-	ctx.eventCollector.push(event)
+	ctx.event_collector.push(event)
 
 	return ActionResult.create_success_result([event])
 

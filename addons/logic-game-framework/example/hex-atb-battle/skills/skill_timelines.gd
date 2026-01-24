@@ -38,11 +38,12 @@ static var MOVE_TIMELINE := {
 
 
 ## 横扫斩 Timeline
-## - 近战攻击，0.3s 时命中
+## - 近战攻击，0ms 发送动画提示，0.3s 时命中
 static var SLASH_TIMELINE := {
 	"id": "skill_slash",
 	"totalDuration": 500.0,
 	"tags": {
+		"start": 0.0,  # 0ms 发送 stageCue 给表演层
 		"hit": 300.0,  # 300ms 时造成伤害
 		"end": 500.0,
 	},
@@ -50,11 +51,12 @@ static var SLASH_TIMELINE := {
 
 
 ## 精准射击 Timeline
-## - 远程攻击，0.3s 发射箭矢，0.5s 时命中
+## - 远程攻击，0ms 发送动画提示，0.3s 发射箭矢，0.5s 时命中
 static var PRECISE_SHOT_TIMELINE := {
 	"id": "skill_precise_shot",
 	"totalDuration": 800.0,
 	"tags": {
+		"start": 0.0,     # 0ms 发送 stageCue 给表演层
 		"launch": 300.0,  # 300ms 时发射箭矢
 		"hit": 500.0,     # 500ms 时命中（如果是瞬时伤害的话）
 		"end": 800.0,
@@ -63,11 +65,12 @@ static var PRECISE_SHOT_TIMELINE := {
 
 
 ## 火球术 Timeline
-## - 远程魔法，0.4s 发射火球，0.8s 时命中
+## - 远程魔法，0ms 发送动画提示，0.2s 施法，0.4s 发射火球，0.8s 时命中
 static var FIREBALL_TIMELINE := {
 	"id": "skill_fireball",
 	"totalDuration": 1200.0,
 	"tags": {
+		"start": 0.0,     # 0ms 发送 stageCue 给表演层
 		"cast": 200.0,    # 施法动作
 		"launch": 400.0,  # 400ms 时发射火球
 		"hit": 800.0,     # 800ms 时命中（如果是瞬时伤害的话）
@@ -77,11 +80,12 @@ static var FIREBALL_TIMELINE := {
 
 
 ## 毁灭重击 Timeline
-## - 近战重击，0.6s 时命中
+## - 近战重击，0ms 发送动画提示，0.3s 蓄力，0.6s 时命中
 static var CRUSHING_BLOW_TIMELINE := {
 	"id": "skill_crushing_blow",
 	"totalDuration": 1000.0,
 	"tags": {
+		"start": 0.0,     # 0ms 发送 stageCue 给表演层
 		"windup": 300.0,  # 蓄力
 		"hit": 600.0,     # 命中
 		"end": 1000.0,
@@ -90,11 +94,12 @@ static var CRUSHING_BLOW_TIMELINE := {
 
 
 ## 疾风连刺 Timeline
-## - 快速近战，多段伤害
+## - 快速近战，0ms 发送动画提示，多段伤害
 static var SWIFT_STRIKE_TIMELINE := {
 	"id": "skill_swift_strike",
 	"totalDuration": 400.0,
 	"tags": {
+		"start": 0.0,   # 0ms 发送 stageCue 给表演层
 		"hit1": 100.0,  # 第一击
 		"hit2": 200.0,  # 第二击
 		"hit3": 300.0,  # 第三击
@@ -104,11 +109,12 @@ static var SWIFT_STRIKE_TIMELINE := {
 
 
 ## 圣光治愈 Timeline
-## - 远程治疗，0.4s 时生效
+## - 远程治疗，0ms 发送动画提示，0.4s 时生效
 static var HOLY_HEAL_TIMELINE := {
 	"id": "skill_holy_heal",
 	"totalDuration": 600.0,
 	"tags": {
+		"start": 0.0,   # 0ms 发送 stageCue 给表演层
 		"heal": 400.0,  # 治疗生效
 		"end": 600.0,
 	},

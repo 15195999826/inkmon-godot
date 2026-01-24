@@ -97,6 +97,10 @@ static var SLASH_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["slash"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["SLASH"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "melee_slash",
+					})],
 					"hit": [HexBattleDamageAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"damage": 50.0,
@@ -121,6 +125,10 @@ static var PRECISE_SHOT_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["precise_shot"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["PRECISE_SHOT"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "ranged_arrow",
+					})],
 					"hit": [HexBattleDamageAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"damage": 45.0,
@@ -145,6 +153,10 @@ static var FIREBALL_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["fireball"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["FIREBALL"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "magic_fireball",
+					})],
 					"hit": [HexBattleDamageAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"damage": 80.0,
@@ -169,6 +181,10 @@ static var CRUSHING_BLOW_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["crushing_blow"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["CRUSHING_BLOW"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "melee_heavy",
+					})],
 					"hit": [HexBattleDamageAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"damage": 90.0,
@@ -193,6 +209,11 @@ static var SWIFT_STRIKE_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["swift_strike"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["SWIFT_STRIKE"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "melee_combo",
+						"params": { "hits": 3 },
+					})],
 					"hit1": [HexBattleDamageAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"damage": 10.0,
@@ -227,6 +248,10 @@ static var HOLY_HEAL_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["holy_heal"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["HOLY_HEAL"],
 				"tagActions": {
+					"start": [StageCueAction.new({
+						"targetSelector": HexBattleSkillAbilities.default_target_selector,
+						"cueId": "magic_heal",
+					})],
 					"heal": [HexBattleHealAction.new({
 						"targetSelector": HexBattleSkillAbilities.default_target_selector,
 						"heal_amount": 40.0,
