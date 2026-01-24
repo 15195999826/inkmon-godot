@@ -39,7 +39,7 @@ func _test_apply_loose() -> void:
 	var action := TagAction.ApplyTagAction.new(
 		TargetSelector.fixed([owner]),
 		"combo",
-		2  # stacks
+		Resolvers.int_val(2)  # stacks
 	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
@@ -55,8 +55,8 @@ func _test_apply_auto_duration() -> void:
 	var action := TagAction.ApplyTagAction.new(
 		TargetSelector.fixed([owner]),
 		"window",
-		1,    # stacks
-		5.0   # duration
+		Resolvers.int_val(1),    # stacks
+		Resolvers.float_val(5.0)   # duration
 	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
@@ -75,7 +75,7 @@ func _test_remove_tag() -> void:
 	var action := TagAction.RemoveTagAction.new(
 		TargetSelector.fixed([owner]),
 		"charge",
-		1  # stacks to remove
+		Resolvers.int_val(1)  # stacks to remove
 	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)

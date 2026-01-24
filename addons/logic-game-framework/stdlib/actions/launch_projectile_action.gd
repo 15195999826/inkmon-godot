@@ -7,57 +7,34 @@ var _hit_callbacks: Array = []
 var _miss_callbacks: Array = []
 var _pierce_callbacks: Array = []
 
-var projectile_config_resolver: Callable
-var start_position_resolver: Callable
-var target_position_resolver: Callable
-var direction_resolver: Callable
-var custom_data_resolver: Callable
+var _projectile_config: DictResolver
+var _start_position: Vector3Resolver
+var _target_position: Vector3Resolver
+var _direction: Vector3Resolver
+var _custom_data: DictResolver
 
 ## 构造函数
 ## @param target_selector: 目标选择器
-## @param projectile_config: 投射物配置（Dictionary 或 Callable）
-## @param start_position: 起始位置解析器（Vector3 或 Callable），可选
-## @param target_position: 目标位置解析器（Vector3 或 Callable），可选
-## @param direction: 方向解析器（Callable），可选
-## @param custom_data: 自定义数据解析器（Callable），可选
+## @param projectile_config: 投射物配置解析器
+## @param start_position: 起始位置解析器，可选（null 表示需要从 ctx 获取）
+## @param target_position: 目标位置解析器，可选（null 表示需要从 ctx 获取）
+## @param direction: 方向解析器，可选
+## @param custom_data: 自定义数据解析器，可选
 func _init(
 	target_selector: TargetSelector,
-	projectile_config: Variant = {},
-	start_position: Variant = null,
-	target_position: Variant = null,
-	direction: Variant = null,
-	custom_data: Variant = null
+	projectile_config: DictResolver = Resolvers.dict_val({}),
+	start_position: Vector3Resolver = null,
+	target_position: Vector3Resolver = null,
+	direction: Vector3Resolver = null,
+	custom_data: DictResolver = Resolvers.dict_val({})
 ) -> void:
 	super._init(target_selector)
 	type = TYPE
-
-	if projectile_config is Callable:
-		projectile_config_resolver = projectile_config
-	else:
-		projectile_config_resolver = func(_ctx): return projectile_config
-
-	start_position_resolver = _get_position_resolver(start_position)
-	target_position_resolver = _get_position_resolver(target_position)
-
-	if direction is Callable:
-		direction_resolver = direction
-	else:
-		direction_resolver = func(_ctx): return null
-
-	if custom_data is Callable:
-		custom_data_resolver = custom_data
-	else:
-		custom_data_resolver = func(_ctx): return null
-
-
-func _get_position_resolver(resolver) -> Callable:
-	if resolver == null:
-		return func(_ctx): return null
-	if resolver is Callable:
-		return resolver
-	if resolver is Vector3:
-		return func(_ctx): return resolver
-	return func(_ctx): return null
+	_projectile_config = projectile_config
+	_start_position = start_position
+	_target_position = target_position
+	_direction = direction
+	_custom_data = custom_data
 
 
 func on_projectile_hit(action: Action.BaseAction) -> LaunchProjectileAction:
@@ -76,21 +53,25 @@ func on_projectile_pierce(action: Action.BaseAction) -> LaunchProjectileAction:
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var start_position := start_position_resolver.call(ctx)
-	if start_position == null:
-		return ActionResult.create_failure_result("Cannot resolve start position")
+	# 解析起始位置（必需）
+	if _start_position == null:
+		return ActionResult.create_failure_result("start_position resolver is required")
+	var start_position := _start_position.resolve(ctx)
 
-	var target_position = target_position_resolver.call(ctx)
+	# 解析目标位置（可选）
+	var target_position: Vector3 = Vector3.ZERO
+	if _target_position != null:
+		target_position = _target_position.resolve(ctx)
+
 	var targets := get_targets(ctx)
 	var target = targets[0] if targets.size() > 0 else null
 
-	var projectile_config_raw = projectile_config_resolver.call(ctx)
-	var direction_raw = direction_resolver.call(ctx)
-	var custom_data_raw = custom_data_resolver.call(ctx)
-
-	var projectile_config: Dictionary = projectile_config_raw if projectile_config_raw is Dictionary else {}
-	var direction_value = direction_raw
-	var custom_data_value = custom_data_raw if custom_data_raw else {}
+	# 解析其他参数
+	var projectile_config := _projectile_config.resolve(ctx)
+	var direction_value: Vector3 = Vector3.ZERO
+	if _direction != null:
+		direction_value = _direction.resolve(ctx)
+	var custom_data_value := _custom_data.resolve(ctx)
 
 	var source = ctx.ability.source if ctx.ability else {"id": "unknown"}
 
@@ -164,33 +145,42 @@ func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -
 	return events
 
 
-static func create_actor_position_resolver(actor_ref_resolver: Callable) -> Callable:
-	return func(ctx: ExecutionContext):
+## 创建从 Actor 获取位置的解析器
+static func create_actor_position_resolver(actor_ref_resolver: Callable) -> Vector3Resolver:
+	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
 		var actor_ref = actor_ref_resolver.call(ctx)
 		if not (actor_ref is Dictionary) or not actor_ref.has("id"):
-			return null
+			return Vector3.ZERO
 
 		var state = ctx.gameplay_state
 		if state and state.has_method("get_actor"):
 			var actor = state.get_actor(actor_ref.id)
 			if actor and actor.has("position"):
 				return actor.position
-		return null
+		return Vector3.ZERO
+	)
 
 
-static func create_fixed_position_resolver(position: Vector3) -> Callable:
-	return func(_ctx): return position
+## 创建固定位置的解析器
+static func create_fixed_position_resolver(position: Vector3) -> Vector3Resolver:
+	return Resolvers.vec3_val(position)
 
 
-static func source_position_resolver(ctx: ExecutionContext) -> Vector3:
-	var event = ctx.get_current_event()
-	if event and event.has("sourcePosition"):
-		return event.sourcePosition
-	return Vector3.ZERO
+## 从事件中获取源位置的解析器
+static func source_position_resolver() -> Vector3Resolver:
+	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
+		var event = ctx.get_current_event()
+		if event and event.has("sourcePosition"):
+			return event.sourcePosition
+		return Vector3.ZERO
+	)
 
 
-static func get_target_position_from_event(ctx: ExecutionContext) -> Vector3:
-	var event = ctx.get_current_event()
-	if event and event.has("targetPosition"):
-		return event.targetPosition
-	return Vector3.ZERO
+## 从事件中获取目标位置的解析器
+static func target_position_resolver() -> Vector3Resolver:
+	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
+		var event = ctx.get_current_event()
+		if event and event.has("targetPosition"):
+			return event.targetPosition
+		return Vector3.ZERO
+	)

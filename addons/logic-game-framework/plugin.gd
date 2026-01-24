@@ -10,13 +10,13 @@ const DEPENDENCIES: Array[String] = ["hex-grid", "lomolib"]
 
 const MENU_NAME := "LGFramework"
 const MENU_ITEM_GENERATE := 1
-const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/AttributeSetGeneratorScript.gd"
+const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/attribute_set_generator_script.gd"
 
 # Log 和 IdGenerator 已移至 lomolib 插件
 const AUTOLOAD_GAME_WORLD := "GameWorld"
-const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/core/world/GameWorld.gd"
+const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/core/world/game_world.gd"
 const AUTOLOAD_TIMELINE_REGISTRY := "TimelineRegistry"
-const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/core/timeline/Timeline.gd"
+const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/core/timeline/timeline.gd"
 
 var _menu: PopupMenu
 

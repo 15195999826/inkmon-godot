@@ -5,15 +5,15 @@ class_name HexBattleApplyMoveAction
 extends Action.BaseAction
 
 
-var _target_coord: Variant  # Dictionary 或 Callable
+var _target_coord: DictResolver
 
 
 ## 构造函数
 ## @param target_selector: 目标选择器（移动的 Actor）
-## @param target_coord: 目标坐标（Dictionary 或 Callable）
+## @param target_coord: 目标坐标解析器
 func _init(
 	target_selector: TargetSelector,
-	target_coord: Variant  # Dictionary 或 Callable
+	target_coord: DictResolver
 ) -> void:
 	super._init(target_selector)
 	type = "apply_move"
@@ -24,7 +24,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	
 	# 解析目标坐标
-	var target_coord := _resolve_coord(_target_coord, ctx)
+	var target_coord := _target_coord.resolve(ctx)
 	
 	if target_coord == null or target_coord.is_empty():
 		push_warning("  [ApplyMoveAction] 目标坐标未定义")
@@ -86,9 +86,4 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	return ActionResult.create_success_result(all_events, { "target_coord": target_coord })
 
 
-func _resolve_coord(value: Variant, ctx: ExecutionContext) -> Dictionary:
-	if value is Callable:
-		return value.call(ctx) as Dictionary
-	if value is Dictionary:
-		return value
-	return {}
+

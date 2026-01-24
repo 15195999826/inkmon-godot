@@ -33,13 +33,14 @@ static func get_current_target_selector() -> TargetSelector:
 
 # ========== 辅助函数 ==========
 
-## 从事件中获取目标坐标的 Callable
-static func _get_target_coord_from_event() -> Callable:
-	return func(ctx: ExecutionContext) -> Dictionary:
+## 从事件中获取目标坐标的解析器
+static func _get_target_coord_from_event() -> DictResolver:
+	return Resolvers.dict_fn(func(ctx: ExecutionContext) -> Dictionary:
 		var evt: Variant = ctx.get_current_event()
 		if evt is Dictionary:
 			return evt.get("target_coord", {}) as Dictionary
 		return {}
+	)
 
 
 # ========== 移动 Ability ==========
@@ -95,7 +96,7 @@ static var SLASH_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"melee_slash"
+						Resolvers.str_val("melee_slash")
 					)],
 					"hit": [
 						# 主伤害，带暴击回调
@@ -133,7 +134,7 @@ static var PRECISE_SHOT_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"ranged_arrow"
+						Resolvers.str_val("ranged_arrow")
 					)],
 					"hit": [HexBattleDamageAction.new(
 						TargetSelector.current_target(),
@@ -161,7 +162,7 @@ static var FIREBALL_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"magic_fireball"
+						Resolvers.str_val("magic_fireball")
 					)],
 					"hit": [HexBattleDamageAction.new(
 						TargetSelector.current_target(),
@@ -189,7 +190,7 @@ static var CRUSHING_BLOW_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"melee_heavy"
+						Resolvers.str_val("melee_heavy")
 					)],
 					"hit": [HexBattleDamageAction.new(
 						TargetSelector.current_target(),
@@ -217,8 +218,8 @@ static var SWIFT_STRIKE_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"melee_combo",
-						{ "hits": 3 }
+						Resolvers.str_val("melee_combo"),
+						Resolvers.dict_val({ "hits": 3 })
 					)],
 					"hit1": [HexBattleDamageAction.new(
 						TargetSelector.current_target(),
@@ -256,11 +257,11 @@ static var HOLY_HEAL_ABILITY := {
 				"tagActions": {
 					"start": [StageCueAction.new(
 						TargetSelector.current_target(),
-						"magic_heal"
+						Resolvers.str_val("magic_heal")
 					)],
 					"heal": [HexBattleHealAction.new(
 						TargetSelector.current_target(),
-						40.0
+						Resolvers.float_val(40.0)
 					)],
 				},
 			}),

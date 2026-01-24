@@ -1,6 +1,11 @@
 extends RefCounted
 class_name TagAction
 
+## 永久标签的 duration 值（不会自动过期）
+const PERMANENT_DURATION := -1.0
+## 移除全部层数的 stacks 值
+const REMOVE_ALL_STACKS := -1
+
 static func _get_ability_set_for_target(ctx: ExecutionContext, target) -> AbilitySet:
 	var state = ctx.gameplay_state
 	if AbilitySet.is_ability_set_provider(state):
@@ -20,69 +25,69 @@ class ApplyTagAction:
 	extends Action.BaseAction
 
 	var tag: String
-	var duration = null
-	var stacks: int = 1
+	var _duration: FloatResolver
+	var _stacks: IntResolver
 
 	## 构造函数
 	## @param target_selector: 目标选择器
 	## @param tag_name: 标签名称
-	## @param stacks_count: 层数（默认 1）
-	## @param tag_duration: 持续时间（可选，null 表示永久）
+	## @param stacks_count: 层数解析器（默认 1）
+	## @param tag_duration: 持续时间解析器（默认永久，使用 PERMANENT_DURATION）
 	func _init(
 		target_selector: TargetSelector,
 		tag_name: String,
-		stacks_count: int = 1,
-		tag_duration: Variant = null
+		stacks_count: IntResolver = Resolvers.int_val(1),
+		tag_duration: FloatResolver = Resolvers.float_val(PERMANENT_DURATION)
 	) -> void:
 		super._init(target_selector)
 		type = "applyTag"
 		tag = tag_name
-		stacks = stacks_count
-		duration = tag_duration
+		_stacks = stacks_count
+		_duration = tag_duration
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		var targets = get_targets(ctx)
+		var duration_value := _duration.resolve(ctx)
+		var stacks_value := _stacks.resolve(ctx)
 		for target in targets:
 			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:
 				Log.debug("TagAction", "ApplyTagAction: 无法获取 AbilitySet")
 				continue
-			if duration != null and float(duration) > 0.0:
-				ability_set.add_auto_duration_tag(tag, float(duration))
+			if duration_value > 0.0:
+				ability_set.add_auto_duration_tag(tag, duration_value)
 			else:
-				ability_set.add_loose_tag(tag, stacks)
+				ability_set.add_loose_tag(tag, stacks_value)
 		return ActionResult.create_success_result([])
 
 class RemoveTagAction:
 	extends Action.BaseAction
 
 	var tag: String
-	var stacks = null
+	var _stacks: IntResolver
 
 	## 构造函数
 	## @param target_selector: 目标选择器
 	## @param tag_name: 标签名称
-	## @param stacks_count: 要移除的层数（可选，null 表示全部移除）
+	## @param stacks_count: 要移除的层数解析器（默认移除全部，使用 REMOVE_ALL_STACKS）
 	func _init(
 		target_selector: TargetSelector,
 		tag_name: String,
-		stacks_count: Variant = null
+		stacks_count: IntResolver = Resolvers.int_val(REMOVE_ALL_STACKS)
 	) -> void:
 		super._init(target_selector)
 		type = "removeTag"
 		tag = tag_name
-		stacks = stacks_count
+		_stacks = stacks_count
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		var targets = get_targets(ctx)
+		var stacks_value := _stacks.resolve(ctx)
 		for target in targets:
 			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:
 				Log.debug("TagAction", "RemoveTagAction: 无法获取 AbilitySet")
 				continue
-			var stacks_value := -1
-			if stacks != null:
-				stacks_value = int(stacks)
 			ability_set.remove_loose_tag(tag, stacks_value)
 		return ActionResult.create_success_result([])
 

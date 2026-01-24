@@ -11,8 +11,8 @@ func _init():
 
 func _ensure_initialized() -> void:
 	# 在运行时动态获取类型
-	var EventProcessorClass = load("res://addons/logic-game-framework/core/events/EventProcessor.gd")
-	var EventCollectorClass = load("res://addons/logic-game-framework/core/events/EventCollector.gd")
+	var EventProcessorClass = load("res://addons/logic-game-framework/core/events/event_processor.gd")
+	var EventCollectorClass = load("res://addons/logic-game-framework/core/events/event_collector.gd")
 
 	if not event_processor:
 		event_processor = EventProcessorClass.create_event_processor({})
@@ -24,8 +24,8 @@ func init(config: Dictionary = {}) -> void:
 	if _initialized:
 		Log.warning("GameWorld", "GameWorld already initialized, reinitializing...")
 		shutdown()
-		var EventProcessorClass = load("res://addons/logic-game-framework/core/events/EventProcessor.gd")
-		var EventCollectorClass = load("res://addons/logic-game-framework/core/events/EventCollector.gd")
+		var EventProcessorClass = load("res://addons/logic-game-framework/core/events/event_processor.gd")
+		var EventCollectorClass = load("res://addons/logic-game-framework/core/events/event_collector.gd")
 		event_processor = EventProcessorClass.create_event_processor(config.get("eventProcessor", {}))
 		event_collector = EventCollectorClass.new()
 		initialize()

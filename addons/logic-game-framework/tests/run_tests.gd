@@ -5,31 +5,33 @@ class_name RunTests
 
 # 测试文件路径
 const TEST_PATHS := [
-	"res://addons/logic-game-framework/tests/core/attributes/AttributeSet_test.gd",
-	"res://addons/logic-game-framework/tests/core/attributes/defineAttributes_test.gd",
-	"res://addons/logic-game-framework/tests/core/events/EventProcessor_test.gd",
-	"res://addons/logic-game-framework/tests/core/events/PreEventComponent_test.gd",
-	"res://addons/logic-game-framework/tests/core/abilities/Ability_test.gd",
-	"res://addons/logic-game-framework/tests/core/abilities/AbilityExecutionInstance_test.gd",
-	"res://addons/logic-game-framework/tests/core/abilities/ActivateInstanceComponent_test.gd",
-	"res://addons/logic-game-framework/tests/core/actions/TagAction_test.gd",
+	"res://addons/logic-game-framework/tests/core/attributes/attribute_set_test.gd",
+	"res://addons/logic-game-framework/tests/core/attributes/define_attributes_test.gd",
+	"res://addons/logic-game-framework/tests/core/events/event_processor_test.gd",
+	"res://addons/logic-game-framework/tests/core/events/pre_event_component_test.gd",
+	"res://addons/logic-game-framework/tests/core/abilities/ability_test.gd",
+	"res://addons/logic-game-framework/tests/core/abilities/ability_execution_instance_test.gd",
+	"res://addons/logic-game-framework/tests/core/abilities/activate_instance_component_test.gd",
+	"res://addons/logic-game-framework/tests/core/actions/tag_action_test.gd",
+	"res://addons/logic-game-framework/tests/core/resolvers/resolvers_test.gd",
 ]
 
 # 测试框架实例
 var _test_framework
 
 func _ready() -> void:
-	# 初始化测试框架
+	# 初始化测试框架并添加到场景树（触发 _enter_tree 设置 meta）
 	_test_framework = load("res://addons/logic-game-framework/tests/test_framework.gd").new()
+	add_child(_test_framework)
 
 	# 加载所有测试脚本
 	_load_test_scripts()
 
 	# 运行所有测试
-	var result = _test_framework.run_all_tests()
+	var failures = _test_framework.run()
 
 	# 退出并返回失败数
-	get_tree().quit(result.failed)
+	get_tree().quit(failures)
 
 func _load_test_scripts() -> void:
 	for test_path in TEST_PATHS:

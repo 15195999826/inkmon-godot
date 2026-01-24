@@ -7,7 +7,7 @@ class_name HexBattleHealAction
 extends Action.BaseAction
 
 
-var _heal_amount: Variant  # float 或 Callable
+var _heal_amount: FloatResolver
 
 # 回调列表
 var _on_heal_callbacks: Array[Action.BaseAction] = []
@@ -16,7 +16,7 @@ var _on_overheal_callbacks: Array[Action.BaseAction] = []
 
 func _init(
 	target_selector: TargetSelector,
-	heal_amount: Variant  # float 或 Callable
+	heal_amount: FloatResolver
 ) -> void:
 	super._init(target_selector)
 	type = "heal"
@@ -50,7 +50,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	
 	# 解析参数
-	var heal_amount := _resolve_param(_heal_amount, ctx)
+	var heal_amount := _heal_amount.resolve(ctx)
 	
 	# 打印日志
 	var target_ids: Array[String] = []
@@ -135,11 +135,4 @@ func _calculate_overheal(target: ActorRef, heal_amount: float, ctx: ExecutionCon
 	return 0.0
 
 
-# ============================================================
-# 辅助函数
-# ============================================================
 
-func _resolve_param(value: Variant, ctx: ExecutionContext) -> float:
-	if value is Callable:
-		return float(value.call(ctx))
-	return float(value)
