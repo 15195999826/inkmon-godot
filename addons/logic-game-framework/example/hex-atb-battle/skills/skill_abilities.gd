@@ -77,10 +77,11 @@ static var MOVE_ABILITY := {
 # ========== 技能 Ability ==========
 
 ## 横扫斩 - 近战物理攻击
+## 示例：使用 on_critical 回调，暴击时额外造成 10 点伤害
 static var SLASH_ABILITY := {
 	"configId": "skill_slash",
 	"displayName": "横扫斩",
-	"description": "近战攻击，对敌人造成物理伤害",
+	"description": "近战攻击，对敌人造成物理伤害（暴击时额外伤害）",
 	"tags": ["skill", "active", "melee", "enemy"],
 	"activeUseComponents": [
 		func():
@@ -93,11 +94,21 @@ static var SLASH_ABILITY := {
 						"targetSelector": TargetSelector.current_target(),
 						"cueId": "melee_slash",
 					})],
-					"hit": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 50.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
+					"hit": [
+						# 主伤害，带暴击回调
+						HexBattleDamageAction.new({
+							"targetSelector": TargetSelector.current_target(),
+							"damage": 50.0,
+							"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
+						}).on_critical(
+							# 暴击时额外造成 10 点伤害
+							HexBattleDamageAction.new({
+								"targetSelector": TargetSelector.current_target(),
+								"damage": 10.0,
+								"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
+							})
+						),
+					],
 				},
 			}),
 	],

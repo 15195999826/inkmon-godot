@@ -5,7 +5,7 @@
 ##
 ## 使用示例:
 ##   var action = DamageAction.new({
-##       "targetSelector": TargetSelector.CurrentTarget.new(),
+##       "targetSelector": TargetSelector.current_target(),
 ##       "damage": 50.0,
 ##   })
 extends RefCounted
@@ -49,23 +49,15 @@ class AbilityOwner extends TargetSelector:
 		return []
 
 
-## 从 Callable 创建选择器（兼容旧代码）
-class FromCallable extends TargetSelector:
-	var _callable: Callable
+## 固定目标选择器（用于测试或预设目标）
+class Fixed extends TargetSelector:
+	var _targets: Array[ActorRef]
 	
-	func _init(callable: Callable):
-		_callable = callable
+	func _init(targets: Array[ActorRef]):
+		_targets = targets
 	
-	func select(ctx: ExecutionContext) -> Array[ActorRef]:
-		var result = _callable.call(ctx)
-		if result is Array[ActorRef]:
-			return result
-		# 兼容返回普通 Array 的 callable
-		var typed_result: Array[ActorRef] = []
-		for item in result:
-			if item is ActorRef:
-				typed_result.append(item)
-		return typed_result
+	func select(_ctx: ExecutionContext) -> Array[ActorRef]:
+		return _targets
 
 
 # ============================================================
@@ -82,6 +74,6 @@ static func ability_owner() -> AbilityOwner:
 	return AbilityOwner.new()
 
 
-## 从 Callable 创建选择器（兼容旧代码）
-static func from_callable(callable: Callable) -> FromCallable:
-	return FromCallable.new(callable)
+## 创建固定目标选择器
+static func fixed(targets: Array[ActorRef]) -> Fixed:
+	return Fixed.new(targets)
