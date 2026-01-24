@@ -13,26 +13,39 @@ var target_position_resolver: Callable
 var direction_resolver: Callable
 var custom_data_resolver: Callable
 
-func _init(params: Dictionary):
-	super._init(params)
+## 构造函数
+## @param target_selector: 目标选择器
+## @param projectile_config: 投射物配置（Dictionary 或 Callable）
+## @param start_position: 起始位置解析器（Vector3 或 Callable），可选
+## @param target_position: 目标位置解析器（Vector3 或 Callable），可选
+## @param direction: 方向解析器（Callable），可选
+## @param custom_data: 自定义数据解析器（Callable），可选
+func _init(
+	target_selector: TargetSelector,
+	projectile_config: Variant = {},
+	start_position: Variant = null,
+	target_position: Variant = null,
+	direction: Variant = null,
+	custom_data: Variant = null
+) -> void:
+	super._init(target_selector)
 	type = TYPE
 
-	var projectile_config_input = params.get("projectileConfig", {})
-	if projectile_config_input is Callable:
-		projectile_config_resolver = projectile_config_input
+	if projectile_config is Callable:
+		projectile_config_resolver = projectile_config
 	else:
-		projectile_config_resolver = func(_ctx): return projectile_config_input
+		projectile_config_resolver = func(_ctx): return projectile_config
 
-	start_position_resolver = _get_position_resolver(params.get("startPositionResolver", null))
-	target_position_resolver = _get_position_resolver(params.get("targetPositionResolver", null))
+	start_position_resolver = _get_position_resolver(start_position)
+	target_position_resolver = _get_position_resolver(target_position)
 
-	if params.has("direction") and params["direction"] is Callable:
-		direction_resolver = params["direction"]
+	if direction is Callable:
+		direction_resolver = direction
 	else:
 		direction_resolver = func(_ctx): return null
 
-	if params.has("customData") and params["customData"] is Callable:
-		custom_data_resolver = params["customData"]
+	if custom_data is Callable:
+		custom_data_resolver = custom_data
 	else:
 		custom_data_resolver = func(_ctx): return null
 

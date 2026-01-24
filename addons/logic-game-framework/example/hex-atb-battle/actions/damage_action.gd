@@ -13,8 +13,8 @@ class_name HexBattleDamageAction
 extends Action.BaseAction
 
 
-var _damage: Variant  # float 或 Callable
-var _damage_type: Variant  # DamageType 或 Callable
+var _damage: float
+var _damage_type: HexBattleReplayEvents.DamageType
 
 # 回调列表
 var _on_hit_callbacks: Array[Action.BaseAction] = []
@@ -22,11 +22,15 @@ var _on_critical_callbacks: Array[Action.BaseAction] = []
 var _on_kill_callbacks: Array[Action.BaseAction] = []
 
 
-func _init(params: Dictionary) -> void:
-	super._init(params)
+func _init(
+	target_selector: TargetSelector,
+	damage: float,
+	damage_type: HexBattleReplayEvents.DamageType = HexBattleReplayEvents.DamageType.PHYSICAL
+) -> void:
+	super._init(target_selector)
 	type = "damage"
-	_damage = params.get("damage", 0.0)
-	_damage_type = params.get("damage_type", HexBattleReplayEvents.DamageType.PHYSICAL)
+	_damage = damage
+	_damage_type = damage_type
 
 
 # ============================================================
@@ -61,10 +65,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		source = ctx.ability.owner
 	var targets := get_targets(ctx)
 	
-	# 解析参数
-	var base_damage := _resolve_param(_damage, ctx)
-	var damage_type := _resolve_damage_type(_damage_type, ctx)
-	
 	var event_processor: Variant = GameWorld.event_processor
 	var all_events: Array = []
 	
@@ -77,8 +77,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			"kind": "pre_damage",
 			"source": source,
 			"target": target,
-			"damage": base_damage,
-			"damage_type": HexBattleReplayEvents._damage_type_to_string(damage_type),
+			"damage": _damage,
+			"damage_type": HexBattleReplayEvents._damage_type_to_string(_damage_type),
 		}
 		
 		var mutable: Variant = event_processor.process_pre_event(pre_event, ctx.gameplay_state)
@@ -100,10 +100,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# 打印日志
 		var source_name := _get_actor_display_name(source, ctx.gameplay_state)
 		var target_name := _get_actor_display_name(target, ctx.gameplay_state)
-		var damage_type_str := HexBattleReplayEvents._damage_type_to_string(damage_type)
+		var damage_type_str := HexBattleReplayEvents._damage_type_to_string(_damage_type)
 		var crit_text := " (暴击!)" if is_critical else ""
-		if final_damage != base_damage:
-			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s (原始: %.0f)" % [source_name, target_name, final_damage, damage_type_str, crit_text, base_damage])
+		if final_damage != _damage:
+			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s (原始: %.0f)" % [source_name, target_name, final_damage, damage_type_str, crit_text, _damage])
 		else:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s" % [source_name, target_name, final_damage, damage_type_str, crit_text])
 		
@@ -113,7 +113,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			HexBattleReplayEvents.create_damage_event(
 				target.id,
 				final_damage,
-				damage_type,
+				_damage_type,
 				source_id,
 				is_critical
 			)
@@ -129,7 +129,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		if actors.size() > 0:
 			event_processor.process_post_event(damage_event, actors, ctx.gameplay_state)
 	
-	return ActionResult.create_success_result(all_events, { "damage": base_damage })
+	return ActionResult.create_success_result(all_events, { "damage": _damage })
 
 
 # ============================================================
@@ -180,18 +180,6 @@ func _check_target_killed(damage_event: Dictionary, ctx: ExecutionContext) -> bo
 # ============================================================
 # 辅助函数
 # ============================================================
-
-func _resolve_param(value: Variant, ctx: ExecutionContext) -> float:
-	if value is Callable:
-		return float(value.call(ctx))
-	return float(value)
-
-
-func _resolve_damage_type(value: Variant, ctx: ExecutionContext) -> HexBattleReplayEvents.DamageType:
-	if value is Callable:
-		return value.call(ctx) as HexBattleReplayEvents.DamageType
-	return value as HexBattleReplayEvents.DamageType
-
 
 func _get_actors_from_gameplay_state(state) -> Array:
 	if state == null:

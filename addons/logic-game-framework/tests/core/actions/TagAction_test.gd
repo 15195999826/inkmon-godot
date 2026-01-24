@@ -36,11 +36,11 @@ func _test_apply_loose() -> void:
 	var state := DummyState.new(ability_set)
 	var ctx := _build_context(state, {"kind": "apply"})
 
-	var action := TagAction.ApplyTagAction.new({
-		"targetSelector": TargetSelector.Fixed.new([owner]),
-		"tag": "combo",
-		"stacks": 2,
-	})
+	var action := TagAction.ApplyTagAction.new(
+		TargetSelector.fixed([owner]),
+		"combo",
+		2  # stacks
+	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(2, ability_set.get_loose_tag_stacks("combo"))
@@ -52,11 +52,12 @@ func _test_apply_auto_duration() -> void:
 	var state := DummyState.new(ability_set)
 	var ctx := _build_context(state, {"kind": "apply", "logicTime": 1.0})
 
-	var action := TagAction.ApplyTagAction.new({
-		"targetSelector": TargetSelector.Fixed.new([owner]),
-		"tag": "window",
-		"duration": 5.0,
-	})
+	var action := TagAction.ApplyTagAction.new(
+		TargetSelector.fixed([owner]),
+		"window",
+		1,    # stacks
+		5.0   # duration
+	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(1, ability_set.get_tag_stacks("window"))
@@ -71,11 +72,11 @@ func _test_remove_tag() -> void:
 	ability_set.add_loose_tag("charge", 3)
 	var ctx := _build_context(state, {"kind": "remove"})
 
-	var action := TagAction.RemoveTagAction.new({
-		"targetSelector": TargetSelector.Fixed.new([owner]),
-		"tag": "charge",
-		"stacks": 1,
-	})
+	var action := TagAction.RemoveTagAction.new(
+		TargetSelector.fixed([owner]),
+		"charge",
+		1  # stacks to remove
+	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(2, ability_set.get_loose_tag_stacks("charge"))
@@ -88,15 +89,15 @@ func _test_has_tag_action() -> void:
 	ability_set.add_loose_tag("ready", 1)
 	var ctx := _build_context(state, {"kind": "check"})
 
-	var selector := TargetSelector.Fixed.new([owner])
-	var then_action := Action.NoopAction.new({"targetSelector": selector})
-	var else_action := Action.NoopAction.new({"targetSelector": selector})
-	var action := TagAction.HasTagAction.new({
-		"targetSelector": selector,
-		"tag": "ready",
-		"then": [then_action],
-		"else": [else_action],
-	})
+	var selector := TargetSelector.fixed([owner])
+	var then_action := Action.NoopAction.new(selector)
+	var else_action := Action.NoopAction.new(selector)
+	var action := TagAction.HasTagAction.new(
+		selector,
+		"ready",
+		[then_action],
+		[else_action]
+	)
 	var result = action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(0, result.events.size())

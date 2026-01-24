@@ -31,6 +31,17 @@ static func get_current_target_selector() -> TargetSelector:
 	return TargetSelector.current_target()
 
 
+# ========== 辅助函数 ==========
+
+## 从事件中获取目标坐标的 Callable
+static func _get_target_coord_from_event() -> Callable:
+	return func(ctx: ExecutionContext) -> Dictionary:
+		var evt: Variant = ctx.get_current_event()
+		if evt is Dictionary:
+			return evt.get("target_coord", {}) as Dictionary
+		return {}
+
+
 # ========== 移动 Ability ==========
 
 ## 移动 - 移动到相邻格子（两阶段）
@@ -52,22 +63,14 @@ static var MOVE_ABILITY := {
 				}],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["MOVE"],
 				"tagActions": {
-					"start": [HexBattleStartMoveAction.new({
-						"targetSelector": TargetSelector.ability_owner(),
-						"target_coord": func(ctx: ExecutionContext) -> Dictionary:
-							var evt: Variant = ctx.get_current_event()
-							if evt is Dictionary:
-								return evt.get("target_coord", {}) as Dictionary
-							return {},
-					})],
-					"execute": [HexBattleApplyMoveAction.new({
-						"targetSelector": TargetSelector.ability_owner(),
-						"target_coord": func(ctx: ExecutionContext) -> Dictionary:
-							var evt: Variant = ctx.get_current_event()
-							if evt is Dictionary:
-								return evt.get("target_coord", {}) as Dictionary
-							return {},
-					})],
+					"start": [HexBattleStartMoveAction.new(
+						TargetSelector.ability_owner(),
+						_get_target_coord_from_event()
+					)],
+					"execute": [HexBattleApplyMoveAction.new(
+						TargetSelector.ability_owner(),
+						_get_target_coord_from_event()
+					)],
 				},
 			}),
 	],
@@ -90,23 +93,23 @@ static var SLASH_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["slash"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["SLASH"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "melee_slash",
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"melee_slash"
+					)],
 					"hit": [
 						# 主伤害，带暴击回调
-						HexBattleDamageAction.new({
-							"targetSelector": TargetSelector.current_target(),
-							"damage": 50.0,
-							"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-						}).on_critical(
+						HexBattleDamageAction.new(
+							TargetSelector.current_target(),
+							50.0,
+							HexBattleReplayEvents.DamageType.PHYSICAL
+						).on_critical(
 							# 暴击时额外造成 10 点伤害
-							HexBattleDamageAction.new({
-								"targetSelector": TargetSelector.current_target(),
-								"damage": 10.0,
-								"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-							})
+							HexBattleDamageAction.new(
+								TargetSelector.current_target(),
+								10.0,
+								HexBattleReplayEvents.DamageType.PHYSICAL
+							)
 						),
 					],
 				},
@@ -128,15 +131,15 @@ static var PRECISE_SHOT_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["precise_shot"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["PRECISE_SHOT"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "ranged_arrow",
-					})],
-					"hit": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 45.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"ranged_arrow"
+					)],
+					"hit": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						45.0,
+						HexBattleReplayEvents.DamageType.PHYSICAL
+					)],
 				},
 			}),
 	],
@@ -156,15 +159,15 @@ static var FIREBALL_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["fireball"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["FIREBALL"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "magic_fireball",
-					})],
-					"hit": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 80.0,
-						"damage_type": HexBattleReplayEvents.DamageType.MAGICAL,
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"magic_fireball"
+					)],
+					"hit": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						80.0,
+						HexBattleReplayEvents.DamageType.MAGICAL
+					)],
 				},
 			}),
 	],
@@ -184,15 +187,15 @@ static var CRUSHING_BLOW_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["crushing_blow"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["CRUSHING_BLOW"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "melee_heavy",
-					})],
-					"hit": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 90.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"melee_heavy"
+					)],
+					"hit": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						90.0,
+						HexBattleReplayEvents.DamageType.PHYSICAL
+					)],
 				},
 			}),
 	],
@@ -212,26 +215,26 @@ static var SWIFT_STRIKE_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["swift_strike"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["SWIFT_STRIKE"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "melee_combo",
-						"params": { "hits": 3 },
-					})],
-					"hit1": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 10.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
-					"hit2": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 10.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
-					"hit3": [HexBattleDamageAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"damage": 10.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PHYSICAL,
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"melee_combo",
+						{ "hits": 3 }
+					)],
+					"hit1": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						10.0,
+						HexBattleReplayEvents.DamageType.PHYSICAL
+					)],
+					"hit2": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						10.0,
+						HexBattleReplayEvents.DamageType.PHYSICAL
+					)],
+					"hit3": [HexBattleDamageAction.new(
+						TargetSelector.current_target(),
+						10.0,
+						HexBattleReplayEvents.DamageType.PHYSICAL
+					)],
 				},
 			}),
 	],
@@ -251,14 +254,14 @@ static var HOLY_HEAL_ABILITY := {
 				"costs": [HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["holy_heal"])],
 				"timelineId": HexBattleSkillTimelines.TIMELINE_ID["HOLY_HEAL"],
 				"tagActions": {
-					"start": [StageCueAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"cueId": "magic_heal",
-					})],
-					"heal": [HexBattleHealAction.new({
-						"targetSelector": TargetSelector.current_target(),
-						"heal_amount": 40.0,
-					})],
+					"start": [StageCueAction.new(
+						TargetSelector.current_target(),
+						"magic_heal"
+					)],
+					"heal": [HexBattleHealAction.new(
+						TargetSelector.current_target(),
+						40.0
+					)],
 				},
 			}),
 	],

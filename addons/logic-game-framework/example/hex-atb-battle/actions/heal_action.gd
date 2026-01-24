@@ -14,10 +14,13 @@ var _on_heal_callbacks: Array[Action.BaseAction] = []
 var _on_overheal_callbacks: Array[Action.BaseAction] = []
 
 
-func _init(params: Dictionary) -> void:
-	super._init(params)
+func _init(
+	target_selector: TargetSelector,
+	heal_amount: Variant  # float 或 Callable
+) -> void:
+	super._init(target_selector)
 	type = "heal"
-	_heal_amount = params.get("heal_amount", 0.0)
+	_heal_amount = heal_amount
 
 
 # ============================================================

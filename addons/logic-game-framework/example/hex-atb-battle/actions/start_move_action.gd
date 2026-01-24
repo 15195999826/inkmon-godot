@@ -9,10 +9,16 @@ extends Action.BaseAction
 var _target_coord: Variant  # Dictionary 或 Callable
 
 
-func _init(params: Dictionary) -> void:
-	super._init(params)
+## 构造函数
+## @param target_selector: 目标选择器（移动的 Actor）
+## @param target_coord: 目标坐标（Dictionary 或 Callable）
+func _init(
+	target_selector: TargetSelector,
+	target_coord: Variant  # Dictionary 或 Callable
+) -> void:
+	super._init(target_selector)
 	type = "start_move"
-	_target_coord = params.get("target_coord", null)
+	_target_coord = target_coord
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:

@@ -38,10 +38,10 @@ static var THORN_PASSIVE := {
 					},
 				],
 				"actions": [
-					HexBattleReflectDamageAction.new({
-						"damage": 2.0,
-						"damage_type": HexBattleReplayEvents.DamageType.PURE,
-					}),
+					HexBattleReflectDamageAction.new(
+						2.0,
+						HexBattleReplayEvents.DamageType.PURE
+					),
 				],
 			}),
 	],

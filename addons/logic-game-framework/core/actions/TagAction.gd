@@ -23,12 +23,22 @@ class ApplyTagAction:
 	var duration = null
 	var stacks: int = 1
 
-	func _init(params: Dictionary):
-		super._init(params)
+	## 构造函数
+	## @param target_selector: 目标选择器
+	## @param tag_name: 标签名称
+	## @param stacks_count: 层数（默认 1）
+	## @param tag_duration: 持续时间（可选，null 表示永久）
+	func _init(
+		target_selector: TargetSelector,
+		tag_name: String,
+		stacks_count: int = 1,
+		tag_duration: Variant = null
+	) -> void:
+		super._init(target_selector)
 		type = "applyTag"
-		tag = str(params.get("tag", ""))
-		duration = params.get("duration", null)
-		stacks = int(params.get("stacks", 1))
+		tag = tag_name
+		stacks = stacks_count
+		duration = tag_duration
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		var targets = get_targets(ctx)
@@ -49,11 +59,19 @@ class RemoveTagAction:
 	var tag: String
 	var stacks = null
 
-	func _init(params: Dictionary):
-		super._init(params)
+	## 构造函数
+	## @param target_selector: 目标选择器
+	## @param tag_name: 标签名称
+	## @param stacks_count: 要移除的层数（可选，null 表示全部移除）
+	func _init(
+		target_selector: TargetSelector,
+		tag_name: String,
+		stacks_count: Variant = null
+	) -> void:
+		super._init(target_selector)
 		type = "removeTag"
-		tag = str(params.get("tag", ""))
-		stacks = params.get("stacks", null)
+		tag = tag_name
+		stacks = stacks_count
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		var targets = get_targets(ctx)
@@ -75,12 +93,22 @@ class HasTagAction:
 	var then_actions: Array = []
 	var else_actions: Array = []
 
-	func _init(params: Dictionary):
-		super._init(params)
+	## 构造函数
+	## @param target_selector: 目标选择器
+	## @param tag_name: 标签名称
+	## @param then_action_list: 有标签时执行的 Action 列表
+	## @param else_action_list: 无标签时执行的 Action 列表
+	func _init(
+		target_selector: TargetSelector,
+		tag_name: String,
+		then_action_list: Array = [],
+		else_action_list: Array = []
+	) -> void:
+		super._init(target_selector)
 		type = "hasTag"
-		tag = str(params.get("tag", ""))
-		then_actions = params.get("then", [])
-		else_actions = params.get("else", [])
+		tag = tag_name
+		then_actions = then_action_list
+		else_actions = else_action_list
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")

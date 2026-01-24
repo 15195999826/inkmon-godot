@@ -15,9 +15,15 @@ var _damage: float
 var _damage_type: HexBattleReplayEvents.DamageType
 
 
-func _init(params: Dictionary) -> void:
-	_damage = float(params.get("damage", 0.0))
-	_damage_type = params.get("damage_type", HexBattleReplayEvents.DamageType.PURE)
+## 构造函数
+## @param damage: 反伤伤害值
+## @param damage_type: 伤害类型（默认 PURE）
+func _init(
+	damage: float,
+	damage_type: HexBattleReplayEvents.DamageType = HexBattleReplayEvents.DamageType.PURE
+) -> void:
+	_damage = damage
+	_damage_type = damage_type
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:

@@ -6,21 +6,27 @@ const TYPE = "stageCue"
 var cue_id_resolver: Callable
 var params_resolver: Callable
 
-func _init(params: Dictionary):
-	super._init(params)
+## 构造函数
+## @param target_selector: 目标选择器
+## @param cue_id: 舞台提示 ID（String 或 Callable）
+## @param cue_params: 舞台提示参数（Dictionary 或 Callable），可选
+func _init(
+	target_selector: TargetSelector,
+	cue_id: Variant,  # String 或 Callable
+	cue_params: Variant = {}  # Dictionary 或 Callable
+) -> void:
+	super._init(target_selector)
 	type = TYPE
 
-	var cue_id_input = params.get("cueId", "")
-	if cue_id_input is Callable:
-		cue_id_resolver = cue_id_input
+	if cue_id is Callable:
+		cue_id_resolver = cue_id
 	else:
-		cue_id_resolver = func(_ctx): return cue_id_input
+		cue_id_resolver = func(_ctx): return cue_id
 
-	var params_input = params.get("params", {})
-	if params_input is Callable:
-		params_resolver = params_input
+	if cue_params is Callable:
+		params_resolver = cue_params
 	else:
-		params_resolver = func(_ctx): return params_input
+		params_resolver = func(_ctx): return cue_params
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	if not ctx.ability:
@@ -51,5 +57,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	return ActionResult.create_success_result([event])
 
-static func create_stage_cue_action(params: Dictionary) -> StageCueAction:
-	return StageCueAction.new(params)
+## 工厂方法（兼容旧 API，建议直接使用 new）
+static func create_stage_cue_action(
+	target_selector: TargetSelector,
+	cue_id: Variant,
+	cue_params: Variant = {}
+) -> StageCueAction:
+	return StageCueAction.new(target_selector, cue_id, cue_params)
