@@ -6,13 +6,13 @@ const MENU_ITEM_GENERATE := 1
 const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/AttributeSetGeneratorScript.gd"
 
 const AUTOLOAD_LOG := "Log"
-const AUTOLOAD_LOG_PATH := "res://addons/logic-game-framework/logic/utils/Logger.gd"
+const AUTOLOAD_LOG_PATH := "res://addons/logic-game-framework/core/utils/Logger.gd"
 const AUTOLOAD_ID_GENERATOR := "IdGenerator"
-const AUTOLOAD_ID_GENERATOR_PATH := "res://addons/logic-game-framework/logic/utils/IdGenerator.gd"
+const AUTOLOAD_ID_GENERATOR_PATH := "res://addons/logic-game-framework/core/utils/IdGenerator.gd"
 const AUTOLOAD_GAME_WORLD := "GameWorld"
-const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/logic/world/GameWorld.gd"
+const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/core/world/GameWorld.gd"
 const AUTOLOAD_TIMELINE_REGISTRY := "TimelineRegistry"
-const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/logic/timeline/Timeline.gd"
+const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/core/timeline/Timeline.gd"
 
 var _menu: PopupMenu
 

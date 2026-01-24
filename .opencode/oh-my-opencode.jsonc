@@ -18,7 +18,8 @@
     "Sisyphus": {
       // "model": "anthropic/claude-opus-4-5",
       // "model": "xaio/XAIO-C-4-5-Opus",
-      "model": "zhipuai-coding-plan/glm-4.7",
+      // "model": "zhipuai-coding-plan/glm-4.7",
+      "model": "gitlab/duo-chat-opus-4-5",
       // "model": "github-copilot/claude-opus-4.5",
       // "model": "xaio/XAIO-O-G5-2-Codex",
       // "model": "github-copilot/gpt-5.2-codex",
@@ -28,7 +29,8 @@
     // Oracle - 架构设计和深度调试 (只读顾问)
     // 需要严谨的逻辑推理，低温度
     "oracle": {
-      "model": "xaio/XAIO-O-G5-2-Codex",
+      "model": "gitlab/duo-chat-opus-4-5",
+      // "model": "xaio/XAIO-O-G5-2-Codex",
       // "model": "github-copilot/gpt-5.2-codex",
       // "model": "anthropic/claude-opus-4-5",
       // "model": "github-copilot/claude-opus-4.5",
@@ -37,8 +39,8 @@
     // ==================== 探索代理 ====================
     // Librarian - 文档/代码库分析 (快速便宜)
     "librarian": {
-      // "model": "zhipuai-coding-plan/glm-4.7",
-      "model": "xaio/GLM-4.7",
+      "model": "zhipuai-coding-plan/glm-4.7",
+      // "model": "xaio/GLM-4.7",
       "temperature": 0.1 // 搜索任务需要精确
     },
     // Explore - 快速代码库探索 (极速)

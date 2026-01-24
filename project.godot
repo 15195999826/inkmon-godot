@@ -17,10 +17,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Log="*uid://dmtf3o6rxb83"
-IdGenerator="*uid://dxrx1d5qcxo75"
-GameWorld="*uid://bg0r8jxi1runb"
-TimelineRegistry="*uid://ljxq0i0ntjqp"
+Log="*res://addons/logic-game-framework/core/utils/Logger.gd"
+IdGenerator="*res://addons/logic-game-framework/core/utils/IdGenerator.gd"
+GameWorld="*res://addons/logic-game-framework/core/world/GameWorld.gd"
+TimelineRegistry="*res://addons/logic-game-framework/core/timeline/Timeline.gd"
 
 [editor_plugins]
 
