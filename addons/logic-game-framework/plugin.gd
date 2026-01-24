@@ -1,6 +1,13 @@
 @tool
 extends EditorPlugin
 
+# ========== 依赖检查 ==========
+
+## 依赖的插件列表
+const DEPENDENCIES: Array[String] = ["hex-grid"]
+
+# ========== 常量 ==========
+
 const MENU_NAME := "LGFramework"
 const MENU_ITEM_GENERATE := 1
 const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/AttributeSetGeneratorScript.gd"
@@ -17,6 +24,8 @@ const AUTOLOAD_TIMELINE_REGISTRY_PATH := "res://addons/logic-game-framework/core
 var _menu: PopupMenu
 
 func _enter_tree() -> void:
+	if not _check_dependencies():
+		return
 	_register_autoloads()
 	_menu = PopupMenu.new()
 	_menu.add_item("生成属性集", MENU_ITEM_GENERATE)
@@ -69,3 +78,28 @@ func _remove_autoload_if_matches(name: String, path: String) -> void:
 	if ProjectSettings.get_setting(key) != path:
 		return
 	remove_autoload_singleton(name)
+
+
+# ========== 依赖检查 ==========
+
+## 检查依赖插件是否已启用
+## @return: true 如果所有依赖都已启用
+func _check_dependencies() -> bool:
+	var missing: Array[String] = []
+	
+	for dep in DEPENDENCIES:
+		if not EditorInterface.is_plugin_enabled(dep):
+			missing.append(dep)
+	
+	if not missing.is_empty():
+		push_error("[LogicGameFramework] 缺少依赖插件: %s，请先在 Project Settings > Plugins 中启用它们" % ", ".join(missing))
+		# 延迟禁用自己，避免在 _enter_tree 中直接调用
+		call_deferred("_disable_self")
+		return false
+	
+	return true
+
+
+## 禁用自己
+func _disable_self() -> void:
+	EditorInterface.set_plugin_enabled("logic-game-framework", false)

@@ -24,7 +24,7 @@ TimelineRegistry="*res://addons/logic-game-framework/core/timeline/Timeline.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/logic-game-framework/plugin.cfg")
+enabled=PackedStringArray("res://addons/hex-grid/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
 
 [physics]
 
