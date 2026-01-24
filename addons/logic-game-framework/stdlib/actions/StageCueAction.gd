@@ -29,14 +29,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var source_actor_id = ctx.ability.source.id
 
-	var targets = get_targets(ctx)
-	var target_actor_ids := []
+	var targets: Array[ActorRef] = get_targets(ctx)
+	var target_actor_ids: Array[String] = []
 	for target in targets:
-		# 支持 ActorRef 对象和 Dictionary 两种格式
-		if target is ActorRef:
-			target_actor_ids.append(target.id)
-		elif target is Dictionary and target.has("id"):
-			target_actor_ids.append(target["id"])
+		target_actor_ids.append(target.id)
 
 	var cue_id_raw = cue_id_resolver.call(ctx)
 	var params_raw = params_resolver.call(ctx)
