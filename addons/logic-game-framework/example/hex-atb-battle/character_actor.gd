@@ -181,20 +181,32 @@ func check_death() -> bool:
 	return false
 
 
-# ========== 录像支持 ==========
+# ========== 录像支持（覆盖 Actor 基类方法） ==========
 
-## 获取配置 ID（用于回放）
-func get_config_id() -> String:
+## 获取配置 ID（覆盖基类）
+func _get_config_id() -> String:
 	return HexBattleClassConfig.class_to_string(character_class)
 
 
-## 获取属性快照
-func get_attribute_snapshot() -> Dictionary:
+## 获取队伍 ID（覆盖基类）
+func _get_team_int() -> int:
+	return _team_id
+
+
+## 获取位置（覆盖基类，返回 hex 坐标作为 Vector3）
+func _get_position() -> Variant:
+	if hex_position.is_empty():
+		return null
+	return Vector3(hex_position.get("q", 0), hex_position.get("r", 0), 0)
+
+
+## 获取属性快照（覆盖基类）
+func getAttributeSnapshot() -> Dictionary:
 	return get_stats()
 
 
-## 获取 Ability 快照
-func get_ability_snapshot() -> Array:
+## 获取 Ability 快照（覆盖基类）
+func getAbilitySnapshot() -> Array:
 	var result := []
 	for ability in ability_set.get_abilities():
 		result.append({
@@ -204,62 +216,26 @@ func get_ability_snapshot() -> Array:
 	return result
 
 
-## 获取 Tag 快照
-func get_tag_snapshot() -> Dictionary:
+## 获取 Tag 快照（覆盖基类）
+func getTagSnapshot() -> Dictionary:
 	return ability_set.get_all_tags()
 
 
-## 设置录像回调（BattleRecorder 调用）
-func setupRecording(_ctx: Dictionary) -> Array:
-	# 返回取消订阅的回调数组（目前不需要订阅任何事件）
-	return []
-
-
-# ========== BattleRecorder 兼容性属性 ==========
-# BattleRecorder._capture_actor_init_data() 期望这些属性
-
-## Actor ID（BattleRecorder 兼容）
-var id: String:
-	get:
-		return get_id()
-
-## 配置 ID（BattleRecorder 兼容）
-var config_id: String:
-	get:
-		return get_config_id()
-
-## 显示名称（BattleRecorder 兼容）
-var display_name: String:
-	get:
-		return get_display_name()
-
-## 队伍（BattleRecorder 兼容）
-var team: int:
-	get:
-		return _team_id
-
-## 位置（BattleRecorder 兼容 - 返回 hex 坐标作为伪 Vector3）
-var position: Variant:
-	get:
-		if hex_position.is_empty():
-			return null
-		# 返回一个带有 x, y, z 属性的对象供 BattleRecorder 使用
-		return Vector3(hex_position.get("q", 0), hex_position.get("r", 0), 0)
-
-
-## 获取属性快照（camelCase 兼容）
-func getAttributeSnapshot() -> Dictionary:
-	return get_attribute_snapshot()
-
-
-## 获取 Ability 快照（camelCase 兼容）
-func getAbilitySnapshot() -> Array:
-	return get_ability_snapshot()
-
-
-## 获取 Tag 快照（camelCase 兼容）
-func getTagSnapshot() -> Dictionary:
-	return get_tag_snapshot()
+## 设置录像回调（覆盖基类）
+## 订阅所有框架事件：属性变化、Ability 生命周期、触发、执行、Tag 变化
+func setupRecording(ctx: Dictionary) -> Array:
+	var unsubscribes := []
+	
+	# 录制属性变化
+	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attributes, ctx))
+	
+	# 录制 AbilitySet 相关事件（Ability 授予/移除、触发、执行、Tag 变化）
+	unsubscribes.append_array(RecordingUtils.record_ability_set_changes(ability_set, ctx))
+	
+	# 录制 Actor 生命周期（生成/销毁）
+	unsubscribes.append_array(RecordingUtils.record_actor_lifecycle(self, ctx))
+	
+	return unsubscribes
 
 
 # ========== EventProcessor 兼容性 ==========

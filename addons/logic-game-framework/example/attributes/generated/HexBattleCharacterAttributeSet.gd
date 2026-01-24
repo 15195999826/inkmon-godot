@@ -108,3 +108,13 @@ func onSpeedChanged(callback: Callable) -> Callable:
 	_raw.add_change_listener(filtered_listener)
 	return func() -> void:
 		_raw.remove_change_listener(filtered_listener)
+
+
+# ========== RecordingUtils 兼容接口 ==========
+
+## 添加变化监听器（用于 RecordingUtils.record_attribute_changes）
+## 返回取消订阅函数
+func addChangeListener(listener: Callable) -> Callable:
+	_raw.add_change_listener(listener)
+	return func() -> void:
+		_raw.remove_change_listener(listener)

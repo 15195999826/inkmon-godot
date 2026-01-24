@@ -18,7 +18,7 @@ const DEFAULT_CONFIG := {
 }
 
 var config: Dictionary = {}
-var position: Vector3 = Vector3.ZERO
+var _position: Vector3 = Vector3.ZERO
 
 var _projectile_state: String = STATE_IDLE
 var _launch_params: Dictionary = {}
@@ -33,6 +33,11 @@ func _init(config_value: Dictionary = {}):
 	if config_value != null:
 		for key in config_value.keys():
 			config[key] = config_value[key]
+
+
+## 覆盖基类方法，返回投射物位置
+func _get_position() -> Variant:
+	return _position
 
 func get_projectile_state() -> String:
 	return _projectile_state
@@ -67,7 +72,7 @@ func launch(params: Dictionary) -> void:
 
 	_launch_params = params.duplicate(true)
 	if params.has("startPosition") and params["startPosition"] is Vector3:
-		position = params["startPosition"]
+		_position = params["startPosition"]
 
 	_projectile_state = STATE_FLYING
 	_fly_time = 0.0
@@ -77,7 +82,7 @@ func launch(params: Dictionary) -> void:
 
 	if str(config.get("projectileType", PROJECTILE_TYPE_BULLET)) == PROJECTILE_TYPE_HITSCAN:
 		if params.has("targetPosition") and params["targetPosition"] is Vector3:
-			position = params["targetPosition"]
+			_position = params["targetPosition"]
 
 func update(dt: float) -> bool:
 	if _projectile_state != STATE_FLYING:
@@ -108,20 +113,20 @@ func update_position(dt: float) -> void:
 		movement = Vector3(cos(direction) * move_distance, sin(direction) * move_distance, 0.0)
 	elif _launch_params.has("targetPosition") and _launch_params["targetPosition"] is Vector3:
 		var target_pos: Vector3 = _launch_params["targetPosition"]
-		var direction_vec: Vector3 = target_pos - position
+		var direction_vec: Vector3 = target_pos - _position
 		var distance_to_target := direction_vec.length()
 		if distance_to_target > 0.0:
 			var actual_move := min(move_distance, distance_to_target)
 			movement = direction_vec.normalized() * actual_move
 
-	position += movement
+	_position += movement
 
 func get_distance_to_target() -> float:
 	if not _launch_params.has("targetPosition"):
 		return INF
 	if not (_launch_params["targetPosition"] is Vector3):
 		return INF
-	return position.distance_to(_launch_params["targetPosition"])
+	return _position.distance_to(_launch_params["targetPosition"])
 
 func hit(target_id: String) -> bool:
 	if _projectile_state != STATE_FLYING:
@@ -160,7 +165,7 @@ func should_moba_hit() -> bool:
 func serialize() -> Dictionary:
 	var data := serialize_base()
 	data["config"] = config
-	data["position"] = position
+	data["position"] = _position
 	data["projectileState"] = _projectile_state
 	data["launchParams"] = _launch_params
 	data["flyTime"] = _fly_time

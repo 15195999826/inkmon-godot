@@ -97,7 +97,7 @@ func get_current_frame() -> int:
 func get_timeline() -> Array:
 	return timeline.duplicate(true)
 
-func register_actor(actor) -> void:
+func register_actor(actor: Actor) -> void:
 	if not is_recording:
 		return
 
@@ -122,13 +122,10 @@ func unregister_actor(actor_id: String, reason: String = "") -> void:
 
 		actor_subscriptions.erase(actor_id)
 
-func _subscribe_actor(actor) -> void:
-	var actor_id = actor.id
+func _subscribe_actor(actor: Actor) -> void:
+	var actor_id: String = actor.id
 
 	if actor_subscriptions.has(actor_id):
-		return
-
-	if not actor.has_method("setupRecording"):
 		return
 
 	var state := {
@@ -138,7 +135,7 @@ func _subscribe_actor(actor) -> void:
 		"is_recording": is_recording,
 	}
 
-	var ctx = {
+	var ctx := {
 		"actorId": actor_id,
 		"getLogicTime": func(): return state.current_frame * state.tick_interval,
 		"pushEvent": func(event):
@@ -146,13 +143,7 @@ func _subscribe_actor(actor) -> void:
 				state.pending_events.append(event),
 	}
 
-	var unsubscribes := []
-	if actor.setupRecording:
-		var result = actor.setupRecording(ctx)
-		if result is Array:
-			unsubscribes = result
-		else:
-			unsubscribes = []
+	var unsubscribes: Array = actor.setupRecording(ctx)
 
 	if not unsubscribes.is_empty():
 		actor_subscriptions[actor_id] = {
@@ -160,11 +151,11 @@ func _subscribe_actor(actor) -> void:
 			"unsubscribes": unsubscribes,
 		}
 
-func _capture_actor_init_data(actor) -> Dictionary:
+func _capture_actor_init_data(actor: Actor) -> Dictionary:
 	var position_data := {}
 
-	if "position" in actor and actor.position != null:
-		var pos = actor.position
+	var pos = actor.position
+	if pos != null:
 		if pos is Vector3:
 			position_data["world"] = {
 				"x": pos.x,
@@ -178,38 +169,13 @@ func _capture_actor_init_data(actor) -> Dictionary:
 				"z": 0.0,
 			}
 
-	var attributes_data := {}
-	if actor.has_method("getAttributeSnapshot"):
-		attributes_data = actor.getAttributeSnapshot()
-
-	var abilities_data := []
-	if actor.has_method("getAbilitySnapshot"):
-		abilities_data = actor.getAbilitySnapshot()
-
-	var tags_data := {}
-	if actor.has_method("getTagSnapshot"):
-		tags_data = actor.getTagSnapshot()
-
-	# 使用 "property" in object 语法检查属性是否存在
-	var config_id_value := "unknown"
-	if "config_id" in actor:
-		config_id_value = actor.config_id
-
-	var display_name_value: String = actor.id if "id" in actor else "unknown"
-	if "display_name" in actor:
-		display_name_value = actor.display_name
-
-	var team_value: int = 0
-	if "team" in actor:
-		team_value = actor.team
-
 	return {
 		"id": actor.id,
-		"configId": config_id_value,
-		"displayName": display_name_value,
-		"team": team_value,
+		"configId": actor.config_id,
+		"displayName": actor.display_name,
+		"team": actor.team,
 		"position": position_data,
-		"attributes": attributes_data,
-		"abilities": abilities_data,
-		"tags": tags_data,
+		"attributes": actor.getAttributeSnapshot(),
+		"abilities": actor.getAbilitySnapshot(),
+		"tags": actor.getTagSnapshot(),
 	}

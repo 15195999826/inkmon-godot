@@ -91,3 +91,69 @@ func serialize_base() -> Dictionary:
 		"team": _team,
 		"displayName": _display_name,
 	}
+
+
+# ========== 录像支持（BattleRecorder 接口） ==========
+
+## Actor ID（BattleRecorder 兼容属性）
+var id: String:
+	get:
+		return get_id()
+
+## 配置 ID（子类应覆盖 _get_config_id 方法）
+var config_id: String:
+	get:
+		return _get_config_id()
+
+## 显示名称（BattleRecorder 兼容属性）
+var display_name: String:
+	get:
+		return get_display_name()
+	set(value):
+		set_display_name(value)
+
+## 队伍（BattleRecorder 兼容属性，子类应覆盖 _get_team_int 方法）
+var team: int:
+	get:
+		return _get_team_int()
+
+## 位置（子类应覆盖 _get_position 方法）
+var position: Variant:
+	get:
+		return _get_position()
+
+
+## 获取配置 ID（子类可覆盖）
+func _get_config_id() -> String:
+	return type
+
+
+## 获取队伍 ID（子类可覆盖）
+func _get_team_int() -> int:
+	return int(_team) if _team.is_valid_int() else 0
+
+
+## 获取位置（子类可覆盖）
+func _get_position() -> Variant:
+	return null
+
+
+## 设置录像回调（BattleRecorder 调用）
+## 子类可覆盖此方法以订阅事件并返回取消订阅的回调数组
+func setupRecording(_ctx: Dictionary) -> Array:
+	return []
+
+
+## 获取属性快照（子类应覆盖）
+func getAttributeSnapshot() -> Dictionary:
+	return {}
+
+
+## 获取 Ability 快照（子类应覆盖）
+func getAbilitySnapshot() -> Array:
+	return []
+
+
+## 获取 Tag 快照（子类应覆盖）
+func getTagSnapshot() -> Dictionary:
+	return {}
