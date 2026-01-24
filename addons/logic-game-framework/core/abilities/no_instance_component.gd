@@ -7,11 +7,19 @@ var _triggers: Array = []
 var _trigger_mode: String = "any"
 var _actions: Array = []
 
-func _init(config: Dictionary):
+func _init(config: NoInstanceConfig):
 	type = TYPE
-	_triggers = config.get("triggers", [])
-	_trigger_mode = str(config.get("triggerMode", "any"))
-	_actions = config.get("actions", [])
+	_trigger_mode = config.trigger_mode
+	_actions = config.actions
+	# 转换 TriggerConfig 为内部格式
+	for trigger in config.triggers:
+		if trigger is TriggerConfig:
+			var trigger_dict := { "eventKind": trigger.event_kind }
+			if trigger.filter.is_valid():
+				trigger_dict["filter"] = trigger.filter
+			_triggers.append(trigger_dict)
+		else:
+			_triggers.append(trigger)
 
 func get_triggers() -> Array:
 	return _triggers

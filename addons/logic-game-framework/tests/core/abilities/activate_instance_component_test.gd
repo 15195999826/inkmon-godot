@@ -13,19 +13,26 @@ func _test_any_trigger() -> void:
 	})
 
 	var owner := ActorRef.new("actor-1")
-	var component := ActivateInstanceComponent.new({
-		"triggers": [
-			ActivateInstanceComponent.create_event_trigger("hit"),
-			ActivateInstanceComponent.create_event_trigger("heal"),
+	var component_config := ActivateInstanceConfig.new(
+		"t-any",
+		{},
+		[
+			TriggerConfig.new("hit"),
+			TriggerConfig.new("heal"),
 		],
-		"triggerMode": "any",
-		"timelineId": "t-any",
-		"tagActions": {},
-	})
-	var ability := Ability.new({
-		"configId": "test",
-		"components": [func(): return component],
-	}, owner)
+		"any"
+	)
+	var component := ActivateInstanceComponent.new(component_config)
+	var ability_config := AbilityConfig.new(
+		"test",
+		"",
+		"",
+		"",
+		[],
+		[],
+		[component]
+	)
+	var ability := Ability.new(ability_config, owner)
 	var context := {
 		"owner": owner,
 		"ability": ability,
@@ -45,19 +52,26 @@ func _test_all_trigger() -> void:
 	})
 
 	var owner := ActorRef.new("actor-2")
-	var component := ActivateInstanceComponent.new({
-		"triggers": [
-			ActivateInstanceComponent.create_event_trigger("hit"),
-			ActivateInstanceComponent.create_event_trigger("heal"),
+	var component_config := ActivateInstanceConfig.new(
+		"t-all",
+		{},
+		[
+			TriggerConfig.new("hit"),
+			TriggerConfig.new("heal"),
 		],
-		"triggerMode": "all",
-		"timelineId": "t-all",
-		"tagActions": {},
-	})
-	var ability := Ability.new({
-		"configId": "test",
-		"components": [func(): return component],
-	}, owner)
+		"all"
+	)
+	var component := ActivateInstanceComponent.new(component_config)
+	var ability_config := AbilityConfig.new(
+		"test",
+		"",
+		"",
+		"",
+		[],
+		[],
+		[component]
+	)
+	var ability := Ability.new(ability_config, owner)
 	var context := {
 		"owner": owner,
 		"ability": ability,

@@ -1,23 +1,21 @@
 ## 技能 Timeline 定义
 ##
 ## Timeline 描述技能执行的时间轴，定义各个动作点（Tag）的时间。
+## 使用 TimelineTags 常量定义 tag 名称，避免硬编码字符串。
 class_name HexBattleSkillTimelines
 extends RefCounted
 
 
 # ========== Timeline ID 常量 ==========
-
-const TIMELINE_ID := {
-	# 行动
-	"MOVE": "action_move",
-	# 技能
-	"SLASH": "skill_slash",
-	"PRECISE_SHOT": "skill_precise_shot",
-	"FIREBALL": "skill_fireball",
-	"CRUSHING_BLOW": "skill_crushing_blow",
-	"SWIFT_STRIKE": "skill_swift_strike",
-	"HOLY_HEAL": "skill_holy_heal",
-}
+## 使用类属性风格，支持 IDE 自动补全
+class TIMELINE_ID:
+	const MOVE := "action_move"
+	const SLASH := "skill_slash"
+	const PRECISE_SHOT := "skill_precise_shot"
+	const FIREBALL := "skill_fireball"
+	const CRUSHING_BLOW := "skill_crushing_blow"
+	const SWIFT_STRIKE := "skill_swift_strike"
+	const HOLY_HEAL := "skill_holy_heal"
 
 
 # ========== Timeline 定义 ==========
@@ -27,12 +25,12 @@ const TIMELINE_ID := {
 ## - 100ms: 应用移动，实际到达目标格子
 ## - 200ms: 结束
 static var MOVE_TIMELINE := {
-	"id": "action_move",
+	"id": TIMELINE_ID.MOVE,
 	"totalDuration": 200.0,
 	"tags": {
-		"start": 0.0,      # 0ms 时执行 StartMoveAction（立即预订）
-		"execute": 100.0,  # 100ms 时执行 ApplyMoveAction（实际移动）
-		"end": 200.0,
+		TimelineTags.START: 0.0,      # 0ms 时执行 StartMoveAction（立即预订）
+		TimelineTags.EXECUTE: 100.0,  # 100ms 时执行 ApplyMoveAction（实际移动）
+		TimelineTags.END: 200.0,
 	},
 }
 
@@ -40,12 +38,12 @@ static var MOVE_TIMELINE := {
 ## 横扫斩 Timeline
 ## - 近战攻击，0ms 发送动画提示，0.3s 时命中
 static var SLASH_TIMELINE := {
-	"id": "skill_slash",
+	"id": TIMELINE_ID.SLASH,
 	"totalDuration": 500.0,
 	"tags": {
-		"start": 0.0,  # 0ms 发送 stageCue 给表演层
-		"hit": 300.0,  # 300ms 时造成伤害
-		"end": 500.0,
+		TimelineTags.START: 0.0,  # 0ms 发送 stageCue 给表演层
+		TimelineTags.HIT: 300.0,  # 300ms 时造成伤害
+		TimelineTags.END: 500.0,
 	},
 }
 
@@ -53,13 +51,13 @@ static var SLASH_TIMELINE := {
 ## 精准射击 Timeline
 ## - 远程攻击，0ms 发送动画提示，0.3s 发射箭矢，0.5s 时命中
 static var PRECISE_SHOT_TIMELINE := {
-	"id": "skill_precise_shot",
+	"id": TIMELINE_ID.PRECISE_SHOT,
 	"totalDuration": 800.0,
 	"tags": {
-		"start": 0.0,     # 0ms 发送 stageCue 给表演层
-		"launch": 300.0,  # 300ms 时发射箭矢
-		"hit": 500.0,     # 500ms 时命中（如果是瞬时伤害的话）
-		"end": 800.0,
+		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
+		TimelineTags.LAUNCH: 300.0,  # 300ms 时发射箭矢
+		TimelineTags.HIT: 500.0,     # 500ms 时命中（如果是瞬时伤害的话）
+		TimelineTags.END: 800.0,
 	},
 }
 
@@ -67,14 +65,14 @@ static var PRECISE_SHOT_TIMELINE := {
 ## 火球术 Timeline
 ## - 远程魔法，0ms 发送动画提示，0.2s 施法，0.4s 发射火球，0.8s 时命中
 static var FIREBALL_TIMELINE := {
-	"id": "skill_fireball",
+	"id": TIMELINE_ID.FIREBALL,
 	"totalDuration": 1200.0,
 	"tags": {
-		"start": 0.0,     # 0ms 发送 stageCue 给表演层
-		"cast": 200.0,    # 施法动作
-		"launch": 400.0,  # 400ms 时发射火球
-		"hit": 800.0,     # 800ms 时命中（如果是瞬时伤害的话）
-		"end": 1200.0,
+		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
+		TimelineTags.CAST: 200.0,    # 施法动作
+		TimelineTags.LAUNCH: 400.0,  # 400ms 时发射火球
+		TimelineTags.HIT: 800.0,     # 800ms 时命中（如果是瞬时伤害的话）
+		TimelineTags.END: 1200.0,
 	},
 }
 
@@ -82,13 +80,13 @@ static var FIREBALL_TIMELINE := {
 ## 毁灭重击 Timeline
 ## - 近战重击，0ms 发送动画提示，0.3s 蓄力，0.6s 时命中
 static var CRUSHING_BLOW_TIMELINE := {
-	"id": "skill_crushing_blow",
+	"id": TIMELINE_ID.CRUSHING_BLOW,
 	"totalDuration": 1000.0,
 	"tags": {
-		"start": 0.0,     # 0ms 发送 stageCue 给表演层
-		"windup": 300.0,  # 蓄力
-		"hit": 600.0,     # 命中
-		"end": 1000.0,
+		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
+		TimelineTags.WINDUP: 300.0,  # 蓄力
+		TimelineTags.HIT: 600.0,     # 命中
+		TimelineTags.END: 1000.0,
 	},
 }
 
@@ -96,14 +94,14 @@ static var CRUSHING_BLOW_TIMELINE := {
 ## 疾风连刺 Timeline
 ## - 快速近战，0ms 发送动画提示，多段伤害
 static var SWIFT_STRIKE_TIMELINE := {
-	"id": "skill_swift_strike",
+	"id": TIMELINE_ID.SWIFT_STRIKE,
 	"totalDuration": 400.0,
 	"tags": {
-		"start": 0.0,   # 0ms 发送 stageCue 给表演层
-		"hit1": 100.0,  # 第一击
-		"hit2": 200.0,  # 第二击
-		"hit3": 300.0,  # 第三击
-		"end": 400.0,
+		TimelineTags.START: 0.0,   # 0ms 发送 stageCue 给表演层
+		TimelineTags.HIT1: 100.0,  # 第一击
+		TimelineTags.HIT2: 200.0,  # 第二击
+		TimelineTags.HIT3: 300.0,  # 第三击
+		TimelineTags.END: 400.0,
 	},
 }
 
@@ -111,12 +109,12 @@ static var SWIFT_STRIKE_TIMELINE := {
 ## 圣光治愈 Timeline
 ## - 远程治疗，0ms 发送动画提示，0.4s 时生效
 static var HOLY_HEAL_TIMELINE := {
-	"id": "skill_holy_heal",
+	"id": TIMELINE_ID.HOLY_HEAL,
 	"totalDuration": 600.0,
 	"tags": {
-		"start": 0.0,   # 0ms 发送 stageCue 给表演层
-		"heal": 400.0,  # 治疗生效
-		"end": 600.0,
+		TimelineTags.START: 0.0,   # 0ms 发送 stageCue 给表演层
+		TimelineTags.HEAL: 400.0,  # 治疗生效
+		TimelineTags.END: 600.0,
 	},
 }
 

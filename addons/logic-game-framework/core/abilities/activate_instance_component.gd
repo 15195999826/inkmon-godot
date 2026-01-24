@@ -8,12 +8,20 @@ var _trigger_mode: String = "any"
 var _timeline_id: String = ""
 var _tag_actions: Dictionary = {}
 
-func _init(config: Dictionary):
+func _init(config: ActivateInstanceConfig):
 	type = TYPE
-	_triggers = config.get("triggers", [])
-	_trigger_mode = str(config.get("triggerMode", "any"))
-	_timeline_id = str(config.get("timelineId", ""))
-	_tag_actions = config.get("tagActions", {})
+	_timeline_id = config.timeline_id
+	_tag_actions = config.tag_actions
+	_trigger_mode = config.trigger_mode
+	# 转换 TriggerConfig 为内部格式
+	for trigger in config.triggers:
+		if trigger is TriggerConfig:
+			var trigger_dict := { "eventKind": trigger.event_kind }
+			if trigger.filter.is_valid():
+				trigger_dict["filter"] = trigger.filter
+			_triggers.append(trigger_dict)
+		else:
+			_triggers.append(trigger)
 
 func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
 	if _check_triggers(event, context):

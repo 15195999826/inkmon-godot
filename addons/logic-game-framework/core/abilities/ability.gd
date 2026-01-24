@@ -22,19 +22,17 @@ var _execution_instances: Array = []
 var _on_triggered_callbacks: Array = []
 var _on_execution_callbacks: Array = []
 
-func _init(config: Dictionary, owner_value: ActorRef, source_value: ActorRef = null):
+func _init(config: AbilityConfig, owner_value: ActorRef, source_value: ActorRef = null):
 	id = IdGenerator.generate("ability")
-	config_id = str(config.get("configId", ""))
+	config_id = config.config_id
 	owner = owner_value
 	source = source_value if source_value else owner_value
-	display_name = str(config.get("displayName", ""))
-	description = str(config.get("description", ""))
-	icon = str(config.get("icon", ""))
-	tags = config.get("tags", [])
+	display_name = config.display_name
+	description = config.description
+	icon = config.icon
+	tags = config.tags
 
-	var active_components: Array = config.get("activeUseComponents", [])
-	var passive_components: Array = config.get("components", [])
-	_components = _resolve_components(active_components + passive_components)
+	_components = _resolve_components(config.active_use_components, config.components)
 
 	for component in _components:
 		if component and component.has_method("initialize"):
@@ -216,13 +214,31 @@ func serialize() -> Dictionary:
 		"executionInstances": serialized_instances,
 	}
 
-func _resolve_components(inputs: Array) -> Array:
+func _resolve_components(active_use_configs: Array, component_configs: Array) -> Array:
 	var result := []
-	for input in inputs:
-		if input is Callable:
-			result.append(input.call())
+	
+	# 解析 ActiveUseConfig -> ActiveUseComponent
+	for cfg in active_use_configs:
+		if cfg is ActiveUseConfig:
+			result.append(ActiveUseComponent.new(cfg))
+		elif cfg is Callable:
+			result.append(cfg.call())
 		else:
-			result.append(input)
+			result.append(cfg)
+	
+	# 解析组件配置
+	for cfg in component_configs:
+		if cfg is ActivateInstanceConfig:
+			result.append(ActivateInstanceComponent.new(cfg))
+		elif cfg is NoInstanceConfig:
+			result.append(NoInstanceComponent.new(cfg))
+		elif cfg is PreEventConfig:
+			result.append(PreEventComponent.new(cfg))
+		elif cfg is Callable:
+			result.append(cfg.call())
+		else:
+			result.append(cfg)
+	
 	return result
 
 func _is_executing_instance(instance) -> bool:

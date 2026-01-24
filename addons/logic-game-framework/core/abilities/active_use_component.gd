@@ -6,18 +6,29 @@ const COMPONENT_TYPE := "ActiveUseComponent"
 var _conditions: Array = []
 var _costs: Array = []
 
-func _init(config: Dictionary):
-	var triggers: Array = []
-	if config.has("triggers"):
-		triggers = config.get("triggers", [])
-	else:
-		triggers = [_create_default_trigger()]
-	var inner_config := config.duplicate(true)
-	inner_config["triggers"] = triggers
-	super._init(inner_config)
+func _init(config: ActiveUseConfig):
+	# 构建父类配置
+	var triggers_to_use: Array = config.triggers if not config.triggers.is_empty() else [_create_default_trigger_config()]
+	var parent_config := ActivateInstanceConfig.new(
+		config.timeline_id,
+		config.tag_actions,
+		triggers_to_use,
+		config.trigger_mode
+	)
+	super._init(parent_config)
 	type = COMPONENT_TYPE
-	_conditions = config.get("conditions", [])
-	_costs = config.get("costs", [])
+	_conditions = config.conditions
+	_costs = config.costs
+
+
+func _create_default_trigger_config() -> TriggerConfig:
+	var filter_fn := func(event: Dictionary, ctx: Dictionary) -> bool:
+		var ability_ref = ctx.get("ability", null)
+		var owner_ref = ctx.get("owner", null)
+		if ability_ref == null or owner_ref == null:
+			return false
+		return event.get("abilityInstanceId", "") == ability_ref.id and event.get("sourceId", "") == owner_ref.id
+	return TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, filter_fn)
 
 func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
 	if not _check_triggers(event, context):
@@ -91,13 +102,4 @@ func _get_logic_time(event: Dictionary, gameplay_state) -> float:
 		return float(gameplay_state.logicTime)
 	return float(Time.get_ticks_msec())
 
-func _create_default_trigger() -> Dictionary:
-	return {
-		"eventKind": GameEvent.ABILITY_ACTIVATE_EVENT,
-		"filter": func(event: Dictionary, ctx: Dictionary) -> bool:
-			var ability_ref = ctx.get("ability", null)
-			var owner_ref = ctx.get("owner", null)
-			if ability_ref == null or owner_ref == null:
-				return false
-			return event.get("abilityInstanceId", "") == ability_ref.id and event.get("sourceId", "") == owner_ref.id,
-	}
+

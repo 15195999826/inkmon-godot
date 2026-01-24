@@ -10,12 +10,12 @@ var _handler_name: String = ""
 var _unregister: Callable = Callable()
 var _lifecycle_context: Dictionary = {}
 
-func _init(config: Dictionary):
+func _init(config: PreEventConfig):
 	type = TYPE
-	_event_kind = str(config.get("eventKind", ""))
-	_filter = config.get("filter", Callable())
-	_handler = config.get("handler", Callable())
-	_handler_name = str(config.get("name", ""))
+	_event_kind = config.event_kind
+	_filter = config.filter
+	_handler = config.handler
+	_handler_name = config.name
 
 func get_event_kind() -> String:
 	return _event_kind

@@ -28,7 +28,16 @@ func _init() -> void:
 func _test_lifecycle() -> void:
 	var owner := ActorRef.new("actor-1")
 	var component := TestComponent.new()
-	var ability := Ability.new({ "configId": "fire", "components": [func(): return component] }, owner)
+	var config := AbilityConfig.new(
+		"fire",
+		"",
+		"",
+		"",
+		[],
+		[],
+		[component]
+	)
+	var ability := Ability.new(config, owner)
 	var context := { "owner": owner, "ability": ability }
 
 	ability.apply_effects(context)
@@ -45,7 +54,16 @@ func _test_lifecycle() -> void:
 func _test_triggered_listener() -> void:
 	var owner := ActorRef.new("actor-2")
 	var component := TestComponent.new()
-	var ability := Ability.new({ "configId": "storm", "components": [func(): return component] }, owner)
+	var config := AbilityConfig.new(
+		"storm",
+		"",
+		"",
+		"",
+		[],
+		[],
+		[component]
+	)
+	var ability := Ability.new(config, owner)
 	var context := { "owner": owner, "ability": ability }
 	ability.apply_effects(context)
 
@@ -68,7 +86,8 @@ func _test_execution_instances() -> void:
 	TimelineRegistry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
 
 	var owner := ActorRef.new("actor-3")
-	var ability := Ability.new({ "configId": "blink", "components": [] }, owner)
+	var config := AbilityConfig.new("blink")
+	var ability := Ability.new(config, owner)
 
 	ability.activate_new_execution_instance({
 		"timelineId": "t-ability",

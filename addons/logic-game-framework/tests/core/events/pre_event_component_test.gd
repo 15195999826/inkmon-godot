@@ -53,17 +53,18 @@ func _test_registration() -> void:
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new({
-		"eventKind": "pre_damage",
-		"filter": func(event, ctx):
-			return event.get("targetId") == ctx.owner.id,
-		"handler": func(_mutable, ctx):
+	var component = PreEventComponent.new(PreEventConfig.new(
+		"pre_damage",
+		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
 				{"field": "damage", "operation": "multiply", "value": 0.7},
 			]),
-	})
+		func(event, ctx):
+			return event.get("targetId") == ctx.owner.id
+	))
 
-	var ability = Ability.new({"configId": "buff_armor", "components": [component]}, owner)
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability = Ability.new(ability_config, owner)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
@@ -80,15 +81,16 @@ func _test_unregistration() -> void:
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new({
-		"eventKind": "pre_damage",
-		"handler": func(_mutable, ctx):
+	var component = PreEventComponent.new(PreEventConfig.new(
+		"pre_damage",
+		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
 				{"field": "damage", "operation": "multiply", "value": 0.5},
-			]),
-	})
+			])
+	))
 
-	var ability = Ability.new({"configId": "buff_armor", "components": [component]}, owner)
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability = Ability.new(ability_config, owner)
 	ability_set.grant_ability(ability)
 	ability_set.revoke_ability(ability.id)
 
@@ -105,16 +107,17 @@ func _test_modify_event() -> void:
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new({
-		"eventKind": "pre_damage",
-		"handler": func(_mutable, ctx):
+	var component = PreEventComponent.new(PreEventConfig.new(
+		"pre_damage",
+		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
 				{"field": "damage", "operation": "multiply", "value": 0.7},
 				{"field": "damage", "operation": "add", "value": -10},
-			]),
-	})
+			])
+	))
 
-	var ability = Ability.new({"configId": "buff_armor", "components": [component]}, owner)
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability = Ability.new(ability_config, owner)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
@@ -131,13 +134,14 @@ func _test_cancel_event() -> void:
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new({
-		"eventKind": "pre_damage",
-		"handler": func(_mutable, ctx):
-			return EventPhase.cancel_intent(ctx.ability.id, "immune"),
-	})
+	var component = PreEventComponent.new(PreEventConfig.new(
+		"pre_damage",
+		func(_mutable, ctx):
+			return EventPhase.cancel_intent(ctx.ability.id, "immune")
+	))
 
-	var ability = Ability.new({"configId": "buff_immune", "components": [component]}, owner)
+	var ability_config := AbilityConfig.new("buff_immune", "", "", "", [], [], [component])
+	var ability = Ability.new(ability_config, owner)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
