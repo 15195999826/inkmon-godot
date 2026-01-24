@@ -4,9 +4,6 @@
 class_name HexBattle
 extends RefCounted
 
-# 预加载日志类（避免 class_name 加载顺序问题）
-const BattleLoggerClass = preload("res://addons/logic-game-framework/example/hex-atb-battle/logger/battle_logger.gd")
-
 
 # ========== 常量 ==========
 
@@ -66,7 +63,7 @@ func start(config: Dictionary = {}) -> void:
 	_recording_enabled = config.get("recording", true)
 	
 	if _logging_enabled:
-		logger = BattleLoggerClass.new(id, {
+		logger = HexBattleLogger.new(id, {
 			"console": config.get("console_log", false),  # 默认不输出到控制台（已有 print）
 			"file": config.get("file_log", true),
 		})

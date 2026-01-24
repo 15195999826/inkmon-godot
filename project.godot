@@ -17,14 +17,16 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Log="*res://addons/logic-game-framework/core/utils/Logger.gd"
-IdGenerator="*res://addons/logic-game-framework/core/utils/IdGenerator.gd"
+Log="*res://addons/lomolib/utils/Logger.gd"
+IdGenerator="*res://addons/lomolib/utils/IdGenerator.gd"
 GameWorld="*res://addons/logic-game-framework/core/world/GameWorld.gd"
 TimelineRegistry="*res://addons/logic-game-framework/core/timeline/Timeline.gd"
+WaitGroupManager="*res://addons/lomolib/wait_group/wait_group_manager.gd"
+ItemSystem="*res://addons/lomolib/inventoryKit/item_system.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/hex-grid/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
+enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/hex-grid/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
 
 [physics]
 

@@ -4,7 +4,7 @@ extends EditorPlugin
 # ========== 依赖检查 ==========
 
 ## 依赖的插件列表
-const DEPENDENCIES: Array[String] = ["hex-grid"]
+const DEPENDENCIES: Array[String] = ["hex-grid", "lomolib"]
 
 # ========== 常量 ==========
 
@@ -12,10 +12,7 @@ const MENU_NAME := "LGFramework"
 const MENU_ITEM_GENERATE := 1
 const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/AttributeSetGeneratorScript.gd"
 
-const AUTOLOAD_LOG := "Log"
-const AUTOLOAD_LOG_PATH := "res://addons/logic-game-framework/core/utils/Logger.gd"
-const AUTOLOAD_ID_GENERATOR := "IdGenerator"
-const AUTOLOAD_ID_GENERATOR_PATH := "res://addons/logic-game-framework/core/utils/IdGenerator.gd"
+# Log 和 IdGenerator 已移至 lomolib 插件
 const AUTOLOAD_GAME_WORLD := "GameWorld"
 const AUTOLOAD_GAME_WORLD_PATH := "res://addons/logic-game-framework/core/world/GameWorld.gd"
 const AUTOLOAD_TIMELINE_REGISTRY := "TimelineRegistry"
@@ -55,14 +52,11 @@ func _run_attribute_set_generator() -> void:
 	instance._run()
 
 func _register_autoloads() -> void:
-	_ensure_autoload(AUTOLOAD_LOG, AUTOLOAD_LOG_PATH)
-	_ensure_autoload(AUTOLOAD_ID_GENERATOR, AUTOLOAD_ID_GENERATOR_PATH)
+	# Log 和 IdGenerator 由 lomolib 插件提供
 	_ensure_autoload(AUTOLOAD_GAME_WORLD, AUTOLOAD_GAME_WORLD_PATH)
 	_ensure_autoload(AUTOLOAD_TIMELINE_REGISTRY, AUTOLOAD_TIMELINE_REGISTRY_PATH)
 
 func _unregister_autoloads() -> void:
-	_remove_autoload_if_matches(AUTOLOAD_LOG, AUTOLOAD_LOG_PATH)
-	_remove_autoload_if_matches(AUTOLOAD_ID_GENERATOR, AUTOLOAD_ID_GENERATOR_PATH)
 	_remove_autoload_if_matches(AUTOLOAD_GAME_WORLD, AUTOLOAD_GAME_WORLD_PATH)
 	_remove_autoload_if_matches(AUTOLOAD_TIMELINE_REGISTRY, AUTOLOAD_TIMELINE_REGISTRY_PATH)
 
