@@ -61,8 +61,8 @@ func run_battle() -> String:
 	
 	print("[Godot] Battle ended. Ticks: %d" % battle.tick_count)
 	
-	# 获取回放数据
-	var replay_data := battle.get_replay_data()
+	# 获取回放数据（必须在 _end_battle() 之前调用，因为 _end_battle 会 stop_recording）
+	var replay_data: Dictionary = battle.recorder.get_replay_data() if battle.recorder != null else {}
 	
 	# 转换为 JSON 字符串
 	var json_str := JSON.stringify(replay_data)
