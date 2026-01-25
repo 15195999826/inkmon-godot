@@ -153,8 +153,9 @@ func load_replay(replay_data: Dictionary) -> void:
 
 ## 开始播放
 func play() -> void:
+	# 自动重置已结束的回放 (修复 C5)
 	if _is_ended():
-		return
+		reset()
 	
 	_is_playing = true
 	playback_state_changed.emit(true)
