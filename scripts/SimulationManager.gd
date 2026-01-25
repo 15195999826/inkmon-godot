@@ -51,8 +51,11 @@ func run_battle() -> String:
 	# 创建 HexBattle 实例
 	var battle := HexBattle.new()
 	
-	# 使用默认配置开始战斗
-	battle.start({})
+	# 使用默认配置开始战斗（禁用文件保存，只获取数据）
+	battle.start({
+		"logging": false,  # 不保存日志文件
+		"recording": true,  # 启用录像
+	})
 	
 	# 运行战斗循环直到结束
 	var dt := 1.0  # 每个 tick 的时间步长
@@ -61,8 +64,8 @@ func run_battle() -> String:
 	
 	print("[Godot] Battle ended. Ticks: %d" % battle.tick_count)
 	
-	# 获取回放数据（必须在 _end_battle() 之前调用，因为 _end_battle 会 stop_recording）
-	var replay_data: Dictionary = battle.recorder.get_replay_data() if battle.recorder != null else {}
+	# 直接调用 get_replay_data() 方法（HexBattle 的公开方法）
+	var replay_data := battle.get_replay_data()
 	
 	# 转换为 JSON 字符串
 	var json_str := JSON.stringify(replay_data)
