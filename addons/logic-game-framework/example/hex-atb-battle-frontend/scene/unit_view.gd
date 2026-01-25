@@ -44,6 +44,7 @@ var _is_alive: bool = true
 var _flash_progress: float = 0.0
 var _base_material: StandardMaterial3D
 var _target_position: Vector3 = Vector3.ZERO
+var _death_tween: Tween  # 死亡动画 Tween (修复 C3)
 
 
 # ========== 初始化 ==========
@@ -207,12 +208,22 @@ func _update_tint_color(tint_color: Color) -> void:
 
 ## 播放死亡动画
 func _play_death_animation() -> void:
-	var tween := create_tween()
-	tween.tween_property(self, "scale", Vector3(0.1, 0.1, 0.1), 0.5)
-	tween.parallel().tween_property(self, "position:y", position.y - 0.5, 0.5)
-	tween.tween_callback(_on_death_animation_finished)
+	# 防止重复创建 Tween (修复 C3)
+	if _death_tween and _death_tween.is_running():
+		return
+	
+	_death_tween = create_tween()
+	_death_tween.tween_property(self, "scale", Vector3(0.1, 0.1, 0.1), 0.5)
+	_death_tween.parallel().tween_property(self, "position:y", position.y - 0.5, 0.5)
+	_death_tween.tween_callback(_on_death_animation_finished)
 
 
 func _on_death_animation_finished() -> void:
 	death_animation_finished.emit(_actor_id)
 	visible = false
+
+
+func _exit_tree() -> void:
+	# 清理死亡动画 Tween (修复 C3)
+	if _death_tween:
+		_death_tween.kill()

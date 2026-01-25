@@ -154,3 +154,51 @@ func _exit_tree() -> void:
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/core/battle_director.gd` - 添加 `_exit_tree()` 断开信号并清空引用
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/test_3d_visualization.gd` - 添加 `_exit_tree()` 断开信号
 
+
+
+## 2026-01-25 - Fix C3: 资源未释放 - UnitView 材质和 Tween
+
+### Problem
+- `_base_material` (StandardMaterial3D) 未显式释放（Godot 会自动管理，无需手动释放）
+- 死亡动画的 Tween 在 UnitView 被 `queue_free()` 时可能仍在运行
+- 多次调用 `_play_death_animation()` 会创建多个 Tween，导致资源泄漏
+
+### Solution
+在 `unit_view.gd` 中添加 `_death_tween: Tween` 变量，修改 `_play_death_animation()` 检查 Tween 是否已在运行，添加 `_exit_tree()` 方法 kill Tween。
+
+### Key Implementation
+```gdscript
+# 状态变量区（第47行）
+var _death_tween: Tween  # 死亡动画 Tween (修复 C3)
+
+# 修改 _play_death_animation()（第209-218行）
+func _play_death_animation() -> void:
+	# 防止重复创建 Tween (修复 C3)
+	if _death_tween and _death_tween.is_running():
+		return
+	
+	_death_tween = create_tween()
+	_death_tween.tween_property(self, "scale", Vector3(0.1, 0.1, 0.1), 0.5)
+	_death_tween.parallel().tween_property(self, "position:y", position.y - 0.5, 0.5)
+	_death_tween.tween_callback(_on_death_animation_finished)
+
+# 添加 _exit_tree()（第224-227行）
+func _exit_tree() -> void:
+	# 清理死亡动画 Tween (修复 C3)
+	if _death_tween:
+		_death_tween.kill()
+```
+
+### Design Pattern
+- **Tween 生命周期管理**: 使用成员变量 `_death_tween` 持有 Tween 引用
+- **防止重复创建**: 在 `_play_death_animation()` 中检查 `is_running()`
+- **资源清理**: 在 `_exit_tree()` 中调用 `kill()` 停止 Tween
+- **材质管理**: `_base_material` 由 Godot 自动管理，无需手动释放
+
+### Testing
+- LSP 诊断: 无错误 ✅
+- 预期效果: 多次调用 `_play_death_animation()` 不会创建多个 Tween，退出时无资源泄漏警告
+
+### Related Files
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/unit_view.gd` - 修改死亡动画 Tween 管理
+
