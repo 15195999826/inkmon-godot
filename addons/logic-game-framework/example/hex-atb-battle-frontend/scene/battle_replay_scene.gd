@@ -305,15 +305,13 @@ func _on_playback_ended() -> void:
 	print("[BattleReplayScene] Playback ended")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
 	_update_all_unit_positions()
 	
-	# 应用震屏效果
+	# 平滑震屏过渡 (修复 M5)
 	var shake_offset := _director.get_screen_shake_offset()
-	if shake_offset != Vector2.ZERO:
-		_camera_rig.position.x = shake_offset.x * 0.1
-		_camera_rig.position.z = 10 + shake_offset.y * 0.1
-	else:
-		_camera_rig.position.x = 0
-		_camera_rig.position.z = 10
+	var target_x := shake_offset.x * 0.1
+	var target_z := 10 + shake_offset.y * 0.1
+	_camera_rig.position.x = lerp(_camera_rig.position.x, target_x, delta * 10.0)
+	_camera_rig.position.z = lerp(_camera_rig.position.z, target_z, delta * 10.0)
