@@ -57,15 +57,17 @@ func run_battle() -> String:
 		"recording": true,  # 启用录像
 	})
 	
-	# 运行战斗循环直到结束
+	# 运行战斗循环直到结束（但不包括最后一个 tick，避免 _end() 被调用）
 	var dt := 1.0  # 每个 tick 的时间步长
-	while battle.tick_count < battle.MAX_TICKS and not battle._ended:
+	while battle.tick_count < battle.MAX_TICKS - 1 and not battle._ended:
 		battle.tick(dt)
 	
 	print("[Godot] Battle ended. Ticks: %d" % battle.tick_count)
 	
-	# 直接调用 get_replay_data() 方法（HexBattle 的公开方法）
-	var replay_data := battle.get_replay_data()
+	# 在 _end() 被调用之前获取录像数据
+	var replay_data := {}
+	if battle.recorder != null:
+		replay_data = battle.recorder.stop_recording("manual")
 	
 	# 转换为 JSON 字符串
 	var json_str := JSON.stringify(replay_data)
