@@ -101,7 +101,8 @@ func _draw() -> void:
 	for coord in _filled_hexes.keys():
 		var corners := _world._layout.hex_corners(coord)
 		var points := PackedVector2Array(corners)
-		draw_polygon(points, _filled_hexes[coord])
+		var colors := PackedColorArray([_filled_hexes[coord]])
+		draw_polygon(points, colors)
 	
 	# 绘制高亮（在最上层）
 	for coord in _highlighted_hexes.keys():
