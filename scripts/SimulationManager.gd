@@ -31,12 +31,11 @@ func _setup_js_bridge():
 	# 注册 run_battle 回调
 	var battle_callback := JavaScriptBridge.create_callback(_on_run_battle_call)
 	_js_window.godot_run_battle = battle_callback
-	_js_window.godot_battle_result = ""
+	_js_window.godot_last_result = ""
 	
 	print("[Godot] JS Bridge registered: window.godot_greet")
 	print("[Godot] JS Bridge registered: window.godot_run_battle")
 	print("[Godot] Tip: Check window.godot_last_result for return value")
-	print("[Godot] Tip: Check window.godot_battle_result for battle result")
 
 
 func _on_js_call(args: Array) -> String:
@@ -57,7 +56,7 @@ func _on_run_battle_call(_args: Array) -> String:
 	print("[Godot] _on_run_battle_call returning: ", result.substr(0, 100), "...")
 	
 	# 同时写入全局变量作为备用
-	_js_window.godot_battle_result = result
+	_js_window.godot_last_result = result
 	
 	return result
 
