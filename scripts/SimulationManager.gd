@@ -1,6 +1,7 @@
 extends Node
 
-var _js_window: JavaScriptObject
+var _js_callback_greet: JavaScriptObject
+var _js_callback_battle: JavaScriptObject
 
 
 func _ready():
@@ -8,36 +9,36 @@ func _ready():
 	print("[Godot] Platform web: ", OS.has_feature("web"))
 	print("[Godot] Platform headless: ", OS.has_feature("headless"))
 	
-	# 在 Web 环境总是尝试注册 JS Bridge（无论是否 headless）
-	_setup_js_bridge()
-	
-	# 本地测试（非 Web 环境）
-	if not OS.has_feature("web"):
+	if OS.has_feature("web"):
+		_setup_js_bridge()
+	else:
+		# 本地测试
 		var result = greet("Godot Headless")
 		print("[Godot] Local test result: ", result)
 
 
 func _setup_js_bridge():
-	_js_window = JavaScriptBridge.get_interface("window")
+	var window = JavaScriptBridge.get_interface("window")
 	
-	# 直接暴露 Godot 实例到 window.godot_instance
-	_js_window.godot_instance = self
+	# 注册 greet 回调（和你的示例一样）
+	_js_callback_greet = JavaScriptBridge.create_callback(_on_greet_call)
+	window.godot_greet = _js_callback_greet
 	
-	# 使用 eval 创建同步包装函数
-	var js_code := """
-		window.godot_run_battle_sync = function() {
-			return window.godot_instance.run_battle();
-		};
-		window.godot_greet_sync = function(name) {
-			return window.godot_instance.greet(name);
-		};
-	"""
+	# 注册 run_battle 回调（同样的模式）
+	_js_callback_battle = JavaScriptBridge.create_callback(_on_battle_call)
+	window.godot_run_battle = _js_callback_battle
 	
-	JavaScriptBridge.eval(js_code)
-	
-	print("[Godot] JS Bridge registered: window.godot_instance")
-	print("[Godot] JS Bridge registered: window.godot_run_battle_sync")
-	print("[Godot] JS Bridge registered: window.godot_greet_sync")
+	print("[Godot] JS Bridge registered: window.godot_greet")
+	print("[Godot] JS Bridge registered: window.godot_run_battle")
+
+
+func _on_greet_call(args: Array) -> String:
+	var name_arg = args[0] if args.size() > 0 else "Unknown"
+	return greet(name_arg)
+
+
+func _on_battle_call(args: Array) -> String:
+	return run_battle()
 
 
 func greet(name_arg: String) -> String:
