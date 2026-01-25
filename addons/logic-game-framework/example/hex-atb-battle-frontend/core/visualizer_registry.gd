@@ -1,0 +1,95 @@
+## VisualizerRegistry - Visualizer 注册表
+##
+## 管理所有 Visualizer 的注册和事件分发。
+## 支持多个 Visualizer 协作处理同一事件。
+##
+## 设计决策：收集所有匹配的 Visualizer 结果
+## 原因：一个事件可能需要多个 Visualizer 协作
+## 例如：DamageEvent 同时触发 DamageVisualizer（飘字）+ ScreenShakeVisualizer（震屏）
+class_name FrontendVisualizerRegistry
+extends RefCounted
+
+
+# ========== 属性 ==========
+
+## 已注册的 Visualizer 列表
+var _visualizers: Array = []
+
+## 是否启用调试模式
+var _debug_mode: bool = false
+
+
+# ========== 注册方法 ==========
+
+## 注册 Visualizer
+func register(visualizer: FrontendBaseVisualizer) -> FrontendVisualizerRegistry:
+	# 验证 visualizer 实现了必要的方法
+	if not visualizer.has_method("can_handle"):
+		push_error("[VisualizerRegistry] Visualizer missing can_handle() method")
+		return self
+	if not visualizer.has_method("translate"):
+		push_error("[VisualizerRegistry] Visualizer missing translate() method")
+		return self
+	
+	_visualizers.append(visualizer)
+	return self
+
+
+## 批量注册 Visualizer
+func register_all(visualizers: Array) -> FrontendVisualizerRegistry:
+	for v in visualizers:
+		register(v as FrontendBaseVisualizer)
+	return self
+
+
+## 启用/禁用调试模式
+func set_debug_mode(enabled: bool) -> FrontendVisualizerRegistry:
+	_debug_mode = enabled
+	return self
+
+
+# ========== 翻译方法 ==========
+
+## 翻译事件为视觉动作
+## 遍历所有注册的 Visualizer，收集能处理该事件的所有结果
+func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
+	var actions: Array = []
+	var handled := false
+	
+	for visualizer in _visualizers:
+		var v := visualizer as FrontendBaseVisualizer
+		if v.can_handle(event):
+			handled = true
+			var result: Array = v.translate(event, context)
+			actions.append_array(result)
+	
+	# 调试模式下警告未处理的事件
+	if not handled and _debug_mode:
+		var kind := event.get("kind", "unknown")
+		push_warning("[VisualizerRegistry] Unhandled event: %s" % kind)
+	
+	return actions
+
+
+## 批量翻译事件
+func translate_all(events: Array, context: FrontendVisualizerContext) -> Array:
+	var actions: Array = []
+	for event in events:
+		actions.append_array(translate(event as Dictionary, context))
+	return actions
+
+
+# ========== 查询方法 ==========
+
+## 获取已注册的 Visualizer 数量
+func get_count() -> int:
+	return _visualizers.size()
+
+
+## 获取所有已注册的 Visualizer 名称
+func get_registered_names() -> Array[String]:
+	var names: Array[String] = []
+	for v in _visualizers:
+		var visualizer := v as FrontendBaseVisualizer
+		names.append(visualizer.visualizer_name)
+	return names

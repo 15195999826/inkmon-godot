@@ -1,0 +1,114 @@
+## VisualizerContext - Visualizer 的只读上下文接口
+##
+## 设计原则：
+## - 只读查询，不允许修改状态
+## - Visualizer 是纯函数，只返回声明式的 VisualAction
+## - 状态修改由 RenderWorld 统一执行
+class_name FrontendVisualizerContext
+extends RefCounted
+
+
+# ========== 内部状态引用 ==========
+
+## 角色状态 Map（actor_id -> ActorRenderState）
+var _actors: Dictionary = {}
+
+## 插值位置 Map（actor_id -> Vector2）
+var _interpolated_positions: Dictionary = {}
+
+## 动画配置
+var _animation_config: FrontendAnimationConfig
+
+## 六边形网格配置
+var _hex_config: FrontendHexGridConfig
+
+
+# ========== 构造函数 ==========
+
+func _init(
+	actors: Dictionary,
+	interpolated_positions: Dictionary,
+	animation_config: FrontendAnimationConfig,
+	hex_config: FrontendHexGridConfig
+) -> void:
+	_actors = actors
+	_interpolated_positions = interpolated_positions
+	_animation_config = animation_config
+	_hex_config = hex_config
+
+
+# ========== 角色查询 ==========
+
+## 获取角色当前位置（世界坐标）
+func get_actor_position(actor_id: String) -> Vector3:
+	var hex_pos := get_actor_hex_position(actor_id)
+	return _hex_config.hex_to_world(hex_pos)
+
+
+## 获取角色当前 HP
+func get_actor_hp(actor_id: String) -> float:
+	var actor: Dictionary = _actors.get(actor_id, {})
+	return actor.get("visual_hp", 0.0) as float
+
+
+## 获取角色最大 HP
+func get_actor_max_hp(actor_id: String) -> float:
+	var actor: Dictionary = _actors.get(actor_id, {})
+	return actor.get("max_hp", 100.0) as float
+
+
+## 检查角色是否存活
+func is_actor_alive(actor_id: String) -> bool:
+	var actor: Dictionary = _actors.get(actor_id, {})
+	return actor.get("is_alive", false) as bool
+
+
+## 获取角色六边形坐标
+func get_actor_hex_position(actor_id: String) -> Vector2i:
+	# 优先使用插值位置
+	if _interpolated_positions.has(actor_id):
+		var pos: Vector2 = _interpolated_positions[actor_id]
+		return Vector2i(roundi(pos.x), roundi(pos.y))
+	
+	var actor: Dictionary = _actors.get(actor_id, {})
+	var pos: Dictionary = actor.get("position", {})
+	return Vector2i(pos.get("q", 0) as int, pos.get("r", 0) as int)
+
+
+## 获取角色所属队伍
+func get_actor_team(actor_id: String) -> int:
+	var actor: Dictionary = _actors.get(actor_id, {})
+	return actor.get("team", 0) as int
+
+
+## 获取所有角色 ID
+func get_all_actor_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for key in _actors.keys():
+		ids.append(key as String)
+	return ids
+
+
+## 获取角色显示名称
+func get_actor_display_name(actor_id: String) -> String:
+	var actor: Dictionary = _actors.get(actor_id, {})
+	return actor.get("display_name", "") as String
+
+
+# ========== 配置查询 ==========
+
+## 获取动画配置
+func get_animation_config() -> FrontendAnimationConfig:
+	return _animation_config
+
+
+## 获取六边形网格配置
+func get_hex_config() -> FrontendHexGridConfig:
+	return _hex_config
+
+
+# ========== 坐标转换 ==========
+
+## 将六边形坐标转换为世界坐标
+func hex_to_world(hex: Vector2i) -> Vector3:
+	return _hex_config.hex_to_world(hex)

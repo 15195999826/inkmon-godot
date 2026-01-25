@@ -10,7 +10,9 @@ const DEPENDENCIES: Array[String] = ["hex-grid", "lomolib"]
 
 const MENU_NAME := "LGFramework"
 const MENU_ITEM_GENERATE := 1
+const MENU_ITEM_RUN_TEST := 2
 const GENERATOR_SCRIPT := "res://addons/logic-game-framework/scripts/attribute_set_generator_script.gd"
+const TEST_SCENE := "res://addons/logic-game-framework/example/hex-atb-battle/main.tscn"
 
 # Log 和 IdGenerator 已移至 lomolib 插件
 const AUTOLOAD_GAME_WORLD := "GameWorld"
@@ -26,6 +28,7 @@ func _enter_tree() -> void:
 	_register_autoloads()
 	_menu = PopupMenu.new()
 	_menu.add_item("生成属性集", MENU_ITEM_GENERATE)
+	_menu.add_item("运行 HexATB 测试 (Headless)", MENU_ITEM_RUN_TEST)
 	_menu.id_pressed.connect(_on_menu_id_pressed)
 	add_tool_submenu_item(MENU_NAME, _menu)
 
@@ -39,6 +42,8 @@ func _exit_tree() -> void:
 func _on_menu_id_pressed(id: int) -> void:
 	if id == MENU_ITEM_GENERATE:
 		_run_attribute_set_generator()
+	elif id == MENU_ITEM_RUN_TEST:
+		_run_headless_test()
 
 func _run_attribute_set_generator() -> void:
 	var script := load(GENERATOR_SCRIPT)
@@ -50,6 +55,21 @@ func _run_attribute_set_generator() -> void:
 		push_error("Generator script does not implement _run(): %s" % GENERATOR_SCRIPT)
 		return
 	instance._run()
+
+
+func _run_headless_test() -> void:
+	var godot_path := OS.get_executable_path()
+	var project_path := ProjectSettings.globalize_path("res://")
+	var scene_path := TEST_SCENE
+	
+	var args := PackedStringArray([
+		"--headless",
+		"--path", project_path,
+		scene_path
+	])
+	
+	print("[LGFramework] 启动 Headless 测试: %s %s" % [godot_path, " ".join(args)])
+	OS.create_process(godot_path, args)
 
 func _register_autoloads() -> void:
 	# Log 和 IdGenerator 由 lomolib 插件提供

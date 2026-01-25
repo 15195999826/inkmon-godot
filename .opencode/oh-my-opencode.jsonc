@@ -1,21 +1,22 @@
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  
   // ============================================================
-  // LomoMarketplace 项目配置
-  // 包含: logic-game-framework, InkMon 生态, Claude Code 插件
+  // Oh-My-OpenCode 3.0.1 配置
+  // 更新日期: 2026-01-25
   // ============================================================
-  "google_auth": true,
+
   // ============================================================
-  // 智能体配置
+  // 智能体配置 (3.0 版本 - 小写键名)
   // Temperature 指南:
   //   0.0-0.1: 精确任务 (代码生成、逻辑推理、调试)
   //   0.2-0.3: 平衡任务 (代码审查、架构设计)
   //   0.5-0.7: 创意任务 (UI设计、文档撰写)
   // ============================================================
   "agents": {
-    // ==================== 核心编排 ====================
     // 主编排器 - 需要稳定的决策能力
-    "Sisyphus": {
+    // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
+    "sisyphus": {
       // "model": "anthropic/claude-opus-4-5",
       // "model": "xaio/XAIO-C-4-5-Opus",
       // "model": "zhipuai-coding-plan/glm-4.7",
@@ -23,134 +24,508 @@
       // "model": "github-copilot/claude-opus-4.5",
       // "model": "xaio/XAIO-O-G5-2-Codex",
       // "model": "github-copilot/gpt-5.2-codex",
-      "temperature": 0.1 // 低温度确保稳定的任务分配和决策
+      "temperature": 0.1
     },
-    // ==================== 专家顾问 ====================
-    // Oracle - 架构设计和深度调试 (只读顾问)
-    // 需要严谨的逻辑推理，低温度
+    
+    // 架构设计和深度调试 (只读顾问)
+    // Provider 优先级: openai → anthropic → google → github-copilot → opencode
     "oracle": {
-      "model": "gitlab/duo-chat-opus-4-5",
+      // "model": "gitlab/duo-chat-opus-4-5",
+      // "model": "gitlab/duo-chat-gpt-5-2-codex",
+      "model": "gitlab/duo-chat-gpt-5-2",
       // "model": "xaio/XAIO-O-G5-2-Codex",
       // "model": "github-copilot/gpt-5.2-codex",
       // "model": "anthropic/claude-opus-4-5",
       // "model": "github-copilot/claude-opus-4.5",
-      "temperature": 0.15 // 略高于 0.1 允许一些创造性建议
+      "temperature": 0.15
     },
-    // ==================== 探索代理 ====================
-    // Librarian - 文档/代码库分析 (快速便宜)
+    
+    // 文档/代码库分析 (快速便宜)
     "librarian": {
       "model": "zhipuai-coding-plan/glm-4.7",
-      // "model": "xaio/GLM-4.7",
-      "temperature": 0.1 // 搜索任务需要精确
+      "temperature": 0.1
     },
-    // Explore - 快速代码库探索 (极速)
+    
+    // 快速代码库探索 (极速)
     "explore": {
       "model": "zhipuai-coding-plan/glm-4.7",
-      "temperature": 0.0 // 纯搜索，无需创造性
+      "temperature": 0.0
     },
-    // ==================== 专业领域 ====================
-    // Frontend UI/UX - 需要创意
-    "frontend-ui-ux-engineer": {
-      "model": "google/antigravity-gemini-3-pro-high",
-      "temperature": 0.6 // 高温度激发 UI 创意
-    },
-    // Document Writer - 技术文档需要清晰但有表达力
-    "document-writer": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      //  "model": "xaio/XAIO-C-4-5-Opus",
-      //  "model": "xaio/XAIO-C-4-5-Sonnet"
-      "temperature": 0.4 // 中等温度平衡准确性和可读性
-    },
-    // Multimodal Looker - 图像/PDF 分析需要精确
+    
+    // 图像/PDF 分析
     "multimodal-looker": {
       "model": "google/antigravity-gemini-3-flash",
-      "temperature": 0.1 // 分析任务需要精确
+      "temperature": 0.1
+    },
+    
+    // 规划器 (3.0 新增)
+    // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
+    "prometheus": {
+      "model": "gitlab/duo-chat-opus-4-5",
+      "temperature": 0.1
+    },
+    
+    // 预规划分析 (3.0 新增) - 识别隐藏需求和AI失败点
+    // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
+    "metis": {
+      // "model": "github-copilot/claude-sonnet-4.5",
+      "model": "gitlab/duo-chat-sonnet-4-5",
+      "temperature": 0.2
+    },
+    
+    // 计划审核 (3.0 新增) - 验证计划完整性
+    // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
+    "momus": {
+      // "model": "github-copilot/claude-sonnet-4.5",
+      "model": "gitlab/duo-chat-sonnet-4-5",
+      "temperature": 0.2
+    },
+
+    // Atlas (内部编排器，通常不需要手动配置)
+    // 默认模型: claude-sonnet-4-5
+    // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
+    "atlas": {
+      // "model": "github-copilot/claude-sonnet-4.5",
+      "model": "gitlab/duo-chat-sonnet-4-5"
     }
   },
+
+  // ============================================================
+  // 类别配置 (3.0 版本 - 用于 delegate_task)
+  // ============================================================
   "categories": {
+    // 代码审查
     "code-review": {
-      "model": "anthropic/claude-sonnet-4-5",
+      "model": "github-copilot/claude-sonnet-4.5",
       "temperature": 0.2,
-      "prompt_append": "review the code changes carefully and suggest improvements focusing on code quality, performance, and best practices."
+      "prompt_append": "Review the code changes carefully and suggest improvements focusing on code quality, performance, and best practices."
+    },
+    
+    // 前端/UI/UX (3.0 新类别名)
+    "visual-engineering": {
+      "model": "google/antigravity-gemini-3-pro-high",
+      "temperature": 0.6,
+      "prompt_append": "Focus on UI/UX design, styling, animations, and visual aesthetics. Use modern design patterns."
+    },
+    
+    // 深度逻辑推理 (3.0 新增)
+    "ultrabrain": {
+      "model": "gitlab/duo-chat-opus-4-5",
+      "temperature": 0.1,
+      "prompt_append": "Deep logical reasoning required. Analyze thoroughly before acting."
+    },
+    
+    // 快速简单任务 (3.0 新增)
+    "quick": {
+      "model": "zhipuai-coding-plan/glm-4.7",
+      "temperature": 0.1,
+      "prompt_append": "Simple task. Be concise and efficient."
+    },
+    
+    // 文档撰写 (3.0 新增)
+    "writing": {
+      "model": "github-copilot/claude-sonnet-4.5",
+      "temperature": 0.4,
+      "prompt_append": "Focus on clear, accurate technical documentation with good structure."
+    },
+    
+    // 创意任务 (3.0 新增)
+    "artistry": {
+      "model": "google/antigravity-gemini-3-pro-high",
+      "temperature": 0.7,
+      "prompt_append": "Be creative and innovative. Think outside the box."
     }
   },
+
   // ============================================================
   // Sisyphus 编排器配置
-  // 控制 Sisyphus 与 OpenCode 原生模式的共存
   // ============================================================
   "sisyphus_agent": {
-    // disabled: true 会完全禁用 Sisyphus，恢复原生 OpenCode 模式
+    // 完全禁用 Sisyphus 编排，恢复原生 OpenCode 模式
+    // 影响: 关闭所有智能编排功能，回退到基础 agent
     "disabled": false,
-    // 启用 OpenCode-Builder (原生 build agent)，与 Sisyphus 共存
+    
+    // 启用 OpenCode-Builder (原生 build agent)
+    // 影响: 允许同时使用 Sisyphus 和原生 build agent
     "default_builder_enabled": true,
-    // 保留原生 plan agent，设为 false 可同时使用 Prometheus 和原生 plan
+    
+    // 是否替换原生 plan agent
+    // 影响: false = 同时保留 Prometheus 和原生 plan; true = 只用 Prometheus
     "replace_plan": false,
+    
     // 启用 Prometheus (Planner) agent
+    // 影响: 提供战略规划和工作计划生成能力
     "planner_enabled": true
   },
-  // ============================================================
-  // LSP 配置
-  // ============================================================
-  "lsp": {
 
-  },
   // ============================================================
   // 后台任务并发配置
   // ============================================================
   "background_task": {
+    // 默认并发数 - 所有 provider 的默认最大并行任务数
+    // 影响: 控制同时运行的后台 agent 数量，过高可能触发 rate limit
     "defaultConcurrency": 5,
+    
+    // 按 provider 设置并发限制
+    // 影响: 针对不同 API 提供商设置不同限制，避免触发各自的 rate limit
+    // 设为 0 可完全禁用该 provider 的后台任务
     "providerConcurrency": {
-      "anthropic": 3,
-      "google": 8
-    }
+      "anthropic": 3,        // Claude API 限制较严格
+      "google": 8,           // Gemini 限制较宽松
+      "zhipuai-coding-plan": 5,
+      "gitlab": 3
+    },
+    
+    // 按具体模型设置并发限制
+    // 影响: 精细控制昂贵模型的并发，防止成本失控
+    // 优先级: modelConcurrency > providerConcurrency > defaultConcurrency
+    "modelConcurrency": {
+      // 示例: 限制 Opus 模型并发为 2
+      // "anthropic/claude-opus-4-5": 2
+    },
+    
+    // 后台任务超时时间 (毫秒)
+    // 影响: 无活动超过此时间的任务会被中断
+    // 默认: 180000 (3分钟), 最小: 60000 (1分钟)
+    "staleTimeoutMs": 180000
   },
+
   // ============================================================
-  // 禁用的钩子 - 根据项目需求调整
+  // LSP 配置
+  // ============================================================
+  "lsp": {},
+
+  // ============================================================
+  // 禁用的 Agent
+  // 可用 Agent:
+  //   sisyphus - 主编排器
+  //   prometheus - 规划器
+  //   oracle - 架构/调试顾问
+  //   librarian - 文档/代码库分析
+  //   explore - 快速代码库探索
+  //   multimodal-looker - 图像/PDF 分析
+  //   metis - 预规划分析
+  //   momus - 计划审核
+  //   atlas - 内部编排器
+  // 影响: 禁用后该 agent 将不可用
+  // ============================================================
+  "disabled_agents": [],
+
+  // ============================================================
+  // 禁用的技能
+  // 可用技能:
+  //   playwright - 浏览器自动化、截图、测试
+  //   frontend-ui-ux - UI/UX 设计技能
+  //   git-master - Git 操作专家
+  // 影响: 禁用后该技能将不可加载
+  // ============================================================
+  "disabled_skills": [],
+
+  // ============================================================
+  // 禁用的内置命令
+  // 可用命令:
+  //   init-deep - 初始化层级 AGENTS.md 知识库
+  //   start-work - 从 Prometheus 计划启动工作
+  // 影响: 禁用后该命令将不可用
+  // ============================================================
+  "disabled_commands": [],
+
+  // ============================================================
+  // 禁用的钩子
+  // 可用钩子列表 (按功能分类):
+  //
+  // [任务管理]
+  //   todo-continuation-enforcer - 强制完成 TODO 列表，防止 agent 中途放弃
+  //   empty-task-response-detector - 检测空任务响应
+  //   delegate-task-retry - 自动重试失败的 delegate_task 调用
+  //   start-work - 处理 /start-work 命令执行
+  //
+  // [上下文管理]
+  //   context-window-monitor - 监控上下文窗口使用率
+  //   grep-output-truncator - 动态截断 grep 输出，保持 50% 余量
+  //   tool-output-truncator - 截断 Grep/Glob/LSP/AST-grep 工具输出
+  //   compaction-context-injector - 会话压缩时保留关键上下文
+  //
+  // [上下文注入]
+  //   directory-agents-injector - 读取文件时自动注入 AGENTS.md
+  //   directory-readme-injector - 读取文件时自动注入 README.md
+  //   rules-injector - 注入 .claude/rules/ 中的条件规则
+  //
+  // [恢复与稳定性]
+  //   session-recovery - 会话错误恢复 (missing tool results, thinking block issues)
+  //   anthropic-context-window-limit-recovery - Claude 上下文窗口限制恢复
+  //   thinking-block-validator - 验证 thinking blocks 防止 API 错误
+  //   edit-error-recovery - 编辑工具失败恢复
+  //
+  // [通知]
+  //   session-notification - 会话完成时发送 OS 通知
+  //   background-notification - 后台任务完成通知
+  //   auto-update-checker - 检查新版本
+  //   startup-toast - 启动时显示版本和状态提示
+  //
+  // [代码质量]
+  //   comment-checker - 检测过多注释并提醒减少
+  //   prometheus-md-only - 强制 Prometheus 只输出 Markdown
+  //
+  // [模式与关键词]
+  //   think-mode - 深度思考模式 (ultrathink, think deeply)
+  //   keyword-detector - 关键词检测 (ultrawork/ulw, search/find, analyze)
+  //   ralph-loop - 无人值守持续工作循环
+  //   auto-slash-command - 自动执行提示中的斜杠命令
+  //
+  // [环境与集成]
+  //   non-interactive-env - 处理非交互式环境约束
+  //   interactive-bash-session - 管理 tmux 会话用于交互式 CLI
+  //   claude-code-hooks - 执行 Claude Code settings.json 中的钩子
+  //   atlas - 主编排逻辑 (771 行)
+  //
+  // [其他]
+  //   agent-usage-reminder - 提醒使用专业 agent 获得更好结果
+  //
+  // 影响: 禁用钩子会关闭对应功能
+  // 注意: startup-toast 是 auto-update-checker 的子功能
   // ============================================================
   "disabled_hooks": [],
+
   // ============================================================
-  // 禁用的 MCP - 项目已有自己的 MCP
+  // 禁用的 MCP
+  // 可用 MCP:
+  //   websearch - Exa AI 网络搜索
+  //   context7 - 官方文档查询
+  //   grep_app - GitHub 代码搜索
   // ============================================================
   "disabled_mcps": [],
+
   // ============================================================
   // Claude Code 兼容性
-  // 让 Claude Code 的配置在 OpenCode 中也能用
-  // 如果你从未用过 Claude Code，保持 true 也没副作用
   // ============================================================
   "claude_code": {
-    "mcp": true, // 加载 ~/.claude/.mcp.json, ./.mcp.json 中的 MCP 配置
-    "commands": true, // 加载 ~/.claude/commands/ 中的斜杠命令
-    "skills": true, // 加载 ~/.claude/skills/ 中的技能
-    "agents": true, // 加载 ~/.claude/agents/*.md 中的自定义智能体
-    "hooks": true, // 执行 ~/.claude/settings.json 中的钩子 (PreToolUse/PostToolUse/Stop)
-    "plugins": true // 加载 ~/.claude/plugins/ 中的 Claude Code 市场插件
+    // 加载 .mcp.json 中的 MCP 配置
+    // 影响: 启用 Claude Code 风格的 MCP 服务器配置
+    "mcp": true,
+    
+    // 加载 ~/.claude/commands/ 中的斜杠命令
+    // 影响: 可以使用 Claude Code 格式的自定义命令
+    "commands": true,
+    
+    // 加载 ~/.claude/skills/ 中的技能
+    // 影响: 可以使用 Claude Code 格式的技能定义
+    "skills": true,
+    
+    // 加载 ~/.claude/agents/*.md 中的自定义智能体
+    // 影响: 可以定义 Claude Code 格式的自定义 agent
+    "agents": true,
+    
+    // 执行 settings.json 中的钩子
+    // 影响: 支持 PreToolUse/PostToolUse/Stop 等生命周期钩子
+    "hooks": true,
+    
+    // 加载 Claude Code 市场插件
+    // 影响: 支持 Claude Code 插件生态
+    "plugins": true,
+    
+    // 插件覆盖配置
+    // 影响: 可以单独禁用特定的 Claude Code 插件
+    // 格式: "插件名@作者": false
+    "plugins_override": {
+      // 示例: 禁用 claude-mem 插件
+      // "claude-mem@thedotmack": false
+    }
   },
+
+  // ============================================================
+  // 自动更新检查
+  // 影响: 启动时检查 oh-my-opencode 新版本
+  // ============================================================
+  "auto_update": true,
+
+  // ============================================================
+  // 通知配置
+  // ============================================================
+  "notification": {
+    // 强制启用会话通知
+    // 影响: 即使检测到外部通知插件，也启用内置的 session-notification
+    // 场景: 当外部插件不工作时使用
+    "force_enable": false
+  },
+
+  // ============================================================
+  // 注释检查器配置
+  // 用途: 检测 AI 生成的过多注释并提醒减少
+  // ============================================================
+  "comment_checker": {
+    // 自定义提示语
+    // 影响: 替换默认的注释警告消息
+    // 占位符: {{comments}} 会被替换为检测到的注释 XML
+    // 留空使用默认提示
+    "custom_prompt": ""
+  },
+
   // ============================================================
   // Git Master 配置
   // ============================================================
   "git_master": {
+    // 在 commit message 末尾添加 "Ultraworked with Sisyphus" 标记
+    // 影响: 标识该提交由 AI 辅助完成
     "commit_footer": true,
+    
+    // 添加 Co-authored-by 标记
+    // 影响: 在 git log 中显示 AI 协作信息
     "include_co_authored_by": true
   },
+
+  // ============================================================
+  // 技能配置
+  // 用途: 配置自定义技能源和覆盖内置技能
+  // ============================================================
+  "skills": {
+    // 技能源 - 额外的技能加载路径
+    // 影响: 从指定路径加载自定义技能
+    // "sources": [
+    //   "path/to/custom/skills",
+    //   { "path": "another/path", "recursive": true, "glob": "*.md" }
+    // ],
+    
+    // 启用的技能列表 (可选)
+    // 影响: 只启用列表中的技能
+    // "enable": ["playwright", "git-master"],
+    
+    // 禁用的技能列表 (可选)
+    // 影响: 禁用列表中的技能
+    // "disable": ["frontend-ui-ux"]
+    
+    // 也可以直接配置单个技能:
+    // "my-custom-skill": {
+    //   "description": "自定义技能描述",
+    //   "template": "技能模板内容",
+    //   "model": "指定模型",
+    //   "agent": "指定 agent",
+    //   "disable": false
+    // }
+  },
+
   // ============================================================
   // Ralph Loop - 无人值守持续工作模式
-  // 智能体回复结束后，系统自动发送新消息继续推进，直到任务完成
-  // 适合：睡前启动的大型重构、批量处理等长任务
+  // 适合: 睡前启动的大型重构、批量处理等长任务
   // ============================================================
   "ralph_loop": {
-    "enabled": false, // 需要时手动改为 true
-    "default_max_iterations": 100 // 最大迭代次数，防止无限循环
+    // 启用 ralph loop 功能
+    // 影响: 允许使用 /ralph-loop 命令进行无人值守工作
+    "enabled": false,
+    
+    // 默认最大迭代次数 (1-1000)
+    // 影响: 防止无限循环，超过此次数自动停止
+    "default_max_iterations": 100,
+    
+    // 状态文件目录 (相对于项目根目录)
+    // 影响: ralph loop 状态文件的存储位置
+    // 默认: .opencode/
+    "state_dir": ".opencode/"
   },
+
   // ============================================================
   // 实验性功能
+  // 警告: 这些功能可能不稳定，谨慎使用
   // ============================================================
   "experimental": {
-    // 预防性压缩阈值：上下文窗口使用率达到此比例时自动压缩会话历史
-    // 范围 0.5~0.95，越低越早压缩（保守），越高越晚压缩（激进）
+    // 预防性压缩阈值 (0.5-0.95)
+    // 影响: 上下文使用率达到此比例时自动压缩会话历史
+    // 越低越早压缩(保守)，越高越晚压缩(激进)
     "preemptive_compaction_threshold": 0.95,
-    // 是否截断所有工具输出（防止单次搜索吃掉整个上下文）
-    // false = 只截断特定工具 (Grep/Glob/LSP/AST-grep)
-    // true = 截断所有工具输出
-    "truncate_all_tool_outputs": false
+    
+    // 截断所有工具输出
+    // 影响: true = 截断所有工具输出; false = 只截断特定工具 (Grep/Glob/LSP/AST-grep)
+    // 风险: 可能丢失重要信息
+    "truncate_all_tool_outputs": false,
+    
+    // 激进截断模式
+    // 影响: token 超限时激进截断工具输出以适应限制
+    // 风险: 可能丢失关键上下文
+    "aggressive_truncation": false,
+    
+    // 自动恢复
+    // 影响: thinking block 错误后自动恢复会话并继续
+    // 风险: 可能在错误状态下继续执行
+    "auto_resume": false,
+    
+    // ============================================================
+    // 动态上下文裁剪 (3.0 新增)
+    // 用途: 自动清理对话历史中的冗余内容，节省 token
+    // 适合: 长时间对话、ralph-loop、大型重构
+    // 警告: 实验性功能，可能导致上下文丢失
+    // ============================================================
+    "dynamic_context_pruning": {
+      // 是否启用动态上下文裁剪
+      // 影响: 开启后会自动清理冗余的工具调用历史
+      // 风险: 可能误删有用的上下文信息
+      "enabled": false,
+      
+      // 通知级别
+      // off: 静默裁剪，不显示任何通知
+      // minimal: 只显示裁剪摘要
+      // detailed: 显示详细的裁剪信息
+      // 影响: 控制裁剪操作的可见性，便于调试
+      "notification": "detailed",
+      
+      // 轮次保护 - 防止裁剪最近的工具输出
+      "turn_protection": {
+        // 是否启用轮次保护
+        // 影响: 保护最近 N 轮的工具输出不被裁剪
+        "enabled": true,
+        
+        // 保护的轮次数 (1-10)
+        // 影响: 数值越大保护越多，但节省 token 效果越差
+        "turns": 3
+      },
+      
+      // 受保护的工具列表 - 这些工具的输出永远不会被裁剪
+      // 影响: 确保关键操作的结果不会丢失
+      // 默认保护: task, todowrite, todoread, lsp_rename, session_read, session_write, session_search
+      "protected_tools": [
+        "task",
+        "todowrite",
+        "todoread",
+        "lsp_rename",
+        "session_read",
+        "session_write",
+        "session_search"
+      ],
+      
+      // 裁剪策略配置
+      "strategies": {
+        // 去重策略 - 移除重复的工具调用
+        "deduplication": {
+          // 是否启用去重
+          // 影响: 移除相同工具+相同参数的重复调用
+          // 场景: 多次读取同一文件、重复搜索等
+          "enabled": true
+        },
+        
+        // 写入覆盖策略 - 文件被读取后移除之前的写入输入
+        "supersede_writes": {
+          // 是否启用写入覆盖
+          // 影响: 如果文件写入后又被读取，移除写入时的输入内容
+          // 原理: 读取结果已包含最新内容，写入输入变得冗余
+          "enabled": true,
+          
+          // 激进模式
+          // 影响: true = 任何后续读取都会触发裁剪; false = 只有读取同一文件才触发
+          // 风险: 激进模式可能误删有用的写入上下文
+          "aggressive": false
+        },
+        
+        // 错误清理策略 - N 轮后移除失败的工具调用
+        "purge_errors": {
+          // 是否启用错误清理
+          // 影响: 自动清理失败的工具调用输入，减少噪音
+          "enabled": true,
+          
+          // 清理延迟轮次 (1-20)
+          // 影响: 失败调用在 N 轮后被清理
+          // 原理: 给 agent 足够时间从错误中学习，之后再清理
+          "turns": 5
+        }
+      }
+    }
   }
 }

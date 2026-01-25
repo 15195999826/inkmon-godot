@@ -61,6 +61,9 @@ func _run_battle_sync() -> void:
 			break
 	
 	print("\n========== 战斗运行完成 ==========")
+	
+	# headless 模式自动退出
+	get_tree().quit()
 
 
 ## 手动运行战斗（用于测试）
