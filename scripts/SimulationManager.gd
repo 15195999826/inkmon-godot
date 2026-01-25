@@ -28,8 +28,15 @@ func _setup_js_bridge():
 	# 方案2: 创建一个同步调用接口，通过全局变量传递结果
 	_js_window.godot_last_result = ""
 	
+	# 注册 run_battle 回调
+	var battle_callback := JavaScriptBridge.create_callback(_on_run_battle_call)
+	_js_window.godot_run_battle = battle_callback
+	_js_window.godot_battle_result = ""
+	
 	print("[Godot] JS Bridge registered: window.godot_greet")
+	print("[Godot] JS Bridge registered: window.godot_run_battle")
 	print("[Godot] Tip: Check window.godot_last_result for return value")
+	print("[Godot] Tip: Check window.godot_battle_result for battle result")
 
 
 func _on_js_call(args: Array) -> String:
@@ -44,5 +51,44 @@ func _on_js_call(args: Array) -> String:
 	return result
 
 
+func _on_run_battle_call(_args: Array) -> String:
+	var result := run_battle()
+	print("[Godot] _on_run_battle_call completed")
+	print("[Godot] _on_run_battle_call returning: ", result.substr(0, 100), "...")
+	
+	# 同时写入全局变量作为备用
+	_js_window.godot_battle_result = result
+	
+	return result
+
+
 func greet(name_arg: String) -> String:
 	return JSON.stringify({"message": "Hello, " + name_arg + "!", "from": "Godot"})
+
+
+func run_battle() -> String:
+	print("\n[Godot] Starting battle simulation...")
+	
+	# 创建 HexBattle 实例
+	var battle := HexBattle.new()
+	
+	# 使用默认配置开始战斗
+	battle.start({})
+	
+	# 运行战斗循环直到结束
+	var dt := 1.0  # 每个 tick 的时间步长
+	while battle.tick_count < battle.MAX_TICKS and not battle._ended:
+		battle.tick(dt)
+	
+	print("[Godot] Battle ended. Ticks: %d" % battle.tick_count)
+	
+	# 获取回放数据
+	var replay_data := battle.get_replay_data()
+	
+	# 转换为 JSON 字符串
+	var json_str := JSON.stringify(replay_data)
+	
+	print("[Godot] Replay JSON length: %d chars" % json_str.length())
+	print("[Godot] First 200 chars: ", json_str.substr(0, 200))
+	
+	return json_str
