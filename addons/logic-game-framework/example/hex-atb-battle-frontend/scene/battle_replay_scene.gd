@@ -240,6 +240,14 @@ func _reset_unit_views() -> void:
 			unit_view.scale = Vector3.ONE
 
 
+## 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
+func _update_all_unit_positions() -> void:
+	for actor_id in _unit_views.keys():
+		var unit_view: FrontendUnitView = _unit_views[actor_id]
+		var world_pos := _director.get_actor_world_position(actor_id)
+		unit_view.set_world_position(world_pos)
+
+
 # ========== 信号处理 ==========
 
 func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
@@ -279,6 +287,9 @@ func _on_playback_ended() -> void:
 
 
 func _process(_delta: float) -> void:
+	# 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
+	_update_all_unit_positions()
+	
 	# 应用震屏效果
 	var shake_offset := _director.get_screen_shake_offset()
 	if shake_offset != Vector2.ZERO:
