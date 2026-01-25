@@ -38,7 +38,11 @@ func _on_greet_call(args: Array) -> String:
 
 
 func _on_battle_call(args: Array) -> String:
-	return run_battle()
+	var result := run_battle()
+	# 同时写入全局变量（多线程 WASM 中回调返回值不可靠）
+	var window = JavaScriptBridge.get_interface("window")
+	window.godot_battle_result = result
+	return result
 
 
 func greet(name_arg: String) -> String:
