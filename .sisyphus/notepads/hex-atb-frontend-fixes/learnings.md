@@ -57,3 +57,45 @@ func _update_all_unit_positions() -> void:
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/battle_replay_scene.gd` - 修改位置更新逻辑
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:150-160` - 参考插值实现
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/core/battle_director.gd:222-223` - `get_actor_world_position()` 方法
+
+
+## 2026-01-25 - Fix M6: UnitView 位置插值
+
+### Problem
+- `set_world_position` 直接设置 `position`，没有平滑插值
+- 如果物理帧率高于逻辑帧率（10fps vs 60fps），移动会显得卡顿
+
+### Solution
+在 `unit_view.gd` 中添加 `_target_position: Vector3` 变量，修改 `set_world_position()` 设置 `_target_position` 而非直接设置 `position`，添加 `_process(delta)` 方法使用 `lerp` 平滑插值到目标位置。
+
+### Key Implementation
+```gdscript
+# 状态变量
+var _target_position: Vector3 = Vector3.ZERO
+
+# _ready() 初始化
+func _ready() -> void:
+    _create_mesh()
+    _create_hp_bar()
+    _create_name_label()
+    _target_position = position
+
+# 每帧插值
+func _process(delta: float) -> void:
+    # 平滑插值到目标位置 (修复 M6)
+    position = position.lerp(_target_position, delta * 15.0)
+
+# 设置目标位置
+func set_world_position(world_pos: Vector3) -> void:
+    _target_position = world_pos
+```
+
+### Design Pattern
+- **插值速度**: `delta * 15.0` (与 Task 1 C2 保持一致)
+- **避免 Tween**: 使用 `lerp` 而非 Tween，避免与死亡动画冲突
+- **数据流向**: `BattleReplayScene._update_all_unit_positions()` → `UnitView.set_world_position()` → `_target_position` → `_process()` → `position`
+
+### Related Files
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/unit_view.gd` - 修改位置插值逻辑
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/battle_replay_scene.gd:_update_all_unit_positions()` - 调用 `set_world_position()`
+

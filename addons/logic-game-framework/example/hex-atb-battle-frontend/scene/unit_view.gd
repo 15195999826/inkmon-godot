@@ -43,6 +43,7 @@ var _current_hp: float = 100.0
 var _is_alive: bool = true
 var _flash_progress: float = 0.0
 var _base_material: StandardMaterial3D
+var _target_position: Vector3 = Vector3.ZERO
 
 
 # ========== 初始化 ==========
@@ -51,6 +52,12 @@ func _ready() -> void:
 	_create_mesh()
 	_create_hp_bar()
 	_create_name_label()
+	_target_position = position
+
+
+func _process(delta: float) -> void:
+	# 平滑插值到目标位置 (修复 M6)
+	position = position.lerp(_target_position, delta * 15.0)
 
 
 ## 创建球体网格
@@ -152,7 +159,7 @@ func update_state(state: Dictionary) -> void:
 
 ## 设置世界位置
 func set_world_position(world_pos: Vector3) -> void:
-	position = world_pos
+	_target_position = world_pos
 
 
 # ========== 内部方法 ==========
