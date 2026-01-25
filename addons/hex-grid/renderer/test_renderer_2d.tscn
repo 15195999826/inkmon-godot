@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://test2d"]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://addons/hex-grid/renderer/test_renderer_2d.gd" id="1_script"]
 [ext_resource type="Script" path="res://addons/hex-grid/renderer/hex_grid_renderer_2d.gd" id="2_renderer"]
