@@ -144,6 +144,7 @@ func load_and_play(replay_data: Dictionary) -> void:
 func load_replay(replay_data: Dictionary) -> void:
 	_director.load_replay(replay_data)
 	_spawn_units(replay_data)
+	_clear_effects()  # 清理旧特效 (修复 M4)
 
 
 ## 播放
@@ -165,6 +166,7 @@ func toggle() -> void:
 func reset() -> void:
 	_director.reset()
 	_reset_unit_views()
+	_clear_effects()  # 清理特效 (修复 M4)
 
 
 ## 设置播放速度
@@ -248,6 +250,12 @@ func _reset_unit_views() -> void:
 			unit_view.update_state(actor_state)
 			unit_view.visible = true
 			unit_view.scale = Vector3.ONE
+
+
+## 清理所有特效节点 (修复 M4)
+func _clear_effects() -> void:
+	for child in _effects_root.get_children():
+		child.queue_free()
 
 
 ## 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
