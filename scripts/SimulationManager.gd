@@ -1,6 +1,5 @@
 extends Node
 
-var _js_callback: JavaScriptObject
 var _js_window: JavaScriptObject
 
 
@@ -21,44 +20,24 @@ func _ready():
 func _setup_js_bridge():
 	_js_window = JavaScriptBridge.get_interface("window")
 	
-	# 方案1: 使用 callback（返回值可能有问题）
-	_js_callback = JavaScriptBridge.create_callback(_on_js_call)
-	_js_window.godot_greet = _js_callback
+	# 直接暴露 Godot 实例到 window.godot_instance
+	_js_window.godot_instance = self
 	
-	# 方案2: 创建一个同步调用接口，通过全局变量传递结果
-	_js_window.godot_last_result = ""
+	# 使用 eval 创建同步包装函数
+	var js_code := """
+		window.godot_run_battle_sync = function() {
+			return window.godot_instance.run_battle();
+		};
+		window.godot_greet_sync = function(name) {
+			return window.godot_instance.greet(name);
+		};
+	"""
 	
-	# 注册 run_battle 回调
-	var battle_callback := JavaScriptBridge.create_callback(_on_run_battle_call)
-	_js_window.godot_run_battle = battle_callback
-	_js_window.godot_last_result = ""
+	JavaScriptBridge.eval(js_code)
 	
-	print("[Godot] JS Bridge registered: window.godot_greet")
-	print("[Godot] JS Bridge registered: window.godot_run_battle")
-	print("[Godot] Tip: Check window.godot_last_result for return value")
-
-
-func _on_js_call(args: Array) -> String:
-	var name_arg = args[0] if args.size() > 0 else "Unknown"
-	var result = greet(name_arg)
-	print("[Godot] _on_js_call received: ", name_arg)
-	print("[Godot] _on_js_call returning: ", result)
-	
-	# 同时写入全局变量作为备用
-	_js_window.godot_last_result = result
-	
-	return result
-
-
-func _on_run_battle_call(_args: Array) -> String:
-	var result := run_battle()
-	print("[Godot] _on_run_battle_call completed")
-	print("[Godot] _on_run_battle_call returning: ", result.substr(0, 100), "...")
-	
-	# 同时写入全局变量作为备用
-	_js_window.godot_last_result = result
-	
-	return result
+	print("[Godot] JS Bridge registered: window.godot_instance")
+	print("[Godot] JS Bridge registered: window.godot_run_battle_sync")
+	print("[Godot] JS Bridge registered: window.godot_greet_sync")
 
 
 func greet(name_arg: String) -> String:
