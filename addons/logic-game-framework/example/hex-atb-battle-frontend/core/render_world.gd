@@ -50,6 +50,9 @@ var _next_instance_id: int = 0
 ## 内部世界时间（毫秒）
 var _world_time_ms: int = 0
 
+## 脏标记 Map（actor_id -> bool）用于批量触发信号 (修复 M1)
+var _dirty_actors: Dictionary = {}
+
 
 # ========== 构造函数 ==========
 
@@ -181,7 +184,8 @@ func _apply_update_hp_action(action: FrontendUpdateHPAction, progress: float) ->
 		actor["visual_hp"] = action.to_hp
 		actor["is_alive"] = action.to_hp > 0
 	
-	actor_state_changed.emit(action.actor_id, actor)
+	# 标记为脏，不立即触发信号 (修复 M1)
+	_dirty_actors[action.actor_id] = true
 
 
 ## 应用飘字动作
@@ -214,7 +218,8 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 				var actor: Dictionary = _actors.get(action.actor_id, {})
 				if not actor.is_empty():
 					actor["flash_progress"] = action.get_flash_intensity(progress)
-					actor_state_changed.emit(action.actor_id, actor)
+					# 标记为脏，不立即触发信号 (修复 M1)
+					_dirty_actors[action.actor_id] = true
 		
 		FrontendProceduralVFXAction.EffectType.SHAKE:
 			var offset := action.get_shake_offset(progress)
@@ -228,7 +233,8 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 				var actor: Dictionary = _actors.get(action.actor_id, {})
 				if not actor.is_empty():
 					actor["tint_color"] = action.tint_color if progress < 1.0 else Color.WHITE
-					actor_state_changed.emit(action.actor_id, actor)
+					# 标记为脏，不立即触发信号 (修复 M1)
+					_dirty_actors[action.actor_id] = true
 	
 	# 添加到程序化特效列表
 	var exists := false
@@ -380,6 +386,14 @@ func advance_time(delta_ms: int) -> void:
 ## 获取内部世界时间
 func get_world_time() -> int:
 	return _world_time_ms
+
+
+## 批量触发脏标记的 Actor 状态变化信号 (修复 M1)
+func flush_dirty_actors() -> void:
+	for actor_id in _dirty_actors.keys():
+		if _actors.has(actor_id):
+			actor_state_changed.emit(actor_id, _actors[actor_id])
+	_dirty_actors.clear()
 
 
 # ========== 直接状态更新 ==========

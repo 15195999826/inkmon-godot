@@ -290,6 +290,9 @@ func _tick(delta_ms: float) -> void:
 		_world.apply_actions(result.completed_this_tick)
 		_world.cleanup(_world.get_world_time())
 	
+	# 批量触发状态变化信号 (修复 M1)
+	_world.flush_dirty_actors()
+	
 	# 检查是否所有动画都已完成
 	if _current_frame >= _total_frames and _scheduler.get_action_count() == 0:
 		_is_playing = false
