@@ -1,6 +1,7 @@
 ## Main - 战斗回放前端示例入口
 ##
 ## 演示如何使用表演框架播放战斗录像
+## 启动时会先运行一场逻辑层战斗，然后播放生成的录像
 extends Node
 
 
@@ -8,29 +9,80 @@ extends Node
 
 var _replay_scene: FrontendBattleReplayScene
 var _controls: FrontendReplayControls
+var _player_controller: LomoPlayerController
+
+## 逻辑层战斗实例（用于获取录像数据）
+var _battle: HexBattle
 
 
 # ========== 生命周期 ==========
 
 func _ready() -> void:
 	print("\n========== Hex ATB Battle Frontend Demo ==========\n")
+	print("Camera Controls:")
+	print("  WASD / Arrow Keys - Move camera")
+	print("  Q / E - Rotate camera")
+	print("  Mouse Wheel - Zoom in/out")
+	print("  Space - Reset camera / Toggle playback")
+	print("  R - Reset playback")
+	print("  1/2/3/4 - Set playback speed (0.5x/1x/2x/4x)")
+	print("")
 	
-	# 创建回放场景
+	# 1. 先运行逻辑层战斗，生成录像数据
+	var replay_data := _run_logic_battle()
+	
+	# 2. 创建回放场景
 	_replay_scene = FrontendBattleReplayScene.new()
 	_replay_scene.name = "BattleReplayScene"
 	add_child(_replay_scene)
 	
-	# 创建 UI 控制
+	# 3. 创建玩家控制器并绑定相机
+	_setup_player_controller()
+	
+	# 4. 创建 UI 控制
 	_setup_ui()
 	
-	# 连接信号
+	# 5. 连接信号
 	var director := _replay_scene.get_director()
 	director.playback_state_changed.connect(_on_playback_state_changed)
 	director.frame_changed.connect(_on_frame_changed)
 	director.playback_ended.connect(_on_playback_ended)
 	
-	# 尝试加载最新的录像
-	_load_latest_replay()
+	# 6. 加载并播放录像
+	if not replay_data.is_empty():
+		print("[Main] Loading replay from logic battle")
+		print("  - Total frames: %d" % replay_data.get("meta", {}).get("totalFrames", 0))
+		print("  - Actors: %d" % replay_data.get("initialActors", []).size())
+		_replay_scene.load_replay(replay_data)
+	else:
+		print("[Main] Logic battle produced no replay data, using demo data")
+		_load_demo_replay()
+
+
+## 设置玩家控制器
+func _setup_player_controller() -> void:
+	_player_controller = LomoPlayerController.new()
+	_player_controller.name = "PlayerController"
+	add_child(_player_controller)
+	
+	# 绑定相机
+	var camera_rig: LomoCameraRig = _replay_scene.get_camera_rig()
+	if camera_rig:
+		_player_controller.use_camera_rig(camera_rig)
+	
+	# 连接点击信号（可用于未来的交互功能）
+	_player_controller.ground_clicked.connect(_on_ground_clicked)
+	_player_controller.actor_clicked.connect(_on_actor_clicked)
+
+
+## 地面点击回调
+func _on_ground_clicked(position: Vector3, button: MouseButton) -> void:
+	print("[Main] Ground clicked at: %s (button: %d)" % [position, button])
+
+
+## Actor 点击回调
+func _on_actor_clicked(actor: Node3D, button: MouseButton) -> void:
+	print("[Main] Actor clicked: %s (button: %d)" % [actor.name, button])
 
 
 func _setup_ui() -> void:
@@ -49,69 +101,35 @@ func _setup_ui() -> void:
 	_controls.speed_changed.connect(_on_speed_changed)
 
 
-# ========== 录像加载 ==========
+# ========== 逻辑层战斗 ==========
 
-func _load_latest_replay() -> void:
-	# 尝试从 user://Replays/ 目录加载最新的录像
-	var replays_dir := "user://Replays/"
-	var dir := DirAccess.open(replays_dir)
+## 同步运行一场逻辑层战斗，返回录像数据
+func _run_logic_battle() -> Dictionary:
+	print("[Main] Running logic battle...")
 	
-	if dir == null:
-		print("[Main] No replays directory found, using demo data")
-		_load_demo_replay()
-		return
+	# 确保 GameWorld 已初始化
+	GameWorld.init()
 	
-	# 查找最新的录像文件
-	var latest_file := ""
-	var latest_time := 0
+	# 创建战斗实例
+	_battle = HexBattle.new()
+	_battle.start({
+		"logging": false,      # 禁用日志文件输出
+		"recording": true,     # 启用录像
+		"console_log": false,  # 禁用控制台日志
+		"file_log": false,     # 禁用文件日志
+	})
 	
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".json"):
-			var file_path := replays_dir + file_name
-			var file := FileAccess.open(file_path, FileAccess.READ)
-			if file:
-				var modified_time := FileAccess.get_modified_time(file_path)
-				if modified_time > latest_time:
-					latest_time = modified_time
-					latest_file = file_path
-				file.close()
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	# 同步运行战斗（每帧 100ms，最多 100 帧）
+	var dt := 100.0
+	for i in range(100):
+		_battle.tick(dt)
+		if _battle._ended:
+			break
 	
-	if latest_file.is_empty():
-		print("[Main] No replay files found, using demo data")
-		_load_demo_replay()
-		return
+	print("[Main] Logic battle completed in %d ticks" % _battle.tick_count)
 	
-	print("[Main] Loading replay: %s" % latest_file)
-	_load_replay_file(latest_file)
-
-
-func _load_replay_file(file_path: String) -> void:
-	var file := FileAccess.open(file_path, FileAccess.READ)
-	if file == null:
-		push_error("[Main] Failed to open replay file: %s" % file_path)
-		_load_demo_replay()
-		return
-	
-	var json_text := file.get_as_text()
-	file.close()
-	
-	var json := JSON.new()
-	var error := json.parse(json_text)
-	if error != OK:
-		push_error("[Main] Failed to parse replay JSON: %s" % json.get_error_message())
-		_load_demo_replay()
-		return
-	
-	var replay_data: Dictionary = json.data
-	print("[Main] Replay loaded successfully")
-	print("  - Total frames: %d" % replay_data.get("meta", {}).get("totalFrames", 0))
-	print("  - Actors: %d" % replay_data.get("initialActors", []).size())
-	
-	_replay_scene.load_replay(replay_data)
+	# 获取录像数据
+	return _battle.get_replay_data()
 
 
 func _load_demo_replay() -> void:
@@ -266,9 +284,16 @@ func _on_speed_changed(speed: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		match event.keycode:
+		var key_event := event as InputEventKey
+		match key_event.keycode:
 			KEY_SPACE:
-				_replay_scene.toggle()
+				# 如果按住 Ctrl，重置相机；否则切换播放
+				if key_event.ctrl_pressed:
+					var camera_rig: LomoCameraRig = _replay_scene.get_camera_rig()
+					if camera_rig:
+						camera_rig.reset_camera()
+				else:
+					_replay_scene.toggle()
 			KEY_R:
 				_on_reset_pressed()
 			KEY_1:

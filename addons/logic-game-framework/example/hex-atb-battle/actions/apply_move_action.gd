@@ -49,12 +49,12 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		# 执行实际移动（move_occupant 会自动取消预订）
 		var grid = battle.grid
-		var move_success: bool = grid.move_occupant(from_hex, target_coord)
+		var move_success: bool = grid.move_occupant_dict(from_hex, target_coord)
 		
 		if not move_success:
-			var occupant: Variant = grid.get_occupant_at(target_coord)
-			var reservation: String = grid.get_reservation(target_coord)
-			var has_tile: bool = grid.has_tile(target_coord)
+			var occupant: Variant = grid.get_occupant_at_dict(target_coord)
+			var reservation: String = grid.get_reservation_dict(target_coord)
+			var has_tile: bool = grid.has_tile_dict(target_coord)
 			push_error(
 				"[ApplyMoveAction] BUG: %s 移动失败：从 (%d, %d) → (%d, %d)\n" % [
 					target.id, from_hex["q"], from_hex["r"], target_coord["q"], target_coord["r"]

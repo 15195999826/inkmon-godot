@@ -193,11 +193,16 @@ func _get_team_int() -> int:
 	return _team_id
 
 
-## 获取位置（覆盖基类，返回 hex 坐标作为 Vector3）
+## 获取位置（覆盖基类，返回世界坐标作为 Vector3）
+## 通过 HexGrid autoload 将 hex 坐标转换为世界坐标
 func _get_position() -> Variant:
 	if hex_position.is_empty():
 		return null
-	return Vector3(hex_position.get("q", 0), hex_position.get("r", 0), 0)
+	if not HexGrid.is_configured():
+		push_warning("[CharacterActor] HexGrid not configured, cannot convert position")
+		return null
+	var world_pos := HexGrid.hex_to_world_dict(hex_position)
+	return Vector3(world_pos.x, world_pos.y, 0)
 
 
 ## 获取属性快照（覆盖基类）

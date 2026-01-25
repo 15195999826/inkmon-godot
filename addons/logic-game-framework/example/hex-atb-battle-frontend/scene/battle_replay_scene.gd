@@ -20,8 +20,7 @@ extends Node3D
 var _director: FrontendBattleDirector
 var _units_root: Node3D
 var _effects_root: Node3D
-var _camera_rig: Node3D
-var _camera: Camera3D
+var _camera_rig: LomoCameraRig
 var _ui_layer: CanvasLayer
 
 ## 单位视图 Map（actor_id -> UnitView）
@@ -77,18 +76,21 @@ func _exit_tree() -> void:
 		_director.playback_ended.disconnect(_on_playback_ended)
 
 
-## 设置相机
+## 设置相机（使用 LomoCameraRig）
 func _setup_camera() -> void:
-	_camera_rig = Node3D.new()
+	var camera_scene := preload("res://addons/lomolib/camera/lomo_camera_rig.tscn")
+	_camera_rig = camera_scene.instantiate() as LomoCameraRig
 	_camera_rig.name = "CameraRig"
-	_camera_rig.position = Vector3(0, 15, 10)
-	_camera_rig.rotation_degrees = Vector3(-50, 0, 0)
-	add_child(_camera_rig)
 	
-	_camera = Camera3D.new()
-	_camera.name = "Camera3D"
-	_camera.fov = 45.0
-	_camera_rig.add_child(_camera)
+	# 配置相机参数（适合战斗场景）
+	_camera_rig.default_arm_length = 20.0
+	_camera_rig.min_zoom = 8.0
+	_camera_rig.max_zoom = 40.0
+	_camera_rig.default_pitch = -50.0
+	_camera_rig.move_speed = 15.0
+	
+	add_child(_camera_rig)
+	_camera_rig.make_current()
 
 
 ## 设置光照
@@ -189,7 +191,7 @@ func _spawn_units(replay_data: Dictionary) -> void:
 	_unit_views.clear()
 	
 	var initial_actors: Array = replay_data.get("initialActors", [])
-	var hex_config := FrontendHexGridConfig.create_default_3d()
+	print("[BattleReplayScene] Spawning %d units" % initial_actors.size())
 	
 	for actor_data in initial_actors:
 		var actor_dict := actor_data as Dictionary
@@ -218,25 +220,24 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		
 		unit_view.initialize(actor_id, display_name, team, max_hp, current_hp)
 		
-		# 设置位置
+		# 设置位置（直接使用世界坐标）
 		var position_data: Dictionary = actor_dict.get("position", {})
-		var hex_pos := _extract_hex_position(position_data)
-		var world_pos := hex_config.hex_to_world(hex_pos)
+		var world_pos := _extract_world_position(position_data)
 		unit_view.set_world_position(world_pos)
+		print("  [Spawn] %s (%s) at %s, position_data=%s" % [actor_id, display_name, world_pos, position_data])
 
 
-## 从位置数据提取六边形坐标
-func _extract_hex_position(position_data: Dictionary) -> Vector2i:
-	if position_data.has("hex"):
-		var hex: Dictionary = position_data["hex"]
-		return Vector2i(hex.get("q", 0) as int, hex.get("r", 0) as int)
-	
+## 从位置数据提取世界坐标
+## 逻辑层 2D (x, y) → 3D (x, 0, y)，y=0 表示在地面上
+func _extract_world_position(position_data: Dictionary) -> Vector3:
 	if position_data.has("world"):
 		var world: Dictionary = position_data["world"]
-		# 简化处理：假设 world.x 和 world.y 是 hex 坐标
-		return Vector2i(roundi(world.get("x", 0.0) as float), roundi(world.get("y", 0.0) as float))
-	
-	return Vector2i.ZERO
+		return Vector3(
+			world.get("x", 0.0) as float,
+			0.0,  # 高度固定为 0（地面）
+			world.get("y", 0.0) as float
+		)
+	return Vector3.ZERO
 
 
 ## 重置单位视图
@@ -309,9 +310,14 @@ func _process(delta: float) -> void:
 	# 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
 	_update_all_unit_positions()
 	
-	# 平滑震屏过渡 (修复 M5)
+	# 震屏效果（通过 LomoCameraRig 的位置偏移实现）
 	var shake_offset := _director.get_screen_shake_offset()
-	var target_x := shake_offset.x * 0.1
-	var target_z := 10 + shake_offset.y * 0.1
-	_camera_rig.position.x = lerp(_camera_rig.position.x, target_x, delta * 10.0)
-	_camera_rig.position.z = lerp(_camera_rig.position.z, target_z, delta * 10.0)
+	if shake_offset != Vector2.ZERO:
+		# 临时偏移相机位置
+		var base_pos := _camera_rig.global_position
+		_camera_rig.global_position = base_pos + Vector3(shake_offset.x * 0.1, 0, shake_offset.y * 0.1)
+
+
+## 获取相机 Rig（供外部访问）
+func get_camera_rig() -> LomoCameraRig:
+	return _camera_rig

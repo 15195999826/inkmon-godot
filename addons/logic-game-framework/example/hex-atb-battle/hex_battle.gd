@@ -19,8 +19,11 @@ var logicTime: float:
 		return logic_time
 var tick_count: int = 0
 
-## 地图
-var grid: HexGridModel
+## 地图（通过 HexGrid autoload 访问）
+## 使用 HexGrid.model 获取当前地图实例
+var grid: HexGridWorld:
+	get:
+		return HexGrid.model
 
 ## 队伍
 var left_team: Array = []
@@ -37,6 +40,9 @@ var logger  # BattleLoggerClass instance
 
 ## 战斗录像器
 var recorder: BattleRecorder
+
+## 最终录像数据（战斗结束后可访问）
+var _final_replay_data: Dictionary = {}
 
 ## 是否启用日志
 var _logging_enabled: bool = true
@@ -75,10 +81,10 @@ func start(config: Dictionary = {}) -> void:
 		})
 	
 	# 创建地图（9x9 中心对称）
-	grid = HexGridModel.new({
+	HexGrid.configure_from_dict({
 		"rows": 9,
 		"columns": 9,
-		"hex_size": 100.0,
+		"hex_size": 10.0,
 		"orientation": "flat",
 	})
 	
@@ -141,14 +147,14 @@ func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
 			var coord := { "q": q, "r": r }
-			if grid.has_tile(coord) and not grid.is_occupied(coord):
+			if HexGrid.model.has_tile_dict(coord) and not HexGrid.model.is_occupied_dict(coord):
 				available_coords.append(coord)
 	
 	available_coords.shuffle()
 	
 	for i in range(mini(team.size(), available_coords.size())):
 		var coord: Dictionary = available_coords[i]
-		grid.place_occupant(coord, team[i].to_ref())
+		HexGrid.model.place_occupant_dict(coord, team[i].to_ref())
 		team[i].hex_position = coord.duplicate()
 
 
@@ -350,7 +356,7 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 			var neighbors := HexGridCompat.hex_neighbors(my_pos)
 			var valid_neighbors: Array = []
 			for n in neighbors:
-				if grid.has_tile(n) and not grid.is_occupied(n) and not grid.is_reserved(n):
+				if HexGrid.model.has_tile_dict(n) and not HexGrid.model.is_occupied_dict(n) and not HexGrid.model.is_reserved_dict(n):
 					valid_neighbors.append(n)
 			
 			if valid_neighbors.size() > 0:
@@ -479,8 +485,8 @@ func _end(result: String = "") -> void:
 	
 	# 停止录像并保存
 	if _recording_enabled and recorder != null:
-		var replay_data := recorder.stop_recording(result)
-		_save_replay(replay_data)
+		_final_replay_data = recorder.stop_recording(result)
+		_save_replay(_final_replay_data)
 
 
 func _save_replay(replay_data: Dictionary) -> void:
@@ -506,7 +512,12 @@ func _save_replay(replay_data: Dictionary) -> void:
 
 
 ## 获取录像数据（用于外部访问）
+## 战斗进行中返回当前录像，战斗结束后返回最终录像
 func get_replay_data() -> Dictionary:
+	# 战斗结束后，返回保存的最终录像数据
+	if not _final_replay_data.is_empty():
+		return _final_replay_data
+	# 战斗进行中，返回当前录像（会停止录像）
 	if recorder != null and recorder.get_is_recording():
 		return recorder.stop_recording()
 	return {}

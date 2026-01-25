@@ -48,7 +48,67 @@ print("背包物品: ", items)
 - `space_manager.gd` - 空间管理器（UnorderedSpaceManager, FixedSlotSpaceManager, GridSpaceManager）
 - `void_container.gd` - 虚空容器（ContainerID=0，存放无容器的物品）
 
-### 2. WaitGroup - 多任务同步工具
+### 2. Camera & Player - 相机和玩家控制器
+
+从 Unreal Engine 移植的相机和玩家控制器系统，提供 RTS/战棋风格的相机控制。
+
+**核心功能：**
+- ✅ 弹簧臂相机（SpringArm3D + Camera3D）
+- ✅ 缩放/旋转/移动控制
+- ✅ 目标跟随（平滑插值）
+- ✅ 鼠标状态机（Idle/Press/Pressing/Release）
+- ✅ 射线检测（地面/可点击物体）
+- ✅ 虚函数供子类重写
+
+**快速示例：**
+```gdscript
+# 1. 实例化相机
+var camera_scene := preload("res://addons/lomolib/camera/lomo_camera_rig.tscn")
+var camera_rig := camera_scene.instantiate() as LomoCameraRig
+add_child(camera_rig)
+camera_rig.make_current()
+
+# 2. 创建控制器
+var controller := LomoPlayerController.new()
+add_child(controller)
+controller.use_camera_rig(camera_rig)
+
+# 3. 相机控制
+camera_rig.move(Vector2(1, 0))      # 向右移动
+camera_rig.zoom(1)                   # 放大
+camera_rig.rotate_camera(1)          # 顺时针旋转
+camera_rig.begin_trace(target_node)  # 跟随目标
+camera_rig.reset_camera()            # 重置
+
+# 4. 监听事件
+controller.ground_clicked.connect(func(pos, btn): print("Clicked: ", pos))
+controller.actor_hovered.connect(func(actor): print("Hover: ", actor.name))
+```
+
+**继承 Controller 示例：**
+```gdscript
+class_name MyGameController
+extends LomoPlayerController
+
+func _custom_process(delta: float, hit_info: Dictionary) -> void:
+    # 自定义游戏逻辑
+    if hit_info.hit_ground and is_left_just_pressed():
+        _move_selected_unit_to(hit_info.ground_position)
+
+func _remap_hit_location(location: Vector3) -> Vector3:
+    # 对齐到网格
+    return Vector3(round(location.x), 0, round(location.z))
+```
+
+**文件结构：**
+- `camera/lomo_camera_rig.gd` - 弹簧臂相机组件
+- `camera/lomo_camera_rig.tscn` - 相机场景模板
+- `player/lomo_player_controller.gd` - 玩家控制器基类
+- `camera/demo/camera_demo.tscn` - 演示场景
+
+**示例场景：** `res://addons/lomolib/camera/demo/camera_demo.tscn`
+
+### 3. WaitGroup - 多任务同步工具
 
 类似 Go 语言的 `sync.WaitGroup`，用于等待多个异步任务完成。
 
@@ -105,6 +165,14 @@ addons/lomolib/
 │   ├── base_container.gd           # 基础容器组件
 │   ├── space_manager.gd            # 空间管理器
 │   └── void_container.gd           # 虚空容器
+├── camera/                         # Camera 模块目录
+│   ├── lomo_camera_rig.gd          # 弹簧臂相机组件
+│   ├── lomo_camera_rig.tscn        # 相机场景模板
+│   └── demo/                       # 演示
+│       ├── camera_demo.gd          # 演示脚本
+│       └── camera_demo.tscn        # 演示场景
+├── player/                         # Player 模块目录
+│   └── lomo_player_controller.gd   # 玩家控制器基类
 ├── wait_group/                     # WaitGroup 模块目录
 │   ├── wait_group.gd               # WaitGroup 核心类
 │   ├── wait_group_manager.gd       # WaitGroup 管理器 (AutoLoad)
@@ -123,8 +191,24 @@ addons/lomolib/
 | `ItemSystem` | 物品系统全局管理器（权威数据源） |
 | `WaitGroupManager` | WaitGroup 全局管理器 |
 
+## 全局类
+
+以下类通过 `class_name` 声明，可在项目任意位置直接使用：
+
+| 类名 | 说明 |
+|------|------|
+| `LomoCameraRig` | 弹簧臂相机组件 |
+| `LomoPlayerController` | 玩家控制器基类 |
+| `BaseContainer` | 库存容器基类 |
+| `LomoWaitGroup` | 多任务同步工具 |
+
 ## 版本历史
 
+- **v0.3.0** - 新增 Camera & Player 模块
+  - 从 UE SpringArmCameraActor 移植
+  - 从 UE LomoGeneralPlayerController 移植
+  - 支持缩放/旋转/移动/跟随
+  - 鼠标状态机和射线检测
 - **v0.2.0** - 新增 InventoryKit 库存框架
   - 从 UE C++ 移植到 GDScript
   - 支持无序/固定槽位/网格三种容器类型

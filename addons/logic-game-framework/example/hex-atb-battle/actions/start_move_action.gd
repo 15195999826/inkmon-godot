@@ -49,11 +49,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			continue
 		
 		# 预订目标格子
-		var reserved: bool = battle.grid.reserve_tile(target_coord, target.id)
+		var reserved: bool = battle.grid.reserve_tile_dict(target_coord, target.id)
 		
 		if not reserved:
-			var occupant = battle.grid.get_occupant_at(target_coord)
-			var reservation = battle.grid.get_reservation(target_coord)
+			var occupant = battle.grid.get_occupant_at_dict(target_coord)
+			var reservation = battle.grid.get_reservation_dict(target_coord)
 			push_error(
 				"[StartMoveAction] BUG: %s 无法预订格子 (%d, %d)\n" % [target.id, target_coord["q"], target_coord["r"]] +
 				"  当前占用: %s\n" % (occupant.get_id() if occupant != null else "none") +
@@ -77,6 +77,3 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		all_events.append(move_event)
 	
 	return ActionResult.create_success_result(all_events, { "target_coord": target_coord })
-
-
-
