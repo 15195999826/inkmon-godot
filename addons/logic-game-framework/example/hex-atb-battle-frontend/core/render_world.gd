@@ -75,6 +75,10 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	for actor_data in initial_actors:
 		var actor_dict := actor_data as Dictionary
 		_initialize_actor(actor_dict)
+	
+	# 初始化完成后触发状态同步 (修复 M3)
+	for actor_id in _actors.keys():
+		actor_state_changed.emit(actor_id, _actors[actor_id])
 
 
 ## 初始化单个角色
