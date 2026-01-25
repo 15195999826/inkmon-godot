@@ -35,6 +35,14 @@ func _ready() -> void:
 	_test_step = 1
 
 
+func _exit_tree() -> void:
+	# 断开测试脚本的信号连接 (修复 C1: 内存泄漏)
+	if _director:
+		_director.actor_state_changed.disconnect(_on_actor_state_changed)
+		_director.floating_text_created.disconnect(_on_floating_text_created)
+		_director.actor_died.disconnect(_on_actor_died)
+
+
 func _process(delta: float) -> void:
 	_test_timer += delta
 	

@@ -102,6 +102,19 @@ func _ready() -> void:
 		play()
 
 
+func _exit_tree() -> void:
+	# 断开 RenderWorld 信号连接 (修复 C1: 内存泄漏)
+	if _world:
+		_world.actor_state_changed.disconnect(_on_actor_state_changed)
+		_world.floating_text_created.disconnect(_on_floating_text_created)
+		_world.actor_died.disconnect(_on_actor_died)
+	
+	# 清空 RefCounted 引用，打破循环引用
+	_world = null
+	_scheduler = null
+	_registry = null
+
+
 func _process(delta: float) -> void:
 	if not _is_playing:
 		return

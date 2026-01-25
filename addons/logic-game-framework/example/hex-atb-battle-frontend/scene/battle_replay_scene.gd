@@ -67,6 +67,16 @@ func _setup_scene_structure() -> void:
 	add_child(_ui_layer)
 
 
+func _exit_tree() -> void:
+	# 断开 Director 信号连接 (修复 C1: 内存泄漏)
+	if _director:
+		_director.actor_state_changed.disconnect(_on_actor_state_changed)
+		_director.floating_text_created.disconnect(_on_floating_text_created)
+		_director.actor_died.disconnect(_on_actor_died)
+		_director.frame_changed.disconnect(_on_frame_changed)
+		_director.playback_ended.disconnect(_on_playback_ended)
+
+
 ## 设置相机
 func _setup_camera() -> void:
 	_camera_rig = Node3D.new()

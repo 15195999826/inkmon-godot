@@ -99,3 +99,58 @@ func set_world_position(world_pos: Vector3) -> void:
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/unit_view.gd` - 修改位置插值逻辑
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/battle_replay_scene.gd:_update_all_unit_positions()` - 调用 `set_world_position()`
 
+
+## 2026-01-25 - Fix C1: 内存泄漏 - 信号连接未清理
+
+### Problem
+- `BattleReplayScene` 在 `_ready()` 中连接了 Director 的5个信号（第48-52行）
+- `BattleDirector` 在 `_ready()` 中连接了 RenderWorld 的3个信号（第96-99行）
+- 场景销毁时没有断开连接，导致 `ObjectDB instances leaked` 警告
+- RefCounted 对象（`_world`, `_scheduler`）的信号连接形成循环引用
+
+### Solution
+1. 在 `battle_replay_scene.gd` 添加 `_exit_tree()` 方法断开 Director 信号
+2. 在 `battle_director.gd` 添加 `_exit_tree()` 方法断开 RenderWorld 信号并清空引用
+3. 在测试脚本 `test_3d_visualization.gd` 添加 `_exit_tree()` 断开信号
+
+### Key Implementation
+```gdscript
+# battle_replay_scene.gd
+func _exit_tree() -> void:
+	# 断开 Director 信号连接 (修复 C1: 内存泄漏)
+	if _director:
+		_director.actor_state_changed.disconnect(_on_actor_state_changed)
+		_director.floating_text_created.disconnect(_on_floating_text_created)
+		_director.actor_died.disconnect(_on_actor_died)
+		_director.frame_changed.disconnect(_on_frame_changed)
+		_director.playback_ended.disconnect(_on_playback_ended)
+
+# battle_director.gd
+func _exit_tree() -> void:
+	# 断开 RenderWorld 信号连接 (修复 C1: 内存泄漏)
+	if _world:
+		_world.actor_state_changed.disconnect(_on_actor_state_changed)
+		_world.floating_text_created.disconnect(_on_floating_text_created)
+		_world.actor_died.disconnect(_on_actor_died)
+	
+	# 清空 RefCounted 引用，打破循环引用
+	_world = null
+	_scheduler = null
+	_registry = null
+```
+
+### Design Pattern
+- **信号清理**: 在 `_exit_tree()` 中断开所有在 `_ready()` 中连接的信号
+- **循环引用**: Node 持有 RefCounted 对象，RefCounted 信号连接到 Node 方法，形成循环引用
+- **打破循环**: 断开信号后显式清空 RefCounted 引用（`= null`）
+
+### Testing
+- 测试命令: `godot --headless addons/logic-game-framework/example/hex-atb-battle-frontend/test_3d_visualization.tscn`
+- 结果: 修复了 `BattleReplayScene` 和 `BattleDirector` 的信号连接泄漏
+- 注意: 测试仍有 `inventoryKit` 相关的资源泄漏（与本任务无关）
+
+### Related Files
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/battle_replay_scene.gd` - 添加 `_exit_tree()` 断开信号
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/battle_director.gd` - 添加 `_exit_tree()` 断开信号并清空引用
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/test_3d_visualization.gd` - 添加 `_exit_tree()` 断开信号
+
