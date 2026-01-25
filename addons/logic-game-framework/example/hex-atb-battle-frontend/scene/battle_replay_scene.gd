@@ -205,6 +205,7 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		else:
 			unit_view = FrontendUnitView.new()
 		
+		unit_view.name = actor_id  # 设置节点名称 (修复 M2)
 		_units_root.add_child(unit_view)
 		_unit_views[actor_id] = unit_view
 		
