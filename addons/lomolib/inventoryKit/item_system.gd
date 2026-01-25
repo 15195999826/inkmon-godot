@@ -61,6 +61,33 @@ func _ready() -> void:
 	Log.info("ItemSystem", "虚空容器已创建 (ContainerID=0)")
 
 
+func _exit_tree() -> void:
+	Log.info("ItemSystem", "物品系统开始清理")
+	
+	# 1. 清理所有非虚空容器
+	var container_ids := _container_map.keys()
+	for container_id in container_ids:
+		if container_id != 0:  # 跳过虚空容器
+			unregister_container(container_id)
+	
+	# 2. 清理所有物品
+	var item_ids := _item_map.keys()
+	for item_id in item_ids:
+		_item_map.erase(item_id)
+	
+	# 3. 清理虚空容器（最后清理）
+	if _void_container:
+		_void_container.clear()
+		_void_container.queue_free()  # 关键：释放 Node 实例
+		_void_container = null
+	
+	# 4. 清空映射表
+	_item_map.clear()
+	_container_map.clear()
+	
+	Log.info("ItemSystem", "物品系统已清理")
+
+
 ## ============================================
 ## 容器管理
 ## ============================================

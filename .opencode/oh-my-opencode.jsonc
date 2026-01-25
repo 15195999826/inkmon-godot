@@ -117,7 +117,8 @@
     
     // 快速简单任务 (3.0 新增)
     "quick": {
-      "model": "zhipuai-coding-plan/glm-4.7",
+      // "model": "zhipuai-coding-plan/glm-4.7",
+      "model": "gitlab/duo-chat-sonnet-4-5",
       "temperature": 0.1,
       "prompt_append": "Simple task. Be concise and efficient."
     },
