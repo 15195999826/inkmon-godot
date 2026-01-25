@@ -202,3 +202,66 @@ func _exit_tree() -> void:
 ### Related Files
 - `addons/logic-game-framework/example/hex-atb-battle-frontend/scene/unit_view.gd` - 修改死亡动画 Tween 管理
 
+
+## 2026-01-25 - Fix C4: 视觉特效在暂停时失效
+
+### Problem
+- `render_world.gd` 使用 `Time.get_ticks_msec()` (墙上时间) 管理特效生命周期
+- 当战斗暂停时，墙上时间仍在增加，导致特效在暂停期间"过期"并消失
+- 播放速度改变不会影响特效的播放速度
+
+### Solution
+在 `render_world.gd` 中维护内部 `_world_time_ms` 变量，在 `battle_director.gd` 的 `_tick()` 中累加时间。
+
+### Key Implementation
+```gdscript
+# render_world.gd - 内部状态区（第50-51行）
+var _world_time_ms: int = 0
+
+# render_world.gd - 飘字使用内部时间（第196行）
+"start_time": _world_time_ms,
+
+# render_world.gd - 特效使用内部时间（第241行）
+"start_time": _world_time_ms,
+
+# render_world.gd - 重置时清零（第367行）
+func reset_to(replay_data: Dictionary) -> void:
+	_world_time_ms = 0
+	initialize_from_replay(replay_data)
+
+# render_world.gd - 推进内部时间（第372-373行）
+func advance_time(delta_ms: int) -> void:
+	_world_time_ms += delta_ms
+
+# render_world.gd - 获取内部时间（第377-378行）
+func get_world_time() -> int:
+	return _world_time_ms
+
+# battle_director.gd - 在 _tick() 中推进时间（第278-279行）
+# 推进内部世界时间 (修复 C4: 暂停时特效失效)
+_world.advance_time(int(delta_ms))
+
+# battle_director.gd - cleanup 使用内部时间（第287行）
+_world.cleanup(_world.get_world_time())
+```
+
+### Design Pattern
+- **内部时间管理**: 使用 `_world_time_ms` 替代 `Time.get_ticks_msec()`
+- **暂停支持**: 暂停时 `_tick()` 不执行，`_world_time_ms` 不增加
+- **变速播放**: 播放速度改变时，`delta_ms` 相应调整，特效持续时间也相应调整
+- **数据流向**: `BattleDirector._tick(delta_ms)` → `RenderWorld.advance_time(delta_ms)` → `_world_time_ms += delta_ms`
+
+### Testing
+- 测试命令: `godot --headless addons/logic-game-framework/example/hex-atb-battle-frontend/test_3d_visualization.tscn`
+- 结果: 测试通过 ✅
+- 验证: 暂停时特效不会提前消失，播放速度改变时特效持续时间相应调整
+
+### Related Files
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:50-51` - 添加 `_world_time_ms` 变量
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:196` - 飘字使用内部时间
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:241` - 特效使用内部时间
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:367` - 重置时清零
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/render_world.gd:372-378` - 时间管理方法
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/battle_director.gd:278-279` - 推进内部时间
+- `addons/logic-game-framework/example/hex-atb-battle-frontend/core/battle_director.gd:287` - cleanup 使用内部时间
+

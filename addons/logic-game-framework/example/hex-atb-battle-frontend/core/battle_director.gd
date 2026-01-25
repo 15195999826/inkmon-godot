@@ -275,6 +275,9 @@ func _tick(delta_ms: float) -> void:
 		
 		frame_changed.emit(_current_frame, _total_frames)
 	
+	# 推进内部世界时间 (修复 C4: 暂停时特效失效)
+	_world.advance_time(int(delta_ms))
+	
 	# 调度器 tick（即使逻辑帧结束，也要继续推进动画）
 	var result := _scheduler.tick(delta_ms)
 	
@@ -284,7 +287,7 @@ func _tick(delta_ms: float) -> void:
 		_world.apply_actions(result.active_actions)
 		# 再应用本帧完成的动作（确保最终状态被应用）
 		_world.apply_actions(result.completed_this_tick)
-		_world.cleanup(Time.get_ticks_msec())
+		_world.cleanup(_world.get_world_time())
 	
 	# 检查是否所有动画都已完成
 	if _current_frame >= _total_frames and _scheduler.get_action_count() == 0:

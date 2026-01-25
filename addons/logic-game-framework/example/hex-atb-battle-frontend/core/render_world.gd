@@ -47,6 +47,9 @@ var _animation_config: FrontendAnimationConfig
 ## 实例 ID 计数器
 var _next_instance_id: int = 0
 
+## 内部世界时间（毫秒）
+var _world_time_ms: int = 0
+
 
 # ========== 构造函数 ==========
 
@@ -190,7 +193,7 @@ func _apply_floating_text_action(action: FrontendFloatingTextAction, action_id: 
 		"text": action.text,
 		"color": action.color,
 		"position": action.position,
-		"start_time": Time.get_ticks_msec(),
+		"start_time": _world_time_ms,
 		"duration": action.duration,
 		"style": action.style,
 	}
@@ -235,7 +238,7 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 			"id": action_id,
 			"effect": action.effect,
 			"actor_id": action.actor_id,
-			"start_time": Time.get_ticks_msec(),
+			"start_time": _world_time_ms,
 			"duration": action.duration,
 			"intensity": action.intensity,
 			"color": action.tint_color,
@@ -361,7 +364,18 @@ func get_screen_shake_offset() -> Vector2:
 
 ## 重置到初始状态
 func reset_to(replay_data: Dictionary) -> void:
+	_world_time_ms = 0
 	initialize_from_replay(replay_data)
+
+
+## 推进内部世界时间
+func advance_time(delta_ms: int) -> void:
+	_world_time_ms += delta_ms
+
+
+## 获取内部世界时间
+func get_world_time() -> int:
+	return _world_time_ms
 
 
 # ========== 直接状态更新 ==========
