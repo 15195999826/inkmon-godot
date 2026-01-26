@@ -2,8 +2,8 @@
 extends EditorPlugin
 
 
-const AUTOLOAD_NAME := "HexGrid"
-const AUTOLOAD_PATH := "res://addons/hex-grid/hex_grid.gd"
+const AUTOLOAD_NAME := "GridMap"
+const AUTOLOAD_PATH := "res://addons/grid-map/grid_map.gd"
 
 
 func _enter_tree() -> void:
