@@ -22,9 +22,13 @@ var _units_root: Node3D
 var _effects_root: Node3D
 var _camera_rig: LomoCameraRig
 var _ui_layer: CanvasLayer
+var _hex_grid_renderer: HexGridRenderer3D
 
 ## 单位视图 Map（actor_id -> UnitView）
 var _unit_views: Dictionary = {}
+
+## 六边形网格世界模型（用于渲染）
+var _hex_world: HexGridWorld
 
 
 # ========== 初始化 ==========
@@ -33,7 +37,7 @@ func _ready() -> void:
 	_setup_scene_structure()
 	_setup_camera()
 	_setup_lighting()
-	_setup_ground()
+	_setup_hex_grid_renderer()
 
 
 ## 设置场景结构
@@ -117,20 +121,50 @@ func _setup_lighting() -> void:
 	add_child(world_env)
 
 
-## 设置地面
-func _setup_ground() -> void:
-	var ground := MeshInstance3D.new()
-	ground.name = "Ground"
+## 设置六边形网格渲染器
+func _setup_hex_grid_renderer() -> void:
+	_hex_grid_renderer = HexGridRenderer3D.new()
+	_hex_grid_renderer.name = "HexGridRenderer"
+	# 配置渲染器颜色
+	_hex_grid_renderer.grid_color = Color(0.4, 0.45, 0.5, 0.8)
+	_hex_grid_renderer.highlight_color = Color.YELLOW
+	_hex_grid_renderer.fill_color = Color(0.2, 0.6, 1.0, 0.2)
+	add_child(_hex_grid_renderer)
+
+
+## 从回放数据设置六边形网格
+func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
+	var map_config: Dictionary = replay_data.get("mapConfig", {})
 	
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(50, 50)
-	ground.mesh = plane
+	if map_config.is_empty():
+		print("[BattleReplayScene] No mapConfig in replay data, using default grid")
+		# 使用默认配置
+		map_config = {
+			"draw_mode": "row_column",
+			"rows": 9,
+			"columns": 9,
+			"hexSize": 10.0,
+			"orientation": "flat",
+		}
 	
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.3, 0.35, 0.4)
-	ground.material_override = material
+	# 转换配置格式（录像中使用 hexSize，HexGridWorld 使用 hex_size）
+	var world_config := {
+		"draw_mode": map_config.get("draw_mode", "row_column"),
+		"rows": map_config.get("rows", 9),
+		"columns": map_config.get("columns", 9),
+		"radius": map_config.get("radius", 4),
+		"hex_size": map_config.get("hexSize", map_config.get("hex_size", 10.0)),
+		"orientation": map_config.get("orientation", "flat"),
+	}
 	
-	add_child(ground)
+	print("[BattleReplayScene] Setting up hex grid: %s" % world_config)
+	
+	# 创建 HexGridWorld 模型
+	_hex_world = HexGridWorld.new(world_config)
+	
+	# 设置渲染器的数据模型并渲染
+	_hex_grid_renderer.set_model(_hex_world)
+	_hex_grid_renderer.render_grid()
 
 
 # ========== 公共方法 ==========
@@ -145,6 +179,7 @@ func load_and_play(replay_data: Dictionary) -> void:
 ## 加载回放（不自动播放）
 func load_replay(replay_data: Dictionary) -> void:
 	_director.load_replay(replay_data)
+	_setup_hex_grid_from_replay(replay_data)
 	_spawn_units(replay_data)
 	_clear_effects()  # 清理旧特效 (修复 M4)
 

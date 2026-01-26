@@ -125,9 +125,12 @@ func start(config: Dictionary = {}) -> void:
 	print("战斗开始")
 	_print_battle_info()
 	
-	# 开始录像
+	# 开始录像（传递地图配置）
 	if _recording_enabled and recorder != null:
-		recorder.start_recording(get_all_actors())
+		var map_config: Dictionary = {}
+		if HexGrid.model != null:
+			map_config = HexGrid.model.to_map_config()
+		recorder.start_recording(get_all_actors(), {}, map_config)
 	
 	# 注册角色到日志
 	if _logging_enabled and logger != null:

@@ -143,33 +143,36 @@ func _render() -> void:
 				_fill_mesh.surface_add_vertex(p2)
 		_fill_mesh.surface_end()
 	
-	# 绘制网格线框和高亮
-	_grid_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	# 检查是否需要绘制网格线框或高亮
+	var has_grid_content := _show_grid or not _highlighted_hexes.is_empty()
 	
-	# 绘制网格线框
-	if _show_grid:
-		for coord in _world.get_all_coords():
+	if has_grid_content:
+		_grid_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+		
+		# 绘制网格线框
+		if _show_grid:
+			for coord in _world.get_all_coords():
+				var corners := _world._layout.hex_corners(coord)
+				for i in range(6):
+					var p1 := Vector3(corners[i].x, 0, corners[i].y)
+					var p2 := Vector3(corners[(i + 1) % 6].x, 0, corners[(i + 1) % 6].y)
+					
+					_grid_mesh.surface_set_color(grid_color)
+					_grid_mesh.surface_add_vertex(p1)
+					_grid_mesh.surface_set_color(grid_color)
+					_grid_mesh.surface_add_vertex(p2)
+		
+		# 绘制高亮（在最上层）
+		for coord in _highlighted_hexes.keys():
 			var corners := _world._layout.hex_corners(coord)
+			var color: Color = _highlighted_hexes[coord]
 			for i in range(6):
 				var p1 := Vector3(corners[i].x, 0, corners[i].y)
 				var p2 := Vector3(corners[(i + 1) % 6].x, 0, corners[(i + 1) % 6].y)
 				
-				_grid_mesh.surface_set_color(grid_color)
+				_grid_mesh.surface_set_color(color)
 				_grid_mesh.surface_add_vertex(p1)
-				_grid_mesh.surface_set_color(grid_color)
+				_grid_mesh.surface_set_color(color)
 				_grid_mesh.surface_add_vertex(p2)
-	
-	# 绘制高亮（在最上层）
-	for coord in _highlighted_hexes.keys():
-		var corners := _world._layout.hex_corners(coord)
-		var color: Color = _highlighted_hexes[coord]
-		for i in range(6):
-			var p1 := Vector3(corners[i].x, 0, corners[i].y)
-			var p2 := Vector3(corners[(i + 1) % 6].x, 0, corners[(i + 1) % 6].y)
-			
-			_grid_mesh.surface_set_color(color)
-			_grid_mesh.surface_add_vertex(p1)
-			_grid_mesh.surface_set_color(color)
-			_grid_mesh.surface_add_vertex(p2)
-	
-	_grid_mesh.surface_end()
+		
+		_grid_mesh.surface_end()

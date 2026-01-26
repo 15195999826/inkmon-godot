@@ -4,26 +4,49 @@
 ## 提供 hex_to_world / world_to_hex 等常用 API
 ##
 ## 使用方式:
+##   # 基于行列（矩形地图）
 ##   var model := HexGridWorld.new({
+##       "draw_mode": "row_column",  # 或省略，默认值
 ##       "rows": 9,
 ##       "columns": 9,
 ##       "hex_size": 100.0,
 ##       "orientation": "flat",
 ##   })
-##   var world_pos := model.hex_to_world(Vector2i(1, 2))
+##
+##   # 基于半径（六边形地图）
+##   var model := HexGridWorld.new({
+##       "draw_mode": "radius",
+##       "radius": 4,
+##       "hex_size": 100.0,
+##       "orientation": "flat",
+##   })
 ##
 ## 参考: TypeScript HexGridModel
 class_name HexGridWorld
 extends RefCounted
 
 
+# ========== 绘制模式枚举 ==========
+
+enum DrawMode {
+	ROW_COLUMN,  ## 基于行列（矩形地图）
+	RADIUS,      ## 基于半径（六边形地图）
+}
+
+
 # ========== 配置 ==========
 
-## 行数
+## 绘制模式
+var draw_mode: DrawMode
+
+## 行数（仅 ROW_COLUMN 模式）
 var rows: int
 
-## 列数
+## 列数（仅 ROW_COLUMN 模式）
 var columns: int
+
+## 半径（仅 RADIUS 模式）
+var radius: int
 
 ## 六边形大小（中心到顶点距离）
 var hex_size: float
@@ -53,8 +76,20 @@ var _reservations: Dictionary = {}
 # ========== 初始化 ==========
 
 func _init(config: Dictionary = {}) -> void:
+	# 解析绘制模式
+	var mode_str: String = config.get("draw_mode", "row_column")
+	match mode_str:
+		"radius":
+			draw_mode = DrawMode.RADIUS
+		_:
+			draw_mode = DrawMode.ROW_COLUMN
+	
+	# 解析模式相关参数
 	rows = config.get("rows", 9)
 	columns = config.get("columns", 9)
+	radius = config.get("radius", 4)
+	
+	# 通用参数
 	hex_size = config.get("hex_size", 100.0)
 	orientation = config.get("orientation", "flat")
 	origin = config.get("origin", Vector2.ZERO)
@@ -70,15 +105,46 @@ func _init(config: Dictionary = {}) -> void:
 	_generate_tiles()
 
 
-## 生成中心对称的六边形地图
+## 根据绘制模式生成格子
 func _generate_tiles() -> void:
+	match draw_mode:
+		DrawMode.ROW_COLUMN:
+			_generate_tiles_row_column()
+		DrawMode.RADIUS:
+			_generate_tiles_radius()
+
+
+## 基于行列生成矩形地图（中心对称）
+## 使用 offset 坐标思路生成真正的矩形，然后转换为 axial 坐标
+## 参考: https://www.redblobgames.com/grids/hexagons/#map-storage
+func _generate_tiles_row_column() -> void:
 	var half_rows := rows / 2
 	var half_cols := columns / 2
 	
-	for q in range(-half_cols, half_cols + 1):
-		for r in range(-half_rows, half_rows + 1):
+	# 遍历 offset 坐标 (col, row)，然后转换为 axial 坐标 (q, r)
+	# 对于 flat-top (odd-q offset): q = col, r = row - floor(col/2)
+	# 对于 pointy-top (odd-r offset): q = col - floor(row/2), r = row
+	for offset_row in range(-half_rows, half_rows + 1):
+		for offset_col in range(-half_cols, half_cols + 1):
+			var q: int
+			var r: int
+			if orientation == "flat":
+				# flat-top: odd-q offset 转 axial
+				q = offset_col
+				r = offset_row - (offset_col >> 1)  # floor(col/2) 使用位移
+			else:
+				# pointy-top: odd-r offset 转 axial
+				q = offset_col - (offset_row >> 1)  # floor(row/2) 使用位移
+				r = offset_row
 			var coord := Vector2i(q, r)
 			_map.set_hex(coord, { "terrain": "normal" })
+
+
+## 基于半径生成六边形地图
+func _generate_tiles_radius() -> void:
+	var coords := HexMath.axial_range(Vector2i.ZERO, radius)
+	for coord in coords:
+		_map.set_hex(coord, { "terrain": "normal" })
 
 
 # ========== 坐标转换 ==========
@@ -347,13 +413,22 @@ func get_distance(a: Vector2i, b: Vector2i) -> int:
 
 ## 导出地图配置（用于录像/回放）
 func to_map_config() -> Dictionary:
-	return {
+	var config := {
 		"type": "hex",
-		"rows": rows,
-		"columns": columns,
 		"hexSize": hex_size,
 		"orientation": orientation,
 	}
+	
+	match draw_mode:
+		DrawMode.ROW_COLUMN:
+			config["draw_mode"] = "row_column"
+			config["rows"] = rows
+			config["columns"] = columns
+		DrawMode.RADIUS:
+			config["draw_mode"] = "radius"
+			config["radius"] = radius
+	
+	return config
 
 
 ## 序列化完整状态

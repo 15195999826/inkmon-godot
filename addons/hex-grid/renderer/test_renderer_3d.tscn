@@ -9,11 +9,6 @@ script = ExtResource("1_script")
 [node name="HexGridRenderer3D" type="Node3D" parent="."]
 script = ExtResource("2_renderer")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 500, 0)
-projection = 1
-size = 500.0
-
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 100, 0)
 
@@ -23,8 +18,78 @@ layer = 1
 [node name="VBoxContainer" type="VBoxContainer" parent="UI"]
 offset_left = 10.0
 offset_top = 10.0
-offset_right = 160.0
-offset_bottom = 170.0
+offset_right = 200.0
+offset_bottom = 350.0
+
+[node name="DrawModeLabel" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+text = "Draw Mode:"
+
+[node name="DrawModeOption" type="OptionButton" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="Separator1" type="HSeparator" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="RowsContainer" type="HBoxContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="RowsLabel" type="Label" parent="UI/VBoxContainer/RowsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rows:"
+
+[node name="RowsInput" type="SpinBox" parent="UI/VBoxContainer/RowsContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 50.0
+value = 9.0
+
+[node name="ColumnsContainer" type="HBoxContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="ColumnsLabel" type="Label" parent="UI/VBoxContainer/ColumnsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Columns:"
+
+[node name="ColumnsInput" type="SpinBox" parent="UI/VBoxContainer/ColumnsContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 50.0
+value = 9.0
+
+[node name="RadiusContainer" type="HBoxContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+visible = false
+
+[node name="RadiusLabel" type="Label" parent="UI/VBoxContainer/RadiusContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Radius:"
+
+[node name="RadiusInput" type="SpinBox" parent="UI/VBoxContainer/RadiusContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 20.0
+value = 4.0
+
+[node name="HexSizeContainer" type="HBoxContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="HexSizeLabel" type="Label" parent="UI/VBoxContainer/HexSizeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Hex Size:"
+
+[node name="HexSizeInput" type="SpinBox" parent="UI/VBoxContainer/HexSizeContainer"]
+layout_mode = 2
+min_value = 10.0
+max_value = 200.0
+value = 50.0
+
+[node name="Separator2" type="HSeparator" parent="UI/VBoxContainer"]
+layout_mode = 2
 
 [node name="RenderButton" type="Button" parent="UI/VBoxContainer"]
 layout_mode = 2
@@ -42,6 +107,11 @@ text = "Fill Outer"
 layout_mode = 2
 text = "Clear All"
 
+[connection signal="item_selected" from="UI/VBoxContainer/DrawModeOption" to="." method="_on_draw_mode_option_item_selected"]
+[connection signal="value_changed" from="UI/VBoxContainer/RowsContainer/RowsInput" to="." method="_on_rows_input_value_changed"]
+[connection signal="value_changed" from="UI/VBoxContainer/ColumnsContainer/ColumnsInput" to="." method="_on_columns_input_value_changed"]
+[connection signal="value_changed" from="UI/VBoxContainer/RadiusContainer/RadiusInput" to="." method="_on_radius_input_value_changed"]
+[connection signal="value_changed" from="UI/VBoxContainer/HexSizeContainer/HexSizeInput" to="." method="_on_hex_size_input_value_changed"]
 [connection signal="pressed" from="UI/VBoxContainer/RenderButton" to="." method="_on_render_button_pressed"]
 [connection signal="pressed" from="UI/VBoxContainer/HighlightButton" to="." method="_on_highlight_button_pressed"]
 [connection signal="pressed" from="UI/VBoxContainer/FillButton" to="." method="_on_fill_button_pressed"]

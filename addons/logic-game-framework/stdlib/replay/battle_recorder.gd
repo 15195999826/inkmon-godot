@@ -6,6 +6,7 @@ var is_recording: bool = false
 var current_frame: int = 0
 var recorded_at: int = 0
 var configs: Dictionary = {}
+var map_config: Dictionary = {}
 var initial_actors: Array = []
 var timeline: Array = []
 var actor_subscriptions: Dictionary = {}
@@ -21,7 +22,7 @@ func _init(recorder_config: Dictionary = {}):
 		"tickInterval": recorder_config.get("tickInterval", 100),
 	}
 
-func start_recording(actors: Array, configs_value: Dictionary = {}) -> void:
+func start_recording(actors: Array, configs_value: Dictionary = {}, map_config_value: Dictionary = {}) -> void:
 	if is_recording:
 		push_error("[BattleRecorder] Already recording")
 		return
@@ -31,6 +32,7 @@ func start_recording(actors: Array, configs_value: Dictionary = {}) -> void:
 	current_frame = 0
 	timeline.clear()
 	configs = configs_value
+	map_config = map_config_value
 	pending_events.clear()
 
 	for actor in actors:
@@ -80,6 +82,7 @@ func stop_recording(result: String = "") -> Dictionary:
 		"version": "2.0",
 		"meta": meta,
 		"configs": configs,
+		"mapConfig": map_config,
 		"initialActors": initial_actors,
 		"timeline": timeline,
 	}
