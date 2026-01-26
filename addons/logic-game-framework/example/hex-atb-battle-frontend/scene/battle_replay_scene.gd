@@ -30,6 +30,9 @@ var _unit_views: Dictionary = {}
 ## 六边形网格世界模型（用于渲染）
 var _hex_world: HexGridWorld
 
+## 位置格式配置（type -> format）
+var _position_formats: Dictionary = {}
+
 
 # ========== 初始化 ==========
 
@@ -178,6 +181,10 @@ func load_and_play(replay_data: Dictionary) -> void:
 
 ## 加载回放（不自动播放）
 func load_replay(replay_data: Dictionary) -> void:
+	# 读取 positionFormats 配置
+	var configs: Dictionary = replay_data.get("configs", {})
+	_position_formats = configs.get("positionFormats", {})
+	
 	_director.load_replay(replay_data)
 	_setup_hex_grid_from_replay(replay_data)
 	_spawn_units(replay_data)
@@ -255,24 +262,37 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		
 		unit_view.initialize(actor_id, display_name, team, max_hp, current_hp)
 		
-		# 设置位置（直接使用世界坐标）
-		var position_data: Dictionary = actor_dict.get("position", {})
-		var world_pos := _extract_world_position(position_data)
+		# 设置位置
+		var actor_type: String = actor_dict.get("type", "")
+		var position_arr: Array = actor_dict.get("position", [])
+		var world_pos := _extract_world_position(position_arr, actor_type)
 		unit_view.set_world_position(world_pos)
-		print("  [Spawn] %s (%s) at %s, position_data=%s" % [actor_id, display_name, world_pos, position_data])
+		print("  [Spawn] %s (%s) at %s, position=%s" % [actor_id, display_name, world_pos, position_arr])
 
 
-## 从位置数据提取世界坐标
-## 逻辑层 2D (x, y) → 3D (x, 0, y)，y=0 表示在地面上
-func _extract_world_position(position_data: Dictionary) -> Vector3:
-	if position_data.has("world"):
-		var world: Dictionary = position_data["world"]
+## 从位置数组提取世界坐标
+## 根据 positionFormats 配置解释 position 数组的含义
+func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3:
+	if position_arr.is_empty():
+		return Vector3.ZERO
+	
+	# 查找该类型的位置格式，默认为 "world"
+	var format: String = _position_formats.get(actor_type, "world")
+	
+	if format == "hex" and _hex_world != null:
+		# position 是 [q, r, z]，转换为世界坐标
+		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
+		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
+		var hex_coord := Vector2i(q, r)
+		var world_2d := _hex_world.hex_to_world(hex_coord)
+		return Vector3(world_2d.x, 0.0, world_2d.y)
+	else:
+		# position 是 [x, y, z] 世界坐标，直接使用
 		return Vector3(
-			world.get("x", 0.0) as float,
-			0.0,  # 高度固定为 0（地面）
-			world.get("y", 0.0) as float
+			position_arr[0] if position_arr.size() > 0 else 0.0,
+			position_arr[1] if position_arr.size() > 1 else 0.0,
+			position_arr[2] if position_arr.size() > 2 else 0.0
 		)
-	return Vector3.ZERO
 
 
 ## 重置单位视图

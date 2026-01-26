@@ -155,29 +155,13 @@ func _subscribe_actor(actor: Actor) -> void:
 		}
 
 func _capture_actor_init_data(actor: Actor) -> Dictionary:
-	var position_data := {}
-
-	var pos = actor.position
-	if pos != null:
-		if pos is Vector3:
-			position_data["world"] = {
-				"x": pos.x,
-				"y": pos.y,
-				"z": pos.z,
-			}
-		elif pos is Vector2:
-			position_data["world"] = {
-				"x": pos.x,
-				"y": pos.y,
-				"z": 0.0,
-			}
-
 	return {
 		"id": actor.id,
+		"type": actor.type,  # 用于查找 positionFormats
 		"configId": actor.config_id,
 		"displayName": actor.display_name,
 		"team": actor.team,
-		"position": position_data,
+		"position": actor.getPositionSnapshot(),
 		"attributes": actor.getAttributeSnapshot(),
 		"abilities": actor.getAbilitySnapshot(),
 		"tags": actor.getTagSnapshot(),

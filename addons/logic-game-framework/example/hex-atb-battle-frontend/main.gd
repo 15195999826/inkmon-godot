@@ -150,24 +150,30 @@ func _create_demo_replay() -> Dictionary:
 			"totalFrames": 50,
 			"result": "demo",
 		},
-		"configs": {},
+		"configs": {
+			"positionFormats": {
+				"Character": "hex",
+			},
+		},
 		"initialActors": [
 			{
 				"id": "actor_1",
+				"type": "Character",
 				"configId": "warrior",
 				"displayName": "Warrior",
 				"team": 0,
-				"position": { "hex": { "q": -2, "r": 0 } },
+				"position": [-2, 0, 0],
 				"attributes": { "hp": 100.0, "maxHp": 100.0 },
 				"abilities": [],
 				"tags": {},
 			},
 			{
 				"id": "actor_2",
+				"type": "Character",
 				"configId": "mage",
 				"displayName": "Mage",
 				"team": 1,
-				"position": { "hex": { "q": 2, "r": 0 } },
+				"position": [2, 0, 0],
 				"attributes": { "hp": 80.0, "maxHp": 80.0 },
 				"abilities": [],
 				"tags": {},

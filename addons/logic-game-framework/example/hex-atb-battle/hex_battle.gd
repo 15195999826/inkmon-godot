@@ -125,12 +125,17 @@ func start(config: Dictionary = {}) -> void:
 	print("战斗开始")
 	_print_battle_info()
 	
-	# 开始录像（传递地图配置）
+	# 开始录像（传递地图配置和位置格式声明）
 	if _recording_enabled and recorder != null:
 		var map_config: Dictionary = {}
 		if HexGrid.model != null:
 			map_config = HexGrid.model.to_map_config()
-		recorder.start_recording(get_all_actors(), {}, map_config)
+		var configs := {
+			"positionFormats": {
+				"Character": "hex",  # CharacterActor 的 position 是 hex 坐标
+			}
+		}
+		recorder.start_recording(get_all_actors(), configs, map_config)
 	
 	# 注册角色到日志
 	if _logging_enabled and logger != null:

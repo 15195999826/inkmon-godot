@@ -44,6 +44,9 @@ var _hex_config: FrontendHexGridConfig
 ## 动画配置
 var _animation_config: FrontendAnimationConfig
 
+## 位置格式配置（type -> format）
+var _position_formats: Dictionary = {}
+
 ## 实例 ID 计数器
 var _next_instance_id: int = 0
 
@@ -74,6 +77,18 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	_procedural_effects.clear()
 	_screen_shake.clear()
 	
+	# 从 configs 读取 positionFormats
+	var configs: Dictionary = replay_data.get("configs", {})
+	_position_formats = configs.get("positionFormats", {})
+	
+	# 从 mapConfig 更新 hex_config
+	var map_config: Dictionary = replay_data.get("mapConfig", {})
+	if not map_config.is_empty():
+		var hex_size_val := map_config.get("hexSize", map_config.get("hex_size", 10.0)) as float
+		var orientation_str := map_config.get("orientation", "flat") as String
+		var orientation_val: int = FrontendHexGridConfig.ORIENTATION_FLAT if orientation_str == "flat" else FrontendHexGridConfig.ORIENTATION_POINTY
+		_hex_config = FrontendHexGridConfig.new(hex_size_val, orientation_val)
+	
 	var initial_actors: Array = replay_data.get("initialActors", [])
 	for actor_data in initial_actors:
 		var actor_dict := actor_data as Dictionary
@@ -90,13 +105,15 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 	if actor_id.is_empty():
 		return
 	
-	var position_data: Dictionary = actor_data.get("position", {})
-	var hex_pos := _extract_hex_position(position_data)
+	var actor_type: String = actor_data.get("type", "")
+	var position_arr: Array = actor_data.get("position", [])
+	var hex_pos := _extract_hex_position(position_arr, actor_type)
 	
 	var attributes: Dictionary = actor_data.get("attributes", {})
 	
 	_actors[actor_id] = {
 		"id": actor_id,
+		"type": actor_type,
 		"display_name": actor_data.get("displayName", ""),
 		"team": actor_data.get("team", 0),
 		"position": { "q": hex_pos.x, "r": hex_pos.y },
@@ -110,22 +127,28 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 	_interpolated_positions[actor_id] = Vector2(hex_pos.x, hex_pos.y)
 
 
-## 从位置数据提取六边形坐标
-func _extract_hex_position(position_data: Dictionary) -> Vector2i:
-	if position_data.has("hex"):
-		var hex: Dictionary = position_data["hex"]
-		return Vector2i(hex.get("q", 0) as int, hex.get("r", 0) as int)
+## 从位置数组提取六边形坐标
+## 根据 positionFormats 配置解释 position 数组的含义
+func _extract_hex_position(position_arr: Array, actor_type: String) -> Vector2i:
+	if position_arr.is_empty():
+		return Vector2i.ZERO
 	
-	if position_data.has("world"):
-		var world: Dictionary = position_data["world"]
+	# 查找该类型的位置格式，默认为 "world"
+	var format: String = _position_formats.get(actor_type, "world")
+	
+	if format == "hex":
+		# position 是 [q, r, z]，直接取 q, r
+		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
+		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
+		return Vector2i(q, r)
+	else:
+		# position 是 [x, y, z] 世界坐标，需要转换为 hex
 		var world_pos := Vector3(
-			world.get("x", 0.0) as float,
-			world.get("y", 0.0) as float,
-			world.get("z", 0.0) as float
+			position_arr[0] if position_arr.size() > 0 else 0.0,
+			position_arr[1] if position_arr.size() > 1 else 0.0,
+			position_arr[2] if position_arr.size() > 2 else 0.0
 		)
 		return _hex_config.world_to_hex(world_pos)
-	
-	return Vector2i.ZERO
 
 
 # ========== 动作应用 ==========

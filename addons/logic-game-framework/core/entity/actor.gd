@@ -138,6 +138,20 @@ func _get_position() -> Variant:
 	return null
 
 
+## 获取位置快照
+## 返回 [x, y, z] 格式的数组，用于录像存储
+## 具体含义（hex/world/tile）由 configs.positionFormats 声明，渲染层解释
+func getPositionSnapshot() -> Array:
+	var pos = _get_position()
+	if pos == null:
+		return []
+	if pos is Vector3:
+		return [pos.x, pos.y, pos.z]
+	if pos is Vector2:
+		return [pos.x, pos.y, 0.0]
+	return []
+
+
 ## 设置录像回调（BattleRecorder 调用）
 ## 子类可覆盖此方法以订阅事件并返回取消订阅的回调数组
 func setupRecording(_ctx: Dictionary) -> Array:
