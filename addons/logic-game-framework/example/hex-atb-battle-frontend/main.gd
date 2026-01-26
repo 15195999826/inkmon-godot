@@ -1,7 +1,7 @@
 ## Main - 战斗回放前端示例入口
 ##
 ## 演示如何使用表演框架播放战斗录像
-## 启动时会先运行一场逻辑层战斗，然后播放生成的录像
+## 通过 UI 配置地图参数，点击按钮启动战斗模拟
 extends Node
 
 
@@ -13,6 +13,18 @@ var _player_controller: LomoPlayerController
 
 ## 逻辑层战斗实例（用于获取录像数据）
 var _battle: HexBattle
+
+## 地图配置 UI 引用
+@onready var _draw_mode_option: OptionButton = $ConfigUI/VBoxContainer/DrawModeOption
+@onready var _rows_container: HBoxContainer = $ConfigUI/VBoxContainer/RowsContainer
+@onready var _columns_container: HBoxContainer = $ConfigUI/VBoxContainer/ColumnsContainer
+@onready var _radius_container: HBoxContainer = $ConfigUI/VBoxContainer/RadiusContainer
+@onready var _rows_input: SpinBox = $ConfigUI/VBoxContainer/RowsContainer/RowsInput
+@onready var _columns_input: SpinBox = $ConfigUI/VBoxContainer/ColumnsContainer/ColumnsInput
+@onready var _radius_input: SpinBox = $ConfigUI/VBoxContainer/RadiusContainer/RadiusInput
+@onready var _hex_size_input: SpinBox = $ConfigUI/VBoxContainer/HexSizeContainer/HexSizeInput
+@onready var _start_battle_button: Button = $ConfigUI/VBoxContainer/StartBattleButton
+@onready var _status_label: Label = $ConfigUI/VBoxContainer/StatusLabel
 
 
 # ========== 生命周期 ==========
@@ -28,10 +40,10 @@ func _ready() -> void:
 	print("  1/2/3/4 - Set playback speed (0.5x/1x/2x/4x)")
 	print("")
 	
-	# 1. 先运行逻辑层战斗，生成录像数据
-	var replay_data := _run_logic_battle()
+	# 1. 初始化地图配置 UI
+	_setup_config_ui()
 	
-	# 2. 创建回放场景
+	# 2. 创建回放场景（但不加载数据）
 	_replay_scene = FrontendBattleReplayScene.new()
 	_replay_scene.name = "BattleReplayScene"
 	add_child(_replay_scene)
@@ -39,7 +51,7 @@ func _ready() -> void:
 	# 3. 创建玩家控制器并绑定相机
 	_setup_player_controller()
 	
-	# 4. 创建 UI 控制
+	# 4. 创建播放控制 UI
 	_setup_ui()
 	
 	# 5. 连接信号
@@ -48,15 +60,58 @@ func _ready() -> void:
 	director.frame_changed.connect(_on_frame_changed)
 	director.playback_ended.connect(_on_playback_ended)
 	
-	# 6. 加载并播放录像
-	if not replay_data.is_empty():
-		print("[Main] Loading replay from logic battle")
-		print("  - Total frames: %d" % replay_data.get("meta", {}).get("totalFrames", 0))
-		print("  - Actors: %d" % replay_data.get("initialActors", []).size())
-		_replay_scene.load_replay(replay_data)
+	# 6. 更新状态
+	_update_status("Ready - Configure map and click 'Start Battle'")
+
+
+## 设置地图配置 UI
+func _setup_config_ui() -> void:
+	# 初始化下拉框选项
+	_draw_mode_option.add_item("Row/Column", 0)
+	_draw_mode_option.add_item("Radius", 1)
+	_draw_mode_option.selected = 0
+	
+	# 初始化输入框默认值
+	_rows_input.value = 9
+	_columns_input.value = 9
+	_radius_input.value = 4
+	_hex_size_input.value = 10
+	
+	# 初始显示/隐藏对应的输入框
+	_update_input_visibility()
+
+
+## 根据当前选择的模式更新输入框可见性
+func _update_input_visibility() -> void:
+	var is_row_column := _draw_mode_option.selected == 0
+	_rows_container.visible = is_row_column
+	_columns_container.visible = is_row_column
+	_radius_container.visible = not is_row_column
+
+
+## 获取当前地图配置
+func _get_map_config() -> Dictionary:
+	var config: Dictionary
+	
+	if _draw_mode_option.selected == 0:
+		# Row/Column 模式
+		config = {
+			"draw_mode": "row_column",
+			"rows": int(_rows_input.value),
+			"columns": int(_columns_input.value),
+			"hex_size": _hex_size_input.value,
+			"orientation": "flat",
+		}
 	else:
-		print("[Main] Logic battle produced no replay data, using demo data")
-		_load_demo_replay()
+		# Radius 模式
+		config = {
+			"draw_mode": "radius",
+			"radius": int(_radius_input.value),
+			"hex_size": _hex_size_input.value,
+			"orientation": "flat",
+		}
+	
+	return config
 
 
 ## 设置玩家控制器
@@ -92,6 +147,9 @@ func _setup_ui() -> void:
 	_controls.anchor_top = 0.0
 	_controls.anchor_right = 0.3
 	_controls.anchor_bottom = 0.3
+	# 将播放控制 UI 放在右上角，避免与配置 UI 重叠
+	_controls.anchor_left = 0.7
+	_controls.anchor_right = 1.0
 	add_child(_controls)
 	
 	# 连接 UI 信号
@@ -101,10 +159,65 @@ func _setup_ui() -> void:
 	_controls.speed_changed.connect(_on_speed_changed)
 
 
+## 更新状态标签
+func _update_status(text: String) -> void:
+	if _status_label:
+		_status_label.text = "Status: " + text
+
+
+# ========== 地图配置 UI 回调 ==========
+
+func _on_draw_mode_option_item_selected(_index: int) -> void:
+	_update_input_visibility()
+
+
+func _on_rows_input_value_changed(_value: float) -> void:
+	pass  # 配置变更时不需要立即响应
+
+
+func _on_columns_input_value_changed(_value: float) -> void:
+	pass
+
+
+func _on_radius_input_value_changed(_value: float) -> void:
+	pass
+
+
+func _on_hex_size_input_value_changed(_value: float) -> void:
+	pass
+
+
+## 开始战斗按钮回调
+func _on_start_battle_button_pressed() -> void:
+	_update_status("Running battle simulation...")
+	_start_battle_button.disabled = true
+	
+	# 获取当前地图配置
+	var map_config := _get_map_config()
+	print("[Main] Starting battle with map config: %s" % map_config)
+	
+	# 运行逻辑层战斗
+	var replay_data := _run_logic_battle(map_config)
+	
+	# 加载并播放录像
+	if not replay_data.is_empty():
+		print("[Main] Loading replay from logic battle")
+		print("  - Total frames: %d" % replay_data.get("meta", {}).get("totalFrames", 0))
+		print("  - Actors: %d" % replay_data.get("initialActors", []).size())
+		_replay_scene.load_replay(replay_data)
+		_update_status("Battle loaded - %d frames" % replay_data.get("meta", {}).get("totalFrames", 0))
+	else:
+		print("[Main] Logic battle produced no replay data, using demo data")
+		_load_demo_replay()
+		_update_status("Demo replay loaded")
+	
+	_start_battle_button.disabled = false
+
+
 # ========== 逻辑层战斗 ==========
 
 ## 同步运行一场逻辑层战斗，返回录像数据
-func _run_logic_battle() -> Dictionary:
+func _run_logic_battle(map_config: Dictionary) -> Dictionary:
 	print("[Main] Running logic battle...")
 	
 	# 确保 GameWorld 已初始化
@@ -117,6 +230,7 @@ func _run_logic_battle() -> Dictionary:
 		"recording": true,     # 启用录像
 		"console_log": false,  # 禁用控制台日志
 		"file_log": false,     # 禁用文件日志
+		"map_config": map_config,  # 传递地图配置
 	})
 	
 	# 同步运行战斗（每帧 100ms，最多 100 帧）

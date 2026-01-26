@@ -58,6 +58,18 @@ func _init() -> void:
 
 
 ## 开始战斗
+## config 参数:
+##   - logging: bool - 是否启用日志 (默认 true)
+##   - recording: bool - 是否启用录像 (默认 true)
+##   - console_log: bool - 是否输出到控制台 (默认 false)
+##   - file_log: bool - 是否输出到文件 (默认 true)
+##   - map_config: Dictionary - 地图配置，支持以下字段:
+##       - draw_mode: "row_column" | "radius" (默认 "row_column")
+##       - rows: int (默认 9)
+##       - columns: int (默认 9)
+##       - radius: int (默认 4，仅 radius 模式)
+##       - hex_size: float (默认 10.0)
+##       - orientation: "flat" | "pointy" (默认 "flat")
 func start(config: Dictionary = {}) -> void:
 	print("\n========== HexBattle 开始 ==========\n")
 	
@@ -80,13 +92,13 @@ func start(config: Dictionary = {}) -> void:
 			"tickInterval": 100,
 		})
 	
-	# 创建地图（9x9 中心对称）
-	HexGrid.configure_from_dict({
-		"rows": 9,
-		"columns": 9,
-		"hex_size": 10.0,
-		"orientation": "flat",
-	})
+	# 获取地图配置（支持外部传入或使用默认值）
+	var map_config: Dictionary = config.get("map_config", {})
+	var grid_config := _build_grid_config(map_config)
+	
+	# 创建地图
+	print("[HexBattle] Map config: %s" % grid_config)
+	HexGrid.configure_from_dict(grid_config)
 	
 	# 创建左方队伍
 	left_team = [
@@ -112,9 +124,10 @@ func start(config: Dictionary = {}) -> void:
 	for actor in get_all_actors():
 		actor.equip_abilities()
 	
-	# 随机放置角色
-	_place_team_randomly(left_team, { "q_min": -4, "q_max": -1, "r_min": -4, "r_max": -1 })
-	_place_team_randomly(right_team, { "q_min": 1, "q_max": 4, "r_min": 1, "r_max": 4 })
+	# 随机放置角色（根据地图大小动态计算放置区域）
+	var placement_ranges := _calculate_placement_ranges(grid_config)
+	_place_team_randomly(left_team, placement_ranges["left"])
+	_place_team_randomly(right_team, placement_ranges["right"])
 	
 	# 给每个角色添加振奋 Buff
 	_apply_inspire_buff_to_all()
@@ -127,20 +140,83 @@ func start(config: Dictionary = {}) -> void:
 	
 	# 开始录像（传递地图配置和位置格式声明）
 	if _recording_enabled and recorder != null:
-		var map_config: Dictionary = {}
+		var replay_map_config: Dictionary = {}
 		if HexGrid.model != null:
-			map_config = HexGrid.model.to_map_config()
+			replay_map_config = HexGrid.model.to_map_config()
 		var configs := {
 			"positionFormats": {
 				"Character": "hex",  # CharacterActor 的 position 是 hex 坐标
 			}
 		}
-		recorder.start_recording(get_all_actors(), configs, map_config)
+		recorder.start_recording(get_all_actors(), configs, replay_map_config)
 	
 	# 注册角色到日志
 	if _logging_enabled and logger != null:
 		for actor in get_all_actors():
 			logger.register_actor(actor.get_id(), actor.get_display_name())
+
+
+## 根据外部传入的地图配置构建 HexGrid 配置
+func _build_grid_config(map_config: Dictionary) -> Dictionary:
+	var draw_mode: String = map_config.get("draw_mode", "row_column")
+	var hex_size: float = map_config.get("hex_size", 10.0)
+	var orientation: String = map_config.get("orientation", "flat")
+	
+	var grid_config := {
+		"hex_size": hex_size,
+		"orientation": orientation,
+	}
+	
+	if draw_mode == "radius":
+		# Radius 模式
+		var radius: int = map_config.get("radius", 4)
+		grid_config["draw_mode"] = "radius"
+		grid_config["radius"] = radius
+	else:
+		# Row/Column 模式（默认）
+		var rows: int = map_config.get("rows", 9)
+		var columns: int = map_config.get("columns", 9)
+		grid_config["draw_mode"] = "row_column"
+		grid_config["rows"] = rows
+		grid_config["columns"] = columns
+	
+	return grid_config
+
+
+## 根据地图配置计算队伍放置区域
+func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
+	var draw_mode: String = grid_config.get("draw_mode", "row_column")
+	
+	if draw_mode == "radius":
+		# Radius 模式：左队在负 q 区域，右队在正 q 区域
+		var radius: int = grid_config.get("radius", 4)
+		var half := maxi(1, radius / 2)
+		return {
+			"left": { "q_min": -radius, "q_max": -1, "r_min": -half, "r_max": half },
+			"right": { "q_min": 1, "q_max": radius, "r_min": -half, "r_max": half },
+		}
+	else:
+		# Row/Column 模式：根据行列数计算
+		var rows: int = grid_config.get("rows", 9)
+		var columns: int = grid_config.get("columns", 9)
+		
+		# 计算中心偏移（row_column 模式的坐标范围）
+		var half_rows := rows / 2
+		var half_cols := columns / 2
+		
+		# 左队在左半边，右队在右半边
+		var left_q_max := -1
+		var left_q_min := -half_cols
+		var right_q_min := 1
+		var right_q_max := half_cols
+		
+		# r 范围取中间区域
+		var r_range := maxi(1, half_rows / 2)
+		
+		return {
+			"left": { "q_min": left_q_min, "q_max": left_q_max, "r_min": -r_range, "r_max": r_range },
+			"right": { "q_min": right_q_min, "q_max": right_q_max, "r_min": -r_range, "r_max": r_range },
+		}
 
 
 func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
