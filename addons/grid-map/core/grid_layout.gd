@@ -374,50 +374,6 @@ func pixel_to_cube(pixel: Vector2) -> Vector3i:
 	return GridCoord.axial_to_cube(axial_coord)
 
 
-# ========== 静态便捷方法 ==========
-
-## 快速创建六边形 Flat-top 布局
-static func create_hex_flat(hex_size: float, origin_offset: Vector2 = Vector2.ZERO) -> GridLayout:
-	return GridLayout.new(
-		GridMapConfig.GridType.HEX,
-		hex_size,
-		origin_offset,
-		GridMapConfig.Orientation.FLAT
-	)
-
-
-## 快速创建六边形 Pointy-top 布局
-static func create_hex_pointy(hex_size: float, origin_offset: Vector2 = Vector2.ZERO) -> GridLayout:
-	return GridLayout.new(
-		GridMapConfig.GridType.HEX,
-		hex_size,
-		origin_offset,
-		GridMapConfig.Orientation.POINTY
-	)
-
-
-## 快速创建正方形布局
-static func create_square(cell_size: float, origin_offset: Vector2 = Vector2.ZERO) -> GridLayout:
-	return GridLayout.new(
-		GridMapConfig.GridType.SQUARE,
-		cell_size,
-		origin_offset,
-		GridMapConfig.Orientation.HORIZONTAL,
-		Vector2(cell_size, cell_size)
-	)
-
-
-## 快速创建矩形布局
-static func create_rect(p_tile_size: Vector2, origin_offset: Vector2 = Vector2.ZERO) -> GridLayout:
-	return GridLayout.new(
-		GridMapConfig.GridType.RECT,
-		p_tile_size.x,
-		origin_offset,
-		GridMapConfig.Orientation.HORIZONTAL,
-		p_tile_size
-	)
-
-
 # ========== 静态转换方法 (无需实例化) ==========
 
 ## Flat-top: 六边形转像素

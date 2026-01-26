@@ -1,10 +1,10 @@
-# Hex Grid Renderer - 使用说明
+# Grid Map Renderer - 使用说明
 
 ## 📦 已完成的组件
 
 ### 渲染器
-- ✅ `hex_grid_renderer_2d.gd` - 2D 六边形网格渲染器
-- ✅ `hex_grid_renderer_3d.gd` - 3D 六边形网格渲染器
+- ✅ `grid_map_renderer_2d.gd` - 2D 网格渲染器（支持 HEX, RECT_SIX_DIR, SQUARE, RECT）
+- ✅ `grid_map_renderer_3d.gd` - 3D 网格渲染器（支持 HEX, RECT_SIX_DIR, SQUARE, RECT）
 
 ### 测试脚本
 - ✅ `test_renderer_2d.gd` - 2D 测试场景脚本
@@ -17,14 +17,14 @@
 ### 创建 2D 测试场景
 
 1. **创建新场景**
-   - 在 Godot 编辑器中，右键点击 `addons/hex-grid/renderer/`
+   - 在 Godot 编辑器中，右键点击 `addons/grid-map/renderer/`
    - 选择 "New Scene"
    - 保存为 `test_renderer_2d.tscn`
 
 2. **添加节点结构**
    ```
    TestRenderer2D (Node2D)
-   ├── HexGridRenderer2D
+   ├── GridMapRenderer2D
    ├── Camera2D
    └── UI (CanvasLayer)
        └── VBoxContainer
@@ -64,14 +64,14 @@
 ### 创建 3D 测试场景
 
 1. **创建新场景**
-   - 在 Godot 编辑器中，右键点击 `addons/hex-grid/renderer/`
+   - 在 Godot 编辑器中，右键点击 `addons/grid-map/renderer/`
    - 选择 "New Scene"
    - 保存为 `test_renderer_3d.tscn`
 
 2. **添加节点结构**
    ```
    TestRenderer3D (Node3D)
-   ├── HexGridRenderer3D
+   ├── GridMapRenderer3D
    ├── Camera3D
    ├── DirectionalLight3D
    └── UI (CanvasLayer)
@@ -118,20 +118,20 @@
 
 ## 📚 API 参考
 
-### HexGridRenderer2D / HexGridRenderer3D
+### GridMapRenderer2D / GridMapRenderer3D
 
 ```gdscript
 # 属性
+@export var model: GridMapModel  # 地图数据模型
 @export var grid_color: Color = Color.WHITE
 @export var highlight_color: Color = Color.YELLOW
 @export var fill_color: Color = Color(0.2, 0.6, 1.0, 0.3)
 @export var line_width: float = 2.0
 
 # 方法
-func set_model(world: HexGridWorld) -> void
 func render_grid() -> void
-func highlight_hexes(coords: Array[Vector2i], color: Color = highlight_color) -> void
-func fill_hexes(coords: Array[Vector2i], color: Color = fill_color) -> void
+func highlight_cell(coord: Vector2i, color: Color = highlight_color) -> void
+func fill_cell(coord: Vector2i, color: Color = fill_color) -> void
 func clear_highlights() -> void
 func clear_fills() -> void
 func clear_all() -> void
@@ -141,28 +141,32 @@ func clear_all() -> void
 
 ```gdscript
 # 创建渲染器
-var renderer := HexGridRenderer2D.new()
+var renderer := GridMapRenderer2D.new()
 add_child(renderer)
 
-# 创建地图数据
-var world := HexGridWorld.new({
-    "rows": 9,
-    "columns": 9,
-    "hex_size": 50.0,
-    "orientation": "flat",
-})
+# 创建地图配置
+var config := GridMapConfig.new()
+config.grid_type = GridMapConfig.GridType.HEX
+config.orientation = GridMapConfig.Orientation.FLAT
+config.draw_mode = GridMapConfig.DrawMode.RADIUS
+config.radius = 5
+config.size = 50.0
+
+# 创建地图模型
+var model := GridMapModel.new()
+model.configure(config)
 
 # 设置数据模型
-renderer.set_model(world)
+renderer.model = model
 
 # 渲染网格
 renderer.render_grid()
 
 # 高亮指定格子
-renderer.highlight_hexes([Vector2i(0, 0), Vector2i(1, 0)])
+renderer.highlight_cell(Vector2i(0, 0), Color.RED)
 
 # 填充指定格子
-renderer.fill_hexes([Vector2i(2, 2)], Color(1, 0, 0, 0.5))
+renderer.fill_cell(Vector2i(2, 2), Color(1, 0, 0, 0.5))
 
 # 清除所有
 renderer.clear_all()
@@ -196,8 +200,40 @@ renderer.clear_all()
 
 ### 扩展功能
 
-参考 `hex_grid_renderer_2d.gd` 和 `hex_grid_renderer_3d.gd` 的实现，可以添加：
+参考 `grid_map_renderer_2d.gd` 和 `grid_map_renderer_3d.gd` 的实现，可以添加：
 - 自定义渲染层
 - 动画效果
 - 鼠标交互
 - 格子选择
+
+## 🌐 支持的网格类型
+
+渲染器支持 4 种网格类型：
+
+| 类型 | 说明 | 邻居数 | 适用场景 |
+|------|------|--------|----------|
+| HEX | 标准六边形 | 6 | 策略游戏、地图编辑器 |
+| RECT_SIX_DIR | 六方向矩形 | 6 | 类六边形但使用矩形格子 |
+| SQUARE | 标准正方形 | 4 | 棋盘游戏、像素游戏 |
+| RECT | 标准矩形 | 4 | 平台游戏、瓦片地图 |
+
+配置示例：
+
+```gdscript
+# 六边形网格
+config.grid_type = GridMapConfig.GridType.HEX
+config.orientation = GridMapConfig.Orientation.POINTY  # 或 FLAT
+
+# 正方形网格
+config.grid_type = GridMapConfig.GridType.SQUARE
+
+# 矩形网格
+config.grid_type = GridMapConfig.GridType.RECT
+config.rect_width = 32.0
+config.rect_height = 16.0
+
+# 六方向矩形网格
+config.grid_type = GridMapConfig.GridType.RECT_SIX_DIR
+config.rect_width = 32.0
+config.rect_height = 16.0
+```

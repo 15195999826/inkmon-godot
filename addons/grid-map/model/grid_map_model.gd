@@ -17,6 +17,7 @@
 class_name GridMapModel
 extends RefCounted
 
+# 在 --script 模式下，class_name 不可用，必须使用 preload
 const _GridLayout = preload("res://addons/grid-map/core/grid_layout.gd")
 
 # ========== GridTileData 内部类 ==========
@@ -68,7 +69,7 @@ signal occupant_changed(coord: Vector2i, old_occupant: Variant, new_occupant: Va
 var _config: GridMapConfig
 
 ## 布局转换器
-var _layout: _GridLayout
+var _layout: Variant
 
 ## 瓦片存储 (key: Vector2i, value: TileData)
 var _tiles: Dictionary = {}
@@ -177,7 +178,7 @@ func get_grid_type() -> GridMapConfig.GridType:
 
 
 ## 获取布局
-func get_layout() -> _GridLayout:
+func get_layout() -> Variant:
 	return _layout
 
 
