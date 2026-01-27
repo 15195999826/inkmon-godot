@@ -4,12 +4,12 @@ extends Node
 func _ready() -> void:
 	print("\n========== Compilation Test ==========\n")
 	
-	# 测试 1: HexGridConfig
-	print("Test 1: FrontendHexGridConfig...")
-	var config = FrontendHexGridConfig.create_default_3d()
-	var world_pos = config.hex_to_world(Vector2i(0, 0))
-	var hex_pos = config.world_to_hex(world_pos)
-	print("  ✓ HexGridConfig works")
+	# 测试 1: GridLayout
+	print("Test 1: GridLayout...")
+	var layout = GridLayout.new()
+	var pixel_pos = layout.coord_to_pixel(Vector2i(0, 0))
+	var coord = layout.pixel_to_coord(pixel_pos)
+	print("  ✓ GridLayout works")
 	
 	# 测试 2: VisualizerRegistry
 	print("Test 2: FrontendVisualizerRegistry...")
