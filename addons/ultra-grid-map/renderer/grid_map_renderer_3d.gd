@@ -134,18 +134,6 @@ func _render() -> void:
 	var layout: _GridLayout = _model.get_layout()
 	var grid_type: int = _model.get_grid_type()
 	
-	# Debug: 打印六边形尺寸信息
-	if grid_type == GridMapConfig.GridType.HEX:
-		var center_coord := Vector2i(0, 0)
-		var center_pixel: Vector2 = layout.coord_to_pixel(center_coord)
-		var corners: PackedVector2Array = layout.hex_corners(center_coord)
-		if corners.size() > 0:
-			var corner_dist: float = center_pixel.distance_to(corners[0])
-			print("[GridMapRenderer3D] hex_size (config) = %f" % layout.size)
-			print("[GridMapRenderer3D] center(0,0) pixel = %s" % center_pixel)
-			print("[GridMapRenderer3D] corner[0] = %s" % corners[0])
-			print("[GridMapRenderer3D] actual radius (center to corner) = %f" % corner_dist)
-	
 	# 1. Draw Fills (Triangles)
 	if not _filled_cells.is_empty():
 		_fill_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)

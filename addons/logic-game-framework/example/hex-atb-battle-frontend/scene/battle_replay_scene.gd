@@ -158,23 +158,30 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 	grid_config.size = float(map_config.get("size", 10.0))
 	grid_config.origin = Vector2.ZERO
 	
-	# 转换方向枚举
-	var orientation_str: String = str(map_config.get("orientation", "flat"))
-	grid_config.orientation = GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
+	# 转换方向枚举（支持枚举数值和字符串）
+	var orientation_val = map_config.get("orientation", 0)
+	if orientation_val is int:
+		grid_config.orientation = orientation_val as GridMapConfig.Orientation
+	else:
+		grid_config.orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
 	
-	# 转换绘制模式
-	var draw_mode_str: String = str(map_config.get("draw_mode", "row_column"))
-	if draw_mode_str == "row_column":
-		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+	# 转换绘制模式（支持枚举数值和字符串）
+	var draw_mode_val = map_config.get("draw_mode", 0)
+	if draw_mode_val is int:
+		grid_config.draw_mode = draw_mode_val as GridMapConfig.DrawMode
+	else:
+		var draw_mode_str := str(draw_mode_val)
+		if draw_mode_str == "radius":
+			grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		else:
+			grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+	
+	# 设置行列或半径
+	if grid_config.draw_mode == GridMapConfig.DrawMode.ROW_COLUMN:
 		grid_config.rows = int(map_config.get("rows", 9))
 		grid_config.columns = int(map_config.get("columns", 9))
-	elif draw_mode_str == "radius":
-		grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
-		grid_config.radius = int(map_config.get("radius", 4))
 	else:
-		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
-		grid_config.rows = 9
-		grid_config.columns = 9
+		grid_config.radius = int(map_config.get("radius", 4))
 	
 	# 创建 GridMapModel 并初始化
 	_hex_world = GridMapModel.new()
@@ -282,7 +289,6 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		var position_arr: Array = actor_dict.get("position", [])
 		var world_pos := _extract_world_position(position_arr, actor_type)
 		unit_view.set_world_position(world_pos)
-		print("  [Spawn] %s (%s) at %s, position=%s" % [actor_id, display_name, world_pos, position_arr])
 
 
 ## 从位置数组提取世界坐标

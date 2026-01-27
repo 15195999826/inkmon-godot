@@ -97,7 +97,6 @@ func start(config: Dictionary = {}) -> void:
 	var grid_config := _build_grid_config(map_config)
 	
 	# 创建地图
-	print("[HexBattle] Map config: %s" % grid_config)
 	UGridMap.configure_from_dict(grid_config)
 	
 	# 创建左方队伍
@@ -227,24 +226,12 @@ func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> Character
 
 func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	var available_coords: Array = []
-	var checked_coords: Array = []
-	var missing_coords: Array = []
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
 			var coord := { "q": q, "r": r }
-			checked_coords.append(coord.duplicate())
-			if UGridMap.model.has_tile_dict(coord):
-				if not UGridMap.model.is_occupied_dict(coord):
-					available_coords.append(coord)
-			else:
-				missing_coords.append(coord.duplicate())
-	
-	# Debug: 打印放置信息
-	print("[HexBattle] Placement range: %s" % range_config)
-	print("[HexBattle] Checked %d coords, available %d, missing from map: %d" % [checked_coords.size(), available_coords.size(), missing_coords.size()])
-	if missing_coords.size() > 0:
-		print("[HexBattle] WARNING: Missing coords (not in map): %s" % [missing_coords])
+			if UGridMap.model.has_tile_dict(coord) and not UGridMap.model.is_occupied_dict(coord):
+				available_coords.append(coord)
 	
 	available_coords.shuffle()
 	
@@ -252,7 +239,6 @@ func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 		var coord: Dictionary = available_coords[i]
 		UGridMap.model.place_occupant_dict(coord, team[i].to_ref())
 		team[i].hex_position = coord.duplicate()
-		print("[HexBattle] Placed %s at (%d, %d)" % [team[i].get_display_name(), coord["q"], coord["r"]])
 
 
 func _apply_inspire_buff_to_all() -> void:

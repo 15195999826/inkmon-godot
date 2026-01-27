@@ -23,6 +23,7 @@ var _battle: HexBattle
 @onready var _columns_input: SpinBox = $ConfigUI/VBoxContainer/ColumnsContainer/ColumnsInput
 @onready var _radius_input: SpinBox = $ConfigUI/VBoxContainer/RadiusContainer/RadiusInput
 @onready var _hex_size_input: SpinBox = $ConfigUI/VBoxContainer/HexSizeContainer/HexSizeInput
+@onready var _orientation_option: OptionButton = $ConfigUI/VBoxContainer/OrientationOption
 @onready var _start_battle_button: Button = $ConfigUI/VBoxContainer/StartBattleButton
 @onready var _status_label: Label = $ConfigUI/VBoxContainer/StatusLabel
 
@@ -71,11 +72,16 @@ func _setup_config_ui() -> void:
 	_draw_mode_option.add_item("Radius", 1)
 	_draw_mode_option.selected = 0
 	
+	# 初始化 Orientation 下拉框
+	_orientation_option.add_item("Flat", 0)
+	_orientation_option.add_item("Pointy", 1)
+	_orientation_option.selected = 0
+	
 	# 初始化输入框默认值
 	_rows_input.value = 9
 	_columns_input.value = 9
 	_radius_input.value = 4
-	_hex_size_input.value = 10
+	_hex_size_input.value = 1
 	
 	# 初始显示/隐藏对应的输入框
 	_update_input_visibility()
@@ -91,6 +97,7 @@ func _update_input_visibility() -> void:
 
 ## 获取当前地图配置
 func _get_map_config() -> Dictionary:
+	var orientation_str := "flat" if _orientation_option.selected == 0 else "pointy"
 	var config: Dictionary
 	
 	if _draw_mode_option.selected == 0:
@@ -100,7 +107,7 @@ func _get_map_config() -> Dictionary:
 			"rows": int(_rows_input.value),
 			"columns": int(_columns_input.value),
 			"size": _hex_size_input.value,
-			"orientation": "flat",
+			"orientation": orientation_str,
 		}
 	else:
 		# Radius 模式
@@ -108,7 +115,7 @@ func _get_map_config() -> Dictionary:
 			"draw_mode": "radius",
 			"radius": int(_radius_input.value),
 			"size": _hex_size_input.value,
-			"orientation": "flat",
+			"orientation": orientation_str,
 		}
 	
 	return config
