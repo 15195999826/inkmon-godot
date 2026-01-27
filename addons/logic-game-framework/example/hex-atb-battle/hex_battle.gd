@@ -4,9 +4,6 @@
 class_name HexBattle
 extends RefCounted
 
-# Preload for script loading order compatibility
-const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
-
 # ========== 常量 ==========
 
 const MAX_TICKS := 100
@@ -231,7 +228,7 @@ func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
-			var coord := _HexCoord.new(q, r)
+			var coord := HexCoord.new(q, r)
 			if UGridMap.model.has_tile(coord) and not UGridMap.model.is_occupied(coord):
 				available_coords.append(coord)
 	
@@ -437,7 +434,7 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 				"target": ActorRef.new(target_actor.get_id()),
 			}
 	else:
-		if my_pos != null:
+		if my_pos.is_valid():
 			var neighbors: Array = my_pos.get_neighbors()
 			var valid_neighbors: Array = []
 			for n in neighbors:
@@ -472,7 +469,7 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 	}
 	if target != null:
 		event["target"] = target
-	if target_coord != null and target_coord is _HexCoord:
+	if target_coord != null and target_coord is HexCoord:
 		# 转换为 Dictionary 以便 JSON 序列化
 		event["target_coord"] = target_coord.to_dict()
 	return event

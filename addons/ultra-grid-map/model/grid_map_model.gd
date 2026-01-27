@@ -17,16 +17,14 @@
 class_name GridMapModel
 extends RefCounted
 
-# 在 --script 模式下，class_name 不可用，必须使用 preload
-const _GridLayout = preload("res://addons/ultra-grid-map/core/grid_layout.gd")
-const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
+
 
 # ========== GridTileData 内部类 ==========
 
 ## 瓦片数据
 class GridTileData:
-	## 坐标 (HexCoord) - 使用 Variant 因为 --script 模式下 class_name 不可用
-	var coord  # HexCoord
+	## 坐标
+	var coord: HexCoord
 	## 高度 (用于 3D 渲染和寻路，0.0 = 地面)
 	var height: float = 0.0
 	## 移动代价 (用于寻路)
@@ -38,8 +36,8 @@ class GridTileData:
 	## 自定义元数据
 	var metadata: Dictionary = {}
 	
-	func _init(p_coord = null) -> void:  # p_coord: HexCoord
-		coord = p_coord if p_coord else _HexCoord.zero()
+	func _init(p_coord: HexCoord = null) -> void:
+		coord = p_coord if p_coord else HexCoord.zero()
 	
 	## 复制
 	func duplicate() -> GridTileData:
@@ -83,7 +81,7 @@ func initialize(config: GridMapConfig) -> void:
 	_config = config
 	
 	# 创建布局转换器
-	_layout = _GridLayout.new(
+	_layout = GridLayout.new(
 		config.grid_type,
 		config.size,
 		config.origin,
@@ -131,7 +129,7 @@ func _generate_hex_row_column(half_rows: int, half_cols: int) -> void:
 				# pointy-top: odd-r offset 转 axial
 				q = offset_col - (offset_row >> 1)
 				r = offset_row
-			var coord := _HexCoord.new(q, r)
+			var coord := HexCoord.new(q, r)
 			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
@@ -139,7 +137,7 @@ func _generate_hex_row_column(half_rows: int, half_cols: int) -> void:
 func _generate_rect_six_dir_row_column(half_rows: int, half_cols: int) -> void:
 	for row in range(-half_rows, half_rows + 1):
 		for col in range(-half_cols, half_cols + 1):
-			var coord := _HexCoord.new(col, row)
+			var coord := HexCoord.new(col, row)
 			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
@@ -147,7 +145,7 @@ func _generate_rect_six_dir_row_column(half_rows: int, half_cols: int) -> void:
 func _generate_square_row_column(half_rows: int, half_cols: int) -> void:
 	for row in range(-half_rows, half_rows + 1):
 		for col in range(-half_cols, half_cols + 1):
-			var coord := _HexCoord.new(col, row)
+			var coord := HexCoord.new(col, row)
 			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
@@ -157,13 +155,13 @@ func _generate_tiles_radius() -> void:
 		GridMapConfig.GridType.HEX:
 			var axial_coords := GridMath.hex_range(Vector2i.ZERO, _config.radius)
 			for axial in axial_coords:
-				var coord = _HexCoord.from_axial(axial)
+				var coord = HexCoord.from_axial(axial)
 				_tiles[coord.to_key()] = GridTileData.new(coord)
 		GridMapConfig.GridType.RECT_SIX_DIR, GridMapConfig.GridType.SQUARE, GridMapConfig.GridType.RECT:
 			# 非六边形类型使用菱形范围
 			for x in range(-_config.radius, _config.radius + 1):
 				for y in range(-_config.radius, _config.radius + 1):
-					var coord = _HexCoord.new(x, y)
+					var coord = HexCoord.new(x, y)
 					_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
@@ -194,14 +192,14 @@ func coord_to_world(coord) -> Vector2:
 ## 世界坐标转网格坐标 -> HexCoord
 func world_to_coord(world_pos: Vector2):  # -> HexCoord
 	var axial: Vector2i = _layout.pixel_to_coord(world_pos)
-	return _HexCoord.from_axial(axial)
+	return HexCoord.from_axial(axial)
 
 
 ## 获取相邻格子的世界距离
 func get_adjacent_world_distance() -> float:
 	match _config.grid_type:
 		GridMapConfig.GridType.HEX:
-			return _config.size * _GridLayout.SQRT3
+			return _config.size * GridLayout.SQRT3
 		GridMapConfig.GridType.SQUARE:
 			return _config.tile_size.x
 		GridMapConfig.GridType.RECT, GridMapConfig.GridType.RECT_SIX_DIR:
@@ -216,7 +214,7 @@ func get_neighbors(coord) -> Array:
 	var axial_neighbors := GridMath.get_neighbors(coord.to_axial(), _config.grid_type)
 	var result: Array = []
 	for axial in axial_neighbors:
-		result.append(_HexCoord.from_axial(axial))
+		result.append(HexCoord.from_axial(axial))
 	return result
 
 
@@ -227,13 +225,13 @@ func get_range(center, range_radius: int) -> Array:
 		GridMapConfig.GridType.HEX:
 			var axial_coords := GridMath.hex_range(center.to_axial(), range_radius)
 			for axial in axial_coords:
-				result.append(_HexCoord.from_axial(axial))
+				result.append(HexCoord.from_axial(axial))
 		_:
 			# 非六边形使用曼哈顿距离范围
 			for x in range(-range_radius, range_radius + 1):
 				for y in range(-range_radius, range_radius + 1):
 					if absi(x) + absi(y) <= range_radius:
-						result.append(_HexCoord.new(center.q + x, center.r + y))
+						result.append(HexCoord.new(center.q + x, center.r + y))
 	return result
 
 
@@ -266,7 +264,7 @@ func set_tile(coord, data: GridTileData) -> void:
 func get_all_coords() -> Array:
 	var result: Array = []
 	for key in _tiles.keys():
-		result.append(_HexCoord.from_key(key))
+		result.append(HexCoord.from_key(key))
 	return result
 
 
@@ -278,7 +276,7 @@ func get_tile_count() -> int:
 ## 遍历所有瓦片 (callback receives HexCoord and GridTileData)
 func for_each_tile(callback: Callable) -> void:
 	for key in _tiles.keys():
-		var coord = _HexCoord.from_key(key)
+		var coord = HexCoord.from_key(key)
 		callback.call(coord, _tiles[key])
 
 
@@ -416,7 +414,7 @@ func find_occupant_position(occupant: Variant):  # -> HexCoord
 	for key in _tiles.keys():
 		var tile: GridTileData = _tiles[key]
 		if tile.occupant == occupant:
-			return _HexCoord.from_key(key)
+			return HexCoord.from_key(key)
 	return null  # 未找到返回 null
 
 

@@ -18,8 +18,8 @@ var attributes: HexBattleCharacterAttributeSet
 var ability_set: BattleAbilitySet
 
 ## 当前位置（六边形坐标）
-## 使用 Variant 类型以避免脚本加载顺序问题
-var hex_position = null  # HexCoord
+## 使用 HexCoord.invalid() 表示未设置位置，在 _init 中初始化
+var hex_position = HexCoord.invalid() # HexCoord
 
 ## 移动 Ability ID
 var _move_ability_id: String = ""
@@ -198,7 +198,7 @@ func _get_team_int() -> int:
 ## 格式：Vector3(q, r, 0)，第三个分量保留用于高度扩展
 ## 具体含义由 configs.positionFormats["Character"] = "hex" 声明
 func _get_position() -> Variant:
-	if hex_position == null:
+	if not hex_position.is_valid():
 		return null
 	return Vector3(hex_position.q, hex_position.r, 0)
 
@@ -258,7 +258,7 @@ func to_event_processor_dict() -> Dictionary:
 func serialize() -> Dictionary:
 	var base := serialize_base()
 	base["character_class"] = HexBattleClassConfig.class_to_string(character_class)
-	base["hex_position"] = hex_position.to_dict() if hex_position else {}
+	base["hex_position"] = hex_position.to_dict() if hex_position.is_valid() else {}
 	base["atb_gauge"] = _atb_gauge
 	base["attributes"] = attributes._raw.serialize()
 	return base

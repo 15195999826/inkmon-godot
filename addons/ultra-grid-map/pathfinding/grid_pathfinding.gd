@@ -14,8 +14,7 @@
 class_name GridPathfinding
 extends RefCounted
 
-const _GridMapModel = preload("res://addons/ultra-grid-map/model/grid_map_model.gd")
-const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
+
 
 
 # ========== A* 寻路结果 ==========
@@ -44,7 +43,7 @@ class PathResult:
 ## @param max_cost: 最大搜索代价 (可选，防止无限搜索)
 ## @return: PathResult
 static func astar(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	goal,   # HexCoord
 	is_passable: Callable,
@@ -104,7 +103,7 @@ static func astar(
 ## @param max_cost: 最大搜索代价 (可选)
 ## @return: PathResult
 static func astar_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	goal,   # HexCoord
 	max_cost: float = INF
@@ -195,7 +194,7 @@ static func _heap_sift_down(heap: Array, idx: int) -> void:
 ## @param is_passable: 判断格子是否可通行的回调
 ## @return: 所有可达格子的集合 (HexCoord 数组)
 static func reachable(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	max_movement: int,
 	is_passable: Callable
@@ -221,7 +220,7 @@ static func reachable(
 
 ## BFS 可达性分析 (简化版，使用 model 的默认可通行判断)
 static func reachable_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	max_movement: int
 ) -> Array:
@@ -239,7 +238,7 @@ static func reachable_simple(
 ## @param cost_func: 移动代价回调
 ## @return: Dictionary { key: { "coord": HexCoord, "cost": float } }
 static func reachable_with_cost(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	max_cost: float,
 	is_passable: Callable,
@@ -277,7 +276,7 @@ static func reachable_with_cost(
 
 ## BFS 可达性分析 (带代价，简化版)
 static func reachable_with_cost_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	max_cost: float
 ) -> Dictionary:
@@ -299,7 +298,7 @@ static func reachable_with_cost_simple(
 ## @param to: 终点 (HexCoord)
 ## @return: 线段上的所有格子 (HexCoord 数组，包含两端点)
 static func get_line(
-	model: _GridMapModel,
+	model: GridMapModel,
 	from,  # HexCoord
 	to     # HexCoord
 ) -> Array:
@@ -321,7 +320,7 @@ static func get_line(
 static func _vec_array_to_hex_array(vec_array: Array[Vector2i]) -> Array:
 	var result: Array = []
 	for v in vec_array:
-		result.append(_HexCoord.new(v.x, v.y))
+		result.append(HexCoord.new(v.x, v.y))
 	return result
 
 
@@ -365,7 +364,7 @@ static func _bresenham_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 ## @param blocks_vision: 判断格子是否阻挡视线的回调
 ## @return: 目标是否可见
 static func is_visible(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	target,  # HexCoord
 	blocks_vision: Callable
@@ -382,7 +381,7 @@ static func is_visible(
 
 ## 简单射线可见性检测 (简化版，使用 model 的阻挡判断)
 static func is_visible_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	target   # HexCoord
 ) -> bool:
@@ -399,7 +398,7 @@ static func is_visible_simple(
 ## @param blocks_vision: 判断格子是否阻挡视线的回调
 ## @return: 所有可见格子 (HexCoord 数组)
 static func field_of_view(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	vision_range: int,
 	blocks_vision: Callable
@@ -417,7 +416,7 @@ static func field_of_view(
 
 ## 计算视野范围内所有可见格子 (简化版)
 static func field_of_view_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	vision_range: int
 ) -> Array:
@@ -430,7 +429,7 @@ static func field_of_view_simple(
 ##
 ## 从内向外扫描，如果一个格子不可见，则不再检查它后面的格子
 static func field_of_view_optimized(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	vision_range: int,
 	blocks_vision: Callable
@@ -465,7 +464,7 @@ static func field_of_view_optimized(
 
 
 ## 获取指定半径的环形格子
-static func _get_ring(model: _GridMapModel, center, radius: int) -> Array:  # center: HexCoord
+static func _get_ring(model: GridMapModel, center, radius: int) -> Array:  # center: HexCoord
 	var grid_type := model.get_grid_type()
 	var center_vec: Vector2i = center.to_axial()
 	
@@ -480,7 +479,7 @@ static func _get_ring(model: _GridMapModel, center, radius: int) -> Array:  # ce
 		for y in range(-radius, radius + 1):
 			var dist := absi(x) + absi(y)
 			if dist == radius:
-				result.append(_HexCoord.new(center_vec.x + x, center_vec.y + y))
+				result.append(HexCoord.new(center_vec.x + x, center_vec.y + y))
 	return result
 
 
@@ -495,7 +494,7 @@ static func _get_ring(model: _GridMapModel, center, radius: int) -> Array:  # ce
 ## @param blocks_ray: 判断格子是否阻挡射线的回调
 ## @return: 第一个阻挡的格子 (HexCoord)，如果没有则返回 null
 static func raycast(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	direction: int,
 	max_distance: int,
@@ -522,7 +521,7 @@ static func raycast(
 ## @param blocks_ray: 判断格子是否阻挡射线的回调
 ## @return: 第一个阻挡的格子 (HexCoord)，如果没有则返回 null
 static func raycast_to(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	target,  # HexCoord
 	blocks_ray: Callable
@@ -538,7 +537,7 @@ static func raycast_to(
 
 ## 射线投射到目标 (简化版)
 static func raycast_to_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	origin,  # HexCoord
 	target   # HexCoord
 ) -> Variant:
@@ -557,7 +556,7 @@ static func raycast_to_simple(
 ## @param max_size: 最大区域大小 (防止无限扩展)
 ## @return: 所有连通的格子 (HexCoord 数组)
 static func flood_fill(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	is_same_region: Callable,
 	max_size: int = 10000
@@ -585,7 +584,7 @@ static func flood_fill(
 
 ## 洪水填充 (简化版，使用 model 的瓦片存在判断)
 static func flood_fill_simple(
-	model: _GridMapModel,
+	model: GridMapModel,
 	start,  # HexCoord
 	max_size: int = 10000
 ) -> Array:

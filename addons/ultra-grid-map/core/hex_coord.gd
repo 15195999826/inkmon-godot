@@ -13,6 +13,12 @@ class_name HexCoord
 extends RefCounted
 
 
+# ========== 常量 ==========
+
+## 无效坐标的特殊值（使用极大值避免与正常坐标冲突）
+const INVALID_VALUE := -999999
+
+
 # ========== 属性 ==========
 
 ## Q 轴坐标
@@ -57,6 +63,12 @@ static func from_dict(d: Dictionary):
 ## 零坐标 -> HexCoord
 static func zero():
 	return new(0, 0)
+
+
+## 无效坐标 -> HexCoord
+## 用于表示"未设置"或"不存在"的位置，替代 null
+static func invalid():
+	return new(INVALID_VALUE, INVALID_VALUE)
 
 
 # ========== 转换方法 ==========
@@ -111,6 +123,11 @@ func equals(other) -> bool:
 ## 是否为零坐标
 func is_zero() -> bool:
 	return q == 0 and r == 0
+
+
+## 是否为有效坐标（非 INVALID）
+func is_valid() -> bool:
+	return q != INVALID_VALUE and r != INVALID_VALUE
 
 
 # ========== 距离 ==========

@@ -19,8 +19,8 @@ func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
 	var config := context.get_animation_config()
 	
 	var actor_id := get_string_field(event, "actor_id")
-	var from_hex := get_hex_field(event, "from_hex")
-	var to_hex := get_hex_field(event, "to_hex")
+	var from_hex: HexCoord = get_hex_field(event, "from_hex")
+	var to_hex: HexCoord = get_hex_field(event, "to_hex")
 	
 	var move_action := FrontendMoveAction.new(
 		actor_id,

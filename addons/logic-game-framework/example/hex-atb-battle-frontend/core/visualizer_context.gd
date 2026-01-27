@@ -7,13 +7,12 @@
 class_name FrontendVisualizerContext
 extends RefCounted
 
-
 # ========== 内部状态引用 ==========
 
 ## 角色状态 Map（actor_id -> ActorRenderState）
 var _actors: Dictionary = {}
 
-## 插值位置 Map（actor_id -> Vector2）
+## 插值位置 Map（actor_id -> Vector2）用于平滑动画
 var _interpolated_positions: Dictionary = {}
 
 ## 动画配置
@@ -42,7 +41,7 @@ func _init(
 ## 获取角色当前位置（世界坐标）
 func get_actor_position(actor_id: String) -> Vector3:
 	var hex_pos := get_actor_hex_position(actor_id)
-	var pixel := _layout.coord_to_pixel(hex_pos)
+	var pixel := _layout.coord_to_pixel(hex_pos.to_axial())
 	return Vector3(pixel.x, 0.0, pixel.y)
 
 
@@ -65,15 +64,15 @@ func is_actor_alive(actor_id: String) -> bool:
 
 
 ## 获取角色六边形坐标
-func get_actor_hex_position(actor_id: String) -> Vector2i:
-	# 优先使用插值位置
+func get_actor_hex_position(actor_id: String) -> HexCoord:
+	# 优先使用插值位置（取整）
 	if _interpolated_positions.has(actor_id):
 		var pos: Vector2 = _interpolated_positions[actor_id]
-		return Vector2i(roundi(pos.x), roundi(pos.y))
+		return HexCoord.new(roundi(pos.x), roundi(pos.y))
 	
 	var actor: Dictionary = _actors.get(actor_id, {})
 	var pos: Dictionary = actor.get("position", {})
-	return Vector2i(pos.get("q", 0) as int, pos.get("r", 0) as int)
+	return HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
 
 
 ## 获取角色所属队伍
@@ -111,6 +110,6 @@ func get_layout() -> GridLayout:
 # ========== 坐标转换 ==========
 
 ## 将六边形坐标转换为世界坐标
-func hex_to_world(hex: Vector2i) -> Vector3:
-	var pixel := _layout.coord_to_pixel(hex)
+func hex_to_world(hex: HexCoord) -> Vector3:
+	var pixel := _layout.coord_to_pixel(hex.to_axial())
 	return Vector3(pixel.x, 0.0, pixel.y)

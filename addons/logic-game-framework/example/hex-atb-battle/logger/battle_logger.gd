@@ -291,13 +291,21 @@ func heal_applied(source_id: String, target_id: String, heal_amount: float) -> v
 
 
 ## 记录移动
-func actor_moved(actor_id: String, from_hex: Dictionary, to_hex: Dictionary) -> void:
+## @param from_hex: 起始坐标 (HexCoord 或 Dictionary {"q": int, "r": int})
+## @param to_hex: 目标坐标 (HexCoord 或 Dictionary {"q": int, "r": int})
+func actor_moved(actor_id: String, from_hex: Variant, to_hex: Variant) -> void:
 	var actor_name := get_actor_name(actor_id)
+	# 兼容 HexCoord 和 Dictionary 两种格式
+	var from_q: int = from_hex.q if from_hex is RefCounted else from_hex.get("q", 0)
+	var from_r: int = from_hex.r if from_hex is RefCounted else from_hex.get("r", 0)
+	var to_q: int = to_hex.q if to_hex is RefCounted else to_hex.get("q", 0)
+	var to_r: int = to_hex.r if to_hex is RefCounted else to_hex.get("r", 0)
+	
 	_write_console("  🚶 [移动] %s: (%d, %d) → (%d, %d)" % [
-		actor_name, from_hex["q"], from_hex["r"], to_hex["q"], to_hex["r"]
+		actor_name, from_q, from_r, to_q, to_r
 	])
 	_write_actor_log(actor_id, actor_name, "[%.0fms] 移动: (%d, %d) → (%d, %d)" % [
-		_current_time, from_hex["q"], from_hex["r"], to_hex["q"], to_hex["r"]
+		_current_time, from_q, from_r, to_q, to_r
 	])
 
 

@@ -22,8 +22,9 @@ extends Node2D
 # 内部状态
 var _model: GridMapModel = null
 var _show_grid: bool = false
-var _highlighted_tiles: Dictionary = {}  # Vector2i -> Color
-var _filled_tiles: Dictionary = {}  # Vector2i -> Color
+var _highlighted_tiles: Dictionary = {}  # String (key) -> Color
+var _filled_tiles: Dictionary = {}  # String (key) -> Color
+
 
 
 ## 设置要渲染的网格模型
@@ -44,21 +45,21 @@ func render_grid() -> void:
 
 ## 高亮指定的格子
 ##
-## @param coords: 要高亮的格子坐标数组
+## @param coords: 要高亮的格子坐标数组 (Array[HexCoord])
 ## @param color: 高亮颜色，默认使用 highlight_color
-func highlight_tiles(coords: Array[Vector2i], color: Color = highlight_color) -> void:
+func highlight_tiles(coords: Array, color: Color = highlight_color) -> void:
 	for coord in coords:
-		_highlighted_tiles[coord] = color
+		_highlighted_tiles[coord.to_key()] = color
 	queue_redraw()
 
 
 ## 填充指定的格子
 ##
-## @param coords: 要填充的格子坐标数组
+## @param coords: 要填充的格子坐标数组 (Array[HexCoord])
 ## @param color: 填充颜色，默认使用 fill_color
-func fill_tiles(coords: Array[Vector2i], color: Color = fill_color) -> void:
+func fill_tiles(coords: Array, color: Color = fill_color) -> void:
 	for coord in coords:
-		_filled_tiles[coord] = color
+		_filled_tiles[coord.to_key()] = color
 	queue_redraw()
 
 
@@ -93,24 +94,26 @@ func _draw() -> void:
 	# 绘制网格线框
 	if _show_grid:
 		for coord in _model.get_all_coords():
-			var points := _get_tile_corners(layout, grid_type, coord)
+			var points := _get_tile_corners(layout, grid_type, coord.to_axial())
 			if points.size() > 0:
 				points.append(points[0])  # 闭合形状
 				draw_polyline(points, grid_color, line_width)
 	
 	# 绘制填充（在线框之前，避免遮挡）
-	for coord in _filled_tiles.keys():
-		var points := _get_tile_corners(layout, grid_type, coord)
+	for key in _filled_tiles.keys():
+		var coord: HexCoord = HexCoord.from_key(key)
+		var points := _get_tile_corners(layout, grid_type, coord.to_axial())
 		if points.size() > 0:
-			var colors := PackedColorArray([_filled_tiles[coord]])
+			var colors := PackedColorArray([_filled_tiles[key]])
 			draw_polygon(points, colors)
 	
 	# 绘制高亮（在最上层）
-	for coord in _highlighted_tiles.keys():
-		var points := _get_tile_corners(layout, grid_type, coord)
+	for key in _highlighted_tiles.keys():
+		var coord: HexCoord = HexCoord.from_key(key)
+		var points := _get_tile_corners(layout, grid_type, coord.to_axial())
 		if points.size() > 0:
 			points.append(points[0])  # 闭合形状
-			draw_polyline(points, _highlighted_tiles[coord], line_width * 1.5)
+			draw_polyline(points, _highlighted_tiles[key], line_width * 1.5)
 
 
 ## 获取格子角点（辅助方法）

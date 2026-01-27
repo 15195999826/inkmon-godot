@@ -4,7 +4,7 @@
 class_name HexBattleApplyMoveAction
 extends Action.BaseAction
 
-const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
+
 
 var _target_coord: DictResolver
 
@@ -32,7 +32,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
 	
 	# 转换为 HexCoord
-	var target_coord = _HexCoord.from_dict(target_coord_dict)
+	var target_coord = HexCoord.from_dict(target_coord_dict)
 	
 	# 获取 HexBattle 实例
 	var battle = ctx.gameplay_state
@@ -47,7 +47,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			continue
 		
 		var from_hex = actor.hex_position  # HexCoord
-		if from_hex == null:
+		if not from_hex.is_valid():
 			push_warning("  [ApplyMoveAction] %s 当前位置未找到" % target.id)
 			continue
 		

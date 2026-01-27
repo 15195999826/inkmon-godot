@@ -10,7 +10,6 @@
 class_name FrontendBaseVisualizer
 extends RefCounted
 
-
 # ========== 属性 ==========
 
 ## Visualizer 名称（用于调试）
@@ -55,10 +54,10 @@ static func get_bool_field(event: Dictionary, field: String, default_value: bool
 	return event.get(field, default_value) as bool
 
 
-## 安全获取六边形坐标字段
-static func get_hex_field(event: Dictionary, field: String) -> Vector2i:
+## 安全获取六边形坐标字段 -> HexCoord
+## 从事件的 Dictionary {"q": int, "r": int} 格式解析
+static func get_hex_field(event: Dictionary, field: String) -> HexCoord:
 	var hex_dict: Dictionary = event.get(field, {})
-	return Vector2i(
-		hex_dict.get("q", 0) as int,
-		hex_dict.get("r", 0) as int
-	)
+	if hex_dict.is_empty():
+		push_warning("[BaseVisualizer] Missing hex field: %s" % field)
+	return HexCoord.from_dict(hex_dict)

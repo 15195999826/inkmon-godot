@@ -19,14 +19,13 @@
 ## 注意: 必须先调用 configure() 才能使用 model
 extends Node
 
-const _GridMapModel = preload("res://addons/ultra-grid-map/model/grid_map_model.gd")
-const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
+
 
 
 # ========== 信号 ==========
 
 ## 当 model 被配置时触发
-signal model_configured(new_model: _GridMapModel)
+signal model_configured(new_model: GridMapModel)
 
 ## 当 model 被清除时触发
 signal model_cleared()
@@ -35,7 +34,7 @@ signal model_cleared()
 # ========== 属性 ==========
 
 ## 当前活跃的网格模型
-var model: _GridMapModel = null
+var model: GridMapModel = null
 
 
 # ========== 配置方法 ==========
@@ -47,7 +46,7 @@ func configure(config: GridMapConfig) -> void:
 		return
 	
 	# 创建新模型
-	var new_model := _GridMapModel.new()
+	var new_model := GridMapModel.new()
 	new_model.initialize(config)
 	
 	model = new_model
@@ -113,7 +112,7 @@ func coord_to_world(coord) -> Vector2:
 func world_to_coord(world_pos: Vector2):  # -> HexCoord
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
-		return _HexCoord.zero()
+		return HexCoord.zero()
 	return model.world_to_coord(world_pos)
 
 

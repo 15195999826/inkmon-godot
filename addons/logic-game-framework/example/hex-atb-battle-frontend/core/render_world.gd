@@ -9,6 +9,8 @@ class_name FrontendRenderWorld
 extends RefCounted
 
 
+
+
 # ========== 信号 ==========
 
 ## 角色状态变化信号
@@ -117,7 +119,7 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 	
 	var actor_type: String = actor_data.get("type", "")
 	var position_arr: Array = actor_data.get("position", [])
-	var hex_pos := _extract_hex_position(position_arr, actor_type)
+	var hex_pos = _extract_hex_position(position_arr, actor_type)  # HexCoord
 	
 	var attributes: Dictionary = actor_data.get("attributes", {})
 	
@@ -126,7 +128,7 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 		"type": actor_type,
 		"display_name": actor_data.get("displayName", ""),
 		"team": actor_data.get("team", 0),
-		"position": { "q": hex_pos.x, "r": hex_pos.y },
+		"position": hex_pos.to_dict(),  # 存储为 Dictionary 以便序列化
 		"visual_hp": attributes.get("hp", 100.0),
 		"max_hp": attributes.get("maxHp", attributes.get("max_hp", 100.0)),
 		"is_alive": true,
@@ -134,14 +136,14 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 		"tint_color": Color.WHITE,
 	}
 	
-	_interpolated_positions[actor_id] = Vector2(hex_pos.x, hex_pos.y)
+	_interpolated_positions[actor_id] = Vector2(hex_pos.q, hex_pos.r)
 
 
 ## 从位置数组提取六边形坐标
 ## 根据 positionFormats 配置解释 position 数组的含义
-func _extract_hex_position(position_arr: Array, actor_type: String) -> Vector2i:
+func _extract_hex_position(position_arr: Array, actor_type: String) -> HexCoord:
 	if position_arr.is_empty():
-		return Vector2i.ZERO
+		return HexCoord.zero()
 	
 	# 查找该类型的位置格式，默认为 "world"
 	var format: String = _position_formats.get(actor_type, "world")
@@ -150,7 +152,7 @@ func _extract_hex_position(position_arr: Array, actor_type: String) -> Vector2i:
 		# position 是 [q, r, z]，直接取 q, r
 		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
 		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
-		return Vector2i(q, r)
+		return HexCoord.new(q, r)
 	else:
 		# position 是 [x, y, z] 世界坐标，需要转换为 hex
 		var world_pos := Vector3(
@@ -158,7 +160,8 @@ func _extract_hex_position(position_arr: Array, actor_type: String) -> Vector2i:
 			position_arr[1] if position_arr.size() > 1 else 0.0,
 			position_arr[2] if position_arr.size() > 2 else 0.0
 		)
-		return _layout.pixel_to_coord(Vector2(world_pos.x, world_pos.z))
+		var axial: Vector2i = _layout.pixel_to_coord(Vector2(world_pos.x, world_pos.z))
+		return HexCoord.from_axial(axial)
 
 
 # ========== 动作应用 ==========
@@ -199,7 +202,7 @@ func _apply_move_action(action: FrontendMoveAction, progress: float) -> void:
 	if progress >= 1.0:
 		var actor: Dictionary = _actors.get(action.actor_id, {})
 		if not actor.is_empty():
-			actor["position"] = { "q": action.to_hex.x, "r": action.to_hex.y }
+			actor["position"] = action.to_hex.to_dict()  # HexCoord -> Dictionary
 			actor_state_changed.emit(action.actor_id, actor)
 
 
@@ -443,11 +446,11 @@ func set_actor_hp(actor_id: String, hp: float) -> void:
 
 
 ## 直接更新 Actor 位置（无动画）
-func set_actor_position(actor_id: String, hex: Vector2i) -> void:
+func set_actor_position(actor_id: String, hex: HexCoord) -> void:
 	var actor: Dictionary = _actors.get(actor_id, {})
 	if not actor.is_empty():
-		actor["position"] = { "q": hex.x, "r": hex.y }
-		_interpolated_positions[actor_id] = Vector2(hex.x, hex.y)
+		actor["position"] = hex.to_dict()
+		_interpolated_positions[actor_id] = Vector2(hex.q, hex.r)
 		actor_state_changed.emit(actor_id, actor)
 
 

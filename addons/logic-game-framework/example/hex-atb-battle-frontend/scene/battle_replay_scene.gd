@@ -9,6 +9,8 @@ class_name FrontendBattleReplayScene
 extends Node3D
 
 
+
+
 # ========== 导出属性 ==========
 
 ## 单位视图场景（可选，如果不设置则使用默认）
@@ -304,7 +306,7 @@ func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3
 		# position 是 [q, r, z]，转换为世界坐标
 		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
 		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
-		var hex_coord := Vector2i(q, r)
+		var hex_coord := HexCoord.new(q, r)
 		var pixel: Vector2 = _hex_world.coord_to_world(hex_coord)
 		return Vector3(pixel.x, 0.0, pixel.y)
 	else:

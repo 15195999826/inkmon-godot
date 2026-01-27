@@ -10,6 +10,7 @@ extends Node3D
 const _GridMapModel = preload("res://addons/ultra-grid-map/model/grid_map_model.gd")
 const _GridLayout = preload("res://addons/ultra-grid-map/core/grid_layout.gd")
 
+
 ## Grid line color
 @export var grid_color: Color = Color.WHITE
 
@@ -32,8 +33,8 @@ const _GridLayout = preload("res://addons/ultra-grid-map/core/grid_layout.gd")
 # Internal state
 var _model: _GridMapModel = null
 var _show_grid: bool = false
-var _highlighted_cells: Dictionary = {}  # Vector2i -> Color
-var _filled_cells: Dictionary = {}  # Vector2i -> Color
+var _highlighted_cells: Dictionary = {}  # String (key) -> Color
+var _filled_cells: Dictionary = {}  # String (key) -> Color
 
 # Render components
 var _grid_mesh_instance: MeshInstance3D = null
@@ -85,20 +86,20 @@ func render_grid() -> void:
 
 
 ## Highlight specific cells
-## @param coords: Array of coordinates to highlight
+## @param coords: Array of coordinates to highlight (Array[HexCoord])
 ## @param color: Highlight color (default: highlight_color)
-func highlight_cells(coords: Array[Vector2i], color: Color = highlight_color) -> void:
+func highlight_cells(coords: Array, color: Color = highlight_color) -> void:
 	for coord in coords:
-		_highlighted_cells[coord] = color
+		_highlighted_cells[coord.to_key()] = color
 	_render()
 
 
 ## Fill specific cells
-## @param coords: Array of coordinates to fill
+## @param coords: Array of coordinates to fill (Array[HexCoord])
 ## @param color: Fill color (default: fill_color)
-func fill_cells(coords: Array[Vector2i], color: Color = fill_color) -> void:
+func fill_cells(coords: Array, color: Color = fill_color) -> void:
 	for coord in coords:
-		_filled_cells[coord] = color
+		_filled_cells[coord.to_key()] = color
 	_render()
 
 
@@ -138,11 +139,12 @@ func _render() -> void:
 	if not _filled_cells.is_empty():
 		_fill_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 		
-		for coord in _filled_cells.keys():
-			var color: Color = _filled_cells[coord]
-			var corners: Array[Vector2] = _get_cell_corners(layout, grid_type, coord)
+		for key in _filled_cells.keys():
+			var color: Color = _filled_cells[key]
+			var coord: HexCoord = HexCoord.from_key(key)
+			var corners: PackedVector2Array = _get_cell_corners(layout, grid_type, coord.to_axial())
 			var height: float = _get_cell_height(coord)
-			var center_2d: Vector2 = layout.coord_to_pixel(coord)
+			var center_2d: Vector2 = layout.coord_to_pixel(coord.to_axial())
 			var center_3d: Vector3 = Vector3(center_2d.x, height + vertical_offset, center_2d.y)
 			
 			# Triangle fan from center to corners
@@ -171,7 +173,7 @@ func _render() -> void:
 		# Draw base grid lines
 		if _show_grid:
 			for coord in _model.get_all_coords():
-				var corners := _get_cell_corners(layout, grid_type, coord)
+				var corners := _get_cell_corners(layout, grid_type, coord.to_axial())
 				var height := _get_cell_height(coord)
 				
 				for i in range(corners.size()):
@@ -187,9 +189,10 @@ func _render() -> void:
 					_grid_mesh.surface_add_vertex(p2)
 		
 		# Draw highlights (on top, same mesh but different color)
-		for coord in _highlighted_cells.keys():
-			var color: Color = _highlighted_cells[coord]
-			var corners := _get_cell_corners(layout, grid_type, coord)
+		for key in _highlighted_cells.keys():
+			var color: Color = _highlighted_cells[key]
+			var coord: HexCoord = HexCoord.from_key(key)
+			var corners := _get_cell_corners(layout, grid_type, coord.to_axial())
 			var height := _get_cell_height(coord) + (vertical_offset * 2) # Slightly higher than grid
 			
 			for i in range(corners.size()):
@@ -218,7 +221,7 @@ func _get_cell_corners(layout: _GridLayout, grid_type: int, coord: Vector2i) -> 
 
 
 ## Helper to get cell height from model
-func _get_cell_height(coord: Vector2i) -> float:
+func _get_cell_height(coord) -> float:
 	if _model:
 		return _model.get_tile_height(coord) * height_scale
 	return 0.0
