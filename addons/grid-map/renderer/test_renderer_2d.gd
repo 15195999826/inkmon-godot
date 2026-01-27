@@ -1,16 +1,16 @@
 extends Node2D
 
-## 2D 六边形网格渲染器测试场景
+## 2D 网格渲染器测试场景
 ##
-## 用于手动验证 HexGridRenderer2D 的功能。
+## 用于手动验证 GridMapRenderer2D 的功能。
 ## 提供 UI 控件来测试不同绘制模式和参数。
 ##
 ## 场景结构要求：
-## - HexGridRenderer2D 节点
+## - GridMapRenderer2D 节点
 ## - Camera2D 节点
 ## - UI 控件（下拉框、输入框、按钮）
 
-@onready var renderer: HexGridRenderer2D = $HexGridRenderer2D
+@onready var renderer: GridMapRenderer2D = $GridMapRenderer2D
 
 # UI 控件引用
 @onready var draw_mode_option: OptionButton = $UI/VBoxContainer/DrawModeOption
@@ -22,7 +22,7 @@ extends Node2D
 @onready var radius_input: SpinBox = $UI/VBoxContainer/RadiusContainer/RadiusInput
 @onready var hex_size_input: SpinBox = $UI/VBoxContainer/HexSizeContainer/HexSizeInput
 
-var world: HexGridWorld
+var _model: GridMapModel
 
 
 func _ready() -> void:
@@ -46,7 +46,7 @@ func _ready() -> void:
 
 ## 根据当前选择的模式更新输入框可见性
 func _update_input_visibility() -> void:
-	var is_row_column := draw_mode_option.selected == 0
+	var is_row_column: bool = draw_mode_option.selected == 0
 	rows_container.visible = is_row_column
 	columns_container.visible = is_row_column
 	radius_container.visible = not is_row_column
@@ -54,30 +54,24 @@ func _update_input_visibility() -> void:
 
 ## 根据当前参数重新创建世界
 func _recreate_world() -> void:
-	var config: Dictionary
-	
-	var current_hex_size := hex_size_input.value
+	var config: GridMapConfig = GridMapConfig.new()
+	config.grid_type = GridMapConfig.GridType.HEX
+	config.orientation = GridMapConfig.Orientation.FLAT
+	config.size = hex_size_input.value
 	
 	if draw_mode_option.selected == 0:
 		# Row/Column 模式
-		config = {
-			"draw_mode": "row_column",
-			"rows": int(rows_input.value),
-			"columns": int(columns_input.value),
-			"hex_size": current_hex_size,
-			"orientation": "flat",
-		}
+		config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		config.rows = int(rows_input.value)
+		config.columns = int(columns_input.value)
 	else:
 		# Radius 模式
-		config = {
-			"draw_mode": "radius",
-			"radius": int(radius_input.value),
-			"hex_size": current_hex_size,
-			"orientation": "flat",
-		}
+		config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		config.radius = int(radius_input.value)
 	
-	world = HexGridWorld.new(config)
-	renderer.set_model(world)
+	_model = GridMapModel.new()
+	_model.initialize(config)
+	renderer.set_model(_model)
 	renderer.clear_all()
 
 
@@ -114,12 +108,9 @@ func _on_render_button_pressed() -> void:
 
 ## 高亮按钮回调：高亮中心区域的格子
 func _on_highlight_button_pressed() -> void:
-	var coords: Array[Vector2i] = []
-	
 	# 高亮中心 7 格（半径 1）
-	coords = HexMath.axial_range(Vector2i.ZERO, 1)
-	
-	renderer.highlight_hexes(coords)
+	var coords: Array[Vector2i] = GridMath.hex_range(Vector2i.ZERO, 1)
+	renderer.highlight_cells(coords)
 
 
 ## 填充按钮回调：填充外围一圈格子
@@ -127,24 +118,24 @@ func _on_fill_button_pressed() -> void:
 	var coords: Array[Vector2i] = []
 	
 	# 遍历所有格子，选择外围一圈（距离中心较远的格子）
-	var all_coords := world.get_all_coords()
+	var all_coords: Array[Vector2i] = _model.get_all_coords()
 	if all_coords.is_empty():
 		return
 	
 	# 计算最大距离
-	var max_dist := 0
+	var max_dist: int = 0
 	for coord in all_coords:
-		var dist := HexMath.axial_distance(Vector2i.ZERO, coord)
+		var dist: int = GridMath.hex_distance(Vector2i.ZERO, coord)
 		if dist > max_dist:
 			max_dist = dist
 	
 	# 选择最外圈
 	for coord in all_coords:
-		var dist := HexMath.axial_distance(Vector2i.ZERO, coord)
+		var dist: int = GridMath.hex_distance(Vector2i.ZERO, coord)
 		if dist >= max_dist - 1:
 			coords.append(coord)
 	
-	renderer.fill_hexes(coords)
+	renderer.fill_cells(coords)
 
 
 ## 清除按钮回调：清除所有渲染效果

@@ -1,12 +1,12 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://addons/hex-grid/renderer/test_renderer_2d.gd" id="1_script"]
-[ext_resource type="Script" path="res://addons/hex-grid/renderer/hex_grid_renderer_2d.gd" id="2_renderer"]
+[ext_resource type="Script" path="res://addons/grid-map/renderer/test_renderer_2d.gd" id="1_script"]
+[ext_resource type="Script" path="res://addons/grid-map/renderer/grid_map_renderer_2d.gd" id="2_renderer"]
 
 [node name="TestRenderer2D" type="Node2D"]
 script = ExtResource("1_script")
 
-[node name="HexGridRenderer2D" type="Node2D" parent="."]
+[node name="GridMapRenderer2D" type="Node2D" parent="."]
 script = ExtResource("2_renderer")
 
 [node name="Camera2D" type="Camera2D" parent="."]
