@@ -7,7 +7,7 @@ const PERMANENT_DURATION := -1.0
 const REMOVE_ALL_STACKS := -1
 
 static func _get_ability_set_for_target(ctx: ExecutionContext, target) -> AbilitySet:
-	var state = ctx.gameplay_state
+	var state = ctx.game_state_provider
 	if AbilitySet.is_ability_set_provider(state):
 		return state.get_ability_set_for_actor(target.id)
 	return null
@@ -16,7 +16,7 @@ static func _get_logic_time(ctx: ExecutionContext) -> float:
 	var event = ctx.get_current_event()
 	if event != null and event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
 		return float(event["logicTime"])
-	var state = ctx.gameplay_state
+	var state = ctx.game_state_provider
 	if state != null and state.has("logicTime"):
 		return float(state.logicTime)
 	return float(Time.get_ticks_msec())

@@ -27,9 +27,9 @@ func get_triggers() -> Array:
 func matches_event(event: Dictionary, context: Dictionary) -> bool:
 	return _check_triggers(event, context)
 
-func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
+func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
 	if _check_triggers(event, context):
-		_execute_actions(event, context, gameplay_state)
+		_execute_actions(event, context, game_state_provider)
 		return true
 	return false
 
@@ -53,19 +53,19 @@ func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary)
 		return trigger["filter"].call(event, context)
 	return true
 
-func _execute_actions(event: Dictionary, context: Dictionary, gameplay_state) -> void:
-	var exec_context = _build_execution_context(event, context, gameplay_state)
+func _execute_actions(event: Dictionary, context: Dictionary, game_state_provider) -> void:
+	var exec_context = _build_execution_context(event, context, game_state_provider)
 	for action in _actions:
 		if action != null and action.has_method("execute"):
 			action.execute(exec_context)
 		else:
 			Log.warning("NoInstanceComponent", "NoInstanceComponent missing action.execute")
 
-func _build_execution_context(event: Dictionary, context: Dictionary, gameplay_state):
+func _build_execution_context(event: Dictionary, context: Dictionary, game_state_provider):
 	var ability = context.get("ability", null)
 	return ExecutionContext.create_execution_context({
 		"eventChain": [event],
-		"gameplayState": gameplay_state,
+		"gameplayState": game_state_provider,
 		"eventCollector": GameWorld.event_collector,
 		"ability": {
 			"id": ability.id if ability != null else "",

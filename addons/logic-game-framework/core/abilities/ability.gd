@@ -131,7 +131,7 @@ func cancel_all_executions() -> void:
 			instance.cancel()
 	_execution_instances = []
 
-func receive_event(event: Dictionary, context: Dictionary, gameplay_state: Variant) -> void:
+func receive_event(event: Dictionary, context: Dictionary, game_state_provider: Variant) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	var triggered_components := []
@@ -141,7 +141,7 @@ func receive_event(event: Dictionary, context: Dictionary, gameplay_state: Varia
 		if not _is_active_component(component):
 			continue
 		if component.has_method("on_event"):
-			if component.on_event(event, context, gameplay_state):
+			if component.on_event(event, context, game_state_provider):
 				triggered_components.append(_get_component_name(component))
 	if not triggered_components.is_empty():
 		for callback in _on_triggered_callbacks:

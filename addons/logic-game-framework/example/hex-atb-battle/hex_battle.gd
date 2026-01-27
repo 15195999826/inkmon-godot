@@ -465,7 +465,7 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
 		"abilityInstanceId": ability_instance_id,
 		"sourceId": source_id,
-		"logicTime": logic_time,  # 添加逻辑时间，避免框架尝试从 gameplay_state 获取
+		"logicTime": logic_time,  # 添加逻辑时间，避免框架尝试从 game_state_provider 获取
 	}
 	if target != null:
 		event["target"] = target

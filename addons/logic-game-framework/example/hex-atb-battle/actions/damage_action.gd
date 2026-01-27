@@ -64,12 +64,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	if ctx.ability != null:
 		source = ctx.ability.owner
 	var targets := get_targets(ctx)
+	var battle: HexBattle = ctx.game_state_provider
 	
 	var event_processor: Variant = GameWorld.event_processor
 	var all_events: Array = []
 	
 	# 获取 actors 列表（用于 Post 阶段广播）
-	var actors := _get_actors_from_gameplay_state(ctx.gameplay_state)
+	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
 	
 	for target in targets:
 		# ========== Pre 阶段 ==========
@@ -81,11 +82,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			"damage_type": HexBattleReplayEvents._damage_type_to_string(_damage_type),
 		}
 		
-		var mutable: Variant = event_processor.process_pre_event(pre_event, ctx.gameplay_state)
+		var mutable: Variant = event_processor.process_pre_event(pre_event, battle)
 		
 		# 如果被取消（如免疫），跳过此目标
 		if mutable.cancelled:
-			var target_name := _get_actor_display_name(target, ctx.gameplay_state)
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
 			print("  [DamageAction] %s 的伤害被取消" % target_name)
 			continue
 		
@@ -98,8 +99,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			final_damage *= 1.5
 		
 		# 打印日志
-		var source_name := _get_actor_display_name(source, ctx.gameplay_state)
-		var target_name := _get_actor_display_name(target, ctx.gameplay_state)
+		var source_name := HexBattleGameStateUtils.get_actor_display_name(source, battle)
+		var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
 		var damage_type_str := HexBattleReplayEvents._damage_type_to_string(_damage_type)
 		var crit_text := " (暴击!)" if is_critical else ""
 		if final_damage != _damage:
@@ -127,7 +128,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# ========== Post 阶段 ==========
 		# 立即触发被动响应（如反伤、吸血）
 		if actors.size() > 0:
-			event_processor.process_post_event(damage_event, actors, ctx.gameplay_state)
+			event_processor.process_post_event(damage_event, actors, battle)
 	
 	return ActionResult.create_success_result(all_events, { "damage": _damage })
 
@@ -168,42 +169,4 @@ func _check_target_killed(damage_event: Dictionary, ctx: ExecutionContext) -> bo
 	var target_id: String = damage_event.get("target_actor_id", "")
 	if target_id.is_empty():
 		return false
-	
-	if ctx.gameplay_state != null and ctx.gameplay_state.has_method("get_actor"):
-		var target_actor = ctx.gameplay_state.get_actor(target_id)
-		if target_actor != null and target_actor.has_method("is_alive"):
-			return not target_actor.is_alive()
-	
-	return false
-
-
-# ============================================================
-# 辅助函数
-# ============================================================
-
-func _get_actors_from_gameplay_state(state: Variant) -> Array:
-	if state == null:
-		return []
-	if state.has_method("get_alive_actors"):
-		var actors: Array = state.get_alive_actors()
-		# 转换为 EventProcessor 兼容的字典格式
-		var result: Array = []
-		for actor in actors:
-			if actor != null and actor.has_method("to_event_processor_dict"):
-				result.append(actor.to_event_processor_dict())
-			elif actor is Dictionary:
-				result.append(actor)
-		return result
-	if state is Dictionary and state.has("alive_actors"):
-		return state["alive_actors"]
-	return []
-
-
-func _get_actor_display_name(actor_ref: ActorRef, state: Variant) -> String:
-	if actor_ref == null:
-		return "???"
-	if state != null and state.has_method("get_actor"):
-		var actor = state.get_actor(actor_ref.id)
-		if actor != null:
-			return actor.get_display_name()
-	return actor_ref.id
+	return HexBattleGameStateUtils.is_actor_dead(target_id, ctx.game_state_provider)

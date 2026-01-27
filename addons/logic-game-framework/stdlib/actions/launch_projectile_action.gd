@@ -152,7 +152,7 @@ static func create_actor_position_resolver(actor_ref_resolver: Callable) -> Vect
 		if not (actor_ref is Dictionary) or not actor_ref.has("id"):
 			return Vector3.ZERO
 
-		var state = ctx.gameplay_state
+		var state = ctx.game_state_provider
 		if state and state.has_method("get_actor"):
 			var actor = state.get_actor(actor_ref.id)
 			if actor and actor.has("position"):

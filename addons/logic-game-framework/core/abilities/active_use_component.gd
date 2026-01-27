@@ -30,18 +30,18 @@ func _create_default_trigger_config() -> TriggerConfig:
 		return event.get("abilityInstanceId", "") == ability_ref.id and event.get("sourceId", "") == owner_ref.id
 	return TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, filter_fn)
 
-func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
+func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
 	if not _check_triggers(event, context):
 		return false
-	var ability_set = _get_ability_set(context, gameplay_state)
+	var ability_set = _get_ability_set(context, game_state_provider)
 	if ability_set == null:
-		return _activate_without_checks(event, context, gameplay_state)
-	var logic_time := _get_logic_time(event, gameplay_state)
+		return _activate_without_checks(event, context, game_state_provider)
+	var logic_time := _get_logic_time(event, game_state_provider)
 	var condition_ctx := {
 		"owner": context.get("owner", null),
 		"abilitySet": ability_set,
 		"ability": context.get("ability", null),
-		"gameplayState": gameplay_state,
+		"gameplayState": game_state_provider,
 	}
 	if not _check_conditions(condition_ctx):
 		return false
@@ -49,16 +49,16 @@ func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
 		"owner": context.get("owner", null),
 		"abilitySet": ability_set,
 		"ability": context.get("ability", null),
-		"gameplayState": gameplay_state,
+		"gameplayState": game_state_provider,
 		"logicTime": logic_time,
 	}
 	if not _check_costs(cost_ctx):
 		return false
 	_pay_costs(cost_ctx)
-	return _activate_without_checks(event, context, gameplay_state)
+	return _activate_without_checks(event, context, game_state_provider)
 
-func _activate_without_checks(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
-	_activate_execution(event, context, gameplay_state)
+func _activate_without_checks(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
+	_activate_execution(event, context, game_state_provider)
 	return true
 
 func _check_conditions(ctx: Dictionary) -> bool:
@@ -88,18 +88,18 @@ func _pay_costs(ctx: Dictionary) -> void:
 		if cost != null and cost.has_method("pay"):
 			cost.pay(ctx)
 
-func _get_ability_set(context: Dictionary, gameplay_state):
-	if gameplay_state != null and gameplay_state.has_method("get_ability_set_for_actor"):
+func _get_ability_set(context: Dictionary, game_state_provider):
+	if game_state_provider != null and game_state_provider.has_method("get_ability_set_for_actor"):
 		var owner_ref = context.get("owner", null)
 		if owner_ref != null:
-			return gameplay_state.get_ability_set_for_actor(owner_ref.id)
+			return game_state_provider.get_ability_set_for_actor(owner_ref.id)
 	return null
 
-func _get_logic_time(event: Dictionary, gameplay_state) -> float:
+func _get_logic_time(event: Dictionary, game_state_provider) -> float:
 	if event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
 		return float(event["logicTime"])
-	if gameplay_state != null and gameplay_state.has("logicTime"):
-		return float(gameplay_state.logicTime)
+	if game_state_provider != null and game_state_provider.has("logicTime"):
+		return float(game_state_provider.logicTime)
 	return float(Time.get_ticks_msec())
 
 

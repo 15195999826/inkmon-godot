@@ -16,7 +16,7 @@ class TestComponent:
 	func on_remove(_context: Dictionary) -> void:
 		removed = true
 
-	func on_event(_event: Dictionary, _context: Dictionary, _gameplay_state) -> bool:
+	func on_event(_event: Dictionary, _context: Dictionary, _game_state_provider) -> bool:
 		event_hit = true
 		return true
 

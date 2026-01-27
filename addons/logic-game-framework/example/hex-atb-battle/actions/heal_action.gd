@@ -113,11 +113,11 @@ func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionC
 
 
 func _calculate_overheal(target: ActorRef, heal_amount: float, ctx: ExecutionContext) -> float:
-	if ctx.gameplay_state == null:
+	if ctx.game_state_provider == null:
 		return 0.0
 	
-	if ctx.gameplay_state.has_method("get_actor"):
-		var target_actor = ctx.gameplay_state.get_actor(target.id)
+	if ctx.game_state_provider.has_method("get_actor"):
+		var target_actor = ctx.game_state_provider.get_actor(target.id)
 		if target_actor != null:
 			var current_hp := 0.0
 			var max_hp := 0.0

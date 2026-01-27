@@ -68,7 +68,7 @@ signal occupant_changed(coord, old_occupant: Variant, new_occupant: Variant)
 var _config: GridMapConfig
 
 ## 布局转换器
-var _layout: Variant
+var _layout: GridLayout
 
 ## 瓦片存储 (key: String via HexCoord.to_key(), value: GridTileData)
 var _tiles: Dictionary = {}
@@ -178,7 +178,7 @@ func get_grid_type() -> GridMapConfig.GridType:
 
 
 ## 获取布局
-func get_layout() -> Variant:
+func get_layout() -> GridLayout:
 	return _layout
 
 

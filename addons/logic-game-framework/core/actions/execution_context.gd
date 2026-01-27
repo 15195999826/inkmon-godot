@@ -2,14 +2,14 @@ extends RefCounted
 class_name ExecutionContext
 
 var event_chain: Array = []
-var gameplay_state = null
+var game_state_provider = null
 var event_collector = null
 var ability: Dictionary = {}
 var execution: Dictionary = {}
 
 func _init(config: Dictionary = {}):
 	event_chain = config.get("eventChain", [])
-	gameplay_state = config.get("gameplayState", null)
+	game_state_provider = config.get("gameplayState", null)
 	event_collector = config.get("eventCollector", null)
 	ability = config.get("ability", {})
 	execution = config.get("execution", {})
@@ -35,7 +35,7 @@ static func create_execution_context(config: Dictionary) -> ExecutionContext:
 static func create_callback_context(ctx: ExecutionContext, callback_event: Dictionary) -> ExecutionContext:
 	return ExecutionContext.new({
 		"eventChain": ctx.event_chain + [callback_event],
-		"gameplayState": ctx.gameplay_state,
+		"gameplayState": ctx.game_state_provider,
 		"eventCollector": ctx.event_collector,
 		"ability": ctx.ability,
 		"execution": ctx.execution,

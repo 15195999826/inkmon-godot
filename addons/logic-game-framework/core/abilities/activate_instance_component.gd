@@ -23,9 +23,9 @@ func _init(config: ActivateInstanceConfig):
 		else:
 			_triggers.append(trigger)
 
-func on_event(event: Dictionary, context: Dictionary, gameplay_state) -> bool:
+func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
 	if _check_triggers(event, context):
-		_activate_execution(event, context, gameplay_state)
+		_activate_execution(event, context, game_state_provider)
 		return true
 	return false
 
@@ -49,7 +49,7 @@ func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary)
 		return trigger["filter"].call(event, context)
 	return true
 
-func _activate_execution(event: Dictionary, context: Dictionary, gameplay_state) -> void:
+func _activate_execution(event: Dictionary, context: Dictionary, game_state_provider) -> void:
 	var ability = context.get("ability", null)
 	if ability == null:
 		return
@@ -57,7 +57,7 @@ func _activate_execution(event: Dictionary, context: Dictionary, gameplay_state)
 		"timelineId": _timeline_id,
 		"tagActions": _tag_actions,
 		"eventChain": [event],
-		"gameplayState": gameplay_state,
+		"gameplayState": game_state_provider,
 	})
 	Log.debug("ActivateInstanceComponent", "开始执行")
 

@@ -78,8 +78,8 @@ func on_resume() -> void:
 func on_end() -> void:
 	pass
 
-func create_actor(factory: Callable) -> Variant:
-	var actor = factory.call()
+func create_actor(factory: Callable) -> Actor:
+	var actor: Actor = factory.call()
 	_actors.append(actor)
 	if actor != null and actor.has_method("on_spawn"):
 		actor.on_spawn()
@@ -95,7 +95,7 @@ func remove_actor(actor_id: String) -> bool:
 			return true
 	return false
 
-func get_actor(actor_id: String) -> Variant:
+func get_actor(actor_id: String) -> Actor:
 	for actor in _actors:
 		if actor != null and actor.has_method("get_id") and actor.get_id() == actor_id:
 			return actor
@@ -149,7 +149,7 @@ func remove_system(system_type: String) -> bool:
 			return true
 	return false
 
-func get_system(system_type: String) -> Variant:
+func get_system(system_type: String) -> System:
 	for system in _systems:
 		if system != null and system.has("type") and system.type == system_type:
 			return system

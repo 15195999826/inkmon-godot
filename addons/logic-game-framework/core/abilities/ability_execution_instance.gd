@@ -10,7 +10,7 @@ var timeline_id: String
 var _timeline = null
 var _tag_actions: Dictionary = {}
 var _event_chain: Array = []
-var _gameplay_state = null
+var _game_state_provider = null
 var _ability_info: Dictionary = {}
 var _elapsed: float = 0.0
 var _state: String = STATE_EXECUTING
@@ -22,7 +22,7 @@ func _init(config: Dictionary):
 	_timeline = TimelineRegistry.get_timeline(timeline_id)
 	_tag_actions = config.get("tagActions", {})
 	_event_chain = config.get("eventChain", [])
-	_gameplay_state = config.get("gameplayState", null)
+	_game_state_provider = config.get("gameplayState", null)
 	_ability_info = config.get("abilityInfo", {})
 	if _timeline == null:
 		Log.warning("AbilityExecutionInstance", "Timeline not found: %s" % timeline_id)
@@ -125,7 +125,7 @@ func _match_pattern(pattern: String, tag_name: String) -> bool:
 func _build_execution_context(current_tag: String):
 	return ExecutionContext.create_execution_context({
 		"eventChain": _event_chain,
-		"gameplayState": _gameplay_state,
+		"gameplayState": _game_state_provider,
 		"eventCollector": GameWorld.event_collector,
 		"ability": {
 			"id": _ability_info.get("id", ""),

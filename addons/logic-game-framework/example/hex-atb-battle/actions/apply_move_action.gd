@@ -35,7 +35,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var target_coord = HexCoord.from_dict(target_coord_dict)
 	
 	# 获取 HexBattle 实例
-	var battle = ctx.gameplay_state
+	var battle: HexBattle = ctx.game_state_provider
 	
 	# 对每个目标执行移动
 	var all_events: Array = []

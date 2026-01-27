@@ -42,9 +42,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	if ctx.ability != null:
 		owner = ctx.ability.owner
 	
+	var battle: HexBattle = ctx.game_state_provider
+	
 	# 获取显示名称
-	var owner_name := _get_actor_display_name(owner, ctx.gameplay_state)
-	var attacker_name := _get_actor_display_name(ActorRef.new(attacker_id), ctx.gameplay_state)
+	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner, battle)
+	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(ActorRef.new(attacker_id), battle)
 	var damage_type_str := HexBattleReplayEvents._damage_type_to_string(_damage_type)
 	print("  [ReflectDamageAction] %s 反伤 %s %.0f 点 %s 伤害" % [owner_name, attacker_name, _damage, damage_type_str])
 	
@@ -62,37 +64,9 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	)
 	
 	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
-	var actors := _get_actors_from_gameplay_state(ctx.gameplay_state)
+	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
 	if actors.size() > 0:
 		var event_processor: Variant = GameWorld.event_processor
-		event_processor.process_post_event(reflect_event, actors, ctx.gameplay_state)
+		event_processor.process_post_event(reflect_event, actors, battle)
 	
 	return ActionResult.create_success_result([reflect_event], { "damage": _damage, "target": attacker_id })
-
-
-func _get_actors_from_gameplay_state(state: Variant) -> Array:
-	if state == null:
-		return []
-	if state.has_method("get_alive_actors"):
-		var actors: Array = state.get_alive_actors()
-		# 转换为 EventProcessor 兼容的字典格式
-		var result: Array = []
-		for actor in actors:
-			if actor != null and actor.has_method("to_event_processor_dict"):
-				result.append(actor.to_event_processor_dict())
-			elif actor is Dictionary:
-				result.append(actor)
-		return result
-	if state is Dictionary and state.has("alive_actors"):
-		return state["alive_actors"]
-	return []
-
-
-func _get_actor_display_name(actor_ref: ActorRef, state: Variant) -> String:
-	if actor_ref == null:
-		return "???"
-	if state != null and state.has_method("get_actor"):
-		var actor = state.get_actor(actor_ref.id)
-		if actor != null:
-			return actor.get_display_name()
-	return actor_ref.id

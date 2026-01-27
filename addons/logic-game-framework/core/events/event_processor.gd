@@ -46,7 +46,7 @@ func remove_handlers_by_owner_id(owner_id: String) -> void:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
-func process_pre_event(event: Dictionary, gameplay_state = null) -> MutableEvent:
+func process_pre_event(event: Dictionary, game_state_provider = null) -> MutableEvent:
 	var mutable := MutableEvent.new(event, EventPhase.PHASE_PRE)
 
 	if _current_depth >= _max_depth:
@@ -68,8 +68,8 @@ func process_pre_event(event: Dictionary, gameplay_state = null) -> MutableEvent
 			"ownerId": registration.get("ownerId", ""),
 			"abilityId": registration.get("abilityId", ""),
 			"configId": registration.get("configId", ""),
-			"gameplayState": gameplay_state,
-		}
+		"gameplayState": game_state_provider,
+	}
 
 		var start_time := Time.get_ticks_msec()
 		var intent := { "type": EventPhase.INTENT_PASS }
@@ -128,7 +128,7 @@ func process_pre_event(event: Dictionary, gameplay_state = null) -> MutableEvent
 
 	return mutable
 
-func process_post_event(event: Dictionary, actors: Array, gameplay_state = null) -> void:
+func process_post_event(event: Dictionary, actors: Array, game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -144,13 +144,13 @@ func process_post_event(event: Dictionary, actors: Array, gameplay_state = null)
 		if actor.has("abilitySet") and actor["abilitySet"] != null:
 			var ability_set = actor["abilitySet"]
 			if ability_set.has_method("receive_event"):
-				ability_set.receive_event(event, gameplay_state)
+				ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func process_post_event_to_related(event: Dictionary, actors: Array, related_actor_ids: Dictionary, gameplay_state = null) -> void:
+func process_post_event_to_related(event: Dictionary, actors: Array, related_actor_ids: Dictionary, game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -168,7 +168,7 @@ func process_post_event_to_related(event: Dictionary, actors: Array, related_act
 		if actor.has("abilitySet") and actor["abilitySet"] != null:
 			var ability_set = actor["abilitySet"]
 			if ability_set.has_method("receive_event"):
-				ability_set.receive_event(event, gameplay_state)
+				ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
