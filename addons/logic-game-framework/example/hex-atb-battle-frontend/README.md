@@ -197,7 +197,7 @@ signal actor_state_changed(actor_id: String, state: Dictionary)
 signal floating_text_created(data: Dictionary)
 signal actor_died(actor_id: String)
 
-func initialize(initial_actors: Array, hex_config: FrontendHexGridConfig) -> void
+func initialize_from_replay(replay_data: Dictionary) -> void
 func apply_actions(tick_result: FrontendActionScheduler.TickResult) -> void
 func get_actor_state(actor_id: String) -> Dictionary
 func reset() -> void
