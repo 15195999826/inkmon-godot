@@ -181,7 +181,7 @@ func _check_target_killed(damage_event: Dictionary, ctx: ExecutionContext) -> bo
 # 辅助函数
 # ============================================================
 
-func _get_actors_from_gameplay_state(state) -> Array:
+func _get_actors_from_gameplay_state(state: Variant) -> Array:
 	if state == null:
 		return []
 	if state.has_method("get_alive_actors"):
@@ -199,7 +199,7 @@ func _get_actors_from_gameplay_state(state) -> Array:
 	return []
 
 
-func _get_actor_display_name(actor_ref: ActorRef, state) -> String:
+func _get_actor_display_name(actor_ref: ActorRef, state: Variant) -> String:
 	if actor_ref == null:
 		return "???"
 	if state != null and state.has_method("get_actor"):

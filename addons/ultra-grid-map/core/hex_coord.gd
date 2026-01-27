@@ -40,35 +40,34 @@ func _init(p_q: int = 0, p_r: int = 0) -> void:
 
 
 # ========== 静态工厂方法 ==========
-# 注意: 静态方法不能使用 class_name，使用 new() 代替 HexCoord.new()
 
-## 从 Vector2i (axial) 创建 -> HexCoord
-static func from_axial(axial: Vector2i) -> RefCounted:
-	return new(axial.x, axial.y)
-
-
-## 从 Vector3i (cube) 创建 -> HexCoord
-static func from_cube(cube: Vector3i) -> RefCounted:
-	return new(cube.x, cube.y)
+## 从 Vector2i (axial) 创建
+static func from_axial(axial: Vector2i) -> HexCoord:
+	return HexCoord.new(axial.x, axial.y)
 
 
-## 从 Dictionary { "q": int, "r": int } 创建 -> HexCoord
-static func from_dict(d: Dictionary) -> RefCounted:
-	return new(
+## 从 Vector3i (cube) 创建
+static func from_cube(cube: Vector3i) -> HexCoord:
+	return HexCoord.new(cube.x, cube.y)
+
+
+## 从 Dictionary { "q": int, "r": int } 创建
+static func from_dict(d: Dictionary) -> HexCoord:
+	return HexCoord.new(
 		d.get("q", 0) as int,
 		d.get("r", 0) as int
 	)
 
 
-## 零坐标 -> HexCoord
-static func zero() -> RefCounted:
-	return new(0, 0)
+## 零坐标
+static func zero() -> HexCoord:
+	return HexCoord.new(0, 0)
 
 
-## 无效坐标 -> HexCoord
+## 无效坐标
 ## 用于表示"未设置"或"不存在"的位置，替代 null
-static func invalid() -> RefCounted:
-	return new(INVALID_VALUE, INVALID_VALUE)
+static func invalid() -> HexCoord:
+	return HexCoord.new(INVALID_VALUE, INVALID_VALUE)
 
 
 # ========== 转换方法 ==========
@@ -89,26 +88,25 @@ func to_dict() -> Dictionary:
 
 
 # ========== 运算 ==========
-# 注意: 使用 get_script().new() 代替 HexCoord.new() 以兼容 --headless 模式
 
-## 加法 -> HexCoord
-func add(other: HexCoord) -> RefCounted:
-	return get_script().new(q + other.q, r + other.r)
-
-
-## 减法 -> HexCoord
-func subtract(other: HexCoord) -> RefCounted:
-	return get_script().new(q - other.q, r - other.r)
+## 加法
+func add(other: HexCoord) -> HexCoord:
+	return HexCoord.new(q + other.q, r + other.r)
 
 
-## 标量乘法 -> HexCoord
-func multiply(scalar: int) -> RefCounted:
-	return get_script().new(q * scalar, r * scalar)
+## 减法
+func subtract(other: HexCoord) -> HexCoord:
+	return HexCoord.new(q - other.q, r - other.r)
 
 
-## 取反 -> HexCoord
-func negate() -> RefCounted:
-	return get_script().new(-q, -r)
+## 标量乘法
+func multiply(scalar: int) -> HexCoord:
+	return HexCoord.new(q * scalar, r * scalar)
+
+
+## 取反
+func negate() -> HexCoord:
+	return HexCoord.new(-q, -r)
 
 
 # ========== 比较 ==========
@@ -155,10 +153,10 @@ const DIRECTIONS: Array[Vector2i] = [
 ]
 
 
-## 获取指定方向的邻居 -> HexCoord
-func neighbor(direction: int) -> RefCounted:
+## 获取指定方向的邻居
+func neighbor(direction: int) -> HexCoord:
 	var dir := DIRECTIONS[direction % 6]
-	return get_script().new(q + dir.x, r + dir.y)
+	return HexCoord.new(q + dir.x, r + dir.y)
 
 
 ## 获取所有 6 个邻居
@@ -176,7 +174,7 @@ func get_range(radius: int) -> Array[HexCoord]:
 	var result: Array[HexCoord] = []
 	for dq in range(-radius, radius + 1):
 		for dr in range(maxi(-radius, -dq - radius), mini(radius, -dq + radius) + 1):
-			result.append(get_script().new(q + dq, r + dr))
+			result.append(HexCoord.new(q + dq, r + dr))
 	return result
 
 
@@ -191,16 +189,16 @@ func to_key() -> String:
 	return "%d,%d" % [q, r]
 
 
-## 从 key 字符串解析 -> HexCoord
-static func from_key(key: String) -> RefCounted:
+## 从 key 字符串解析
+static func from_key(key: String) -> HexCoord:
 	var parts := key.split(",")
 	if parts.size() >= 2:
-		return new(int(parts[0]), int(parts[1]))
-	return new()
+		return HexCoord.new(int(parts[0]), int(parts[1]))
+	return HexCoord.new()
 
 
 # ========== 复制 ==========
 
-## -> HexCoord
-func duplicate() -> RefCounted:
-	return get_script().new(q, r)
+## 复制
+func duplicate() -> HexCoord:
+	return HexCoord.new(q, r)

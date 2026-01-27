@@ -19,7 +19,7 @@ var ability_set: BattleAbilitySet
 
 ## 当前位置（六边形坐标）
 ## 使用 HexCoord.invalid() 表示未设置位置，在 _init 中初始化
-var hex_position = HexCoord.invalid() # HexCoord
+var hex_position: HexCoord = HexCoord.invalid()
 
 ## 移动 Ability ID
 var _move_ability_id: String = ""

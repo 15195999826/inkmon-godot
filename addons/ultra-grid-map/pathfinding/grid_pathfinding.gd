@@ -246,10 +246,10 @@ static func reachable_with_cost(
 ) -> Dictionary:
 	var start_key: String = start.to_key()
 	var visited: Dictionary = { start_key: { "coord": start, "cost": 0.0 } }
-	var frontier: Array = [start]
+	var frontier: Array[HexCoord] = [start]
 	
 	while not frontier.is_empty():
-		var current: HexCoord = frontier.pop_front() as HexCoord
+		var current: HexCoord = frontier.pop_front()
 		var current_key: String = current.to_key()
 		var current_cost: float = visited[current_key]["cost"]
 		

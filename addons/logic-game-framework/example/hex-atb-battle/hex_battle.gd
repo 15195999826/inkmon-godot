@@ -35,7 +35,7 @@ var _actors: Dictionary = {}
 var _ended: bool = false
 
 ## 战斗日志管理器
-var logger  # BattleLoggerClass instance
+var logger: HexBattleLogger
 
 ## 战斗录像器
 var recorder: BattleRecorder
@@ -223,7 +223,7 @@ func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> Character
 	return actor
 
 
-func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
+func _place_team_randomly(team: Array[CharacterActor], range_config: Dictionary) -> void:
 	var available_coords: Array = []
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
@@ -235,7 +235,7 @@ func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	available_coords.shuffle()
 	
 	for i in range(mini(team.size(), available_coords.size())):
-		var coord = available_coords[i]
+		var coord: HexCoord = available_coords[i]
 		UGridMap.model.place_occupant(coord, team[i].to_ref())
 		team[i].hex_position = coord.duplicate()
 

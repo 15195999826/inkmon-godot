@@ -192,7 +192,7 @@ func coord_to_world(coord: HexCoord) -> Vector2:
 ## 世界坐标转网格坐标
 func world_to_coord(world_pos: Vector2) -> HexCoord:
 	var axial: Vector2i = _layout.pixel_to_coord(world_pos)
-	return HexCoord.from_axial(axial) as HexCoord
+	return HexCoord.from_axial(axial)
 
 
 ## 获取相邻格子的世界距离
@@ -414,7 +414,7 @@ func find_occupant_position(occupant: Variant) -> Variant:
 	for key in _tiles.keys():
 		var tile: GridTileData = _tiles[key]
 		if tile.occupant == occupant:
-			return HexCoord.from_key(key) as HexCoord
+			return HexCoord.from_key(key)
 	return null  # 未找到返回 null
 
 

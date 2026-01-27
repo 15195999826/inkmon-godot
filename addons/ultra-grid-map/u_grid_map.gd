@@ -112,7 +112,7 @@ func coord_to_world(coord: HexCoord) -> Vector2:
 func world_to_coord(world_pos: Vector2) -> HexCoord:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
-		return HexCoord.zero() as HexCoord
+		return HexCoord.zero()
 	return model.world_to_coord(world_pos)
 
 
