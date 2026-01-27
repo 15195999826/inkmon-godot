@@ -125,7 +125,6 @@ hex-atb-battle-frontend/
 │   └── floating_text_view.gd # 飘字视图
 │
 ├── grid/                     # 坐标系统
-│   └── hex_grid_config.gd    # 六边形坐标转换
 │
 ├── ui/                       # UI 组件
 │   └── replay_controls.gd    # 播放控制面板
