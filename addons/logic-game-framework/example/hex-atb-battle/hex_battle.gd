@@ -25,8 +25,8 @@ var grid: GridMapModel:
 		return UGridMap.model
 
 ## 队伍
-var left_team: Array = []
-var right_team: Array = []
+var left_team: Array[CharacterActor] = []
+var right_team: Array[CharacterActor] = []
 
 ## 所有角色（ID -> Actor）
 var _actors: Dictionary = {}
