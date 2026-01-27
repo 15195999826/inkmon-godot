@@ -16,11 +16,11 @@ var tags: Array = []
 
 var _state: String = STATE_PENDING
 var _expire_reason: String = ""
-var _components: Array = []
+var _components: Array[AbilityComponent] = []
 var _lifecycle_context = null
-var _execution_instances: Array = []
-var _on_triggered_callbacks: Array = []
-var _on_execution_callbacks: Array = []
+var _execution_instances: Array[AbilityExecutionInstance] = []
+var _on_triggered_callbacks: Array[Callable] = []
+var _on_execution_callbacks: Array[Callable] = []
 
 func _init(config: AbilityConfig, owner_value: ActorRef, source_value: ActorRef = null):
 	id = IdGenerator.generate("ability")
@@ -50,27 +50,30 @@ func is_expired() -> bool:
 func get_expire_reason() -> String:
 	return _expire_reason
 
-func get_component(ctor: Variant) -> Variant:
+## 获取组件，ctor 可以是 Script 类型或 String 类型名
+func get_component(ctor: Variant) -> AbilityComponent:
 	for component in _components:
 		if _component_matches(component, ctor):
 			return component
 	return null
 
-func get_components(ctor: Variant) -> Array:
-	var results := []
+## 获取所有匹配的组件，ctor 可以是 Script 类型或 String 类型名
+func get_components(ctor: Variant) -> Array[AbilityComponent]:
+	var results: Array[AbilityComponent] = []
 	for component in _components:
 		if _component_matches(component, ctor):
 			results.append(component)
 	return results
 
+## 检查是否有匹配的组件，ctor 可以是 Script 类型或 String 类型名
 func has_component(ctor: Variant) -> bool:
 	for component in _components:
 		if _component_matches(component, ctor):
 			return true
 	return false
 
-func _component_matches(component: Variant, ctor: Variant) -> bool:
-	if typeof(component) != TYPE_OBJECT:
+func _component_matches(component: AbilityComponent, ctor: Variant) -> bool:
+	if component == null:
 		return false
 	if typeof(ctor) == TYPE_STRING:
 		return component.get_class() == ctor
@@ -78,7 +81,7 @@ func _component_matches(component: Variant, ctor: Variant) -> bool:
 		return component.get_script() == ctor
 	return component.get_class() == str(ctor)
 
-func get_all_components() -> Array:
+func get_all_components() -> Array[AbilityComponent]:
 	return _components
 
 func tick(dt: float) -> void:
@@ -214,8 +217,8 @@ func serialize() -> Dictionary:
 		"executionInstances": serialized_instances,
 	}
 
-func _resolve_components(active_use_configs: Array, component_configs: Array) -> Array:
-	var result := []
+func _resolve_components(active_use_configs: Array, component_configs: Array) -> Array[AbilityComponent]:
+	var result: Array[AbilityComponent] = []
 	
 	# 解析 ActiveUseConfig -> ActiveUseComponent
 	for cfg in active_use_configs:
@@ -241,17 +244,17 @@ func _resolve_components(active_use_configs: Array, component_configs: Array) ->
 	
 	return result
 
-func _is_executing_instance(instance: Variant) -> bool:
-	return instance and instance.has_method("is_executing") and instance.is_executing()
+func _is_executing_instance(instance: AbilityExecutionInstance) -> bool:
+	return instance and instance.is_executing()
 
-func _is_active_component(component: Variant) -> bool:
+func _is_active_component(component: AbilityComponent) -> bool:
 	if component.has_method("is_active"):
 		return component.is_active()
 	if component.has_method("get_state"):
 		return component.get_state() == "active"
 	return true
 
-func _get_component_name(component: Variant) -> String:
+func _get_component_name(component: AbilityComponent) -> String:
 	if component.has_method("get_type"):
 		return str(component.get_type())
 	if "type" in component:

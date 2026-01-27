@@ -118,7 +118,7 @@ var team: int:
 		return _get_team_int()
 
 ## 位置（子类应覆盖 _get_position 方法）
-var position: Variant:
+var position: Vector3:
 	get:
 		return _get_position()
 
@@ -134,22 +134,16 @@ func _get_team_int() -> int:
 
 
 ## 获取位置（子类可覆盖）
-func _get_position() -> Variant:
-	return null
+func _get_position() -> Vector3:
+	return Vector3.ZERO
 
 
 ## 获取位置快照
 ## 返回 [x, y, z] 格式的数组，用于录像存储
 ## 具体含义（hex/world/tile）由 configs.positionFormats 声明，渲染层解释
 func getPositionSnapshot() -> Array:
-	var pos = _get_position()
-	if pos == null:
-		return []
-	if pos is Vector3:
-		return [pos.x, pos.y, pos.z]
-	if pos is Vector2:
-		return [pos.x, pos.y, 0.0]
-	return []
+	var pos := _get_position()
+	return [pos.x, pos.y, pos.z]
 
 
 ## 设置录像回调（BattleRecorder 调用）

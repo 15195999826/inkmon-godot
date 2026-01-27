@@ -197,9 +197,9 @@ func _get_team_int() -> int:
 ## 获取位置（覆盖基类，返回 hex 坐标作为 Vector3）
 ## 格式：Vector3(q, r, 0)，第三个分量保留用于高度扩展
 ## 具体含义由 configs.positionFormats["Character"] = "hex" 声明
-func _get_position() -> Variant:
+func _get_position() -> Vector3:
 	if not hex_position.is_valid():
-		return null
+		return Vector3.ZERO
 	return Vector3(hex_position.q, hex_position.r, 0)
 
 

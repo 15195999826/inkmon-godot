@@ -12,11 +12,11 @@ func register_all(timelines: Array) -> void:
 	for timeline in timelines:
 		register(timeline)
 
-func get_timeline(timeline_id: String) -> Variant:
-	return _timelines.get(timeline_id, null)
+func get_timeline(timeline_id: String) -> Dictionary:
+	return _timelines.get(timeline_id, {})
 
-func get(timeline_id: StringName) -> Variant:
-	return _timelines.get(str(timeline_id), null)
+func get(timeline_id: StringName) -> Dictionary:
+	return _timelines.get(str(timeline_id), {})
 
 func has(timeline_id: String) -> bool:
 	return _timelines.has(timeline_id)
@@ -27,11 +27,12 @@ func get_all_ids() -> Array:
 func reset() -> void:
 	_timelines = {}
 
-static func get_tag_time(timeline: Dictionary, tag_name: String) -> Variant:
+## 获取 tag 时间，未找到返回 -1.0
+static func get_tag_time(timeline: Dictionary, tag_name: String) -> float:
 	var tags = timeline.get("tags", {})
 	if tags is Dictionary and tags.has(tag_name):
 		return float(tags[tag_name])
-	return null
+	return -1.0
 
 static func get_tag_names(timeline: Dictionary) -> Array:
 	var tags = timeline.get("tags", {})

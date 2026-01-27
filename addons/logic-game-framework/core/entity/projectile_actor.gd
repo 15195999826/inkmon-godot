@@ -36,7 +36,7 @@ func _init(config_value: Dictionary = {}):
 
 
 ## 覆盖基类方法，返回投射物位置
-func _get_position() -> Variant:
+func _get_position() -> Vector3:
 	return _position
 
 func get_projectile_state() -> String:
@@ -48,10 +48,10 @@ func is_flying() -> bool:
 func get_launch_params() -> Dictionary:
 	return _launch_params
 
-func get_source() -> Variant:
+func get_source() -> ActorRef:
 	return _launch_params.get("source", null)
 
-func get_target() -> Variant:
+func get_target() -> ActorRef:
 	return _launch_params.get("target", null)
 
 func get_fly_time() -> float:

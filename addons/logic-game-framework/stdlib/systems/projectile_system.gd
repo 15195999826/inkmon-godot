@@ -95,7 +95,8 @@ func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
 		_mark_for_removal(projectile)
 
 func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array) -> Array:
-	var source_id = projectile.get_source().get("id") if projectile.get_source() else ""
+	var source_ref: ActorRef = projectile.get_source()
+	var source_id: String = source_ref.id if source_ref else ""
 
 	var valid := []
 	for target in potential_targets:
@@ -130,7 +131,7 @@ func _emit_hit_event(projectile: ProjectileActor, target, hit_position: Vector3)
 	if not event_collector:
 		return
 
-	var source = projectile.get_source() if projectile.get_source() else {"id": "unknown"}
+	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
 	var event = ProjectileEvents.create_projectile_hit_event(
 		projectile.id,
 		source,
@@ -150,8 +151,8 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 	if not event_collector:
 		return
 
-	var source = projectile.get_source() if projectile.get_source() else {"id": "unknown"}
-	var final_position = projectile.position if projectile.position else Vector3.ZERO
+	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
+	var final_position := projectile.position
 
 	var event = ProjectileEvents.create_projectile_miss_event(
 		projectile.id,
@@ -176,7 +177,7 @@ func _emit_pierce_event(projectile: ProjectileActor, target, pierce_position: Ve
 	if not event_collector:
 		return
 
-	var source = projectile.get_source() if projectile.get_source() else {"id": "unknown"}
+	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
 	var event = ProjectileEvents.create_projectile_pierce_event(
 		projectile.id,
 		source,
