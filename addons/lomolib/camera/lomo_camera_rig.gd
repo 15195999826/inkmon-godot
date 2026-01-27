@@ -318,7 +318,7 @@ func begin_trace(target: Node3D) -> void:
 	_is_tracing = true
 	trace_started.emit(target)
 	
-	Log.info("LomoCameraRig", "Begin tracing: %s" % target.name)
+	print("[LomoCameraRig] Begin tracing: %s" % target.name)
 
 
 ## 停止跟随
@@ -330,7 +330,7 @@ func stop_trace() -> void:
 	_is_tracing = false
 	trace_stopped.emit()
 	
-	Log.info("LomoCameraRig", "Stop tracing")
+	print("[LomoCameraRig] Stop tracing")
 
 
 ## 是否正在跟随

@@ -19,8 +19,8 @@ var _interpolated_positions: Dictionary = {}
 ## 动画配置
 var _animation_config: FrontendAnimationConfig
 
-## 六边形网格配置
-var _hex_config: FrontendHexGridConfig
+## 六边形网格布局
+var _layout: GridLayout
 
 
 # ========== 构造函数 ==========
@@ -29,12 +29,12 @@ func _init(
 	actors: Dictionary,
 	interpolated_positions: Dictionary,
 	animation_config: FrontendAnimationConfig,
-	hex_config: FrontendHexGridConfig
+	layout: GridLayout
 ) -> void:
 	_actors = actors
 	_interpolated_positions = interpolated_positions
 	_animation_config = animation_config
-	_hex_config = hex_config
+	_layout = layout
 
 
 # ========== 角色查询 ==========
@@ -42,7 +42,8 @@ func _init(
 ## 获取角色当前位置（世界坐标）
 func get_actor_position(actor_id: String) -> Vector3:
 	var hex_pos := get_actor_hex_position(actor_id)
-	return _hex_config.hex_to_world(hex_pos)
+	var pixel := _layout.coord_to_pixel(hex_pos)
+	return Vector3(pixel.x, 0.0, pixel.y)
 
 
 ## 获取角色当前 HP
@@ -102,13 +103,14 @@ func get_animation_config() -> FrontendAnimationConfig:
 	return _animation_config
 
 
-## 获取六边形网格配置
-func get_hex_config() -> FrontendHexGridConfig:
-	return _hex_config
+## 获取六边形网格布局
+func get_layout() -> GridLayout:
+	return _layout
 
 
 # ========== 坐标转换 ==========
 
 ## 将六边形坐标转换为世界坐标
 func hex_to_world(hex: Vector2i) -> Vector3:
-	return _hex_config.hex_to_world(hex)
+	var pixel := _layout.coord_to_pixel(hex)
+	return Vector3(pixel.x, 0.0, pixel.y)

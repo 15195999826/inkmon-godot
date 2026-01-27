@@ -38,8 +38,8 @@ var _procedural_effects: Array = []
 ## 震屏状态
 var _screen_shake: Dictionary = {}
 
-## 六边形网格配置
-var _hex_config: FrontendHexGridConfig
+## 六边形网格布局
+var _layout: GridLayout
 
 ## 动画配置
 var _animation_config: FrontendAnimationConfig
@@ -60,10 +60,8 @@ var _dirty_actors: Dictionary = {}
 # ========== 构造函数 ==========
 
 func _init(
-	hex_config: FrontendHexGridConfig = null,
 	animation_config: FrontendAnimationConfig = null
 ) -> void:
-	_hex_config = hex_config if hex_config != null else FrontendHexGridConfig.create_default_3d()
 	_animation_config = animation_config if animation_config != null else FrontendAnimationConfig.create_default()
 
 
@@ -81,13 +79,20 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	var configs: Dictionary = replay_data.get("configs", {})
 	_position_formats = configs.get("positionFormats", {})
 	
-	# 从 mapConfig 更新 hex_config
+	# 从 mapConfig 创建 GridLayout
 	var map_config: Dictionary = replay_data.get("mapConfig", {})
 	if not map_config.is_empty():
-		var hex_size_val := map_config.get("hexSize", map_config.get("hex_size", 10.0)) as float
-		var orientation_str := map_config.get("orientation", "flat") as String
-		var orientation_val: int = FrontendHexGridConfig.ORIENTATION_FLAT if orientation_str == "flat" else FrontendHexGridConfig.ORIENTATION_POINTY
-		_hex_config = FrontendHexGridConfig.new(hex_size_val, orientation_val)
+		var hex_size: float = float(map_config.get("hexSize", map_config.get("hex_size", 10.0)))
+		var orientation_str: String = str(map_config.get("orientation", "flat"))
+		var orientation := GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
+		
+		_layout = GridLayout.new(
+			GridMapConfig.GridType.HEX,
+			hex_size,
+			Vector2.ZERO,
+			orientation,
+			Vector2.ONE
+		)
 	
 	var initial_actors: Array = replay_data.get("initialActors", [])
 	for actor_data in initial_actors:
@@ -148,7 +153,7 @@ func _extract_hex_position(position_arr: Array, actor_type: String) -> Vector2i:
 			position_arr[1] if position_arr.size() > 1 else 0.0,
 			position_arr[2] if position_arr.size() > 2 else 0.0
 		)
-		return _hex_config.world_to_hex(world_pos)
+		return _layout.pixel_to_coord(Vector2(world_pos.x, world_pos.z))
 
 
 # ========== 动作应用 ==========
@@ -367,7 +372,7 @@ func as_context() -> FrontendVisualizerContext:
 		_actors,
 		_interpolated_positions,
 		_animation_config,
-		_hex_config
+		_layout
 	)
 
 
@@ -375,14 +380,16 @@ func as_context() -> FrontendVisualizerContext:
 func get_actor_world_position(actor_id: String) -> Vector3:
 	if _interpolated_positions.has(actor_id):
 		var pos: Vector2 = _interpolated_positions[actor_id]
-		return _hex_config.hex_to_world(Vector2i(roundi(pos.x), roundi(pos.y)))
+		var pixel := _layout.coord_to_pixel(Vector2i(roundi(pos.x), roundi(pos.y)))
+		return Vector3(pixel.x, 0.0, pixel.y)
 	
 	var actor: Dictionary = _actors.get(actor_id, {})
 	if actor.is_empty():
 		return Vector3.ZERO
 	
 	var pos: Dictionary = actor.get("position", {})
-	return _hex_config.hex_to_world(Vector2i(pos.get("q", 0) as int, pos.get("r", 0) as int))
+	var pixel := _layout.coord_to_pixel(Vector2i(pos.get("q", 0) as int, pos.get("r", 0) as int))
+	return Vector3(pixel.x, 0.0, pixel.y)
 
 
 ## 获取震屏偏移

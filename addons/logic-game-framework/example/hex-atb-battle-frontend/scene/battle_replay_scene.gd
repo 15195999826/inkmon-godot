@@ -22,13 +22,13 @@ var _units_root: Node3D
 var _effects_root: Node3D
 var _camera_rig: LomoCameraRig
 var _ui_layer: CanvasLayer
-var _hex_grid_renderer: HexGridRenderer3D
+var _hex_grid_renderer: GridMapRenderer3D
 
 ## 单位视图 Map（actor_id -> UnitView）
 var _unit_views: Dictionary = {}
 
 ## 六边形网格世界模型（用于渲染）
-var _hex_world: HexGridWorld
+var _hex_world: GridMapModel
 
 ## 位置格式配置（type -> format）
 var _position_formats: Dictionary = {}
@@ -126,8 +126,8 @@ func _setup_lighting() -> void:
 
 ## 设置六边形网格渲染器
 func _setup_hex_grid_renderer() -> void:
-	_hex_grid_renderer = HexGridRenderer3D.new()
-	_hex_grid_renderer.name = "HexGridRenderer"
+	_hex_grid_renderer = GridMapRenderer3D.new()
+	_hex_grid_renderer.name = "GridMapRenderer"
 	# 配置渲染器颜色
 	_hex_grid_renderer.grid_color = Color(0.4, 0.45, 0.5, 0.8)
 	_hex_grid_renderer.highlight_color = Color.YELLOW
@@ -150,20 +150,35 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 			"orientation": "flat",
 		}
 	
-	# 转换配置格式（录像中使用 hexSize，HexGridWorld 使用 hex_size）
-	var world_config := {
-		"draw_mode": map_config.get("draw_mode", "row_column"),
-		"rows": map_config.get("rows", 9),
-		"columns": map_config.get("columns", 9),
-		"radius": map_config.get("radius", 4),
-		"hex_size": map_config.get("hexSize", map_config.get("hex_size", 10.0)),
-		"orientation": map_config.get("orientation", "flat"),
-	}
+	print("[BattleReplayScene] Setting up hex grid: %s" % map_config)
 	
-	print("[BattleReplayScene] Setting up hex grid: %s" % world_config)
+	# 创建 GridMapConfig
+	var grid_config := GridMapConfig.new()
+	grid_config.grid_type = GridMapConfig.GridType.HEX
+	grid_config.size = float(map_config.get("hexSize", map_config.get("hex_size", 10.0)))
+	grid_config.origin = Vector2.ZERO
 	
-	# 创建 HexGridWorld 模型
-	_hex_world = HexGridWorld.new(world_config)
+	# 转换方向枚举
+	var orientation_str: String = str(map_config.get("orientation", "flat"))
+	grid_config.orientation = GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
+	
+	# 转换绘制模式
+	var draw_mode_str: String = str(map_config.get("draw_mode", "row_column"))
+	if draw_mode_str == "row_column":
+		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		grid_config.rows = int(map_config.get("rows", 9))
+		grid_config.columns = int(map_config.get("columns", 9))
+	elif draw_mode_str == "radius":
+		grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		grid_config.radius = int(map_config.get("radius", 4))
+	else:
+		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		grid_config.rows = 9
+		grid_config.columns = 9
+	
+	# 创建 GridMapModel 并初始化
+	_hex_world = GridMapModel.new()
+	_hex_world.initialize(grid_config)
 	
 	# 设置渲染器的数据模型并渲染
 	_hex_grid_renderer.set_model(_hex_world)
@@ -284,8 +299,8 @@ func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3
 		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
 		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
 		var hex_coord := Vector2i(q, r)
-		var world_2d := _hex_world.hex_to_world(hex_coord)
-		return Vector3(world_2d.x, 0.0, world_2d.y)
+		var pixel: Vector2 = _hex_world.coord_to_pixel(hex_coord)
+		return Vector3(pixel.x, 0.0, pixel.y)
 	else:
 		# position 是 [x, y, z] 世界坐标，直接使用
 		return Vector3(
