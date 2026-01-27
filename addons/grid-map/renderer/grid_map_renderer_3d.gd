@@ -7,6 +7,9 @@ extends Node3D
 ## Uses ImmediateMesh + MeshInstance3D.
 ## Supports height mapping based on tile data.
 
+const _GridMapModel = preload("res://addons/grid-map/model/grid_map_model.gd")
+const _GridLayout = preload("res://addons/grid-map/core/grid_layout.gd")
+
 ## Grid line color
 @export var grid_color: Color = Color.WHITE
 
@@ -27,7 +30,7 @@ extends Node3D
 @export var vertical_offset: float = 0.05
 
 # Internal state
-var _model: GridMapModel = null
+var _model: _GridMapModel = null
 var _show_grid: bool = false
 var _highlighted_cells: Dictionary = {}  # Vector2i -> Color
 var _filled_cells: Dictionary = {}  # Vector2i -> Color
@@ -66,7 +69,7 @@ func _ready() -> void:
 
 ## Set the GridMapModel to render
 ## @param model: GridMapModel instance, pass null to clear
-func set_model(model: GridMapModel) -> void:
+func set_model(model: _GridMapModel) -> void:
 	if _model != model:
 		_model = model
 		if _model:
@@ -120,8 +123,8 @@ func _render() -> void:
 	_grid_mesh.clear_surfaces()
 	_fill_mesh.clear_surfaces()
 	
-	var layout := _model.get_layout()
-	var grid_type := _model.get_grid_type()
+	var layout: _GridLayout = _model.get_layout()
+	var grid_type: int = _model.get_grid_type()
 	
 	# 1. Draw Fills (Triangles)
 	if not _filled_cells.is_empty():
@@ -197,7 +200,7 @@ func _render() -> void:
 
 
 ## Helper to get cell corners based on grid type
-func _get_cell_corners(layout: GridLayout, grid_type: int, coord: Vector2i) -> PackedVector2Array:
+func _get_cell_corners(layout: _GridLayout, grid_type: int, coord: Vector2i) -> PackedVector2Array:
 	# Note: GridMapConfig.GridType is an enum, accessing via int is safe if passed correctly
 	# We rely on the layout to handle the specific geometry
 	if grid_type == GridMapConfig.GridType.HEX:
