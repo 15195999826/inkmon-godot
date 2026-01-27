@@ -129,10 +129,10 @@ func _render() -> void:
 		
 		for coord in _filled_cells.keys():
 			var color: Color = _filled_cells[coord]
-			var corners := _get_cell_corners(layout, grid_type, coord)
-			var height := _get_cell_height(coord)
-			var center_2d := layout.coord_to_pixel(coord)
-			var center_3d := Vector3(center_2d.x, height + vertical_offset, center_2d.y)
+			var corners: Array[Vector2] = _get_cell_corners(layout, grid_type, coord)
+			var height: float = _get_cell_height(coord)
+			var center_2d: Vector2 = layout.coord_to_pixel(coord)
+			var center_3d: Vector3 = Vector3(center_2d.x, height + vertical_offset, center_2d.y)
 			
 			# Triangle fan from center to corners
 			for i in range(corners.size()):

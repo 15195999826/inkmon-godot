@@ -81,6 +81,10 @@
       "temperature": 0.2
     },
 
+    "sisyphus-junior": {
+      "model": "gitlab/duo-chat-opus-4-5"
+    },
+
     // Atlas (内部编排器，通常不需要手动配置)
     // 默认模型: claude-sonnet-4-5
     // Provider 优先级: anthropic → github-copilot → opencode → antigravity → google
