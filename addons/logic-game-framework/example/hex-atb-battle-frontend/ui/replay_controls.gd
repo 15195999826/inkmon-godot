@@ -111,8 +111,8 @@ func update_playback_state(is_playing: bool) -> void:
 
 
 ## 更新帧信息
-func update_frame_info(current_frame: int, total_frames: int) -> void:
-	_frame_label.text = "Frame: %d / %d" % [current_frame, total_frames]
+func update_frame_info(p_current_frame: int, p_total_frames: int) -> void:
+	_frame_label.text = "Frame: %d / %d" % [p_current_frame, p_total_frames]
 
 
 ## 设置播放结束状态

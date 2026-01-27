@@ -46,7 +46,7 @@ func shutdown() -> void:
 	_initialized = false
 	Log.info("GameWorld", "GameWorld shutdown")
 
-func create_instance(factory: Callable):
+func create_instance(factory: Callable) -> Variant:
 	var instance = factory.call()
 	if not instance or not instance.id or str(instance.id) == "":
 		Log.warning("GameWorld", "Instance factory returned invalid instance")
@@ -58,7 +58,7 @@ func create_instance(factory: Callable):
 	Log.debug("GameWorld", "Instance created: %s (%s)" % [instance.id, instance.type])
 	return instance
 
-func get_instance_by_id(id_value: String):
+func get_instance_by_id(id_value: String) -> Variant:
 	return _instances.get(id_value, null)
 
 func get_instances() -> Array:

@@ -4,7 +4,7 @@ class_name RecordingUtils
 ## 订阅 AttributeSet 的属性变化
 ##
 ## 监听所有属性的变化，自动转换为 AttributeChangedEvent。
-static func record_attribute_changes(attr_set, ctx) -> Array:
+static func record_attribute_changes(attr_set: Variant, ctx: Dictionary) -> Array:
 	var unsubscribes := []
 
 	if not attr_set.has_method("addChangeListener"):
@@ -37,7 +37,7 @@ static func record_attribute_changes(attr_set, ctx) -> Array:
 ## - abilityTriggered: Ability 收到事件且有 Component 被触发时
 ## - executionActivated: Ability 创建新的 ExecutionInstance 时（用于表演层获取 timelineId）
 ## - tagChanged: Tag 层数变化时
-static func record_ability_set_changes(ability_set: AbilitySet, ctx) -> Array:
+static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary) -> Array:
 	var unsubscribes := []
 
 	# 存储每个 Ability 的触发事件订阅取消函数
@@ -149,7 +149,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx) -> Array:
 ## 自动转换为 TagChangedEvent。
 ##
 ## 可以接受 TagContainer 或 AbilitySet（两者都实现了 on_tag_changed）。
-static func record_tag_changes(tag_source, ctx) -> Callable:
+static func record_tag_changes(tag_source: Variant, ctx: Dictionary) -> Callable:
 	# 支持两种命名风格：on_tag_changed（GDScript 风格）和 onTagChanged（TS 风格）
 	var has_snake_case: bool = tag_source.has_method("on_tag_changed")
 	var has_camel_case: bool = tag_source.has_method("onTagChanged")
@@ -175,7 +175,7 @@ static func record_tag_changes(tag_source, ctx) -> Callable:
 ## 订阅 Actor 生命周期事件
 ##
 ## 监听 Actor 的生成和销毁，自动转换为对应事件。
-static func record_actor_lifecycle(actor: Actor, ctx) -> Array:
+static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array:
 	var unsubscribes := []
 
 	# 订阅 Actor 生成事件

@@ -115,7 +115,7 @@ func tick_executions(dt: float) -> Array:
 	)
 	return all_triggered
 
-func receive_event(event: Dictionary, gameplay_state) -> void:
+func receive_event(event: Dictionary, gameplay_state: Variant) -> void:
 	_process_abilities(func(ability: Ability):
 		var context := _create_lifecycle_context(ability)
 		ability.receive_event(event, context, gameplay_state)
@@ -220,11 +220,11 @@ func _notify_revoked(ability: Ability, reason: String, expire_reason: String) ->
 		else:
 			Log.error("AbilitySet", "Error in ability revoked callback")
 
-static func create(owner_value: ActorRef, attributes) -> AbilitySet:
+static func create(owner_value: ActorRef, attributes: Variant) -> AbilitySet:
 	return AbilitySet.new({
 		"owner": owner_value,
 		"attributes": attributes,
 	})
 
-static func is_ability_set_provider(obj) -> bool:
+static func is_ability_set_provider(obj: Variant) -> bool:
 	return obj != null and typeof(obj) == TYPE_OBJECT and obj.has_method("get_ability_set_for_actor")

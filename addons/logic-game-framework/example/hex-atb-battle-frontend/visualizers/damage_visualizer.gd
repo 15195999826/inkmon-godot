@@ -15,7 +15,7 @@ func can_handle(event: Dictionary) -> bool:
 
 
 ## 翻译伤害事件为视觉动作
-func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
+func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
 	var target_id := get_string_field(event, "target_actor_id")
@@ -26,7 +26,7 @@ func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
 	var target_position := context.get_actor_position(target_id)
 	var current_hp := context.get_actor_hp(target_id)
 	
-	var actions: Array = []
+	var actions: Array[FrontendVisualAction] = []
 	
 	# 1. 伤害飘字
 	var text := "-%d" % roundi(damage)

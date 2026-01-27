@@ -161,16 +161,16 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 	grid_config.origin = Vector2.ZERO
 	
 	# 转换方向枚举（支持枚举数值和字符串）
-	var orientation_val = map_config.get("orientation", 0)
+	var orientation_val: Variant = map_config.get("orientation", 0)
 	if orientation_val is int:
-		grid_config.orientation = orientation_val as GridMapConfig.Orientation
+		grid_config.orientation = (orientation_val as int) as GridMapConfig.Orientation
 	else:
 		grid_config.orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
 	
 	# 转换绘制模式（支持枚举数值和字符串）
-	var draw_mode_val = map_config.get("draw_mode", 0)
+	var draw_mode_val: Variant = map_config.get("draw_mode", 0)
 	if draw_mode_val is int:
-		grid_config.draw_mode = draw_mode_val as GridMapConfig.DrawMode
+		grid_config.draw_mode = (draw_mode_val as int) as GridMapConfig.DrawMode
 	else:
 		var draw_mode_str := str(draw_mode_val)
 		if draw_mode_str == "radius":
@@ -198,8 +198,7 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 
 ## 加载并播放回放
 func load_and_play(replay_data: Dictionary) -> void:
-	_director.load_replay(replay_data)
-	_spawn_units(replay_data)
+	load_replay(replay_data)
 	_director.play()
 
 
@@ -238,8 +237,8 @@ func reset() -> void:
 
 
 ## 设置播放速度
-func set_speed(speed: float) -> void:
-	_director.set_speed(speed)
+func set_speed(new_speed: float) -> void:
+	_director.set_speed(new_speed)
 
 
 ## 获取 Director
@@ -295,6 +294,7 @@ func _spawn_units(replay_data: Dictionary) -> void:
 
 ## 从位置数组提取世界坐标
 ## 根据 positionFormats 配置解释 position 数组的含义
+@warning_ignore("untyped_declaration")
 func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3:
 	if position_arr.is_empty():
 		return Vector3.ZERO
@@ -375,7 +375,7 @@ func _on_actor_died(actor_id: String) -> void:
 	print("[BattleReplayScene] Actor died: %s" % actor_id)
 
 
-func _on_frame_changed(current_frame: int, total_frames: int) -> void:
+func _on_frame_changed(_current_frame: int, _total_frames: int) -> void:
 	# 可以在这里更新 UI
 	pass
 
@@ -384,7 +384,7 @@ func _on_playback_ended() -> void:
 	print("[BattleReplayScene] Playback ended")
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	# 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
 	_update_all_unit_positions()
 	

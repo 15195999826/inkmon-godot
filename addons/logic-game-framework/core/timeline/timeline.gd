@@ -12,7 +12,7 @@ func register_all(timelines: Array) -> void:
 	for timeline in timelines:
 		register(timeline)
 
-func get_timeline(timeline_id: String):
+func get_timeline(timeline_id: String) -> Variant:
 	return _timelines.get(timeline_id, null)
 
 func get(timeline_id: StringName) -> Variant:
@@ -27,7 +27,7 @@ func get_all_ids() -> Array:
 func reset() -> void:
 	_timelines = {}
 
-static func get_tag_time(timeline: Dictionary, tag_name: String):
+static func get_tag_time(timeline: Dictionary, tag_name: String) -> Variant:
 	var tags = timeline.get("tags", {})
 	if tags is Dictionary and tags.has(tag_name):
 		return float(tags[tag_name])

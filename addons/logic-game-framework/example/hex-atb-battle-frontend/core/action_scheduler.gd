@@ -39,9 +39,9 @@ class ActiveAction:
 ## Scheduler tick 结果
 class TickResult:
 	## 当前活跃的动作（带进度）
-	var active_actions: Array = []
+	var active_actions: Array[ActiveAction] = []
 	## 本帧完成的动作
-	var completed_this_tick: Array = []
+	var completed_this_tick: Array[ActiveAction] = []
 	## 是否有变化（用于优化渲染）
 	var has_changes: bool = false
 
@@ -59,9 +59,8 @@ var _next_id: int = 0
 
 ## 添加动作到调度器
 ## 所有动作立即并行执行（考虑 delay）
-func enqueue(actions: Array) -> void:
-	for action in actions:
-		var visual_action := action as FrontendVisualAction
+func enqueue(actions: Array[FrontendVisualAction]) -> void:
+	for visual_action: FrontendVisualAction in actions:
 		var id := "action_%d" % _next_id
 		_next_id += 1
 		
@@ -124,10 +123,10 @@ func tick(delta_ms: float) -> TickResult:
 
 
 ## 获取当前活跃动作
-func get_active_actions() -> Array:
-	var actions: Array = []
-	for id in _active.keys():
-		actions.append(_active[id])
+func get_active_actions() -> Array[ActiveAction]:
+	var actions: Array[ActiveAction] = []
+	for id: String in _active.keys():
+		actions.append(_active[id] as ActiveAction)
 	return actions
 
 
@@ -135,6 +134,14 @@ func get_active_actions() -> Array:
 ## 用于重置播放器状态
 func cancel_all() -> void:
 	_active.clear()
+
+
+## 获取当前活跃动作（带类型）
+func get_active_actions_typed() -> Array[ActiveAction]:
+	var actions: Array[ActiveAction] = []
+	for id: String in _active.keys():
+		actions.append(_active[id] as ActiveAction)
+	return actions
 
 
 ## 获取当前动作数量

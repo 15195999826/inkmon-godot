@@ -13,7 +13,7 @@ extends RefCounted
 # ========== 属性 ==========
 
 ## 已注册的 Visualizer 列表
-var _visualizers: Array = []
+var _visualizers: Array[FrontendBaseVisualizer] = []
 
 ## 是否启用调试模式
 var _debug_mode: bool = false
@@ -36,9 +36,9 @@ func register(visualizer: FrontendBaseVisualizer) -> FrontendVisualizerRegistry:
 
 
 ## 批量注册 Visualizer
-func register_all(visualizers: Array) -> FrontendVisualizerRegistry:
-	for v in visualizers:
-		register(v as FrontendBaseVisualizer)
+func register_all(visualizers: Array[FrontendBaseVisualizer]) -> FrontendVisualizerRegistry:
+	for v: FrontendBaseVisualizer in visualizers:
+		register(v)
 	return self
 
 
@@ -52,15 +52,14 @@ func set_debug_mode(enabled: bool) -> FrontendVisualizerRegistry:
 
 ## 翻译事件为视觉动作
 ## 遍历所有注册的 Visualizer，收集能处理该事件的所有结果
-func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
-	var actions: Array = []
+func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
+	var actions: Array[FrontendVisualAction] = []
 	var handled := false
 	
-	for visualizer in _visualizers:
-		var v := visualizer as FrontendBaseVisualizer
-		if v.can_handle(event):
+	for visualizer: FrontendBaseVisualizer in _visualizers:
+		if visualizer.can_handle(event):
 			handled = true
-			var result: Array = v.translate(event, context)
+			var result: Array[FrontendVisualAction] = visualizer.translate(event, context)
 			actions.append_array(result)
 	
 	# 调试模式下警告未处理的事件
@@ -72,10 +71,10 @@ func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
 
 
 ## 批量翻译事件
-func translate_all(events: Array, context: FrontendVisualizerContext) -> Array:
-	var actions: Array = []
-	for event in events:
-		actions.append_array(translate(event as Dictionary, context))
+func translate_all(events: Array[Dictionary], context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
+	var actions: Array[FrontendVisualAction] = []
+	for event: Dictionary in events:
+		actions.append_array(translate(event, context))
 	return actions
 
 
@@ -89,7 +88,6 @@ func get_count() -> int:
 ## 获取所有已注册的 Visualizer 名称
 func get_registered_names() -> Array[String]:
 	var names: Array[String] = []
-	for v in _visualizers:
-		var visualizer := v as FrontendBaseVisualizer
+	for visualizer: FrontendBaseVisualizer in _visualizers:
 		names.append(visualizer.visualizer_name)
 	return names

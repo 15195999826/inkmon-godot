@@ -115,8 +115,8 @@ func _create_name_label() -> void:
 # ========== 公共方法 ==========
 
 ## 初始化单位
-func initialize(actor_id: String, display_name: String, team: int, max_hp: float, current_hp: float) -> void:
-	_actor_id = actor_id
+func initialize(p_actor_id: String, display_name: String, team: int, max_hp: float, current_hp: float) -> void:
+	_actor_id = p_actor_id
 	_team = team
 	_max_hp = max_hp
 	_current_hp = current_hp
@@ -139,11 +139,11 @@ func get_actor_id() -> String:
 
 
 ## 更新状态
-func update_state(state: Dictionary) -> void:
-	var new_hp: float = state.get("visual_hp", _current_hp)
-	var new_alive: bool = state.get("is_alive", _is_alive)
-	var flash_progress: float = state.get("flash_progress", 0.0)
-	var tint_color: Color = state.get("tint_color", Color.WHITE)
+func update_state(new_state: Dictionary) -> void:
+	var new_hp: float = new_state.get("visual_hp", _current_hp)
+	var new_alive: bool = new_state.get("is_alive", _is_alive)
+	var flash_progress: float = new_state.get("flash_progress", 0.0)
+	var tint_color: Color = new_state.get("tint_color", Color.WHITE)
 	
 	_current_hp = new_hp
 	_is_alive = new_alive
@@ -159,8 +159,8 @@ func update_state(state: Dictionary) -> void:
 
 
 ## 设置世界位置
-func set_world_position(world_pos: Vector3) -> void:
-	_target_position = world_pos
+func set_world_position(new_world_pos: Vector3) -> void:
+	_target_position = new_world_pos
 
 
 # ========== 内部方法 ==========

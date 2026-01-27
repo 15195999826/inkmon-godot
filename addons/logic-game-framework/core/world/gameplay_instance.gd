@@ -78,7 +78,7 @@ func on_resume() -> void:
 func on_end() -> void:
 	pass
 
-func create_actor(factory: Callable):
+func create_actor(factory: Callable) -> Variant:
 	var actor = factory.call()
 	_actors.append(actor)
 	if actor != null and actor.has_method("on_spawn"):
@@ -95,7 +95,7 @@ func remove_actor(actor_id: String) -> bool:
 			return true
 	return false
 
-func get_actor(actor_id: String):
+func get_actor(actor_id: String) -> Variant:
 	for actor in _actors:
 		if actor != null and actor.has_method("get_id") and actor.get_id() == actor_id:
 			return actor
@@ -120,7 +120,7 @@ func find_actors(predicate: Callable) -> Array:
 			results.append(actor)
 	return results
 
-func add_system(system) -> void:
+func add_system(system: System) -> void:
 	for existing in _systems:
 		if existing != null and existing.has("type") and existing.type == system.type:
 			Log.warning("GameplayInstance", "System already exists: %s" % system.type)
@@ -149,7 +149,7 @@ func remove_system(system_type: String) -> bool:
 			return true
 	return false
 
-func get_system(system_type: String):
+func get_system(system_type: String) -> Variant:
 	for system in _systems:
 		if system != null and system.has("type") and system.type == system_type:
 			return system

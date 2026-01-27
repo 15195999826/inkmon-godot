@@ -15,7 +15,7 @@ func can_handle(event: Dictionary) -> bool:
 
 
 ## 翻译治疗事件为视觉动作
-func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
+func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
 	var target_id := get_string_field(event, "target_actor_id")
@@ -25,7 +25,7 @@ func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
 	var current_hp := context.get_actor_hp(target_id)
 	var max_hp := context.get_actor_max_hp(target_id)
 	
-	var actions: Array = []
+	var actions: Array[FrontendVisualAction] = []
 	
 	# 1. 治疗飘字
 	var text := "+%d" % roundi(heal_amount)

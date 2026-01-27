@@ -15,7 +15,7 @@ func can_handle(event: Dictionary) -> bool:
 
 
 ## 翻译移动事件为 MoveAction
-func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array:
+func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
 	var actor_id := get_string_field(event, "actor_id")

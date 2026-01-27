@@ -50,26 +50,26 @@ func is_expired() -> bool:
 func get_expire_reason() -> String:
 	return _expire_reason
 
-func get_component(ctor) -> Variant:
+func get_component(ctor: Variant) -> Variant:
 	for component in _components:
 		if _component_matches(component, ctor):
 			return component
 	return null
 
-func get_components(ctor) -> Array:
+func get_components(ctor: Variant) -> Array:
 	var results := []
 	for component in _components:
 		if _component_matches(component, ctor):
 			results.append(component)
 	return results
 
-func has_component(ctor) -> bool:
+func has_component(ctor: Variant) -> bool:
 	for component in _components:
 		if _component_matches(component, ctor):
 			return true
 	return false
 
-func _component_matches(component, ctor) -> bool:
+func _component_matches(component: Variant, ctor: Variant) -> bool:
 	if typeof(component) != TYPE_OBJECT:
 		return false
 	if typeof(ctor) == TYPE_STRING:
@@ -99,7 +99,7 @@ func tick_executions(dt: float) -> Array:
 	_execution_instances = _execution_instances.filter(_is_executing_instance)
 	return all_triggered
 
-func activate_new_execution_instance(config: Dictionary):
+func activate_new_execution_instance(config: Dictionary) -> AbilityExecutionInstance:
 	var instance = AbilityExecutionInstance.new({
 		"timelineId": config.get("timelineId", ""),
 		"tagActions": config.get("tagActions", {}),
@@ -131,7 +131,7 @@ func cancel_all_executions() -> void:
 			instance.cancel()
 	_execution_instances = []
 
-func receive_event(event: Dictionary, context: Dictionary, gameplay_state) -> void:
+func receive_event(event: Dictionary, context: Dictionary, gameplay_state: Variant) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	var triggered_components := []
@@ -241,17 +241,17 @@ func _resolve_components(active_use_configs: Array, component_configs: Array) ->
 	
 	return result
 
-func _is_executing_instance(instance) -> bool:
+func _is_executing_instance(instance: Variant) -> bool:
 	return instance and instance.has_method("is_executing") and instance.is_executing()
 
-func _is_active_component(component) -> bool:
+func _is_active_component(component: Variant) -> bool:
 	if component.has_method("is_active"):
 		return component.is_active()
 	if component.has_method("get_state"):
 		return component.get_state() == "active"
 	return true
 
-func _get_component_name(component) -> String:
+func _get_component_name(component: Variant) -> String:
 	if component.has_method("get_type"):
 		return str(component.get_type())
 	if "type" in component:

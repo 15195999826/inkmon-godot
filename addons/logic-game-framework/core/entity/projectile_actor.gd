@@ -48,10 +48,10 @@ func is_flying() -> bool:
 func get_launch_params() -> Dictionary:
 	return _launch_params
 
-func get_source():
+func get_source() -> Variant:
 	return _launch_params.get("source", null)
 
-func get_target():
+func get_target() -> Variant:
 	return _launch_params.get("target", null)
 
 func get_fly_time() -> float:

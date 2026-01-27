@@ -86,10 +86,10 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	if not map_config.is_empty():
 		var hex_size: float = float(map_config.get("size", 10.0))
 		# 支持枚举数值和字符串
-		var orientation_val = map_config.get("orientation", 0)
+		var orientation_val: Variant = map_config.get("orientation", 0)
 		var orientation: GridMapConfig.Orientation
 		if orientation_val is int:
-			orientation = orientation_val as GridMapConfig.Orientation
+			orientation = (orientation_val as int) as GridMapConfig.Orientation
 		else:
 			orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
 		
@@ -141,6 +141,7 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 
 ## 从位置数组提取六边形坐标
 ## 根据 positionFormats 配置解释 position 数组的含义
+@warning_ignore("untyped_declaration")
 func _extract_hex_position(position_arr: Array, actor_type: String) -> HexCoord:
 	if position_arr.is_empty():
 		return HexCoord.zero()
@@ -167,8 +168,8 @@ func _extract_hex_position(position_arr: Array, actor_type: String) -> HexCoord:
 # ========== 动作应用 ==========
 
 ## 应用活跃动作到状态
-func apply_actions(active_actions: Array) -> void:
-	for active_action in active_actions:
+func apply_actions(active_actions: Array[FrontendActionScheduler.ActiveAction]) -> void:
+	for active_action: FrontendActionScheduler.ActiveAction in active_actions:
 		# 跳过延迟中的动作
 		if active_action.is_delaying:
 			continue
@@ -176,8 +177,8 @@ func apply_actions(active_actions: Array) -> void:
 
 
 ## 应用单个动作
-func _apply_action(active_action) -> void:
-	var action = active_action.action
+func _apply_action(active_action: FrontendActionScheduler.ActiveAction) -> void:
+	var action: FrontendVisualAction = active_action.action
 	var progress: float = active_action.progress
 	
 	match action.type:

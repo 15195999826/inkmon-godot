@@ -40,20 +40,20 @@ func _create_label() -> void:
 # ========== 公共方法 ==========
 
 ## 初始化飘字
-func initialize(text: String, color: Color, world_position: Vector3, style: int, duration: float) -> void:
+func initialize(p_text: String, p_color: Color, world_position: Vector3, p_style: int, p_duration: float) -> void:
 	_start_position = world_position
-	_duration = duration
-	_style = style
+	_duration = p_duration
+	_style = p_style
 	_elapsed = 0.0
 	
 	position = world_position
 	
 	if _label:
-		_label.text = text
-		_label.modulate = color
+		_label.text = p_text
+		_label.modulate = p_color
 		
 		# 根据样式调整大小
-		match style:
+		match p_style:
 			FrontendFloatingTextAction.FloatingTextStyle.CRITICAL:
 				_label.font_size = 64
 			FrontendFloatingTextAction.FloatingTextStyle.HEAL:

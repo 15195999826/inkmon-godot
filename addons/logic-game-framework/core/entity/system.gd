@@ -23,7 +23,7 @@ func get_enabled() -> bool:
 func set_enabled(value: bool) -> void:
 	_enabled = value
 
-func on_register(instance) -> void:
+func on_register(instance: GameplayInstance) -> void:
 	_instance = instance
 
 func on_unregister() -> void:

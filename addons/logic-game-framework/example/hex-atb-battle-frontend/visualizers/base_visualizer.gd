@@ -27,7 +27,7 @@ func can_handle(event: Dictionary) -> bool:
 
 ## 将事件翻译为视觉动作
 ## 子类必须覆盖此方法
-func translate(_event: Dictionary, _context: FrontendVisualizerContext) -> Array:
+func translate(_event: Dictionary, _context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	push_error("[%s] translate() not implemented" % visualizer_name)
 	return []
 

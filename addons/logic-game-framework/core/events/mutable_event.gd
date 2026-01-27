@@ -58,7 +58,7 @@ func get_final_values() -> Dictionary:
 		result[field] = get_current_value(field)
 	return result
 
-func get_field_computation_steps(field: String):
+func get_field_computation_steps(field: String) -> Variant:
 	var original_value = original.get(field, null)
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
