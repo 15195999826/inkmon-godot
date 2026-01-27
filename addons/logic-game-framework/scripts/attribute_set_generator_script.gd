@@ -10,7 +10,7 @@ const _SHADOWED_GLOBAL_IDENTIFIERS := ["range", "min", "max", "clamp"]
 
 func _run() -> void:
 	print("[LGF] Attribute generation started")
-	var generated = []
+	var generated: Array[String] = []
 	if _generate_from_config(CONFIG_PATH, OUTPUT_DIR):
 		generated.append("project")
 	if _generate_from_config(EXAMPLE_CONFIG_PATH, EXAMPLE_OUTPUT_DIR):
@@ -26,12 +26,12 @@ func _generate_from_config(config_path: String, output_dir: String) -> bool:
 		push_error("AttributesConfig not found: %s" % config_path)
 		return false
 	print("[LGF] Generating from %s -> %s" % [config_path, output_dir])
-	var config = load(config_path)
+	var config: GDScript = load(config_path) as GDScript
 	if config == null:
 		push_error("AttributesConfig not found: %s" % config_path)
 		return false
 
-	var sets = config.SETS
+	var sets: Dictionary = config.SETS
 	if typeof(sets) != TYPE_DICTIONARY:
 		push_error("AttributesConfig.SETS must be Dictionary: %s" % config_path)
 		return false
@@ -131,7 +131,7 @@ func _capitalize_attr(name: String) -> String:
 		return name
 	return name.left(1).to_upper() + name.substr(1)
 
-func _value_to_string(value) -> String:
+func _value_to_string(value: Variant) -> String:
 	match typeof(value):
 		TYPE_STRING:
 			return "\"%s\"" % value.c_escape()

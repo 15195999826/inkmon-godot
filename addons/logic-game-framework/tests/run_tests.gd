@@ -17,7 +17,7 @@ const TEST_PATHS := [
 ]
 
 # 测试框架实例
-var _test_framework
+var _test_framework: TestFramework
 
 func _ready() -> void:
 	# 初始化测试框架并添加到场景树（触发 _enter_tree 设置 meta）
@@ -28,14 +28,14 @@ func _ready() -> void:
 	_load_test_scripts()
 
 	# 运行所有测试
-	var failures = _test_framework.run()
+	var failures: int = _test_framework.run()
 
 	# 退出并返回失败数
 	get_tree().quit(failures)
 
 func _load_test_scripts() -> void:
 	for test_path in TEST_PATHS:
-		var script = load(test_path)
+		var script: GDScript = load(test_path) as GDScript
 		if not script:
 			push_error("Failed to load test script: %s" % test_path)
 			continue

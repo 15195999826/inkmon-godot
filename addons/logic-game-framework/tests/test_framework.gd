@@ -16,13 +16,13 @@ var _fail_count := 0
 var _failures := []
 
 # 生命周期回调
-var _before_each_callbacks: Array = []
-var _after_each_callbacks: Array = []
+var _before_each_callbacks: Array[Callable] = []
+var _after_each_callbacks: Array[Callable] = []
 
 ## 测试套件定义
 
 static func describe(suite_name: String, test_block: Callable) -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		push_error("[TestFramework] No instance available")
 		return
@@ -38,7 +38,7 @@ static func describe(suite_name: String, test_block: Callable) -> void:
 ## 测试用例定义
 
 static func it(test_name: String, test_fn: Callable) -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance or instance._current_suite_name.is_empty():
 		push_error("[TestFramework] it() must be called inside describe()")
 		return
@@ -52,7 +52,7 @@ static func it(test_name: String, test_fn: Callable) -> void:
 ## 生命周期钩子
 
 static func before_each(callback: Callable) -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance or instance._current_suite_name.is_empty():
 		push_error("[TestFramework] before_each() must be called inside describe()")
 		return
@@ -61,7 +61,7 @@ static func before_each(callback: Callable) -> void:
 	suite["beforeEach"].append(callback)
 
 static func after_each(callback: Callable) -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance or instance._current_suite_name.is_empty():
 		push_error("[TestFramework] after_each() must be called inside describe()")
 		return
@@ -71,8 +71,8 @@ static func after_each(callback: Callable) -> void:
 
 ## 断言函数
 
-static func expect(actual) -> Expectation:
-	var instance = TestFramework.get_instance()
+static func expect(actual: Variant) -> Expectation:
+	var instance: TestFramework = TestFramework.get_instance()
 	return Expectation.new(actual, instance)
 
 ## 框架单例
@@ -185,7 +185,7 @@ func _enter_tree() -> void:
 ## 工具函数 - 兼容旧式测试注册
 
 static func register_test(name: String, callback: Callable) -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		return
 
@@ -200,8 +200,8 @@ static func register_test(name: String, callback: Callable) -> void:
 		"fn": callback,
 	})
 
-static func assert_equal(expected, actual) -> void:
-	var instance = TestFramework.get_instance()
+static func assert_equal(expected: Variant, actual: Variant) -> void:
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		return
 	instance.register_assertion()
@@ -209,7 +209,7 @@ static func assert_equal(expected, actual) -> void:
 		instance.register_failure("Expected %s but got %s" % [str(expected), str(actual)])
 
 static func assert_true(value: bool, message: String = "") -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		return
 	instance.register_assertion()
@@ -218,7 +218,7 @@ static func assert_true(value: bool, message: String = "") -> void:
 		instance.register_failure(msg)
 
 static func assert_false(value: bool, message: String = "") -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		return
 	instance.register_assertion()
@@ -227,7 +227,7 @@ static func assert_false(value: bool, message: String = "") -> void:
 		instance.register_failure(msg)
 
 static func assert_near(actual: float, expected: float, tolerance: float = 0.0001, message: String = "") -> void:
-	var instance = TestFramework.get_instance()
+	var instance: TestFramework = TestFramework.get_instance()
 	if not instance:
 		return
 	instance.register_assertion()
@@ -238,11 +238,11 @@ static func assert_near(actual: float, expected: float, tolerance: float = 0.000
 ## 断言类
 
 class Expectation extends RefCounted:
-	var _actual
+	var _actual: Variant
 	var _negated := false
 	var _framework: TestFramework
 
-	func _init(actual, framework: TestFramework) -> void:
+	func _init(actual: Variant, framework: TestFramework) -> void:
 		_actual = actual
 		_framework = framework
 
@@ -250,7 +250,7 @@ class Expectation extends RefCounted:
 		_negated = not _negated
 		return self
 
-	func to_be(expected) -> void:
+	func to_be(expected: Variant) -> void:
 		var passed = _actual == expected
 		if _negated:
 			passed = not passed
@@ -268,7 +268,7 @@ class Expectation extends RefCounted:
 			if _framework:
 				_framework.register_failure(message)
 
-	func to_equal(expected) -> void:
+	func to_equal(expected: Variant) -> void:
 		to_be(expected)
 
 	func to_be_true() -> void:
@@ -358,7 +358,7 @@ class Expectation extends RefCounted:
 			if _framework:
 				_framework.register_failure(message)
 
-	func to_contain(item) -> void:
+	func to_contain(item: Variant) -> void:
 		var passed := false
 
 		if _actual is Array:
@@ -383,7 +383,7 @@ class Expectation extends RefCounted:
 			if _framework:
 				_framework.register_failure(message)
 
-	func _value_to_string(value) -> String:
+	func _value_to_string(value: Variant) -> String:
 		if value == null:
 			return "null"
 		elif value is String:
