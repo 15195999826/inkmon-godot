@@ -99,7 +99,7 @@ func _get_map_config() -> Dictionary:
 			"draw_mode": "row_column",
 			"rows": int(_rows_input.value),
 			"columns": int(_columns_input.value),
-			"hex_size": _hex_size_input.value,
+			"size": _hex_size_input.value,
 			"orientation": "flat",
 		}
 	else:
@@ -107,7 +107,7 @@ func _get_map_config() -> Dictionary:
 		config = {
 			"draw_mode": "radius",
 			"radius": int(_radius_input.value),
-			"hex_size": _hex_size_input.value,
+			"size": _hex_size_input.value,
 			"orientation": "flat",
 		}
 	

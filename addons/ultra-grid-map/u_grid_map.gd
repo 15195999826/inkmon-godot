@@ -63,6 +63,40 @@ func is_configured() -> bool:
 	return model != null
 
 
+## 从字典配置网格模型 (兼容旧 HexGrid API)
+## @param config_dict: 配置字典，支持以下字段:
+##   - draw_mode: "row_column" | "radius"
+##   - rows: int (row_column 模式)
+##   - columns: int (row_column 模式)
+##   - radius: int (radius 模式)
+##   - size: float (默认 10.0)
+##   - orientation: "flat" | "pointy" (默认 "flat")
+func configure_from_dict(config_dict: Dictionary) -> void:
+	var config := GridMapConfig.new()
+	
+	# 网格类型 (默认 HEX)
+	config.grid_type = GridMapConfig.GridType.HEX
+	
+	# 尺寸
+	config.size = config_dict.get("size", 10.0)
+	
+	# 方向
+	var orientation_str: String = config_dict.get("orientation", "flat")
+	config.orientation = GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
+	
+	# 绘制模式
+	var draw_mode_str: String = config_dict.get("draw_mode", "row_column")
+	if draw_mode_str == "radius":
+		config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		config.radius = config_dict.get("radius", 4)
+	else:
+		config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		config.rows = config_dict.get("rows", 9)
+		config.columns = config_dict.get("columns", 9)
+	
+	configure(config)
+
+
 # ========== 便捷方法（直接转发到 model）==========
 
 ## 网格坐标转世界坐标

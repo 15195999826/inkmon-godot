@@ -82,7 +82,7 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	# 从 mapConfig 创建 GridLayout
 	var map_config: Dictionary = replay_data.get("mapConfig", {})
 	if not map_config.is_empty():
-		var hex_size: float = float(map_config.get("hexSize", map_config.get("hex_size", 10.0)))
+		var hex_size: float = float(map_config.get("size", 10.0))
 		var orientation_str: String = str(map_config.get("orientation", "flat"))
 		var orientation := GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
 		

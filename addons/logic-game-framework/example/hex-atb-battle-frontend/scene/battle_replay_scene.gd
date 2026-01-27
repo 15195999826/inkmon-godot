@@ -146,7 +146,7 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 			"draw_mode": "row_column",
 			"rows": 9,
 			"columns": 9,
-			"hexSize": 10.0,
+			"size": 10.0,
 			"orientation": "flat",
 		}
 	
@@ -155,7 +155,7 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 	# 创建 GridMapConfig
 	var grid_config := GridMapConfig.new()
 	grid_config.grid_type = GridMapConfig.GridType.HEX
-	grid_config.size = float(map_config.get("hexSize", map_config.get("hex_size", 10.0)))
+	grid_config.size = float(map_config.get("size", 10.0))
 	grid_config.origin = Vector2.ZERO
 	
 	# 转换方向枚举
@@ -299,7 +299,7 @@ func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3
 		var q := int(position_arr[0]) if position_arr.size() > 0 else 0
 		var r := int(position_arr[1]) if position_arr.size() > 1 else 0
 		var hex_coord := Vector2i(q, r)
-		var pixel: Vector2 = _hex_world.coord_to_pixel(hex_coord)
+		var pixel: Vector2 = _hex_world.coord_to_world(hex_coord)
 		return Vector3(pixel.x, 0.0, pixel.y)
 	else:
 		# position 是 [x, y, z] 世界坐标，直接使用

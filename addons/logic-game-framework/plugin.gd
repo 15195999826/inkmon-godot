@@ -4,7 +4,7 @@ extends EditorPlugin
 # ========== 依赖检查 ==========
 
 ## 依赖的插件列表
-const DEPENDENCIES: Array[String] = ["grid-map", "lomolib"]
+const DEPENDENCIES: Array[String] = ["ultra-grid-map", "lomolib"]
 
 # ========== 常量 ==========
 

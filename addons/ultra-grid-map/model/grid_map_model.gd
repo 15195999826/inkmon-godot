@@ -26,8 +26,8 @@ const _GridLayout = preload("res://addons/ultra-grid-map/core/grid_layout.gd")
 class GridTileData:
 	## 坐标
 	var coord: Vector2i
-	## 高度 (用于 3D 渲染和寻路)
-	var height: float = 1.0
+	## 高度 (用于 3D 渲染和寻路，0.0 = 地面)
+	var height: float = 0.0
 	## 移动代价 (用于寻路)
 	var cost: float = 1.0
 	## 是否阻挡

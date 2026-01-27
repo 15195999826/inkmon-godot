@@ -19,11 +19,11 @@ var logicTime: float:
 		return logic_time
 var tick_count: int = 0
 
-## 地图（通过 HexGrid autoload 访问）
-## 使用 HexGrid.model 获取当前地图实例
-var grid: HexGridWorld:
+## 地图（通过 UGridMap autoload 访问）
+## 使用 UGridMap.model 获取当前地图实例
+var grid: GridMapModel:
 	get:
-		return HexGrid.model
+		return UGridMap.model
 
 ## 队伍
 var left_team: Array = []
@@ -98,7 +98,7 @@ func start(config: Dictionary = {}) -> void:
 	
 	# 创建地图
 	print("[HexBattle] Map config: %s" % grid_config)
-	HexGrid.configure_from_dict(grid_config)
+	UGridMap.configure_from_dict(grid_config)
 	
 	# 创建左方队伍
 	left_team = [
@@ -141,8 +141,8 @@ func start(config: Dictionary = {}) -> void:
 	# 开始录像（传递地图配置和位置格式声明）
 	if _recording_enabled and recorder != null:
 		var replay_map_config: Dictionary = {}
-		if HexGrid.model != null:
-			replay_map_config = HexGrid.model.to_map_config()
+		if UGridMap.model != null:
+			replay_map_config = UGridMap.model.to_config_dict()
 		var configs := {
 			"positionFormats": {
 				"Character": "hex",  # CharacterActor 的 position 是 hex 坐标
@@ -156,14 +156,14 @@ func start(config: Dictionary = {}) -> void:
 			logger.register_actor(actor.get_id(), actor.get_display_name())
 
 
-## 根据外部传入的地图配置构建 HexGrid 配置
+## 根据外部传入的地图配置构建 UGridMap 配置
 func _build_grid_config(map_config: Dictionary) -> Dictionary:
 	var draw_mode: String = map_config.get("draw_mode", "row_column")
-	var hex_size: float = map_config.get("hex_size", 10.0)
+	var hex_size: float = map_config.get("size", 10.0)
 	var orientation: String = map_config.get("orientation", "flat")
 	
 	var grid_config := {
-		"hex_size": hex_size,
+		"size": hex_size,
 		"orientation": orientation,
 	}
 	
@@ -227,19 +227,32 @@ func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> Character
 
 func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	var available_coords: Array = []
+	var checked_coords: Array = []
+	var missing_coords: Array = []
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
 			var coord := { "q": q, "r": r }
-			if HexGrid.model.has_tile_dict(coord) and not HexGrid.model.is_occupied_dict(coord):
-				available_coords.append(coord)
+			checked_coords.append(coord.duplicate())
+			if UGridMap.model.has_tile_dict(coord):
+				if not UGridMap.model.is_occupied_dict(coord):
+					available_coords.append(coord)
+			else:
+				missing_coords.append(coord.duplicate())
+	
+	# Debug: 打印放置信息
+	print("[HexBattle] Placement range: %s" % range_config)
+	print("[HexBattle] Checked %d coords, available %d, missing from map: %d" % [checked_coords.size(), available_coords.size(), missing_coords.size()])
+	if missing_coords.size() > 0:
+		print("[HexBattle] WARNING: Missing coords (not in map): %s" % [missing_coords])
 	
 	available_coords.shuffle()
 	
 	for i in range(mini(team.size(), available_coords.size())):
 		var coord: Dictionary = available_coords[i]
-		HexGrid.model.place_occupant_dict(coord, team[i].to_ref())
+		UGridMap.model.place_occupant_dict(coord, team[i].to_ref())
 		team[i].hex_position = coord.duplicate()
+		print("[HexBattle] Placed %s at (%d, %d)" % [team[i].get_display_name(), coord["q"], coord["r"]])
 
 
 func _apply_inspire_buff_to_all() -> void:
@@ -437,11 +450,12 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 			}
 	else:
 		if not my_pos.is_empty():
-			var neighbors := HexGridCompat.hex_neighbors(my_pos)
+			var neighbors := GridMath.get_hex_neighbors(Vector2i(my_pos["q"], my_pos["r"]))
 			var valid_neighbors: Array = []
 			for n in neighbors:
-				if HexGrid.model.has_tile_dict(n) and not HexGrid.model.is_occupied_dict(n) and not HexGrid.model.is_reserved_dict(n):
-					valid_neighbors.append(n)
+				var n_dict := { "q": n.x, "r": n.y }
+				if UGridMap.model.has_tile_dict(n_dict) and not UGridMap.model.is_occupied_dict(n_dict) and not UGridMap.model.is_reserved_dict(n_dict):
+					valid_neighbors.append(n_dict)
 			
 			if valid_neighbors.size() > 0:
 				var target_coord: Dictionary = valid_neighbors[randi() % valid_neighbors.size()]

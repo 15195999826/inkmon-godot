@@ -23,11 +23,11 @@ GameWorld="*res://addons/logic-game-framework/core/world/game_world.gd"
 TimelineRegistry="*res://addons/logic-game-framework/core/timeline/timeline.gd"
 WaitGroupManager="*res://addons/lomolib/wait_group/wait_group_manager.gd"
 ItemSystem="*res://addons/lomolib/inventoryKit/item_system.gd"
-GridMap="*res://addons/grid-map/grid_map.gd"
+UGridMap="*res://addons/ultra-grid-map/u_grid_map.gd"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/grid-map/plugin.cfg", "res://addons/lomolib/plugin.cfg")
+enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
 
 [physics]
 
