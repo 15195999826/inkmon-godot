@@ -1,14 +1,18 @@
-## GridCoord - 网格坐标系统和转换
+## CoordConverter - 坐标系统转换工具
+##
+## 提供不同坐标系统之间的转换功能（纯静态工具类）
 ##
 ## 支持的坐标系统:
-## - Cube: (q, r, s) 约束 q + r + s = 0 (六边形)
-## - Axial: (q, r) 简化的 Cube 坐标 (六边形)
-## - Offset: (col, row) 四种变体 (odd-q, even-q, odd-r, even-r) (六边形)
-## - Doubled: (col, row) 两种变体 (width, height) (六边形)
+## - Axial: (q, r) 六边形主坐标系，使用 HexCoord 或 Vector2i
+## - Cube: (q, r, s) 约束 q + r + s = 0，使用 Vector3i
+## - Offset: (col, row) 四种变体 (odd-q, even-q, odd-r, even-r)
+## - Doubled: (col, row) 两种变体 (width, height)
 ## - Cartesian: (x, y) 直接映射 (正方形/矩形)
 ##
+## 注意: Axial <-> Cube 转换请使用 HexCoord.to_cube() / HexCoord.from_cube()
+##
 ## 参考: https://www.redblobgames.com/grids/hexagons/
-class_name GridCoord
+class_name CoordConverter
 extends RefCounted
 
 
@@ -29,26 +33,10 @@ enum DoubledType {
 }
 
 
-# ========== Cube 坐标 (六边形) ==========
-
-## 创建 Cube 坐标
-## 约束: q + r + s = 0
-static func cube(q: int, r: int, s: int) -> Vector3i:
-	assert(q + r + s == 0, "Invalid cube coordinates: q + r + s must equal 0")
-	return Vector3i(q, r, s)
-
-
-## 从 q, r 创建 Cube 坐标 (自动计算 s)
-static func cube_from_qr(q: int, r: int) -> Vector3i:
-	return Vector3i(q, r, -q - r)
-
-
-## 验证 Cube 坐标是否有效
-static func cube_is_valid(coord: Vector3i) -> bool:
-	return coord.x + coord.y + coord.z == 0
-
+# ========== 取整 (像素转坐标时使用) ==========
 
 ## Cube 坐标取整 (用于像素转六边形)
+## 返回满足 q + r + s = 0 约束的最近整数坐标
 static func cube_round(frac_q: float, frac_r: float, frac_s: float) -> Vector3i:
 	var q := roundi(frac_q)
 	var r := roundi(frac_r)
@@ -69,67 +57,23 @@ static func cube_round(frac_q: float, frac_r: float, frac_s: float) -> Vector3i:
 	return Vector3i(q, r, s)
 
 
-# ========== Axial 坐标 (六边形) ==========
-
-## 创建 Axial 坐标
-static func axial(q: int, r: int) -> Vector2i:
-	return Vector2i(q, r)
-
-
 ## Axial 坐标取整
+## 返回 Vector2i (q, r)
 static func axial_round(frac_q: float, frac_r: float) -> Vector2i:
 	var cube_coord := cube_round(frac_q, frac_r, -frac_q - frac_r)
 	return Vector2i(cube_coord.x, cube_coord.y)
 
 
-# ========== Offset 坐标 (六边形) ==========
+# ========== 验证 ==========
 
-## 创建 Offset 坐标
-static func offset(col: int, row: int) -> Vector2i:
-	return Vector2i(col, row)
-
-
-# ========== Doubled 坐标 (六边形) ==========
-
-## 创建 Doubled 坐标
-static func doubled(col: int, row: int) -> Vector2i:
-	return Vector2i(col, row)
+## 验证 Cube 坐标是否有效 (q + r + s == 0)
+static func cube_is_valid(coord: Vector3i) -> bool:
+	return coord.x + coord.y + coord.z == 0
 
 
 ## 验证 Doubled 坐标是否有效 (col + row 必须为偶数)
 static func doubled_is_valid(coord: Vector2i) -> bool:
 	return (coord.x + coord.y) % 2 == 0
-
-
-# ========== Cartesian 坐标 (正方形/矩形) ==========
-
-## 创建 Cartesian 坐标
-static func cartesian(x: int, y: int) -> Vector2i:
-	return Vector2i(x, y)
-
-
-## Cartesian 转 Axial (正方形/矩形直接映射)
-## 用于统一接口，正方形/矩形坐标直接映射到 Vector2i
-static func cartesian_to_axial(coord: Vector2i) -> Vector2i:
-	return coord  # 直接映射，无转换
-
-
-## Axial 转 Cartesian (正方形/矩形直接映射)
-## 用于统一接口，正方形/矩形坐标直接映射到 Vector2i
-static func axial_to_cartesian(coord: Vector2i) -> Vector2i:
-	return coord  # 直接映射，无转换
-
-
-# ========== Axial <-> Cube 转换 ==========
-
-## Axial 转 Cube
-static func axial_to_cube(coord: Vector2i) -> Vector3i:
-	return Vector3i(coord.x, coord.y, -coord.x - coord.y)
-
-
-## Cube 转 Axial
-static func cube_to_axial(coord: Vector3i) -> Vector2i:
-	return Vector2i(coord.x, coord.y)
 
 
 # ========== Offset <-> Cube 转换 ==========
@@ -183,12 +127,12 @@ static func cube_to_offset(coord: Vector3i, offset_type: OffsetType) -> Vector2i
 ## Offset 转 Axial
 static func offset_to_axial(coord: Vector2i, offset_type: OffsetType) -> Vector2i:
 	var cube_coord := offset_to_cube(coord, offset_type)
-	return cube_to_axial(cube_coord)
+	return Vector2i(cube_coord.x, cube_coord.y)
 
 
 ## Axial 转 Offset
 static func axial_to_offset(coord: Vector2i, offset_type: OffsetType) -> Vector2i:
-	var cube_coord := axial_to_cube(coord)
+	var cube_coord := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	return cube_to_offset(cube_coord, offset_type)
 
 
@@ -227,34 +171,24 @@ static func axial_to_doubled(coord: Vector2i, doubled_type: DoubledType) -> Vect
 ## Doubled 转 Cube
 static func doubled_to_cube(coord: Vector2i, doubled_type: DoubledType) -> Vector3i:
 	var axial_coord := doubled_to_axial(coord, doubled_type)
-	return axial_to_cube(axial_coord)
+	return Vector3i(axial_coord.x, axial_coord.y, -axial_coord.x - axial_coord.y)
 
 
 ## Cube 转 Doubled
 static func cube_to_doubled(coord: Vector3i, doubled_type: DoubledType) -> Vector2i:
-	var axial_coord := cube_to_axial(coord)
+	var axial_coord := Vector2i(coord.x, coord.y)
 	return axial_to_doubled(axial_coord, doubled_type)
 
 
-# ========== 工具函数 ==========
+# ========== Cartesian (正方形/矩形) ==========
 
-## 生成 Axial 坐标的字符串 key (用于 Dictionary)
-static func axial_to_key(coord: Vector2i) -> String:
-	return "%d,%d" % [coord.x, coord.y]
-
-
-## 从字符串 key 解析 Axial 坐标
-static func key_to_axial(key: String) -> Vector2i:
-	var parts := key.split(",")
-	return Vector2i(int(parts[0]), int(parts[1]))
+## Cartesian 转 Axial (直接映射，无转换)
+## 用于统一接口，正方形/矩形坐标直接映射到 Vector2i
+static func cartesian_to_axial(coord: Vector2i) -> Vector2i:
+	return coord
 
 
-## 生成 Cube 坐标的字符串 key
-static func cube_to_key(coord: Vector3i) -> String:
-	return "%d,%d,%d" % [coord.x, coord.y, coord.z]
-
-
-## 从字符串 key 解析 Cube 坐标
-static func key_to_cube(key: String) -> Vector3i:
-	var parts := key.split(",")
-	return Vector3i(int(parts[0]), int(parts[1]), int(parts[2]))
+## Axial 转 Cartesian (直接映射，无转换)
+## 用于统一接口，正方形/矩形坐标直接映射到 Vector2i
+static func axial_to_cartesian(coord: Vector2i) -> Vector2i:
+	return coord

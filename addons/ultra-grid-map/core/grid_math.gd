@@ -14,6 +14,7 @@ class_name GridMath
 extends RefCounted
 
 const GridMapConfig = preload("res://addons/ultra-grid-map/core/grid_types.gd")
+const _CoordConverter = preload("res://addons/ultra-grid-map/core/coord_converter.gd")
 
 
 # ========== 六边形方向常量 ==========
@@ -391,7 +392,7 @@ static func hex_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		var t := float(i) / float(n)
 		var q := lerpf(from_q, to_q, t)
 		var r := lerpf(from_r, to_r, t)
-		results.append(GridCoord.axial_round(q, r))
+		results.append(_CoordConverter.axial_round(q, r))
 	
 	return results
 
@@ -400,16 +401,16 @@ static func hex_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 
 ## 绕原点顺时针旋转 60° (Axial)
 static func axial_rotate_cw(coord: Vector2i) -> Vector2i:
-	var cube := GridCoord.axial_to_cube(coord)
+	var cube := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	var rotated := cube_rotate_cw(cube)
-	return GridCoord.cube_to_axial(rotated)
+	return Vector2i(rotated.x, rotated.y)
 
 
 ## 绕原点逆时针旋转 60° (Axial)
 static func axial_rotate_ccw(coord: Vector2i) -> Vector2i:
-	var cube := GridCoord.axial_to_cube(coord)
+	var cube := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	var rotated := cube_rotate_ccw(cube)
-	return GridCoord.cube_to_axial(rotated)
+	return Vector2i(rotated.x, rotated.y)
 
 
 ## 绕原点顺时针旋转 60° (Cube)
@@ -461,20 +462,20 @@ static func cube_reflect_s(coord: Vector3i) -> Vector3i:
 
 ## 沿 q 轴反射 (Axial)
 static func axial_reflect_q(coord: Vector2i) -> Vector2i:
-	var cube := GridCoord.axial_to_cube(coord)
+	var cube := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	var reflected := cube_reflect_q(cube)
-	return GridCoord.cube_to_axial(reflected)
+	return Vector2i(reflected.x, reflected.y)
 
 
 ## 沿 r 轴反射 (Axial)
 static func axial_reflect_r(coord: Vector2i) -> Vector2i:
-	var cube := GridCoord.axial_to_cube(coord)
+	var cube := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	var reflected := cube_reflect_r(cube)
-	return GridCoord.cube_to_axial(reflected)
+	return Vector2i(reflected.x, reflected.y)
 
 
 ## 沿 s 轴反射 (Axial)
 static func axial_reflect_s(coord: Vector2i) -> Vector2i:
-	var cube := GridCoord.axial_to_cube(coord)
+	var cube := Vector3i(coord.x, coord.y, -coord.x - coord.y)
 	var reflected := cube_reflect_s(cube)
-	return GridCoord.cube_to_axial(reflected)
+	return Vector2i(reflected.x, reflected.y)

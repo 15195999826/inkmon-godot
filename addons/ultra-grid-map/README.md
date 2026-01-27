@@ -5,7 +5,7 @@
 ## 功能特性
 
 - ✅ 支持 4 种网格类型：六边形（HEX）、六方向矩形（RECT_SIX_DIR）、正方形（SQUARE）、矩形（RECT）
-- ✅ 统一的坐标系统（Vector2i）
+- ✅ 统一的坐标系统（HexCoord）
 - ✅ 坐标转换（coord_to_world, world_to_coord）
 - ✅ 邻居查询（get_neighbors）
 - ✅ 距离计算（get_distance）
@@ -51,19 +51,22 @@ GridMap.configure(config)
 ### 3. 使用地图
 
 ```gdscript
+# 创建坐标
+var coord := HexCoord.new(1, 2)
+
 # 坐标转换
-var world_pos := GridMap.coord_to_world(Vector2i(1, 2))
-var coord := GridMap.world_to_coord(world_pos)
+var world_pos := UGridMap.coord_to_world(coord)
+var hex := UGridMap.world_to_coord(world_pos)
 
 # 邻居查询
-var neighbors := GridMap.get_neighbors(Vector2i(0, 0))
+var neighbors := UGridMap.get_neighbors(coord)  # Array[HexCoord]
 
 # 距离计算
-var distance := GridMap.get_distance(Vector2i(0, 0), Vector2i(3, 3))
+var distance := UGridMap.get_distance(HexCoord.new(0, 0), HexCoord.new(3, 3))
 
 # 寻路
-var pathfinding := GridPathfinding.new(GridMap.model)
-var path := pathfinding.astar_simple(Vector2i(0, 0), Vector2i(5, 5))
+var pathfinding := GridPathfinding.new(UGridMap.model)
+var path := pathfinding.astar_simple(HexCoord.new(0, 0), HexCoord.new(5, 5))
 ```
 
 ### 4. 渲染地图
@@ -105,7 +108,8 @@ renderer.fill_cell(Vector2i(2, 2), Color.BLUE)
 
 - `GridMapConfig` - 地图配置 Resource
 - `GridMapModel` - 地图数据模型
-- `GridCoord` - 坐标转换工具
+- `HexCoord` - 六边形坐标值对象
+- `CoordConverter` - 坐标系统转换工具（Offset, Doubled 等）
 - `GridMath` - 数学运算工具
 - `GridLayout` - 像素转换工具
 
@@ -120,14 +124,14 @@ renderer.fill_cell(Vector2i(2, 2), Color.BLUE)
 
 ### Autoload
 
-- `GridMap` - 全局单例，提供便捷访问
+- `UGridMap` - 全局单例，提供便捷访问
 
 ## 测试
 
 运行单元测试：
 
 ```bash
-godot --headless --script addons/grid-map/tests/test_grid_map.gd
+godot --headless --script addons/ultra-grid-map/tests/test_grid_map.gd
 ```
 
 预期输出：

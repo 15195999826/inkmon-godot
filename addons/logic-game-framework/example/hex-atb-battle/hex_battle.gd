@@ -4,6 +4,8 @@
 class_name HexBattle
 extends RefCounted
 
+# Preload for script loading order compatibility
+const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
 
 # ========== 常量 ==========
 
@@ -229,15 +231,15 @@ func _place_team_randomly(team: Array, range_config: Dictionary) -> void:
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
-			var coord := { "q": q, "r": r }
-			if UGridMap.model.has_tile_dict(coord) and not UGridMap.model.is_occupied_dict(coord):
+			var coord := _HexCoord.new(q, r)
+			if UGridMap.model.has_tile(coord) and not UGridMap.model.is_occupied(coord):
 				available_coords.append(coord)
 	
 	available_coords.shuffle()
 	
 	for i in range(mini(team.size(), available_coords.size())):
-		var coord: Dictionary = available_coords[i]
-		UGridMap.model.place_occupant_dict(coord, team[i].to_ref())
+		var coord = available_coords[i]
+		UGridMap.model.place_occupant(coord, team[i].to_ref())
 		team[i].hex_position = coord.duplicate()
 
 
@@ -265,12 +267,12 @@ func _print_battle_info() -> void:
 	print("-".repeat(70))
 	
 	for actor in get_all_actors():
-		var pos: Dictionary = actor.hex_position
+		var pos = actor.hex_position
 		var stats: Dictionary = actor.get_stats()
 		var skill: Ability = actor.get_skill_ability()
 		
 		var team_label := "左方" if actor.get_team_id() == 0 else "右方"
-		var pos_str := "(%d, %d)" % [pos["q"], pos["r"]] if not pos.is_empty() else "未放置"
+		var pos_str := "(%d, %d)" % [pos.q, pos.r] if pos != null else "未放置"
 		
 		print("  [%s] %s (%s)" % [actor.get_id(), actor.get_display_name(), team_label])
 		print("    位置: %s" % pos_str)
@@ -374,8 +376,8 @@ func _start_actor_action(actor: CharacterActor) -> void:
 	
 	var decision_text := ""
 	if decision["type"] == "move":
-		var coord: Dictionary = decision["target_coord"]
-		decision_text = "移动到 (%d, %d)" % [coord["q"], coord["r"]]
+		var coord = decision["target_coord"]
+		decision_text = "移动到 (%d, %d)" % [coord.q, coord.r]
 	else:
 		var target_ref = decision.get("target", null)
 		var target_id: String = target_ref.id if target_ref != null else ""
@@ -403,7 +405,7 @@ func _start_actor_action(actor: CharacterActor) -> void:
 
 
 func _decide_action(actor: CharacterActor) -> Dictionary:
-	var my_pos: Dictionary = actor.hex_position
+	var my_pos = actor.hex_position
 	var enemies: Array = []
 	var allies: Array = []
 	
@@ -435,16 +437,15 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 				"target": ActorRef.new(target_actor.get_id()),
 			}
 	else:
-		if not my_pos.is_empty():
-			var neighbors := GridMath.get_hex_neighbors(Vector2i(my_pos["q"], my_pos["r"]))
+		if my_pos != null:
+			var neighbors: Array = my_pos.get_neighbors()
 			var valid_neighbors: Array = []
 			for n in neighbors:
-				var n_dict := { "q": n.x, "r": n.y }
-				if UGridMap.model.has_tile_dict(n_dict) and not UGridMap.model.is_occupied_dict(n_dict) and not UGridMap.model.is_reserved_dict(n_dict):
-					valid_neighbors.append(n_dict)
+				if UGridMap.model.has_tile(n) and not UGridMap.model.is_occupied(n) and not UGridMap.model.is_reserved(n):
+					valid_neighbors.append(n)
 			
 			if valid_neighbors.size() > 0:
-				var target_coord: Dictionary = valid_neighbors[randi() % valid_neighbors.size()]
+				var target_coord = valid_neighbors[randi() % valid_neighbors.size()]
 				return {
 					"type": "move",
 					"ability_instance_id": actor.get_move_ability().id,
@@ -471,8 +472,9 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 	}
 	if target != null:
 		event["target"] = target
-	if target_coord is Dictionary and not target_coord.is_empty():
-		event["target_coord"] = target_coord
+	if target_coord != null and target_coord is _HexCoord:
+		# 转换为 Dictionary 以便 JSON 序列化
+		event["target_coord"] = target_coord.to_dict()
 	return event
 
 

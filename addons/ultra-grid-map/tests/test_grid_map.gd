@@ -10,7 +10,8 @@ extends SceneTree
 # 在 --script 模式下，使用 load() 而不是 preload()
 # 这样可以正确实例化类
 var GridMapConfig = load("res://addons/ultra-grid-map/core/grid_types.gd")
-var GridCoord = load("res://addons/ultra-grid-map/core/grid_coord.gd")
+var CoordConverter = load("res://addons/ultra-grid-map/core/coord_converter.gd")
+var HexCoord = load("res://addons/ultra-grid-map/core/hex_coord.gd")
 var GridMath = load("res://addons/ultra-grid-map/core/grid_math.gd")
 var GridLayout = load("res://addons/ultra-grid-map/core/grid_layout.gd")
 var GridMapModel = load("res://addons/ultra-grid-map/model/grid_map_model.gd")
@@ -65,54 +66,57 @@ func run_tests() -> bool:
 
 
 func test_grid_coord() -> bool:
-	print("Testing GridCoord...")
+	print("Testing HexCoord & CoordConverter...")
 	
-	# Axial → Cube 转换
-	var cube1: Vector3i = GridCoord.axial_to_cube(Vector2i(1, 2))
+	# HexCoord: Axial → Cube 转换
+	var coord1 = HexCoord.new(1, 2)
+	var cube1: Vector3i = coord1.to_cube()
 	if cube1 != Vector3i(1, 2, -3):
-		print("  [FAIL] axial_to_cube(1,2) = %s, expected (1,2,-3)" % cube1)
+		print("  [FAIL] HexCoord(1,2).to_cube() = %s, expected (1,2,-3)" % cube1)
 		return false
 	
-	var cube2: Vector3i = GridCoord.axial_to_cube(Vector2i(0, 0))
+	var coord2 = HexCoord.new(0, 0)
+	var cube2: Vector3i = coord2.to_cube()
 	if cube2 != Vector3i(0, 0, 0):
-		print("  [FAIL] axial_to_cube(0,0) = %s, expected (0,0,0)" % cube2)
+		print("  [FAIL] HexCoord(0,0).to_cube() = %s, expected (0,0,0)" % cube2)
 		return false
 	
-	var cube3: Vector3i = GridCoord.axial_to_cube(Vector2i(-1, 3))
+	var coord3 = HexCoord.new(-1, 3)
+	var cube3: Vector3i = coord3.to_cube()
 	if cube3 != Vector3i(-1, 3, -2):
-		print("  [FAIL] axial_to_cube(-1,3) = %s, expected (-1,3,-2)" % cube3)
+		print("  [FAIL] HexCoord(-1,3).to_cube() = %s, expected (-1,3,-2)" % cube3)
 		return false
 	
-	# Cube → Axial 转换
-	var axial1: Vector2i = GridCoord.cube_to_axial(Vector3i(1, 2, -3))
-	if axial1 != Vector2i(1, 2):
-		print("  [FAIL] cube_to_axial(1,2,-3) = %s, expected (1,2)" % axial1)
+	# HexCoord: Cube → Axial 转换
+	var coord4 = HexCoord.from_cube(Vector3i(1, 2, -3))
+	if coord4.q != 1 or coord4.r != 2:
+		print("  [FAIL] HexCoord.from_cube(1,2,-3) = (%d,%d), expected (1,2)" % [coord4.q, coord4.r])
 		return false
 	
-	# Offset → Axial 转换 (odd-r)
-	var axial2: Vector2i = GridCoord.offset_to_axial(Vector2i(0, 0), GridCoord.OffsetType.ODD_R)
+	# CoordConverter: Offset → Axial 转换 (odd-r)
+	var axial2: Vector2i = CoordConverter.offset_to_axial(Vector2i(0, 0), CoordConverter.OffsetType.ODD_R)
 	if axial2 != Vector2i(0, 0):
 		print("  [FAIL] offset_to_axial(0,0,ODD_R) = %s, expected (0,0)" % axial2)
 		return false
 	
-	var axial3: Vector2i = GridCoord.offset_to_axial(Vector2i(1, 1), GridCoord.OffsetType.ODD_R)
+	var axial3: Vector2i = CoordConverter.offset_to_axial(Vector2i(1, 1), CoordConverter.OffsetType.ODD_R)
 	if axial3 != Vector2i(1, 1):
 		print("  [FAIL] offset_to_axial(1,1,ODD_R) = %s, expected (1,1)" % axial3)
 		return false
 	
-	# Cartesian → Axial (直接映射)
-	var axial4: Vector2i = GridCoord.cartesian_to_axial(Vector2i(3, 4))
+	# CoordConverter: Cartesian → Axial (直接映射)
+	var axial4: Vector2i = CoordConverter.cartesian_to_axial(Vector2i(3, 4))
 	if axial4 != Vector2i(3, 4):
 		print("  [FAIL] cartesian_to_axial(3,4) = %s, expected (3,4)" % axial4)
 		return false
 	
-	# 坐标取整
-	var rounded: Vector2i = GridCoord.axial_round(1.2, 2.8)
+	# CoordConverter: 坐标取整
+	var rounded: Vector2i = CoordConverter.axial_round(1.2, 2.8)
 	if rounded != Vector2i(1, 3):
 		print("  [FAIL] axial_round(1.2, 2.8) = %s, expected (1,3)" % rounded)
 		return false
 	
-	print("  [PASS] GridCoord")
+	print("  [PASS] HexCoord & CoordConverter")
 	return true
 
 
@@ -283,15 +287,15 @@ func test_grid_map_model() -> bool:
 			return false
 		
 		# 测试 coord_to_world / world_to_coord
-		var coord: Vector2i = Vector2i(1, 0)
+		var coord = HexCoord.new(1, 0)
 		var world: Vector2 = model.coord_to_world(coord)
-		var back_coord: Vector2i = model.world_to_coord(world)
-		if back_coord != coord:
+		var back_coord = model.world_to_coord(world)
+		if not back_coord.equals(coord):
 			print("  [FAIL] %s coord_to_world/world_to_coord roundtrip failed: %s != %s" % [GridMapConfig.GridType.keys()[grid_type], back_coord, coord])
 			return false
 		
 		# 测试 get_neighbors
-		var neighbors: Array[Vector2i] = model.get_neighbors(Vector2i.ZERO)
+		var neighbors: Array = model.get_neighbors(HexCoord.zero())
 		var expected_count: int = 6 if (grid_type == GridMapConfig.GridType.HEX or grid_type == GridMapConfig.GridType.RECT_SIX_DIR) else 4
 		if neighbors.size() != expected_count:
 			print("  [FAIL] %s neighbors.size() = %d, expected %d" % [GridMapConfig.GridType.keys()[grid_type], neighbors.size(), expected_count])
@@ -307,7 +311,7 @@ func test_grid_map_model() -> bool:
 	var model: Variant = GridMapModel.new()
 	model.initialize(config)
 	
-	var test_coord: Vector2i = Vector2i(0, 0)
+	var test_coord = HexCoord.new(0, 0)
 	var occupant: String = "TestOccupant"
 	
 	# place_occupant
@@ -324,7 +328,7 @@ func test_grid_map_model() -> bool:
 		return false
 	
 	# move_occupant
-	var target_coord: Vector2i = Vector2i(1, 0)
+	var target_coord = HexCoord.new(1, 0)
 	if not model.move_occupant(test_coord, target_coord):
 		print("  [FAIL] move_occupant failed")
 		return false
@@ -380,8 +384,8 @@ func test_grid_pathfinding() -> bool:
 		model.initialize(config)
 		
 		# A* 寻路
-		var start: Vector2i = Vector2i(0, 0)
-		var goal: Vector2i = Vector2i(2, 0)
+		var start = HexCoord.new(0, 0)
+		var goal = HexCoord.new(2, 0)
 		var result: Variant = GridPathfinding.astar_simple(model, start, goal)
 		
 		if not result.found:
@@ -392,21 +396,26 @@ func test_grid_pathfinding() -> bool:
 			print("  [FAIL] %s A* path is empty" % GridMapConfig.GridType.keys()[grid_type])
 			return false
 		
-		if result.path[0] != start:
+		if not result.path[0].equals(start):
 			print("  [FAIL] %s A* path doesn't start at start" % GridMapConfig.GridType.keys()[grid_type])
 			return false
 		
-		if result.path[-1] != goal:
+		if not result.path[-1].equals(goal):
 			print("  [FAIL] %s A* path doesn't end at goal" % GridMapConfig.GridType.keys()[grid_type])
 			return false
 		
 		# BFS 可达性
-		var reachable: Array[Vector2i] = GridPathfinding.reachable_simple(model, start, 2)
+		var reachable: Array = GridPathfinding.reachable_simple(model, start, 2)
 		if reachable.is_empty():
 			print("  [FAIL] %s BFS reachable is empty" % GridMapConfig.GridType.keys()[grid_type])
 			return false
 		
-		if not (start in reachable):
+		var start_in_reachable := false
+		for r in reachable:
+			if r.equals(start):
+				start_in_reachable = true
+				break
+		if not start_in_reachable:
 			print("  [FAIL] %s BFS reachable doesn't include start" % GridMapConfig.GridType.keys()[grid_type])
 			return false
 	
@@ -421,18 +430,20 @@ func test_grid_pathfinding() -> bool:
 	model.initialize(config)
 	
 	# 设置阻挡
-	var blocking_coord: Vector2i = Vector2i(1, 0)
+	var blocking_coord = HexCoord.new(1, 0)
 	model.set_tile_blocking(blocking_coord, true)
 	
 	# 尝试寻路穿过阻挡
-	var start: Vector2i = Vector2i(0, 0)
-	var goal: Vector2i = Vector2i(2, 0)
+	var start = HexCoord.new(0, 0)
+	var goal = HexCoord.new(2, 0)
 	var result: Variant = GridPathfinding.astar_simple(model, start, goal)
 	
 	# 路径应该绕过阻挡点
-	if result.found and blocking_coord in result.path:
-		print("  [FAIL] A* path goes through blocking tile")
-		return false
+	if result.found:
+		for p in result.path:
+			if p.equals(blocking_coord):
+				print("  [FAIL] A* path goes through blocking tile")
+				return false
 	
 	# 测试成本计算
 	model.set_tile_blocking(blocking_coord, false)
@@ -443,7 +454,7 @@ func test_grid_pathfinding() -> bool:
 		# 路径应该尽量避开高成本格子
 		var cost_count: int = 0
 		for coord in result2.path:
-			if coord == blocking_coord:
+			if coord.equals(blocking_coord):
 				cost_count += 1
 		# 如果有其他路径，应该不经过高成本格子
 		# 但这取决于地图布局，这里只检查寻路成功
@@ -464,11 +475,11 @@ func test_event_system() -> bool:
 	var model: Variant = GridMapModel.new()
 	model.initialize(config)
 	
-	var test_coord: Vector2i = Vector2i(0, 0)
+	var test_coord = HexCoord.new(0, 0)
 	
 	# 测试 tile_changed 信号
 	var tile_changed_state: Dictionary = { "hit": false }
-	var tile_changed_callback: Callable = func(coord: Vector2i, old_data, new_data):
+	var tile_changed_callback: Callable = func(coord, old_data, new_data):
 		tile_changed_state["hit"] = true
 	
 	model.tile_changed.connect(tile_changed_callback)
@@ -485,7 +496,7 @@ func test_event_system() -> bool:
 	
 	# 测试 height_changed 信号
 	var height_changed_state: Dictionary = { "hit": false, "old": 0.0, "new": 0.0 }
-	var height_changed_callback: Callable = func(coord: Vector2i, old_height: float, new_height: float):
+	var height_changed_callback: Callable = func(coord, old_height: float, new_height: float):
 		height_changed_state["hit"] = true
 		height_changed_state["old"] = old_height
 		height_changed_state["new"] = new_height
@@ -510,7 +521,7 @@ func test_event_system() -> bool:
 	
 	# 测试 occupant_changed 信号
 	var occupant_changed_state: Dictionary = { "hit": false, "old": null, "new": null }
-	var occupant_changed_callback: Callable = func(coord: Vector2i, old_occupant, new_occupant):
+	var occupant_changed_callback: Callable = func(coord, old_occupant, new_occupant):  # coord: HexCoord
 		occupant_changed_state["hit"] = true
 		occupant_changed_state["old"] = old_occupant
 		occupant_changed_state["new"] = new_occupant

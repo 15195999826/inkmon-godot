@@ -15,6 +15,8 @@
 class_name GridLayout
 extends RefCounted
 
+# 在 --script 模式下，class_name 不可用，必须使用 preload
+const _CoordConverter = preload("res://addons/ultra-grid-map/core/coord_converter.gd")
 
 # ========== 常量 ==========
 
@@ -255,7 +257,7 @@ func _pixel_to_hex(pixel: Vector2) -> Vector2i:
 	var b3: float = _matrix["b3"]
 	var q: float = b0 * pt.x + b1 * pt.y
 	var r: float = b2 * pt.x + b3 * pt.y
-	return GridCoord.axial_round(q, r)
+	return _CoordConverter.axial_round(q, r)
 
 
 ## 像素坐标转浮点六边形坐标 (不取整)
@@ -371,7 +373,7 @@ func cube_to_pixel(coord: Vector3i) -> Vector2:
 ## 像素坐标转 Cube 坐标
 func pixel_to_cube(pixel: Vector2) -> Vector3i:
 	var axial_coord: Vector2i = pixel_to_coord(pixel)
-	return GridCoord.axial_to_cube(axial_coord)
+	return Vector3i(axial_coord.x, axial_coord.y, -axial_coord.x - axial_coord.y)
 
 
 # ========== 静态转换方法 (无需实例化) ==========
@@ -387,7 +389,7 @@ static func flat_hex_to_pixel(coord: Vector2i, hex_size: float) -> Vector2:
 static func flat_pixel_to_hex(pixel: Vector2, hex_size: float) -> Vector2i:
 	var q: float = (2.0 / 3.0 * pixel.x) / hex_size
 	var r: float = (-1.0 / 3.0 * pixel.x + SQRT3 / 3.0 * pixel.y) / hex_size
-	return GridCoord.axial_round(q, r)
+	return _CoordConverter.axial_round(q, r)
 
 
 ## Pointy-top: 六边形转像素
@@ -401,7 +403,7 @@ static func pointy_hex_to_pixel(coord: Vector2i, hex_size: float) -> Vector2:
 static func pointy_pixel_to_hex(pixel: Vector2, hex_size: float) -> Vector2i:
 	var q: float = (SQRT3 / 3.0 * pixel.x - 1.0 / 3.0 * pixel.y) / hex_size
 	var r: float = (2.0 / 3.0 * pixel.y) / hex_size
-	return GridCoord.axial_round(q, r)
+	return _CoordConverter.axial_round(q, r)
 
 
 ## 正方形: 坐标转像素

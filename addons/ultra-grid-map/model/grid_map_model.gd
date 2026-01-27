@@ -19,13 +19,14 @@ extends RefCounted
 
 # 在 --script 模式下，class_name 不可用，必须使用 preload
 const _GridLayout = preload("res://addons/ultra-grid-map/core/grid_layout.gd")
+const _HexCoord = preload("res://addons/ultra-grid-map/core/hex_coord.gd")
 
 # ========== GridTileData 内部类 ==========
 
 ## 瓦片数据
 class GridTileData:
-	## 坐标
-	var coord: Vector2i
+	## 坐标 (HexCoord) - 使用 Variant 因为 --script 模式下 class_name 不可用
+	var coord  # HexCoord
 	## 高度 (用于 3D 渲染和寻路，0.0 = 地面)
 	var height: float = 0.0
 	## 移动代价 (用于寻路)
@@ -37,12 +38,12 @@ class GridTileData:
 	## 自定义元数据
 	var metadata: Dictionary = {}
 	
-	func _init(p_coord: Vector2i = Vector2i.ZERO) -> void:
-		coord = p_coord
+	func _init(p_coord = null) -> void:  # p_coord: HexCoord
+		coord = p_coord if p_coord else _HexCoord.zero()
 	
 	## 复制
 	func duplicate() -> GridTileData:
-		var copy := GridTileData.new(coord)
+		var copy := GridTileData.new(coord.duplicate())
 		copy.height = height
 		copy.cost = cost
 		copy.is_blocking = is_blocking
@@ -53,14 +54,14 @@ class GridTileData:
 
 # ========== 信号 ==========
 
-## 瓦片数据变化
-signal tile_changed(coord: Vector2i, old_data: GridTileData, new_data: GridTileData)
+## 瓦片数据变化 (coord: HexCoord)
+signal tile_changed(coord, old_data: GridTileData, new_data: GridTileData)
 
-## 高度变化
-signal height_changed(coord: Vector2i, old_height: float, new_height: float)
+## 高度变化 (coord: HexCoord)
+signal height_changed(coord, old_height: float, new_height: float)
 
-## 占用者变化
-signal occupant_changed(coord: Vector2i, old_occupant: Variant, new_occupant: Variant)
+## 占用者变化 (coord: HexCoord)
+signal occupant_changed(coord, old_occupant: Variant, new_occupant: Variant)
 
 
 # ========== 配置属性 ==========
@@ -71,7 +72,7 @@ var _config: GridMapConfig
 ## 布局转换器
 var _layout: Variant
 
-## 瓦片存储 (key: Vector2i, value: TileData)
+## 瓦片存储 (key: String via HexCoord.to_key(), value: GridTileData)
 var _tiles: Dictionary = {}
 
 
@@ -130,39 +131,40 @@ func _generate_hex_row_column(half_rows: int, half_cols: int) -> void:
 				# pointy-top: odd-r offset 转 axial
 				q = offset_col - (offset_row >> 1)
 				r = offset_row
-			var coord := Vector2i(q, r)
-			_tiles[coord] = GridTileData.new(coord)
+			var coord := _HexCoord.new(q, r)
+			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
 ## 生成 RECT_SIX_DIR 行列地图
 func _generate_rect_six_dir_row_column(half_rows: int, half_cols: int) -> void:
 	for row in range(-half_rows, half_rows + 1):
 		for col in range(-half_cols, half_cols + 1):
-			var coord := Vector2i(col, row)
-			_tiles[coord] = GridTileData.new(coord)
+			var coord := _HexCoord.new(col, row)
+			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
 ## 生成正方形/矩形行列地图
 func _generate_square_row_column(half_rows: int, half_cols: int) -> void:
 	for row in range(-half_rows, half_rows + 1):
 		for col in range(-half_cols, half_cols + 1):
-			var coord := Vector2i(col, row)
-			_tiles[coord] = GridTileData.new(coord)
+			var coord := _HexCoord.new(col, row)
+			_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
 ## 基于半径生成六边形地图
 func _generate_tiles_radius() -> void:
 	match _config.grid_type:
 		GridMapConfig.GridType.HEX:
-			var coords := GridMath.hex_range(Vector2i.ZERO, _config.radius)
-			for coord in coords:
-				_tiles[coord] = GridTileData.new(coord)
+			var axial_coords := GridMath.hex_range(Vector2i.ZERO, _config.radius)
+			for axial in axial_coords:
+				var coord = _HexCoord.from_axial(axial)
+				_tiles[coord.to_key()] = GridTileData.new(coord)
 		GridMapConfig.GridType.RECT_SIX_DIR, GridMapConfig.GridType.SQUARE, GridMapConfig.GridType.RECT:
 			# 非六边形类型使用菱形范围
 			for x in range(-_config.radius, _config.radius + 1):
 				for y in range(-_config.radius, _config.radius + 1):
-					var coord := Vector2i(x, y)
-					_tiles[coord] = GridTileData.new(coord)
+					var coord = _HexCoord.new(x, y)
+					_tiles[coord.to_key()] = GridTileData.new(coord)
 
 
 # ========== 配置访问 ==========
@@ -184,14 +186,15 @@ func get_layout() -> Variant:
 
 # ========== 坐标转换 (代理方法) ==========
 
-## 网格坐标转世界坐标
-func coord_to_world(coord: Vector2i) -> Vector2:
-	return _layout.coord_to_pixel(coord)
+## 网格坐标转世界坐标 (coord: HexCoord)
+func coord_to_world(coord) -> Vector2:
+	return _layout.coord_to_pixel(coord.to_axial())
 
 
-## 世界坐标转网格坐标
-func world_to_coord(world_pos: Vector2) -> Vector2i:
-	return _layout.pixel_to_coord(world_pos)
+## 世界坐标转网格坐标 -> HexCoord
+func world_to_coord(world_pos: Vector2):  # -> HexCoord
+	var axial: Vector2i = _layout.pixel_to_coord(world_pos)
+	return _HexCoord.from_axial(axial)
 
 
 ## 获取相邻格子的世界距离
@@ -208,55 +211,62 @@ func get_adjacent_world_distance() -> float:
 
 # ========== 邻居查询 (代理方法) ==========
 
-## 获取邻居坐标
-func get_neighbors(coord: Vector2i) -> Array[Vector2i]:
-	return GridMath.get_neighbors(coord, _config.grid_type)
+## 获取邻居坐标 (coord: HexCoord) -> Array[HexCoord]
+func get_neighbors(coord) -> Array:
+	var axial_neighbors := GridMath.get_neighbors(coord.to_axial(), _config.grid_type)
+	var result: Array = []
+	for axial in axial_neighbors:
+		result.append(_HexCoord.from_axial(axial))
+	return result
 
 
-## 获取指定范围内的所有格子
-func get_range(center: Vector2i, range_radius: int) -> Array[Vector2i]:
+## 获取指定范围内的所有格子 (center: HexCoord) -> Array[HexCoord]
+func get_range(center, range_radius: int) -> Array:
+	var result: Array = []
 	match _config.grid_type:
 		GridMapConfig.GridType.HEX:
-			return GridMath.hex_range(center, range_radius)
+			var axial_coords := GridMath.hex_range(center.to_axial(), range_radius)
+			for axial in axial_coords:
+				result.append(_HexCoord.from_axial(axial))
 		_:
 			# 非六边形使用曼哈顿距离范围
-			var result: Array[Vector2i] = []
 			for x in range(-range_radius, range_radius + 1):
 				for y in range(-range_radius, range_radius + 1):
 					if absi(x) + absi(y) <= range_radius:
-						result.append(center + Vector2i(x, y))
-			return result
+						result.append(_HexCoord.new(center.q + x, center.r + y))
+	return result
 
 
-## 计算两个格子之间的距离
-func get_distance(from: Vector2i, to: Vector2i) -> int:
-	return GridMath.distance(from, to, _config.grid_type)
+## 计算两个格子之间的距离 (from: HexCoord, to: HexCoord)
+func get_distance(from, to) -> int:
+	return GridMath.distance(from.to_axial(), to.to_axial(), _config.grid_type)
 
 
 # ========== 瓦片查询 ==========
 
-## 检查格子是否存在
-func has_tile(coord: Vector2i) -> bool:
-	return coord in _tiles
+## 检查格子是否存在 (coord: HexCoord)
+func has_tile(coord) -> bool:
+	return coord.to_key() in _tiles
 
 
-## 获取瓦片数据
-func get_tile(coord: Vector2i) -> GridTileData:
-	return _tiles.get(coord, null)
+## 获取瓦片数据 (coord: HexCoord)
+func get_tile(coord) -> GridTileData:
+	return _tiles.get(coord.to_key(), null)
 
 
-## 设置瓦片数据
-func set_tile(coord: Vector2i, data: GridTileData) -> void:
-	var old_data: GridTileData = _tiles.get(coord, null)
-	_tiles[coord] = data
+## 设置瓦片数据 (coord: HexCoord)
+func set_tile(coord, data: GridTileData) -> void:
+	var key: String = coord.to_key()
+	var old_data: GridTileData = _tiles.get(key, null)
+	_tiles[key] = data
 	tile_changed.emit(coord, old_data, data)
 
 
-## 获取所有格子坐标
-func get_all_coords() -> Array[Vector2i]:
-	var result: Array[Vector2i] = []
-	for coord in _tiles.keys():
-		result.append(coord)
+## 获取所有格子坐标 -> Array[HexCoord]
+func get_all_coords() -> Array:
+	var result: Array = []
+	for key in _tiles.keys():
+		result.append(_HexCoord.from_key(key))
 	return result
 
 
@@ -265,16 +275,17 @@ func get_tile_count() -> int:
 	return _tiles.size()
 
 
-## 遍历所有瓦片
+## 遍历所有瓦片 (callback receives HexCoord and GridTileData)
 func for_each_tile(callback: Callable) -> void:
-	for coord in _tiles.keys():
-		callback.call(coord, _tiles[coord])
+	for key in _tiles.keys():
+		var coord = _HexCoord.from_key(key)
+		callback.call(coord, _tiles[key])
 
 
 # ========== 高度系统 ==========
 
-## 设置瓦片高度
-func set_tile_height(coord: Vector2i, height: float) -> void:
+## 设置瓦片高度 (coord: HexCoord)
+func set_tile_height(coord, height: float) -> void:
 	var tile := get_tile(coord)
 	if tile:
 		var old_height := tile.height
@@ -282,44 +293,44 @@ func set_tile_height(coord: Vector2i, height: float) -> void:
 		height_changed.emit(coord, old_height, tile.height)
 
 
-## 获取瓦片高度
-func get_tile_height(coord: Vector2i) -> float:
+## 获取瓦片高度 (coord: HexCoord)
+func get_tile_height(coord) -> float:
 	var tile := get_tile(coord)
 	if tile:
 		return tile.height
 	return 1.0
 
 
-## 批量设置瓦片高度
-func set_tiles_height_batch(coords: Array[Vector2i], height: float) -> void:
+## 批量设置瓦片高度 (coords: Array[HexCoord])
+func set_tiles_height_batch(coords: Array, height: float) -> void:
 	for coord in coords:
 		set_tile_height(coord, height)
 
 
-## 设置瓦片代价
-func set_tile_cost(coord: Vector2i, cost: float) -> void:
+## 设置瓦片代价 (coord: HexCoord)
+func set_tile_cost(coord, cost: float) -> void:
 	var tile := get_tile(coord)
 	if tile:
 		tile.cost = maxf(cost, 0.0)
 
 
-## 获取瓦片代价
-func get_tile_cost(coord: Vector2i) -> float:
+## 获取瓦片代价 (coord: HexCoord)
+func get_tile_cost(coord) -> float:
 	var tile := get_tile(coord)
 	if tile:
 		return tile.cost
 	return 1.0
 
 
-## 设置瓦片阻挡状态
-func set_tile_blocking(coord: Vector2i, blocking: bool) -> void:
+## 设置瓦片阻挡状态 (coord: HexCoord)
+func set_tile_blocking(coord, blocking: bool) -> void:
 	var tile := get_tile(coord)
 	if tile:
 		tile.is_blocking = blocking
 
 
-## 检查瓦片是否阻挡
-func is_tile_blocking(coord: Vector2i) -> bool:
+## 检查瓦片是否阻挡 (coord: HexCoord)
+func is_tile_blocking(coord) -> bool:
 	var tile := get_tile(coord)
 	if tile:
 		return tile.is_blocking
@@ -328,24 +339,24 @@ func is_tile_blocking(coord: Vector2i) -> bool:
 
 # ========== 占用管理 ==========
 
-## 检查格子是否被占用
-func is_occupied(coord: Vector2i) -> bool:
+## 检查格子是否被占用 (coord: HexCoord)
+func is_occupied(coord) -> bool:
 	var tile := get_tile(coord)
 	if tile:
 		return tile.occupant != null
 	return false
 
 
-## 获取格子的占用者
-func get_occupant(coord: Vector2i) -> Variant:
+## 获取格子的占用者 (coord: HexCoord)
+func get_occupant(coord) -> Variant:
 	var tile := get_tile(coord)
 	if tile:
 		return tile.occupant
 	return null
 
 
-## 放置占用者
-func place_occupant(coord: Vector2i, occupant: Variant) -> bool:
+## 放置占用者 (coord: HexCoord)
+func place_occupant(coord, occupant: Variant) -> bool:
 	if not has_tile(coord):
 		return false
 	if is_occupied(coord):
@@ -358,8 +369,8 @@ func place_occupant(coord: Vector2i, occupant: Variant) -> bool:
 	return true
 
 
-## 移除占用者
-func remove_occupant(coord: Vector2i) -> bool:
+## 移除占用者 (coord: HexCoord)
+func remove_occupant(coord) -> bool:
 	var tile := get_tile(coord)
 	if not tile:
 		return false
@@ -372,10 +383,13 @@ func remove_occupant(coord: Vector2i) -> bool:
 	return true
 
 
-## 移动占用者
-func move_occupant(from_coord: Vector2i, to_coord: Vector2i) -> bool:
+## 移动占用者 (from_coord: HexCoord, to_coord: HexCoord)
+func move_occupant(from_coord, to_coord) -> bool:
 	if not has_tile(to_coord):
 		return false
+	
+	# 移动前先取消目标格子的预订
+	cancel_reservation(to_coord)
 	
 	var from_tile := get_tile(from_coord)
 	var to_tile := get_tile(to_coord)
@@ -397,90 +411,26 @@ func move_occupant(from_coord: Vector2i, to_coord: Vector2i) -> bool:
 	return true
 
 
-## 查找占用者的位置
-func find_occupant_position(occupant: Variant) -> Vector2i:
-	for coord in _tiles.keys():
-		var tile: GridTileData = _tiles[coord]
+## 查找占用者的位置 -> HexCoord (null if not found)
+func find_occupant_position(occupant: Variant):  # -> HexCoord
+	for key in _tiles.keys():
+		var tile: GridTileData = _tiles[key]
 		if tile.occupant == occupant:
-			return coord
-	return Vector2i(-9999, -9999)  # 无效坐标表示未找到
+			return _HexCoord.from_key(key)
+	return null  # 未找到返回 null
 
 
-## 检查坐标是否可通行 (未被占用且未阻挡)
-func is_passable(coord: Vector2i) -> bool:
+## 检查坐标是否可通行 (未被占用且未阻挡) (coord: HexCoord)
+func is_passable(coord) -> bool:
 	var tile := get_tile(coord)
 	if not tile:
 		return false
 	return not tile.is_blocking and tile.occupant == null
 
 
-# ========== 元数据 ==========
-
-## 设置瓦片元数据
-func set_tile_metadata(coord: Vector2i, key: String, value: Variant) -> void:
-	var tile := get_tile(coord)
-	if tile:
-		tile.metadata[key] = value
-
-
-## 获取瓦片元数据
-func get_tile_metadata(coord: Vector2i, key: String, default: Variant = null) -> Variant:
-	var tile := get_tile(coord)
-	if tile:
-		return tile.metadata.get(key, default)
-	return default
-
-
-## 检查瓦片是否有指定元数据
-func has_tile_metadata(coord: Vector2i, key: String) -> bool:
-	var tile := get_tile(coord)
-	if tile:
-		return key in tile.metadata
-	return false
-
-
-# ========== Dictionary 兼容方法 (用于 hex 坐标 {q, r} 格式) ==========
-
-## 将 {q, r} 字典转换为 Vector2i
-static func _dict_to_coord(dict: Dictionary) -> Vector2i:
-	return Vector2i(dict.get("q", 0), dict.get("r", 0))
-
-
-## 检查格子是否存在 (Dictionary 版本)
-func has_tile_dict(coord_dict: Dictionary) -> bool:
-	return has_tile(_dict_to_coord(coord_dict))
-
-
-## 检查格子是否被占用 (Dictionary 版本)
-func is_occupied_dict(coord_dict: Dictionary) -> bool:
-	return is_occupied(_dict_to_coord(coord_dict))
-
-
-## 获取占用者 (Dictionary 版本)
-func get_occupant_at_dict(coord_dict: Dictionary) -> Variant:
-	return get_occupant(_dict_to_coord(coord_dict))
-
-
-## 放置占用者 (Dictionary 版本)
-func place_occupant_dict(coord_dict: Dictionary, occupant: Variant) -> bool:
-	return place_occupant(_dict_to_coord(coord_dict), occupant)
-
-
-## 移动占用者 (Dictionary 版本)
-func move_occupant_dict(from_dict: Dictionary, to_dict: Dictionary) -> bool:
-	var from_coord := _dict_to_coord(from_dict)
-	var to_coord := _dict_to_coord(to_dict)
-	
-	# 移动前先取消目标格子的预订
-	cancel_reservation(to_coord)
-	
-	return move_occupant(from_coord, to_coord)
-
-
-## 预订格子 (Dictionary 版本)
+## 预订格子 (coord: HexCoord)
 ## 使用 metadata 存储预订信息
-func reserve_tile_dict(coord_dict: Dictionary, reserver_id: String) -> bool:
-	var coord := _dict_to_coord(coord_dict)
+func reserve_tile(coord, reserver_id: String) -> bool:
 	var tile := get_tile(coord)
 	if not tile:
 		return false
@@ -493,22 +443,47 @@ func reserve_tile_dict(coord_dict: Dictionary, reserver_id: String) -> bool:
 	return true
 
 
-## 获取格子预订信息 (Dictionary 版本)
-func get_reservation_dict(coord_dict: Dictionary) -> String:
-	var coord := _dict_to_coord(coord_dict)
+## 获取格子预订信息 (coord: HexCoord)
+func get_reservation(coord) -> String:
 	return get_tile_metadata(coord, "reservation", "") as String
 
 
-## 取消格子预订
-func cancel_reservation(coord: Vector2i) -> void:
+## 取消格子预订 (coord: HexCoord)
+func cancel_reservation(coord) -> void:
 	var tile := get_tile(coord)
 	if tile and tile.metadata.has("reservation"):
 		tile.metadata.erase("reservation")
 
 
-## 检查格子是否被预订 (Dictionary 版本)
-func is_reserved_dict(coord_dict: Dictionary) -> bool:
-	return get_reservation_dict(coord_dict) != ""
+## 检查格子是否被预订 (coord: HexCoord)
+func is_reserved(coord) -> bool:
+	return get_reservation(coord) != ""
+
+
+# ========== 元数据 ==========
+
+## 设置瓦片元数据 (coord: HexCoord)
+func set_tile_metadata(coord, key: String, value: Variant) -> void:
+	var tile := get_tile(coord)
+	if tile:
+		tile.metadata[key] = value
+
+
+## 获取瓦片元数据 (coord: HexCoord)
+func get_tile_metadata(coord, key: String, default: Variant = null) -> Variant:
+	var tile := get_tile(coord)
+	if tile:
+		return tile.metadata.get(key, default)
+	return default
+
+
+## 检查瓦片是否有指定元数据 (coord: HexCoord)
+func has_tile_metadata(coord, key: String) -> bool:
+	var tile := get_tile(coord)
+	if tile:
+		return key in tile.metadata
+	return false
+
 
 
 # ========== 序列化 ==========
@@ -532,10 +507,10 @@ func to_config_dict() -> Dictionary:
 ## 序列化完整状态
 func serialize() -> Dictionary:
 	var tiles_data: Array = []
-	for coord in _tiles.keys():
-		var tile: GridTileData = _tiles[coord]
+	for key in _tiles.keys():
+		var tile: GridTileData = _tiles[key]
 		var tile_dict := {
-			"coord": { "x": coord.x, "y": coord.y },
+			"coord": tile.coord.to_dict(),  # { "q": q, "r": r }
 			"height": tile.height,
 			"cost": tile.cost,
 			"is_blocking": tile.is_blocking,
