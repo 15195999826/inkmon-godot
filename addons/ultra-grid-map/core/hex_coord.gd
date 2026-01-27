@@ -43,17 +43,17 @@ func _init(p_q: int = 0, p_r: int = 0) -> void:
 # 注意: 静态方法不能使用 class_name，使用 new() 代替 HexCoord.new()
 
 ## 从 Vector2i (axial) 创建 -> HexCoord
-static func from_axial(axial: Vector2i):
+static func from_axial(axial: Vector2i) -> RefCounted:
 	return new(axial.x, axial.y)
 
 
 ## 从 Vector3i (cube) 创建 -> HexCoord
-static func from_cube(cube: Vector3i):
+static func from_cube(cube: Vector3i) -> RefCounted:
 	return new(cube.x, cube.y)
 
 
 ## 从 Dictionary { "q": int, "r": int } 创建 -> HexCoord
-static func from_dict(d: Dictionary):
+static func from_dict(d: Dictionary) -> RefCounted:
 	return new(
 		d.get("q", 0) as int,
 		d.get("r", 0) as int
@@ -61,13 +61,13 @@ static func from_dict(d: Dictionary):
 
 
 ## 零坐标 -> HexCoord
-static func zero():
+static func zero() -> RefCounted:
 	return new(0, 0)
 
 
 ## 无效坐标 -> HexCoord
 ## 用于表示"未设置"或"不存在"的位置，替代 null
-static func invalid():
+static func invalid() -> RefCounted:
 	return new(INVALID_VALUE, INVALID_VALUE)
 
 
@@ -91,13 +91,13 @@ func to_dict() -> Dictionary:
 # ========== 运算 ==========
 # 注意: 使用 get_script().new() 代替 HexCoord.new() 以兼容 --headless 模式
 
-## 加法 (other: HexCoord) -> HexCoord
-func add(other) -> RefCounted:
+## 加法 -> HexCoord
+func add(other: HexCoord) -> RefCounted:
 	return get_script().new(q + other.q, r + other.r)
 
 
-## 减法 (other: HexCoord) -> HexCoord
-func subtract(other) -> RefCounted:
+## 减法 -> HexCoord
+func subtract(other: HexCoord) -> RefCounted:
 	return get_script().new(q - other.q, r - other.r)
 
 
@@ -113,8 +113,8 @@ func negate() -> RefCounted:
 
 # ========== 比较 ==========
 
-## 相等判断 (other: HexCoord)
-func equals(other) -> bool:
+## 相等判断
+func equals(other: HexCoord) -> bool:
 	if other == null:
 		return false
 	return q == other.q and r == other.r
@@ -132,8 +132,8 @@ func is_valid() -> bool:
 
 # ========== 距离 ==========
 
-## 计算到另一个坐标的距离 (六边形曼哈顿距离) (other: HexCoord)
-func distance_to(other) -> int:
+## 计算到另一个坐标的距离 (六边形曼哈顿距离)
+func distance_to(other: HexCoord) -> int:
 	return (absi(q - other.q) + absi(r - other.r) + absi(s - other.s)) / 2
 
 
@@ -161,9 +161,9 @@ func neighbor(direction: int) -> RefCounted:
 	return get_script().new(q + dir.x, r + dir.y)
 
 
-## 获取所有 6 个邻居 -> Array[HexCoord]
-func get_neighbors() -> Array:
-	var result: Array = []
+## 获取所有 6 个邻居
+func get_neighbors() -> Array[HexCoord]:
+	var result: Array[HexCoord] = []
 	for i in range(6):
 		result.append(neighbor(i))
 	return result
@@ -171,9 +171,9 @@ func get_neighbors() -> Array:
 
 # ========== 范围 ==========
 
-## 获取指定范围内的所有坐标 (包含自身) -> Array[HexCoord]
-func get_range(radius: int) -> Array:
-	var result: Array = []
+## 获取指定范围内的所有坐标 (包含自身)
+func get_range(radius: int) -> Array[HexCoord]:
+	var result: Array[HexCoord] = []
 	for dq in range(-radius, radius + 1):
 		for dr in range(maxi(-radius, -dq - radius), mini(radius, -dq + radius) + 1):
 			result.append(get_script().new(q + dq, r + dr))
@@ -192,7 +192,7 @@ func to_key() -> String:
 
 
 ## 从 key 字符串解析 -> HexCoord
-static func from_key(key: String):
+static func from_key(key: String) -> RefCounted:
 	var parts := key.split(",")
 	if parts.size() >= 2:
 		return new(int(parts[0]), int(parts[1]))

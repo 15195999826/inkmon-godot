@@ -52,9 +52,20 @@ var callback := func():
     state["hit"] = true  # 可以修改
 ```
 
-## 4. 类型推断
+## 4. 显式类型标注
 
-类型不明确时使用 `as` 转换：
+### 函数参数和返回值必须显式标注类型
+```gdscript
+# ❌ 错误：缺少类型标注
+func get_tile(coord) -> GridTileData:
+func process_data(data):
+
+# ✅ 正确：显式标注所有参数和返回值类型
+func get_tile(coord: HexCoord) -> GridTileData:
+func process_data(data: Dictionary) -> void:
+```
+
+### 类型不明确时使用 `as` 转换
 ```gdscript
 # ❌ 错误：类型推断失败
 var failures: int = framework.run()

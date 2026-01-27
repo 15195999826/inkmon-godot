@@ -109,33 +109,38 @@ func _on_render_button_pressed() -> void:
 ## 高亮按钮回调：高亮中心区域的格子
 func _on_highlight_button_pressed() -> void:
 	# 高亮中心 7 格（半径 1）
-	var coords: Array[Vector2i] = GridMath.hex_range(Vector2i.ZERO, 1)
-	renderer.highlight_cells(coords)
+	var center := HexCoord.new(0, 0)
+	var coords: Array[HexCoord] = []
+	coords.append(center)
+	for neighbor in center.get_neighbors():
+		coords.append(neighbor)
+	renderer.highlight_tiles(coords)
 
 
 ## 填充按钮回调：填充外围一圈格子
 func _on_fill_button_pressed() -> void:
-	var coords: Array[Vector2i] = []
+	var coords: Array[HexCoord] = []
+	var center := HexCoord.new(0, 0)
 	
 	# 遍历所有格子，选择外围一圈（距离中心较远的格子）
-	var all_coords: Array[Vector2i] = _model.get_all_coords()
+	var all_coords: Array[HexCoord] = _model.get_all_coords()
 	if all_coords.is_empty():
 		return
 	
 	# 计算最大距离
 	var max_dist: int = 0
-	for coord in all_coords:
-		var dist: int = GridMath.hex_distance(Vector2i.ZERO, coord)
+	for coord: HexCoord in all_coords:
+		var dist: int = center.distance_to(coord)
 		if dist > max_dist:
 			max_dist = dist
 	
 	# 选择最外圈
-	for coord in all_coords:
-		var dist: int = GridMath.hex_distance(Vector2i.ZERO, coord)
+	for coord: HexCoord in all_coords:
+		var dist: int = center.distance_to(coord)
 		if dist >= max_dist - 1:
 			coords.append(coord)
 	
-	renderer.fill_cells(coords)
+	renderer.fill_tiles(coords)
 
 
 ## 清除按钮回调：清除所有渲染效果

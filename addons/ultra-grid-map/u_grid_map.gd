@@ -100,72 +100,72 @@ func configure_from_dict(config_dict: Dictionary) -> void:
 
 # ========== 便捷方法（直接转发到 model）==========
 
-## 网格坐标转世界坐标 (coord: HexCoord)
-func coord_to_world(coord) -> Vector2:
+## 网格坐标转世界坐标
+func coord_to_world(coord: HexCoord) -> Vector2:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return Vector2.ZERO
 	return model.coord_to_world(coord)
 
 
-## 世界坐标转网格坐标 -> HexCoord
-func world_to_coord(world_pos: Vector2):  # -> HexCoord
+## 世界坐标转网格坐标
+func world_to_coord(world_pos: Vector2) -> HexCoord:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
-		return HexCoord.zero()
+		return HexCoord.zero() as HexCoord
 	return model.world_to_coord(world_pos)
 
 
-## 获取邻居坐标 (coord: HexCoord) -> Array[HexCoord]
-func get_neighbors(coord) -> Array:
+## 获取邻居坐标
+func get_neighbors(coord: HexCoord) -> Array[HexCoord]:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return []
 	return model.get_neighbors(coord)
 
 
-## 计算两个格子之间的距离 (from: HexCoord, to: HexCoord)
-func get_distance(from, to) -> int:
+## 计算两个格子之间的距离
+func get_distance(from: HexCoord, to: HexCoord) -> int:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return 0
 	return model.get_distance(from, to)
 
 
-## 检查坐标是否可通行 (coord: HexCoord)
-func is_passable(coord) -> bool:
+## 检查坐标是否可通行
+func is_passable(coord: HexCoord) -> bool:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return false
 	return model.is_passable(coord)
 
 
-## 获取瓦片数据 (coord: HexCoord)
-func get_tile(coord):
+## 获取瓦片数据
+func get_tile(coord: HexCoord) -> GridMapModel.GridTileData:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return null
 	return model.get_tile(coord)
 
 
-## 检查格子是否存在 (coord: HexCoord)
-func has_tile(coord) -> bool:
+## 检查格子是否存在
+func has_tile(coord: HexCoord) -> bool:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return false
 	return model.has_tile(coord)
 
 
-## 获取指定范围内的所有格子 (center: HexCoord) -> Array[HexCoord]
-func get_range(center, range_radius: int) -> Array:
+## 获取指定范围内的所有格子
+func get_range(center: HexCoord, range_radius: int) -> Array[HexCoord]:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return []
 	return model.get_range(center, range_radius)
 
 
-## 获取所有格子坐标 -> Array[HexCoord]
-func get_all_coords() -> Array:
+## 获取所有格子坐标
+func get_all_coords() -> Array[HexCoord]:
 	if model == null:
 		push_error("[GridMap] Model not configured. Call configure() first.")
 		return []

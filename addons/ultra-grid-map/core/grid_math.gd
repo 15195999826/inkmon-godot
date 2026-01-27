@@ -13,8 +13,7 @@
 class_name GridMath
 extends RefCounted
 
-const GridMapConfig = preload("res://addons/ultra-grid-map/core/grid_types.gd")
-const _CoordConverter = preload("res://addons/ultra-grid-map/core/coord_converter.gd")
+
 
 
 # ========== 六边形方向常量 ==========
@@ -392,7 +391,7 @@ static func hex_line(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		var t := float(i) / float(n)
 		var q := lerpf(from_q, to_q, t)
 		var r := lerpf(from_r, to_r, t)
-		results.append(_CoordConverter.axial_round(q, r))
+		results.append(CoordConverter.axial_round(q, r))
 	
 	return results
 
