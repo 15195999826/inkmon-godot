@@ -200,6 +200,298 @@ addons/logic-game-framework/
     └── reference/          # 详细参考文档
 ```
 
+## 逻辑表演分离架构 📦
+
+本框架推荐使用三层架构设计，将游戏逻辑与表现层完全分离，提高代码可测试性和可维护性。
+
+### 三层架构设计 🏗️
+
+以 `hex-atb-battle` 示例项目为例，采用以下三层结构：
+
+```
+addons/logic-game-framework/example/
+├── hex-atb-battle-core/        # 共享数据层（Core Layer）
+│   └── events/                 # 强类型事件定义
+│       └── battle_events.gd    # BattleEvents（DamageEvent, HealEvent 等）
+│
+├── hex-atb-battle/             # 逻辑层（Logic Layer）
+│   ├── actions/                # 游戏特定 Action（伤害、治疗、移动）
+│   ├── skills/                 # 技能配置
+│   ├── battle.gd               # 战斗状态管理
+│   └── utils/                  # 逻辑层辅助类
+│
+└── hex-atb-battle-frontend/    # 表演层（Presentation Layer）
+    ├── visualizers/            # 事件可视化器（伤害数字、动画）
+    ├── battle_player.gd        # 回放播放器
+    └── scenes/                 # 3D 场景、UI
+```
+
+### 设计原则 🎯
+
+1. **单向依赖**：`frontend → battle → core`
+   - 表演层依赖逻辑层和共享层
+   - 逻辑层仅依赖共享层
+   - 共享层无依赖（纯数据）
+
+2. **事件驱动**：逻辑层通过事件通知表演层
+   - 逻辑层产生事件（DamageEvent, HealEvent）
+   - 表演层订阅事件并渲染（伤害数字、动画）
+
+3. **可测试性**：逻辑层独立于 Godot 节点系统
+   - 逻辑层使用纯 GDScript 类（RefCounted）
+   - 可在无渲染环境下运行单元测试
+
+4. **可复用性**：共享层数据结构可被多个系统使用
+   - 事件定义可用于回放、网络同步、AI 训练
+
+### 事件类设计模式 ⚡
+
+所有事件类必须实现以下 5 个方法，确保类型安全和序列化支持：
+
+#### 1. `_init()` - 设置事件类型标识
+
+```gdscript
+func _init() -> void:
+    kind = "damage"  # 事件类型唯一标识
+```
+
+#### 2. `static func create(...)` - 类型安全的工厂方法
+
+```gdscript
+static func create(
+    target_actor_id: String,
+    damage: float,
+    damage_type: DamageType = DamageType.PHYSICAL
+) -> DamageEvent:
+    var e := DamageEvent.new()
+    e.target_actor_id = target_actor_id
+    e.damage = damage
+    e.damage_type = damage_type
+    return e
+```
+
+#### 3. `func to_dict() -> Dictionary` - 序列化为 JSON
+
+```gdscript
+func to_dict() -> Dictionary:
+    return {
+        "kind": kind,
+        "targetActorId": target_actor_id,  # camelCase for JSON
+        "damage": damage,
+        "damageType": BattleEvents._damage_type_to_string(damage_type),
+    }
+```
+
+#### 4. `static func from_dict(d: Dictionary)` - 反序列化
+
+```gdscript
+static func from_dict(d: Dictionary) -> DamageEvent:
+    var e := DamageEvent.new()
+    e.target_actor_id = d.get("targetActorId", "")
+    e.damage = d.get("damage", 0.0)
+    e.damage_type = BattleEvents.string_to_damage_type(d.get("damageType", "physical"))
+    return e
+```
+
+#### 5. `static func is_match(d: Dictionary) -> bool` - 类型守卫
+
+```gdscript
+static func is_match(d: Dictionary) -> bool:
+    return d.get("kind") == "damage"
+```
+
+### 完整事件类示例 💡
+
+```gdscript
+class_name BattleEvents
+extends RefCounted
+
+enum DamageType { PHYSICAL, MAGICAL, PURE }
+
+class Base:
+    var kind: String = ""
+    
+    func to_dict() -> Dictionary:
+        return { "kind": kind }
+
+class DamageEvent extends Base:
+    var target_actor_id: String = ""
+    var damage: float = 0.0
+    var damage_type: DamageType = DamageType.PHYSICAL
+    var source_actor_id: String = ""
+    var is_critical: bool = false
+    
+    func _init() -> void:
+        kind = "damage"
+    
+    static func create(
+        target_actor_id: String,
+        damage: float,
+        damage_type: DamageType = DamageType.PHYSICAL,
+        source_actor_id: String = "",
+        is_critical: bool = false
+    ) -> DamageEvent:
+        var e := DamageEvent.new()
+        e.target_actor_id = target_actor_id
+        e.damage = damage
+        e.damage_type = damage_type
+        e.source_actor_id = source_actor_id
+        e.is_critical = is_critical
+        return e
+    
+    func to_dict() -> Dictionary:
+        var d := {
+            "kind": kind,
+            "targetActorId": target_actor_id,
+            "damage": damage,
+            "damageType": BattleEvents._damage_type_to_string(damage_type),
+            "isCritical": is_critical,
+        }
+        if source_actor_id != "":
+            d["sourceActorId"] = source_actor_id
+        return d
+    
+    static func from_dict(d: Dictionary) -> DamageEvent:
+        var e := DamageEvent.new()
+        e.target_actor_id = d.get("targetActorId", "")
+        e.damage = d.get("damage", 0.0)
+        e.damage_type = BattleEvents.string_to_damage_type(d.get("damageType", "physical"))
+        e.source_actor_id = d.get("sourceActorId", "")
+        e.is_critical = d.get("isCritical", false)
+        return e
+    
+    static func is_match(d: Dictionary) -> bool:
+        return d.get("kind") == "damage"
+
+# 枚举序列化辅助函数
+static func _damage_type_to_string(damage_type: DamageType) -> String:
+    match damage_type:
+        DamageType.PHYSICAL: return "physical"
+        DamageType.MAGICAL: return "magical"
+        DamageType.PURE: return "pure"
+        _: return "unknown"
+
+static func string_to_damage_type(s: String) -> DamageType:
+    match s:
+        "physical": return DamageType.PHYSICAL
+        "magical": return DamageType.MAGICAL
+        "pure": return DamageType.PURE
+        _: return DamageType.PHYSICAL
+```
+
+### 序列化约定 🔧
+
+#### Dictionary Keys vs Class Properties
+
+- **Dictionary keys**（JSON）：使用 **camelCase**
+  - 原因：JSON 标准约定，便于与前端/网络通信
+  - 示例：`"targetActorId"`, `"damageType"`, `"isCritical"`
+
+- **Class properties**（GDScript）：使用 **snake_case**
+  - 原因：GDScript 官方代码风格
+  - 示例：`target_actor_id`, `damage_type`, `is_critical`
+
+```gdscript
+# ✅ 正确示例
+class DamageEvent:
+    var target_actor_id: String = ""  # snake_case property
+    
+    func to_dict() -> Dictionary:
+        return {
+            "targetActorId": target_actor_id,  # camelCase key
+        }
+```
+
+#### 枚举序列化
+
+枚举值序列化为 **小写字符串**，便于人类阅读和调试：
+
+```gdscript
+enum DamageType { PHYSICAL, MAGICAL, PURE }
+
+# 序列化：DamageType.PHYSICAL → "physical"
+# 反序列化："physical" → DamageType.PHYSICAL
+```
+
+### 为什么使用强类型？ 💪
+
+相比传统的 Dictionary 事件，强类型事件类提供：
+
+1. **编译时类型检查**
+   ```gdscript
+   # ❌ Dictionary：运行时才发现拼写错误
+   var damage = event.get("damge", 0.0)  # 拼写错误！
+   
+   # ✅ 强类型：编译时报错
+   var e := DamageEvent.from_dict(event)
+   var damage = e.damge  # LSP 立即提示错误
+   ```
+
+2. **IDE 自动补全**
+   - 输入 `e.` 后自动显示所有可用属性
+   - 减少查文档次数，提高开发效率
+
+3. **重构安全**
+   - 重命名属性时，IDE 可自动更新所有引用
+   - 避免遗漏导致的运行时错误
+
+4. **文档即代码**
+   - 类定义即完整的事件结构文档
+   - 类型标注清晰表达数据含义
+
+### 使用示例 🎮
+
+#### 逻辑层：产生事件
+
+```gdscript
+# hex-atb-battle/actions/damage_action.gd
+class_name HexBattleDamageAction
+extends Action.BaseAction
+
+func execute(ctx: ExecutionContext) -> ActionResult:
+    var target := _resolve_target(ctx)
+    var final_damage := _calculate_damage(target)
+    var is_critical := _roll_critical()
+    
+    # 创建强类型事件
+    var event := BattleEvents.DamageEvent.create(
+        target.id,
+        final_damage,
+        _damage_type,
+        ctx.source_actor_id,
+        is_critical
+    )
+    
+    # 推送到事件收集器
+    ctx.event_collector.push(event.to_dict())
+    
+    return ActionResult.success()
+```
+
+#### 表演层：消费事件
+
+```gdscript
+# hex-atb-battle-frontend/visualizers/damage_visualizer.gd
+class_name DamageVisualizer
+extends BaseVisualizer
+
+func can_handle(event: Dictionary) -> bool:
+    return BattleEvents.DamageEvent.is_match(event)
+
+func visualize(event: Dictionary, context: Dictionary) -> void:
+    # 反序列化为强类型
+    var e := BattleEvents.DamageEvent.from_dict(event)
+    
+    # 类型安全访问
+    var target_node := _get_actor_node(e.target_actor_id)
+    var damage_text := str(int(e.damage))
+    
+    if e.is_critical:
+        _show_critical_damage(target_node, damage_text)
+    else:
+        _show_normal_damage(target_node, damage_text)
+```
+
 ## 版本历史
 
 - **v0.3.0** - 重命名 `gameplay_state` → `game_state_provider`，添加 GameStateUtils 最佳实践
