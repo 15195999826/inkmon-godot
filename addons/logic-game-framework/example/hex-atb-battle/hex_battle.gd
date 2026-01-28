@@ -69,9 +69,6 @@ func start(config: Dictionary = {}) -> void:
 	super.start()
 	print("\n========== HexBattle 开始 ==========\n")
 	
-	# 确保 GameWorld 已初始化
-	GameWorld.init()
-	
 	# 初始化日志和录像
 	_logging_enabled = config.get("logging", true)
 	_recording_enabled = config.get("recording", true)

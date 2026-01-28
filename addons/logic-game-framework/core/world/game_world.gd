@@ -55,9 +55,6 @@ func create_instance(factory: Callable) -> GameplayInstance:
 func get_instance_by_id(id_value: String) -> GameplayInstance:
 	return _instances.get(id_value, null)
 
-func get_instances() -> Array:
-	return _instances.values()
-
 func get_instances_by_type(type_value: String) -> Array:
 	return _instances.values().filter(func(inst): return inst and _matches_instance_type(inst, type_value))
 
