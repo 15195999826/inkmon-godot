@@ -1,8 +1,8 @@
 extends Node
 
 var _instances: Dictionary = {}
-var event_processor
-var event_collector
+var event_processor: EventProcessor
+var event_collector: EventCollector
 var _initialized := false
 
 func _init():
@@ -10,24 +10,18 @@ func _init():
 	pass
 
 func _ensure_initialized() -> void:
-	# 在运行时动态获取类型
-	var EventProcessorClass = load("res://addons/logic-game-framework/core/events/event_processor.gd")
-	var EventCollectorClass = load("res://addons/logic-game-framework/core/events/event_collector.gd")
-
 	if not event_processor:
-		event_processor = EventProcessorClass.create_event_processor({})
+		event_processor = EventProcessor.create_event_processor({})
 	if not event_collector:
-		event_collector = EventCollectorClass.new()
+		event_collector = EventCollector.new()
 
 func init(config: Dictionary = {}) -> void:
 	_ensure_initialized()
 	if _initialized:
 		Log.warning("GameWorld", "GameWorld already initialized, reinitializing...")
 		shutdown()
-		var EventProcessorClass = load("res://addons/logic-game-framework/core/events/event_processor.gd")
-		var EventCollectorClass = load("res://addons/logic-game-framework/core/events/event_collector.gd")
-		event_processor = EventProcessorClass.create_event_processor(config.get("eventProcessor", {}))
-		event_collector = EventCollectorClass.new()
+		event_processor = EventProcessor.create_event_processor(config.get("eventProcessor", {}))
+		event_collector = EventCollector.new()
 		initialize()
 
 func destroy() -> void:
@@ -116,12 +110,8 @@ func _end_all_instances() -> void:
 		if instance and instance.has_method("end"):
 			instance.end()
 
-func _is_running_instance(instance) -> bool:
-	return instance and instance.has_method("is_running") and instance.is_running()
+func _is_running_instance(instance: GameplayInstance) -> bool:
+	return instance != null and instance.is_running()
 
-func _matches_instance_type(instance, type_value: String) -> bool:
-	if "type" in instance:
-		return instance.type == type_value
-	if instance.has_method("type"):
-		return instance.type() == type_value
-	return false
+func _matches_instance_type(instance: GameplayInstance, type_value: String) -> bool:
+	return instance.type == type_value

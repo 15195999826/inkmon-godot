@@ -16,21 +16,9 @@ extends RefCounted
 enum DamageType { PHYSICAL, MAGICAL, PURE }
 
 
-# ========== 事件基类 ==========
-
-class Base:
-	var kind: String = ""
-	
-	func to_dict() -> Dictionary:
-		return { "kind": kind }
-	
-	static func is_match(_d: Dictionary) -> bool:
-		return false
-
-
 # ========== DamageEvent ==========
 
-class DamageEvent extends Base:
+class DamageEvent extends GameEvent.Base:
 	var target_actor_id: String = ""
 	var damage: float = 0.0
 	var damage_type: DamageType = DamageType.PHYSICAL
@@ -87,7 +75,7 @@ class DamageEvent extends Base:
 
 # ========== HealEvent ==========
 
-class HealEvent extends Base:
+class HealEvent extends GameEvent.Base:
 	var target_actor_id: String = ""
 	var heal_amount: float = 0.0
 	var source_actor_id: String = ""
@@ -121,7 +109,7 @@ class HealEvent extends Base:
 
 # ========== MoveStartEvent ==========
 
-class MoveStartEvent extends Base:
+class MoveStartEvent extends GameEvent.Base:
 	var actor_id: String = ""
 	var from_hex: Dictionary = {}  # { "q": int, "r": int }
 	var to_hex: Dictionary = {}
@@ -152,7 +140,7 @@ class MoveStartEvent extends Base:
 
 # ========== MoveCompleteEvent ==========
 
-class MoveCompleteEvent extends Base:
+class MoveCompleteEvent extends GameEvent.Base:
 	var actor_id: String = ""
 	var from_hex: Dictionary = {}
 	var to_hex: Dictionary = {}
@@ -183,7 +171,7 @@ class MoveCompleteEvent extends Base:
 
 # ========== DeathEvent ==========
 
-class DeathEvent extends Base:
+class DeathEvent extends GameEvent.Base:
 	var actor_id: String = ""
 	var killer_actor_id: String = ""
 	

@@ -60,7 +60,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	print("  [HealAction] %s 对 [%s] 治疗 %.0f HP" % [source_id, ", ".join(target_ids), heal_amount])
 	
 	# 产生回放格式事件
-	var all_events: Array = []
+	var all_events: Array[Dictionary] = []
 	for target in targets:
 		var source_id_str := source.id if source != null else ""
 		
@@ -91,8 +91,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 # 回调处理
 # ============================================================
 
-func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionContext) -> Array:
-	var events: Array = []
+func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionContext) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
 	var callback_ctx := ExecutionContext.create_callback_context(ctx, heal_event)
 	
 	# on_heal: 每次治疗都触发

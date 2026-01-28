@@ -6,7 +6,7 @@ const PERMANENT_DURATION := -1.0
 ## 移除全部层数的 stacks 值
 const REMOVE_ALL_STACKS := -1
 
-static func _get_ability_set_for_target(ctx: ExecutionContext, target) -> AbilitySet:
+static func _get_ability_set_for_target(ctx: ExecutionContext, target: ActorRef) -> AbilitySet:
 	var state = ctx.game_state_provider
 	if AbilitySet.is_ability_set_provider(state):
 		return state.get_ability_set_for_actor(target.id)
@@ -118,7 +118,7 @@ class HasTagAction:
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")
 		var targets = get_targets(ctx)
-		var all_events: Array = []
+		var all_events: Array[Dictionary] = []
 		for target in targets:
 			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:

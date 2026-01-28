@@ -55,24 +55,25 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array, d
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array) -> void:
 	var valid_targets = _filter_valid_targets(projectile, potential_targets)
 
-	var target = projectile.get_target()
+	var target: ActorRef = projectile.get_target()
 	if target:
-		var target_actor = null
+		var target_actor: Actor = null
 		for actor in potential_targets:
-			if actor is Actor and actor.id == target.get("id"):
+			if actor is Actor and actor.id == target.id:
 				target_actor = actor
 				break
 		if target_actor and target_actor.is_active:
-			var hit_position = projectile.position if projectile.position else target_actor.position
-			projectile.hit(target.get("id"))
+			var hit_position: Vector3 = projectile.position if projectile.position else target_actor.position
+			projectile.hit(target.id)
 			_emit_hit_event(projectile, target, hit_position)
 			_mark_for_removal(projectile)
 			return
 
 	var collision = collision_detector.detect(projectile, valid_targets)
 	if collision.get("hit", false) and collision.get("target"):
-		projectile.hit(collision.target.get("id"))
-		_emit_hit_event(projectile, collision.target, collision.get("hitPosition"))
+		var hit_target: ActorRef = collision.get("target")
+		projectile.hit(hit_target.id)
+		_emit_hit_event(projectile, hit_target, collision.get("hitPosition"))
 	else:
 		projectile.miss("no_target")
 		_emit_miss_event(projectile, "no_target")
@@ -80,13 +81,13 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array) -> 
 	_mark_for_removal(projectile)
 
 func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
-	var target = collision.get("target")
-	var hit_position = collision.get("hitPosition")
+	var target: ActorRef = collision.get("target")
+	var hit_position: Vector3 = collision.get("hitPosition")
 
 	if not target or not hit_position:
 		return
 
-	var continue_flying = projectile.hit(target.get("id"))
+	var continue_flying = projectile.hit(target.id)
 
 	if continue_flying:
 		_emit_pierce_event(projectile, target, hit_position)
@@ -127,7 +128,7 @@ func _process_pending_removal(actors: Array) -> void:
 			i += 1
 	pending_removal.clear()
 
-func _emit_hit_event(projectile: ProjectileActor, target, hit_position: Vector3) -> void:
+func _emit_hit_event(projectile: ProjectileActor, target: ActorRef, hit_position: Vector3) -> void:
 	if not event_collector:
 		return
 
@@ -173,7 +174,7 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 
 	event_collector.push(despawn_event)
 
-func _emit_pierce_event(projectile: ProjectileActor, target, pierce_position: Vector3) -> void:
+func _emit_pierce_event(projectile: ProjectileActor, target: ActorRef, pierce_position: Vector3) -> void:
 	if not event_collector:
 		return
 
@@ -199,11 +200,11 @@ func get_active_projectiles(actors: Array) -> Array:
 func get_pending_removal_ids() -> Dictionary:
 	return pending_removal.duplicate()
 
-func force_hit(projectile: ProjectileActor, target, hit_position: Vector3) -> void:
+func force_hit(projectile: ProjectileActor, target: ActorRef, hit_position: Vector3) -> void:
 	if not projectile.is_flying():
 		return
 
-	projectile.hit(target.get("id"))
+	projectile.hit(target.id)
 	_emit_hit_event(projectile, target, hit_position)
 	_mark_for_removal(projectile)
 

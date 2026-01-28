@@ -38,7 +38,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: HexBattle = ctx.game_state_provider
 	
 	# 对每个目标执行移动
-	var all_events: Array = []
+	var all_events: Array[Dictionary] = []
 	for target in targets:
 		# 获取 Actor 当前位置
 		var actor = battle.get_actor(target.id)

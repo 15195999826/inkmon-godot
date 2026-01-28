@@ -67,7 +67,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: HexBattle = ctx.game_state_provider
 	
 	var event_processor: Variant = GameWorld.event_processor
-	var all_events: Array = []
+	var all_events: Array[Dictionary] = []
 	
 	# 获取 actors 列表（用于 Post 阶段广播）
 	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
@@ -136,8 +136,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 # 回调处理
 # ============================================================
 
-func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: ExecutionContext) -> Array:
-	var events: Array = []
+func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: ExecutionContext) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
 	var callback_ctx := ExecutionContext.create_callback_context(ctx, damage_event)
 	
 	# on_hit: 每次命中都触发

@@ -7,7 +7,7 @@ const PROJECTILE_MISS_EVENT := "projectileMiss"
 const PROJECTILE_DESPAWN_EVENT := "projectileDespawn"
 const PROJECTILE_PIERCE_EVENT := "projectilePierce"
 
-static func create_projectile_launched_event(projectile_id: String, source, start_position: Vector3, projectile_type: String, speed: float, target = null, target_position = null) -> Dictionary:
+static func create_projectile_launched_event(projectile_id: String, source: ActorRef, start_position: Vector3, projectile_type: String, speed: float, target: ActorRef = null, target_position: Variant = null) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_LAUNCHED_EVENT,
 		"projectileId": projectile_id,
@@ -22,7 +22,7 @@ static func create_projectile_launched_event(projectile_id: String, source, star
 		payload["targetPosition"] = target_position
 	return payload
 
-static func create_projectile_hit_event(projectile_id: String, source, target, hit_position: Vector3, fly_time: float, fly_distance: float, options: Dictionary = {}) -> Dictionary:
+static func create_projectile_hit_event(projectile_id: String, source: ActorRef, target: ActorRef, hit_position: Vector3, fly_time: float, fly_distance: float, options: Dictionary = {}) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_HIT_EVENT,
 		"projectileId": projectile_id,
@@ -36,7 +36,7 @@ static func create_projectile_hit_event(projectile_id: String, source, target, h
 		payload[key] = options[key]
 	return payload
 
-static func create_projectile_miss_event(projectile_id: String, source, reason: String, final_position: Vector3, fly_time: float, target = null) -> Dictionary:
+static func create_projectile_miss_event(projectile_id: String, source: ActorRef, reason: String, final_position: Vector3, fly_time: float, target: ActorRef = null) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_MISS_EVENT,
 		"projectileId": projectile_id,
@@ -49,7 +49,7 @@ static func create_projectile_miss_event(projectile_id: String, source, reason: 
 		payload["target"] = target
 	return payload
 
-static func create_projectile_despawn_event(projectile_id: String, source, reason: String) -> Dictionary:
+static func create_projectile_despawn_event(projectile_id: String, source: ActorRef, reason: String) -> Dictionary:
 	return {
 		"kind": PROJECTILE_DESPAWN_EVENT,
 		"projectileId": projectile_id,
@@ -57,7 +57,7 @@ static func create_projectile_despawn_event(projectile_id: String, source, reaso
 		"reason": reason,
 	}
 
-static func create_projectile_pierce_event(projectile_id: String, source, target, pierce_position: Vector3, pierce_count: int, damage = null) -> Dictionary:
+static func create_projectile_pierce_event(projectile_id: String, source: ActorRef, target: ActorRef, pierce_position: Vector3, pierce_count: int, damage: Variant = null) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_PIERCE_EVENT,
 		"projectileId": projectile_id,

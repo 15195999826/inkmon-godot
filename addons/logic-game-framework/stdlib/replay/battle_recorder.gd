@@ -6,7 +6,7 @@ var _meta: ReplayData.BattleMeta
 var is_recording: bool = false
 var current_frame: int = 0
 var actor_subscriptions: Dictionary = {}
-var pending_events: Array = []
+var pending_events: Array[Dictionary] = []
 
 func _init(recorder_config: Dictionary = {}):
 	var battle_id: String = recorder_config.get("battleId", "")
@@ -38,13 +38,13 @@ func start_recording(actors: Array, configs_value: Dictionary = {}, map_config_v
 		_record.initial_actors.append(ReplayData.ActorInitData.create(actor))
 		_subscribe_actor(actor)
 
-func record_frame(frame: int, events: Array) -> void:
+func record_frame(frame: int, events: Array[Dictionary]) -> void:
 	if not is_recording:
 		return
 
 	current_frame = frame
 
-	var all_events: Array = []
+	var all_events: Array[Dictionary] = []
 	all_events.append_array(events)
 	all_events.append_array(pending_events)
 	pending_events.clear()

@@ -334,7 +334,7 @@ func tick(dt: float) -> void:
 			if actor.can_act():
 				_start_actor_action(actor)
 	
-	var frame_events: Array = GameWorld.event_collector.flush()
+	var frame_events: Array[Dictionary] = GameWorld.event_collector.flush()
 	_process_frame_events(frame_events)
 	
 	# 录像记录帧
@@ -475,7 +475,7 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 	return event
 
 
-func _process_frame_events(events: Array) -> void:
+func _process_frame_events(events: Array[Dictionary]) -> void:
 	for event in events:
 		var kind: String = event.get("kind", "")
 		

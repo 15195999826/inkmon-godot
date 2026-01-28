@@ -9,7 +9,7 @@ var id: String
 var timeline_id: String
 var _timeline = null
 var _tag_actions: Dictionary = {}
-var _event_chain: Array = []
+var _event_chain: Array[Dictionary] = []
 var _game_state_provider = null
 var _ability_info: Dictionary = {}
 var _elapsed: float = 0.0
@@ -21,7 +21,7 @@ func _init(config: Dictionary):
 	timeline_id = str(config.get("timelineId", ""))
 	_timeline = TimelineRegistry.get_timeline(timeline_id)
 	_tag_actions = config.get("tagActions", {})
-	_event_chain = config.get("eventChain", [])
+	_event_chain.assign(config.get("eventChain", []))
 	_game_state_provider = config.get("gameplayState", null)
 	_ability_info = config.get("abilityInfo", {})
 	if _timeline == null:
