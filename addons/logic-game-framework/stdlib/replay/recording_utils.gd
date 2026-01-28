@@ -12,12 +12,12 @@ static func record_attribute_changes(attr_set: Variant, ctx: Dictionary) -> Arra
 
 	var listener_func = func(event):
 		ctx.pushEvent.call(
-			GameEvent.create_attribute_changed_event(
+			GameEvent.AttributeChanged.create(
 				ctx.actorId,
 				event.attributeName,
 				event.oldValue,
 				event.newValue
-			)
+			).to_dict()
 		)
 
 	var unsub = attr_set.addChangeListener(listener_func)
@@ -52,13 +52,13 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var unsubscribe := ability.add_triggered_listener(
 			func(event: Dictionary, triggered_components: Array):
 				ctx.pushEvent.call(
-					GameEvent.create_ability_triggered_event(
+					GameEvent.AbilityTriggered.create(
 						ctx.actorId,
 						ability_id,
 						ability_config_id,
 						event.get("kind", "unknown"),
 						triggered_components
-					)
+					).to_dict()
 				)
 		)
 		ability_trigger_unsubscribes[ability_id] = unsubscribe
@@ -72,13 +72,13 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 				var instance_id: String = instance.id if "id" in instance else ""
 				var timeline_id: String = instance.timeline_id if "timeline_id" in instance else ""
 				ctx.pushEvent.call(
-					GameEvent.create_execution_activated_event(
+					GameEvent.ExecutionActivated.create(
 						ctx.actorId,
 						ability_id,
 						ability_config_id,
 						instance_id,
 						timeline_id
-					)
+					).to_dict()
 				)
 		)
 		ability_execution_unsubscribes[ability_id] = unsubscribe
@@ -93,10 +93,10 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		func(ability: Ability, _ability_set: AbilitySet):
 			# 记录 Ability 获得事件
 			ctx.pushEvent.call(
-				GameEvent.create_ability_granted_event(ctx.actorId, {
+				GameEvent.AbilityGranted.create(ctx.actorId, {
 					"instanceId": ability.id,
 					"configId": ability.config_id,
-				})
+				}).to_dict()
 			)
 			# 为新 Ability 订阅事件
 			subscribe_ability_triggered.call(ability)
@@ -109,7 +109,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		func(ability: Ability, _reason: String, _ability_set: AbilitySet, _expire_reason: String):
 			# 记录 Ability 移除事件
 			ctx.pushEvent.call(
-				GameEvent.create_ability_removed_event(ctx.actorId, ability.id)
+				GameEvent.AbilityRemoved.create(ctx.actorId, ability.id).to_dict()
 			)
 			# 清理该 Ability 的订阅
 			var ability_id: String = ability.id
@@ -159,12 +159,12 @@ static func record_tag_changes(tag_source: Variant, ctx: Dictionary) -> Callable
 
 	var listener_func = func(tag: String, old_count: int, new_count: int, _container):
 		ctx.pushEvent.call(
-			GameEvent.create_tag_changed_event(
+			GameEvent.TagChanged.create(
 				ctx.actorId,
 				tag,
 				old_count,
 				new_count
-			)
+			).to_dict()
 		)
 
 	if has_snake_case:
@@ -181,14 +181,14 @@ static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array:
 	# 订阅 Actor 生成事件
 	var spawn_listener = func():
 		ctx.pushEvent.call(
-			GameEvent.create_actor_spawned_event(actor)
+			GameEvent.ActorSpawned.create(actor.id, actor.to_dict()).to_dict()
 		)
 	unsubscribes.append(actor.add_spawn_listener(spawn_listener))
 
 	# 订阅 Actor 销毁事件
 	var despawn_listener = func():
 		ctx.pushEvent.call(
-			GameEvent.create_actor_destroyed_event(ctx.actorId)
+			GameEvent.ActorDestroyed.create(ctx.actorId).to_dict()
 		)
 	unsubscribes.append(actor.add_despawn_listener(despawn_listener))
 

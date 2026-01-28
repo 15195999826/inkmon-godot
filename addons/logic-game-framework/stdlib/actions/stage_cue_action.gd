@@ -35,13 +35,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var cue_id_value := _cue_id.resolve(ctx)
 	var params_value := _cue_params.resolve(ctx)
 
-	var event = GameEvent.create_stage_cue_event(
+	var event := GameEvent.StageCue.create(
 		source_actor_id,
 		target_actor_ids,
 		cue_id_value,
 		params_value
 	)
 
-	ctx.event_collector.push(event)
+	ctx.event_collector.push(event.to_dict())
 
-	return ActionResult.create_success_result([event])
+	return ActionResult.create_success_result([event.to_dict()])
