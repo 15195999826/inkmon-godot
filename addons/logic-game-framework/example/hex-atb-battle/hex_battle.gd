@@ -215,7 +215,9 @@ func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
 
 
 func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
-	var actor := CharacterActor.new(char_class)
+	var actor := create_actor(func():
+		return CharacterActor.new(char_class)
+	) as CharacterActor
 	_actor_dict[actor.get_id()] = actor
 	return actor
 
