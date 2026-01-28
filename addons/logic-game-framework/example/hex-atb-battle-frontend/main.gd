@@ -231,20 +231,23 @@ func _run_logic_battle(map_config: Dictionary) -> Dictionary:
 	GameWorld.init()
 	
 	# 创建战斗实例
-	_battle = HexBattle.new()
-	_battle.start({
-		"logging": false,      # 禁用日志文件输出
-		"recording": true,     # 启用录像
-		"console_log": false,  # 禁用控制台日志
-		"file_log": false,     # 禁用文件日志
-		"map_config": map_config,  # 传递地图配置
-	})
+	_battle = GameWorld.create_instance(func() -> GameplayInstance:
+		var b := HexBattle.new()
+		b.start({
+			"logging": false,      # 禁用日志文件输出
+			"recording": true,     # 启用录像
+			"console_log": false,  # 禁用控制台日志
+			"file_log": false,     # 禁用文件日志
+			"map_config": map_config,  # 传递地图配置
+		})
+		return b
+	) as HexBattle
 	
 	# 同步运行战斗（每帧 100ms，最多 100 帧）
 	var dt := 100.0
 	for i in range(100):
-		_battle.tick(dt)
-		if _battle._ended:
+		GameWorld.tick_all(dt)
+		if not GameWorld.has_running_instances():
 			break
 	
 	print("[Main] Logic battle completed in %d ticks" % _battle.tick_count)
