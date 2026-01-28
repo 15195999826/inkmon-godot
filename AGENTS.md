@@ -89,18 +89,6 @@ extends Node
 
 使用 `godot --script` 运行的脚本必须继承 `SceneTree` 或 `MainLoop`：
 
-```gdscript
-# ❌ 错误：RefCounted/Node 无法直接运行
-extends RefCounted
-
-# ✅ 正确：继承 SceneTree
-extends SceneTree
-
-func _init():
-    var success := run_tests()
-    quit(0 if success else 1)
-
-func run_tests() -> bool:
-    # 测试逻辑
-    return true
-```
+**Headless 模式运行方式**：
+- ❌ 错误：`godot --headless --script main.gd` (Autoload 不加载)
+- ✅ 正确：`godot --headless main.tscn` (场景模式，Autoload 正常)

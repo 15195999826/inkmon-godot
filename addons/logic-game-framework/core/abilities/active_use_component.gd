@@ -98,8 +98,8 @@ func _get_ability_set(context: Dictionary, game_state_provider):
 func _get_logic_time(event: Dictionary, game_state_provider) -> float:
 	if event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
 		return float(event["logicTime"])
-	if game_state_provider != null and game_state_provider.has("logicTime"):
-		return float(game_state_provider.logicTime)
+	if game_state_provider != null and game_state_provider.has_method("get_logic_time"):
+		return game_state_provider.get_logic_time()
 	return float(Time.get_ticks_msec())
 
 
