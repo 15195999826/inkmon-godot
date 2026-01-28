@@ -2,7 +2,7 @@
 ##
 ## 实现 ATB 战斗系统的主类
 class_name HexBattle
-extends RefCounted
+extends GameplayInstance
 
 # ========== 常量 ==========
 
@@ -11,11 +11,6 @@ const MAX_TICKS := 100
 
 # ========== 属性 ==========
 
-var id: String
-var logic_time: float = 0.0
-var logicTime: float:
-	get:
-		return logic_time
 var tick_count: int = 0
 
 ## 地图（通过 UGridMap autoload 访问）
@@ -28,8 +23,8 @@ var grid: GridMapModel:
 var left_team: Array[CharacterActor] = []
 var right_team: Array[CharacterActor] = []
 
-## 所有角色（ID -> Actor）
-var _actors: Dictionary = {}
+## 所有角色（ID -> Actor）- Dictionary 用于 O(1) 查找
+var _actor_dict: Dictionary = {}
 
 ## 战斗是否结束
 var _ended: bool = false
@@ -53,7 +48,8 @@ var _recording_enabled: bool = true
 # ========== 初始化 ==========
 
 func _init() -> void:
-	id = IdGenerator.generate("battle")
+	super._init(IdGenerator.generate("battle"))
+	type = "hex_battle"
 
 
 ## 开始战斗
@@ -70,6 +66,7 @@ func _init() -> void:
 ##       - hex_size: float (默认 10.0)
 ##       - orientation: "flat" | "pointy" (默认 "flat")
 func start(config: Dictionary = {}) -> void:
+	super.start()
 	print("\n========== HexBattle 开始 ==========\n")
 	
 	# 确保 GameWorld 已初始化
@@ -219,7 +216,7 @@ func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
 
 func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
 	var actor := CharacterActor.new(char_class)
-	_actors[actor.get_id()] = actor
+	_actor_dict[actor.get_id()] = actor
 	return actor
 
 
@@ -299,8 +296,14 @@ func get_alive_actors() -> Array:
 	return result
 
 
+## 重写父类方法，使用 Dictionary 实现 O(1) 查找
 func get_actor(actor_id: String) -> CharacterActor:
-	return _actors.get(actor_id, null)
+	return _actor_dict.get(actor_id, null) as CharacterActor
+
+
+## 重写父类方法，返回所有角色
+func get_actors() -> Array:
+	return _actor_dict.values()
 
 
 func get_ability_set_for_actor(actor_id: String) -> BattleAbilitySet:
@@ -313,18 +316,19 @@ func get_ability_set_for_actor(actor_id: String) -> BattleAbilitySet:
 # ========== 战斗主循环 ==========
 
 func tick(dt: float) -> void:
+	base_tick(dt)
+	
 	if _ended:
 		return
 	
-	logic_time += dt
 	tick_count += 1
 	
 	# 日志记录帧
 	if _logging_enabled and logger != null:
-		logger.tick(tick_count, logic_time)
+		logger.tick(tick_count, _logic_time)
 	
 	for actor in get_alive_actors():
-		actor.ability_set.tick(dt, logic_time)
+		actor.ability_set.tick(dt, _logic_time)
 		
 		if _is_actor_executing(actor):
 			actor.ability_set.tick_executions(dt)
@@ -465,7 +469,7 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
 		"abilityInstanceId": ability_instance_id,
 		"sourceId": source_id,
-		"logicTime": logic_time,  # 添加逻辑时间，避免框架尝试从 game_state_provider 获取
+		"logicTime": _logic_time,  # 添加逻辑时间，避免框架尝试从 game_state_provider 获取
 	}
 	if target != null:
 		event["target"] = target
@@ -557,10 +561,11 @@ func _check_battle_end() -> bool:
 
 
 func _end(result: String = "") -> void:
+	super.end()
 	_ended = true
 	print("\n========== HexBattle 结束 ==========")
 	print("总帧数: %d" % tick_count)
-	print("逻辑时间: %.1f ms" % logic_time)
+	print("逻辑时间: %.1f ms" % _logic_time)
 	
 	# 保存日志
 	if _logging_enabled and logger != null:
