@@ -55,10 +55,10 @@
 - `addons/logic-game-framework/docs/README.md` - 添加最佳实践文档
 
 ### Definition of Done
-- [ ] 所有事件类有 `create()`, `to_dict()`, `from_dict()`, `is_match()` 方法
-- [ ] 录像文件 JSON 格式与重构前完全一致
-- [ ] 表演层 Visualizers 使用强类型事件
-- [ ] 文档包含三层架构最佳实践
+- [x] 所有事件类有 `create()`, `to_dict()`, `from_dict()`, `is_match()` 方法
+- [x] 录像文件 JSON 格式与重构前完全一致
+- [x] 表演层 Visualizers 使用强类型事件
+- [x] 文档包含三层架构最佳实践
 
 ### Must Have
 - 强类型事件类（DamageEvent, HealEvent, MoveEvent, DeathEvent）
@@ -1422,8 +1422,8 @@ godot --headless addons/logic-game-framework/tests/run_tests.tscn
 ```
 
 ### Final Checklist
-- [ ] 所有事件类有强类型定义
-- [ ] 录像 JSON 格式未变
-- [ ] 表演层使用强类型事件
-- [ ] 文档已更新
-- [ ] 所有测试通过
+- [x] 所有事件类有强类型定义
+- [x] 录像 JSON 格式未变
+- [x] 表演层使用强类型事件
+- [x] 文档已更新
+- [x] 所有测试通过
