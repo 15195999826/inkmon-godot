@@ -52,19 +52,23 @@ func greet(name_arg: String) -> String:
 func run_battle() -> String:
 	print("\n[Godot] Starting battle simulation...")
 	
-	# 创建 HexBattle 实例
-	var battle := HexBattle.new()
+	# 初始化 GameWorld
+	GameWorld.init()
 	
-	# 使用默认配置开始战斗（禁用文件保存，只获取数据）
-	battle.start({
-		"logging": false,  # 不保存日志文件
-		"recording": true,  # 启用录像
-	})
+	# 使用 GameWorld 创建 HexBattle 实例
+	var battle := GameWorld.create_instance(func() -> GameplayInstance:
+		var b := HexBattle.new()
+		b.start({
+			"logging": false,  # 不保存日志文件
+			"recording": true,  # 启用录像
+		})
+		return b
+	) as HexBattle
 	
 	# 运行战斗循环直到结束（但不包括最后一个 tick，避免 _end() 被调用）
 	var dt := 1.0  # 每个 tick 的时间步长
-	while battle.tick_count < battle.MAX_TICKS - 1 and not battle._ended:
-		battle.tick(dt)
+	while battle.tick_count < battle.MAX_TICKS - 1 and GameWorld.has_running_instances():
+		GameWorld.tick_all(dt)
 	
 	print("[Godot] Battle ended. Ticks: %d" % battle.tick_count)
 	
