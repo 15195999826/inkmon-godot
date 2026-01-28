@@ -67,13 +67,12 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# 计算过量治疗
 		var overheal := _calculate_overheal(target, heal_amount, ctx)
 		
-		var heal_event: Dictionary = ctx.event_collector.push(
-			HexBattleReplayEvents.create_heal_event(
-				target.id,
-				heal_amount,
-				source_id_str
-			)
+		var event := BattleEvents.HealEvent.create(
+			target.id,
+			heal_amount,
+			source_id_str
 		)
+		var heal_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		
 		# 添加过量治疗信息
 		if overheal > 0:

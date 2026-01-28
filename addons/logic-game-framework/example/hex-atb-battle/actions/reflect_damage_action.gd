@@ -12,7 +12,7 @@ extends RefCounted
 
 var type := "reflect_damage"
 var _damage: float
-var _damage_type: HexBattleReplayEvents.DamageType
+var _damage_type: BattleEvents.DamageType
 
 
 ## 构造函数
@@ -20,7 +20,7 @@ var _damage_type: HexBattleReplayEvents.DamageType
 ## @param damage_type: 伤害类型（默认 PURE）
 func _init(
 	damage: float,
-	damage_type: HexBattleReplayEvents.DamageType = HexBattleReplayEvents.DamageType.PURE
+	damage_type: BattleEvents.DamageType = BattleEvents.DamageType.PURE
 ) -> void:
 	_damage = damage
 	_damage_type = damage_type
@@ -47,21 +47,20 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	# 获取显示名称
 	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner, battle)
 	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(ActorRef.new(attacker_id), battle)
-	var damage_type_str := HexBattleReplayEvents._damage_type_to_string(_damage_type)
+	var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 	print("  [ReflectDamageAction] %s 反伤 %s %.0f 点 %s 伤害" % [owner_name, attacker_name, _damage, damage_type_str])
 	
 	# 产生伤害事件（回放格式），带 is_reflected 标记防止无限循环
 	var owner_id := owner.id if owner != null else ""
-	var reflect_event: Dictionary = ctx.event_collector.push(
-		HexBattleReplayEvents.create_damage_event(
-			attacker_id,
-			_damage,
-			_damage_type,
-			owner_id,
-			false,  # is_critical
-			true    # is_reflected
-		)
+	var event := BattleEvents.DamageEvent.create(
+		attacker_id,
+		_damage,
+		_damage_type,
+		owner_id,
+		false,  # is_critical
+		true    # is_reflected
 	)
+	var reflect_event: Dictionary = ctx.event_collector.push(event.to_dict())
 	
 	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
 	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)

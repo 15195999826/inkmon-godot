@@ -99,12 +99,12 @@ static var SLASH_ABILITY := (
 			HexBattleDamageAction.new(
 				TargetSelector.current_target(),
 				50.0,
-				HexBattleReplayEvents.DamageType.PHYSICAL
+				BattleEvents.DamageType.PHYSICAL
 			).on_critical(
 				HexBattleDamageAction.new(
 					TargetSelector.current_target(),
 					10.0,
-					HexBattleReplayEvents.DamageType.PHYSICAL
+					BattleEvents.DamageType.PHYSICAL
 				)
 			),
 		])
@@ -133,7 +133,7 @@ static var PRECISE_SHOT_ABILITY := (
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			45.0,
-			HexBattleReplayEvents.DamageType.PHYSICAL
+			BattleEvents.DamageType.PHYSICAL
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
 		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["precise_shot"]))
@@ -160,7 +160,7 @@ static var FIREBALL_ABILITY := (
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			80.0,
-			HexBattleReplayEvents.DamageType.MAGICAL
+			BattleEvents.DamageType.MAGICAL
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
 		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["fireball"]))
@@ -187,7 +187,7 @@ static var CRUSHING_BLOW_ABILITY := (
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			90.0,
-			HexBattleReplayEvents.DamageType.PHYSICAL
+			BattleEvents.DamageType.PHYSICAL
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
 		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["crushing_blow"]))
@@ -215,17 +215,17 @@ static var SWIFT_STRIKE_ABILITY := (
 		.on_tag(TimelineTags.HIT1, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			10.0,
-			HexBattleReplayEvents.DamageType.PHYSICAL
+			BattleEvents.DamageType.PHYSICAL
 		)])
 		.on_tag(TimelineTags.HIT2, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			10.0,
-			HexBattleReplayEvents.DamageType.PHYSICAL
+			BattleEvents.DamageType.PHYSICAL
 		)])
 		.on_tag(TimelineTags.HIT3, [HexBattleDamageAction.new(
 			TargetSelector.current_target(),
 			10.0,
-			HexBattleReplayEvents.DamageType.PHYSICAL
+			BattleEvents.DamageType.PHYSICAL
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
 		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["swift_strike"]))

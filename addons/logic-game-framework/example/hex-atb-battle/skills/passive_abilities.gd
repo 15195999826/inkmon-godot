@@ -26,7 +26,7 @@ static var THORN_PASSIVE := AbilityConfig.new(
 		)],
 		[HexBattleReflectDamageAction.new(
 			2.0,
-			HexBattleReplayEvents.DamageType.PURE
+			BattleEvents.DamageType.PURE
 		)]
 	)]
 )

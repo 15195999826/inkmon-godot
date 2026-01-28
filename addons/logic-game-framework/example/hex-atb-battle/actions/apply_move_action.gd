@@ -78,13 +78,12 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		])
 		
 		# 创建移动完成事件 (使用 Dictionary 以便 JSON 序列化)
-		var move_event: Dictionary = ctx.event_collector.push(
-			HexBattleReplayEvents.create_move_complete_event(
-				target.id,
-				from_hex.to_dict(),
-				target_coord.to_dict()
-			)
+		var event := BattleEvents.MoveCompleteEvent.create(
+			target.id,
+			from_hex.to_dict(),
+			target_coord.to_dict()
 		)
+		var move_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(move_event)
 	
 	return ActionResult.create_success_result(all_events, { "target_coord": target_coord_dict })

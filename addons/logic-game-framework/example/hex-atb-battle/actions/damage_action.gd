@@ -14,7 +14,7 @@ extends Action.BaseAction
 
 
 var _damage: float
-var _damage_type: HexBattleReplayEvents.DamageType
+var _damage_type: BattleEvents.DamageType
 
 # 回调列表
 var _on_hit_callbacks: Array[Action.BaseAction] = []
@@ -25,7 +25,7 @@ var _on_kill_callbacks: Array[Action.BaseAction] = []
 func _init(
 	target_selector: TargetSelector,
 	damage: float,
-	damage_type: HexBattleReplayEvents.DamageType = HexBattleReplayEvents.DamageType.PHYSICAL
+	damage_type: BattleEvents.DamageType = BattleEvents.DamageType.PHYSICAL
 ) -> void:
 	super._init(target_selector)
 	type = "damage"
@@ -79,7 +79,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			"source": source,
 			"target": target,
 			"damage": _damage,
-			"damage_type": HexBattleReplayEvents._damage_type_to_string(_damage_type),
+			"damage_type": BattleEvents._damage_type_to_string(_damage_type),
 		}
 		
 		var mutable: Variant = event_processor.process_pre_event(pre_event, battle)
@@ -101,7 +101,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# 打印日志
 		var source_name := HexBattleGameStateUtils.get_actor_display_name(source, battle)
 		var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
-		var damage_type_str := HexBattleReplayEvents._damage_type_to_string(_damage_type)
+		var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 		var crit_text := " (暴击!)" if is_critical else ""
 		if final_damage != _damage:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s (原始: %.0f)" % [source_name, target_name, final_damage, damage_type_str, crit_text, _damage])
@@ -110,15 +110,14 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		# ========== 产生最终事件（回放格式） ==========
 		var source_id := source.id if source != null else ""
-		var damage_event: Dictionary = ctx.event_collector.push(
-			HexBattleReplayEvents.create_damage_event(
-				target.id,
-				final_damage,
-				_damage_type,
-				source_id,
-				is_critical
-			)
+		var event := BattleEvents.DamageEvent.create(
+			target.id,
+			final_damage,
+			_damage_type,
+			source_id,
+			is_critical
 		)
+		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(damage_event)
 		
 		# ========== 处理回调 ==========
