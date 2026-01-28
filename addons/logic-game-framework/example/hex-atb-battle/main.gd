@@ -22,14 +22,20 @@ var accumulated_time: float = 0.0
 func _ready() -> void:
 	print("HexAtbBattle Example Starting...")
 	
+	# 初始化 GameWorld
+	GameWorld.init()
+	
 	# 创建并启动战斗
-	battle = HexBattle.new()
-	battle.start({
-		"logging": enable_logging,
-		"recording": enable_recording,
-		"console_log": enable_console_log,
-		"file_log": enable_logging,
-	})
+	battle = GameWorld.create_instance(func() -> GameplayInstance:
+		var b := HexBattle.new()
+		b.start({
+			"logging": enable_logging,
+			"recording": enable_recording,
+			"console_log": enable_console_log,
+			"file_log": enable_logging,
+		})
+		return b
+	)
 	
 	# 在 headless 模式下同步运行战斗
 	if DisplayServer.get_name() == "headless":
@@ -37,7 +43,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if battle == null or battle._ended:
+	if not GameWorld.has_running_instances():
 		return
 	
 	# 累积时间
@@ -45,7 +51,7 @@ func _process(delta: float) -> void:
 	
 	# 按固定间隔执行 tick
 	while accumulated_time >= tick_interval:
-		battle.tick(tick_interval)
+		GameWorld.tick_all(tick_interval)
 		accumulated_time -= tick_interval
 
 
@@ -56,8 +62,8 @@ func _run_battle_sync() -> void:
 	# 模拟 100 帧
 	var dt := 100.0  # 每帧 100ms
 	for i in range(100):
-		battle.tick(dt)
-		if battle._ended:
+		GameWorld.tick_all(dt)
+		if not GameWorld.has_running_instances():
 			break
 	
 	print("\n========== 战斗运行完成 ==========")
