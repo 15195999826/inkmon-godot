@@ -18,8 +18,9 @@ func can_handle(event: Dictionary) -> bool:
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
-	var target_id := get_string_field(event, "target_actor_id")
-	var heal_amount := get_float_field(event, "heal_amount")
+	var e := BattleEvents.HealEvent.from_dict(event)
+	var target_id := e.target_actor_id
+	var heal_amount := e.heal_amount
 	
 	var target_position := context.get_actor_position(target_id)
 	var current_hp := context.get_actor_hp(target_id)

@@ -18,8 +18,9 @@ func can_handle(event: Dictionary) -> bool:
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
-	var actor_id := get_string_field(event, "actor_id")
-	var killer_id := get_string_field(event, "killer_actor_id")
+	var e := BattleEvents.DeathEvent.from_dict(event)
+	var actor_id := e.actor_id
+	var killer_id := e.killer_actor_id
 	
 	var actions: Array[FrontendVisualAction] = []
 	

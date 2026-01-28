@@ -18,10 +18,11 @@ func can_handle(event: Dictionary) -> bool:
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
-	var target_id := get_string_field(event, "target_actor_id")
-	var damage := get_float_field(event, "damage")
-	var is_critical := get_bool_field(event, "is_critical")
-	var is_reflected := get_bool_field(event, "is_reflected")
+	var e := BattleEvents.DamageEvent.from_dict(event)
+	var target_id := e.target_actor_id
+	var damage := e.damage
+	var is_critical := e.is_critical
+	var is_reflected := e.is_reflected
 	
 	var target_position := context.get_actor_position(target_id)
 	var current_hp := context.get_actor_hp(target_id)

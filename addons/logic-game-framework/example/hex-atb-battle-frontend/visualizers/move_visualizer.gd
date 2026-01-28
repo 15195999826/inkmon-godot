@@ -18,9 +18,11 @@ func can_handle(event: Dictionary) -> bool:
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var config := context.get_animation_config()
 	
-	var actor_id := get_string_field(event, "actor_id")
-	var from_hex: HexCoord = get_hex_field(event, "from_hex")
-	var to_hex: HexCoord = get_hex_field(event, "to_hex")
+	var e := BattleEvents.MoveStartEvent.from_dict(event)
+	var actor_id := e.actor_id
+	# 注意：from_hex/to_hex 在 BattleEvents 中是 Dictionary，需要转换为 HexCoord
+	var from_hex := HexCoord.from_dict(e.from_hex)
+	var to_hex := HexCoord.from_dict(e.to_hex)
 	
 	var move_action := FrontendMoveAction.new(
 		actor_id,
