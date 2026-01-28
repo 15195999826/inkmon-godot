@@ -68,3 +68,37 @@ enum DrawMode {
 func _init() -> void:
 	# 默认值已在 @export 声明中设置
 	pass
+
+
+# ========== 序列化方法 ==========
+
+## 转换为 Dictionary (用于序列化)
+func to_dict() -> Dictionary:
+	return {
+		"grid_type": grid_type,
+		"orientation": orientation,
+		"draw_mode": draw_mode,
+		"size": size,
+		"tile_size": { "x": tile_size.x, "y": tile_size.y },
+		"origin": { "x": origin.x, "y": origin.y },
+		"rows": rows,
+		"columns": columns,
+		"radius": radius,
+	}
+
+
+## 从 Dictionary 创建 GridMapConfig
+static func from_dict(d: Dictionary) -> GridMapConfig:
+	var config := GridMapConfig.new()
+	config.grid_type = d.get("grid_type", GridMapConfig.GridType.HEX) as GridMapConfig.GridType
+	config.orientation = d.get("orientation", GridMapConfig.Orientation.POINTY) as GridMapConfig.Orientation
+	config.draw_mode = d.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as GridMapConfig.DrawMode
+	config.size = d.get("size", 32.0)
+	var ts: Dictionary = d.get("tile_size", {})
+	config.tile_size = Vector2(ts.get("x", 32.0), ts.get("y", 32.0))
+	var og: Dictionary = d.get("origin", {})
+	config.origin = Vector2(og.get("x", 0.0), og.get("y", 0.0))
+	config.rows = d.get("rows", 10)
+	config.columns = d.get("columns", 10)
+	config.radius = d.get("radius", 5)
+	return config
