@@ -1277,7 +1277,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 9. 删除 replay_keys.gd 和旧 replay_events.gd
+- [x] 9. 删除 replay_keys.gd 和旧 replay_events.gd
 
   **What to do**:
   - 删除 `addons/logic-game-framework/stdlib/replay/replay_keys.gd`
@@ -1322,7 +1322,7 @@ Wave 5 (After Wave 4):
 
 ---
 
-- [ ] 10. 更新文档
+- [x] 10. 更新文档
 
   **What to do**:
   - 更新 `addons/logic-game-framework/docs/README.md` 添加"逻辑表演分离架构"最佳实践
