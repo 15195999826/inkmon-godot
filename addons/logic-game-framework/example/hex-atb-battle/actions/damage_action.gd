@@ -66,7 +66,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	var battle: HexBattle = ctx.game_state_provider
 	
-	var event_processor: Variant = GameWorld.event_processor
+	var event_processor: EventProcessor = GameWorld.event_processor
 	var all_events: Array[Dictionary] = []
 	
 	# 获取 actors 列表（用于 Post 阶段广播）
@@ -82,7 +82,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			"damage_type": BattleEvents._damage_type_to_string(_damage_type),
 		}
 		
-		var mutable: Variant = event_processor.process_pre_event(pre_event, battle)
+		var mutable: MutableEvent = event_processor.process_pre_event(pre_event, battle)
 		
 		# 如果被取消（如免疫），跳过此目标
 		if mutable.cancelled:

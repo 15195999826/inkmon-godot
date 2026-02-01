@@ -56,7 +56,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var move_success: bool = grid.move_occupant(from_hex, target_coord)
 		
 		if not move_success:
-			var occupant: Variant = grid.get_occupant(target_coord)
+			var occupant: Actor = grid.get_occupant(target_coord)
 			var reservation: String = grid.get_reservation(target_coord)
 			var has_tile: bool = grid.has_tile(target_coord)
 			push_error(

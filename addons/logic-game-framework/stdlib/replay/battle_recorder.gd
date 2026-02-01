@@ -109,7 +109,7 @@ func unregister_actor(actor_id: String, reason: String = "") -> void:
 	var event := GameEvent.ActorDestroyed.create(actor_id, reason)
 	pending_events.append(event.to_dict())
 
-	var subscription: Variant = actor_subscriptions.get(actor_id)
+	var subscription = actor_subscriptions.get(actor_id)
 	if subscription:
 		for unsub in subscription.get("unsubscribes", []):
 			if unsub is Callable:
@@ -133,7 +133,7 @@ func _subscribe_actor(actor: Actor) -> void:
 	var ctx := {
 		"actorId": actor_id,
 		"getLogicTime": func() -> int: return state.current_frame * state.tick_interval,
-		"pushEvent": func(event: Variant) -> void:
+		"pushEvent": func(event: Dictionary) -> void:
 			if state.is_recording:
 				state.pending_events.append(event),
 	}

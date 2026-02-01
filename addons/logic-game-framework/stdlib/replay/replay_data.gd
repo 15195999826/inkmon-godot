@@ -92,7 +92,7 @@ class ActorInitData:
 	var type: String = ""
 	var config_id: String = ""
 	var display_name: String = ""
-	var team: Variant = 0
+	var team: int = 0
 	var position: Array = []
 	var attributes: Dictionary = {}
 	var abilities: Array = []

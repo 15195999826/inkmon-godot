@@ -161,14 +161,14 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 	grid_config.origin = Vector2.ZERO
 	
 	# 转换方向枚举（支持枚举数值和字符串）
-	var orientation_val: Variant = map_config.get("orientation", 0)
+	var orientation_val = map_config.get("orientation", 0)
 	if orientation_val is int:
 		grid_config.orientation = (orientation_val as int) as GridMapConfig.Orientation
 	else:
 		grid_config.orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
 	
 	# 转换绘制模式（支持枚举数值和字符串）
-	var draw_mode_val: Variant = map_config.get("draw_mode", 0)
+	var draw_mode_val = map_config.get("draw_mode", 0)
 	if draw_mode_val is int:
 		grid_config.draw_mode = (draw_mode_val as int) as GridMapConfig.DrawMode
 	else:

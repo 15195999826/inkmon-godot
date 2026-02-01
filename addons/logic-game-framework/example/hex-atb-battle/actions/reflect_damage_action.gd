@@ -28,7 +28,7 @@ func _init(
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var current_event: Variant = ctx.get_current_event()
+	var current_event: Dictionary = ctx.get_current_event()
 	
 	# 从触发事件获取攻击来源（使用回放格式）
 	var attacker_id: String = ""
@@ -66,7 +66,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
 	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
 	if actors.size() > 0:
-		var event_processor: Variant = GameWorld.event_processor
+		var event_processor: EventProcessor = GameWorld.event_processor
 		event_processor.process_post_event(reflect_event, actors, battle)
 	
 	return ActionResult.create_success_result([reflect_event], { "damage": _damage, "target": attacker_id })
