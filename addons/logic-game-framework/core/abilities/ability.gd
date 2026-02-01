@@ -50,37 +50,6 @@ func is_expired() -> bool:
 func get_expire_reason() -> String:
 	return _expire_reason
 
-## 获取组件，ctor 可以是 Script 类型或 String 类型名
-func get_component(ctor: Variant) -> AbilityComponent:
-	for component in _components:
-		if _component_matches(component, ctor):
-			return component
-	return null
-
-## 获取所有匹配的组件，ctor 可以是 Script 类型或 String 类型名
-func get_components(ctor: Variant) -> Array[AbilityComponent]:
-	var results: Array[AbilityComponent] = []
-	for component in _components:
-		if _component_matches(component, ctor):
-			results.append(component)
-	return results
-
-## 检查是否有匹配的组件，ctor 可以是 Script 类型或 String 类型名
-func has_component(ctor: Variant) -> bool:
-	for component in _components:
-		if _component_matches(component, ctor):
-			return true
-	return false
-
-func _component_matches(component: AbilityComponent, ctor: Variant) -> bool:
-	if component == null:
-		return false
-	if typeof(ctor) == TYPE_STRING:
-		return component.get_class() == ctor
-	if ctor is Script:
-		return component.get_script() == ctor
-	return component.get_class() == str(ctor)
-
 func get_all_components() -> Array[AbilityComponent]:
 	return _components
 
