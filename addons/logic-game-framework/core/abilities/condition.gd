@@ -79,27 +79,25 @@ class AllConditions:
 	extends Condition
 
 	func _init(conditions_value: Array):
-		conditions = conditions_value
+		conditions.assign(conditions_value)
 
 	func get_condition_type() -> String:
 		return "all"
 
-	var conditions: Array
+	var conditions: Array[Condition] = []
 
 	func check(ctx: Dictionary) -> bool:
 		for condition in conditions:
-			if condition != null and condition.has_method("check"):
-				if not condition.check(ctx):
-					return false
+			if not condition.check(ctx):
+				return false
 		return true
 
 	func get_fail_reason(ctx: Dictionary) -> String:
 		for condition in conditions:
-			if condition != null and condition.has_method("check"):
-				if not condition.check(ctx):
-					if condition.has_method("get_fail_reason"):
-						return condition.get_fail_reason(ctx)
-					return "条件不满足: %s" % (condition.get_condition_type() if condition.has_method("get_condition_type") else "")
+			if not condition.check(ctx):
+				if condition.has_method("get_fail_reason"):
+					return condition.get_fail_reason(ctx)
+				return "条件不满足: %s" % (condition.get_condition_type() if condition.has_method("get_condition_type") else "")
 		return ""
 
 
@@ -107,18 +105,17 @@ class AnyCondition:
 	extends Condition
 
 	func _init(conditions_value: Array):
-		conditions = conditions_value
+		conditions.assign(conditions_value)
 
 	func get_condition_type() -> String:
 		return "any"
 
-	var conditions: Array
+	var conditions: Array[Condition] = []
 
 	func check(ctx: Dictionary) -> bool:
 		for condition in conditions:
-			if condition != null and condition.has_method("check"):
-				if condition.check(ctx):
-					return true
+			if condition.check(ctx):
+				return true
 		return false
 
 	func get_fail_reason(_ctx: Dictionary) -> String:

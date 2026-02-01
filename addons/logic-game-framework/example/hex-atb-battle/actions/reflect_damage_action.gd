@@ -7,10 +7,9 @@
 ## 反伤产生的 damage 事件带有 is_reflected: true 标记，
 ## 荆棘被动应在 filter 中排除这类事件，避免无限循环。
 class_name HexBattleReflectDamageAction
-extends RefCounted
+extends Action.BaseAction
 
 
-var type := "reflect_damage"
 var _damage: float
 var _damage_type: BattleEvents.DamageType
 
@@ -22,6 +21,8 @@ func _init(
 	damage: float,
 	damage_type: BattleEvents.DamageType = BattleEvents.DamageType.PURE
 ) -> void:
+	super._init(null)  # ReflectDamageAction 不使用 target_selector
+	type = "reflect_damage"
 	_damage = damage
 	_damage_type = damage_type
 

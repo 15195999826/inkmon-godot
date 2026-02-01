@@ -5,12 +5,12 @@ const TYPE := "NoInstanceComponent"
 
 var _triggers: Array = []
 var _trigger_mode: String = "any"
-var _actions: Array = []
+var _actions: Array[Action.BaseAction] = []
 
 func _init(config: NoInstanceConfig):
 	type = TYPE
 	_trigger_mode = config.trigger_mode
-	_actions = config.actions
+	_actions.assign(config.actions)
 	# 转换 TriggerConfig 为内部格式
 	for trigger in config.triggers:
 		if trigger is TriggerConfig:
@@ -56,10 +56,7 @@ func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary)
 func _execute_actions(event: Dictionary, context: Dictionary, game_state_provider) -> void:
 	var exec_context = _build_execution_context(event, context, game_state_provider)
 	for action in _actions:
-		if action != null and action.has_method("execute"):
-			action.execute(exec_context)
-		else:
-			Log.warning("NoInstanceComponent", "NoInstanceComponent missing action.execute")
+		action.execute(exec_context)
 
 func _build_execution_context(event: Dictionary, context: Dictionary, game_state_provider):
 	var ability = context.get("ability", null)

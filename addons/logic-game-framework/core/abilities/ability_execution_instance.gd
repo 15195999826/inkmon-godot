@@ -101,10 +101,10 @@ func _execute_actions_for_tag(tag_name: String, actions: Array) -> void:
 		return
 	var exec_context = _build_execution_context(tag_name)
 	for action in actions:
-		if action != null and action.has_method("execute"):
+		if action != null:
 			action.execute(exec_context)
 		else:
-			Log.warning("AbilityExecutionInstance", "ExecutionInstance missing action.execute")
+			Log.warning("AbilityExecutionInstance", "ExecutionInstance missing action")
 
 func _resolve_actions_for_tag(tag_name: String) -> Array:
 	if _tag_actions.has(tag_name):

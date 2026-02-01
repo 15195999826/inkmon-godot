@@ -463,7 +463,7 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 		return { "type": "skip" }
 
 
-func _create_action_use_event(ability_instance_id: String, source_id: String, target: ActorRef, target_coord: Variant) -> Dictionary:
+func _create_action_use_event(ability_instance_id: String, source_id: String, target: ActorRef, target_coord: HexCoord) -> Dictionary:
 	var event := {
 		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
 		"abilityInstanceId": ability_instance_id,

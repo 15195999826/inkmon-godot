@@ -95,8 +95,8 @@ class HasTagAction:
 	extends Action.BaseAction
 
 	var tag: String
-	var then_actions: Array = []
-	var else_actions: Array = []
+	var then_actions: Array[Action.BaseAction] = []
+	var else_actions: Array[Action.BaseAction] = []
 
 	## 构造函数
 	## @param target_selector: 目标选择器
@@ -112,8 +112,8 @@ class HasTagAction:
 		super._init(target_selector)
 		type = "hasTag"
 		tag = tag_name
-		then_actions = then_action_list
-		else_actions = else_action_list
+		then_actions.assign(then_action_list)
+		else_actions.assign(else_action_list)
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")
@@ -126,8 +126,7 @@ class HasTagAction:
 			var has_tag := ability_set.has_tag(tag)
 			var actions = then_actions if has_tag else else_actions
 			for action in actions:
-				if action != null and action.has_method("execute"):
-					var result: ActionResult = action.execute(ctx)
-					if result != null and result.events is Array:
-						all_events.append_array(result.events)
+				var result: ActionResult = action.execute(ctx)
+				if result != null and result.events is Array:
+					all_events.append_array(result.events)
 		return ActionResult.create_success_result(all_events)

@@ -3,8 +3,8 @@ class_name ActiveUseComponent
 
 const COMPONENT_TYPE := "ActiveUseComponent"
 
-var _conditions: Array = []
-var _costs: Array = []
+var _conditions: Array[Condition] = []
+var _costs: Array[Cost] = []
 
 func _init(config: ActiveUseConfig):
 	# 构建父类配置
@@ -17,8 +17,8 @@ func _init(config: ActiveUseConfig):
 	)
 	super._init(parent_config)
 	type = COMPONENT_TYPE
-	_conditions = config.conditions
-	_costs = config.costs
+	_conditions.assign(config.conditions)
+	_costs.assign(config.costs)
 
 
 func _create_default_trigger_config() -> TriggerConfig:
@@ -63,30 +63,27 @@ func _activate_without_checks(event: Dictionary, context: Dictionary, game_state
 
 func _check_conditions(ctx: Dictionary) -> bool:
 	for condition in _conditions:
-		if condition != null and condition.has_method("check"):
-			if not condition.check(ctx):
-				var reason: String = condition.type if condition.has("type") else ""
-				if condition.has_method("get_fail_reason"):
-					reason = str(condition.get_fail_reason(ctx))
-				Log.debug("ActiveUseComponent", "条件不满足: %s" % reason)
-				return false
+		if not condition.check(ctx):
+			var reason: String = condition.type if condition.has("type") else ""
+			if condition.has_method("get_fail_reason"):
+				reason = str(condition.get_fail_reason(ctx))
+			Log.debug("ActiveUseComponent", "条件不满足: %s" % reason)
+			return false
 	return true
 
 func _check_costs(ctx: Dictionary) -> bool:
 	for cost in _costs:
-		if cost != null and cost.has_method("can_pay"):
-			if not cost.can_pay(ctx):
-				var reason: String = cost.type if cost.has("type") else ""
-				if cost.has_method("get_fail_reason"):
-					reason = str(cost.get_fail_reason(ctx))
-				Log.debug("ActiveUseComponent", "消耗不足: %s" % reason)
-				return false
+		if not cost.can_pay(ctx):
+			var reason: String = cost.type if cost.has("type") else ""
+			if cost.has_method("get_fail_reason"):
+				reason = str(cost.get_fail_reason(ctx))
+			Log.debug("ActiveUseComponent", "消耗不足: %s" % reason)
+			return false
 	return true
 
 func _pay_costs(ctx: Dictionary) -> void:
 	for cost in _costs:
-		if cost != null and cost.has_method("pay"):
-			cost.pay(ctx)
+		cost.pay(ctx)
 
 func _get_ability_set(context: Dictionary, game_state_provider):
 	if game_state_provider != null and game_state_provider.has_method("get_ability_set_for_actor"):
@@ -101,5 +98,3 @@ func _get_logic_time(event: Dictionary, game_state_provider) -> float:
 	if game_state_provider != null and game_state_provider.has_method("get_logic_time"):
 		return game_state_provider.get_logic_time()
 	return float(Time.get_ticks_msec())
-
-

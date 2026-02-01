@@ -32,10 +32,10 @@ var triggers: Array
 var trigger_mode: String
 
 ## 条件列表（全部满足才能激活）
-var conditions: Array
+var conditions: Array[Condition] = []
 
 ## 消耗列表（激活时扣除）
-var costs: Array
+var costs: Array[Cost] = []
 
 
 func _init(
@@ -48,8 +48,8 @@ func _init(
 ) -> void:
 	self.timeline_id = timeline_id
 	self.tag_actions = tag_actions
-	self.conditions = conditions
-	self.costs = costs
+	self.conditions.assign(conditions)
+	self.costs.assign(costs)
 	self.triggers = triggers
 	self.trigger_mode = trigger_mode
 

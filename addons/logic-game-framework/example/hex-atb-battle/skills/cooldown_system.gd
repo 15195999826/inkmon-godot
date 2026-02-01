@@ -9,9 +9,10 @@ extends RefCounted
 
 ## 检查技能是否不在冷却中
 class CooldownCondition:
-	extends RefCounted
+	extends Condition
 	
-	var type := "cooldown_ready"
+	func get_condition_type() -> String:
+		return "cooldown_ready"
 	
 	func check(ctx: Dictionary) -> bool:
 		var ability_set = ctx.get("abilitySet", null)
@@ -30,12 +31,12 @@ class CooldownCondition:
 
 ## 支付冷却时间
 class TimedCooldownCost:
-	extends RefCounted
+	extends Cost
 	
-	var type := "timed_cooldown"
 	var _duration: float
 	
 	func _init(duration: float) -> void:
+		type = "timed_cooldown"
 		_duration = duration
 	
 	func can_pay(_ctx: Dictionary) -> bool:

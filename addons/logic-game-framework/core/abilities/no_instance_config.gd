@@ -13,7 +13,7 @@ var triggers: Array
 var trigger_mode: String
 
 ## Action 列表（触发时执行）
-var actions: Array
+var actions: Array[Action.BaseAction] = []
 
 
 func _init(
@@ -22,5 +22,5 @@ func _init(
 	trigger_mode: String = "any"
 ) -> void:
 	self.triggers = triggers
-	self.actions = actions
+	self.actions.assign(actions)
 	self.trigger_mode = trigger_mode
