@@ -139,8 +139,6 @@ func process_post_event(event: Dictionary, actors: Array, game_state_provider = 
 	_current_trace_id = trace.get("traceId", "")
 
 	for actor in actors:
-		if not actor.get("isActive", true):
-			continue
 		if actor.has("abilitySet") and actor["abilitySet"] != null:
 			var ability_set = actor["abilitySet"]
 			if ability_set.has_method("receive_event"):
@@ -161,8 +159,6 @@ func process_post_event_to_related(event: Dictionary, actors: Array, related_act
 	_current_trace_id = trace.get("traceId", "")
 
 	for actor in actors:
-		if not actor.get("isActive", true):
-			continue
 		if not related_actor_ids.has(actor.get("id", "")):
 			continue
 		if actor.has("abilitySet") and actor["abilitySet"] != null:

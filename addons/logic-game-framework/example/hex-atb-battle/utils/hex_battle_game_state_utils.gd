@@ -54,5 +54,5 @@ static func is_actor_dead(actor_id: String, game_state_provider: HexBattle) -> b
 		return false
 	var actor := game_state_provider.get_actor(actor_id)
 	if actor != null:
-		return  actor.is_dead()
+		return actor.get_hp() <= 0
 	return true

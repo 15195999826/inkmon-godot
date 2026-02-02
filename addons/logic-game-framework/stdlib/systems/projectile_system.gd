@@ -24,7 +24,7 @@ func tick(actors: Array, dt: float) -> void:
 	for actor in actors:
 		if actor is ProjectileActor and actor.is_flying():
 			projectiles.append(actor)
-		elif actor is Actor and actor.is_active:
+		elif actor is Actor:
 			potential_targets.append(actor)
 
 	for projectile in projectiles:
@@ -62,7 +62,7 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array) -> 
 			if actor is Actor and actor.id == target.id:
 				target_actor = actor
 				break
-		if target_actor and target_actor.is_active:
+		if target_actor:
 			var hit_position: Vector3 = projectile.position if projectile.position else target_actor.position
 			projectile.hit(target.id)
 			_emit_hit_event(projectile, target, hit_position)

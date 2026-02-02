@@ -16,6 +16,7 @@ var character_class: HexBattleClassConfig.CharacterClass
 ## 生成式属性集
 var attributes: HexBattleCharacterAttributeSet
 var ability_set: BattleAbilitySet
+var _is_dead: bool = false
 
 ## 当前位置（六边形坐标）
 ## 使用 HexCoord.invalid() 表示未设置位置，在 _init 中初始化
@@ -181,10 +182,16 @@ func reset_atb() -> void:
 
 ## 检查是否死亡
 func check_death() -> bool:
-	if get_hp() <= 0 and is_active():
-		on_death()
+	if get_hp() <= 0 and not _is_dead:
+		_is_dead = true
 		return true
 	return false
+
+func is_dead() -> bool:
+	return _is_dead
+
+func is_active() -> bool:
+	return get_hp() > 0
 
 
 # ========== 录像支持（覆盖 Actor 基类方法） ==========

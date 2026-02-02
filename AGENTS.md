@@ -109,3 +109,38 @@ func _check_conditions(ctx: Dictionary) -> bool:
             return false
     return true
 ```
+
+## 8. 接口模拟：静态工具类模式
+
+GDScript 无 `interface`，用静态工具类封装 `has_method`。
+
+### 模式
+```gdscript
+class_name IAbilitySetOwner
+## 协议要求: get_ability_set() -> AbilitySet
+
+static func get_ability_set(owner: Object) -> AbilitySet:
+    if owner == null or not owner.has_method("get_ability_set"):
+        return null
+    return owner.get_ability_set()
+
+static func is_implemented(owner: Object) -> bool:
+    return owner != null and owner.has_method("get_ability_set")
+```
+
+### 使用
+```gdscript
+# ❌ 散落检测
+if actor.has_method("get_ability_set"):
+    var ability_set = actor.get_ability_set()
+
+# ✅ 通过工具类集中处理
+var ability_set := IAbilitySetOwner.get_ability_set(actor)
+if ability_set != null:
+    ability_set.apply_tag(...)
+```
+
+### 要点
+- 命名：`I` + 协议名（如 `IAbilitySetOwner`）
+- 业务层优先用继承；框架层/跨模块用工具类
+- 内部仍用 `has_method`，避免到处散落

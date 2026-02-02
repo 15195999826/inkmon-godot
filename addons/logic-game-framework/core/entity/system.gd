@@ -53,9 +53,7 @@ func filter_active_actors(actors: Array) -> Array:
 	for actor in actors:
 		if actor == null:
 			continue
-		if actor.has_method("is_active") and actor.is_active():
-			results.append(actor)
-		elif actor.has("isActive") and actor.isActive:
+		if actor.has("isActive") and actor.isActive:
 			results.append(actor)
 	return results
 

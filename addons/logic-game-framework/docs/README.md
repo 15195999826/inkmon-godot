@@ -494,6 +494,107 @@ func visualize(event: Dictionary, context: Dictionary) -> void:
 
 ## 版本历史
 
+- **v0.4.0** - Actor ID 规范化，GameWorld.get_actor() 统一入口，IAbilitySetOwner 接口模式
 - **v0.3.0** - 重命名 `gameplay_state` → `game_state_provider`，添加 GameStateUtils 最佳实践
 - **v0.2.0** - Action 构造函数重构：Dictionary → 类型化参数
 - **v0.1.0** - 初始版本，从 TypeScript 迁移
+
+## Actor 管理架构 🎭
+
+### Actor ID 规范
+
+Actor ID 采用 `{instance_id}:{local_id}` 格式，支持跨实例查询：
+
+```gdscript
+# ID 格式示例
+"battle_001:hero_001"  # instance_id = "battle_001", local_id = "hero_001"
+
+# 使用 ActorId 工具类
+var full_id := ActorId.format("battle_001", "hero_001")
+var parsed := ActorId.parse(full_id)
+print(parsed.instance_id)  # "battle_001"
+print(parsed.local_id)     # "hero_001"
+```
+
+### 架构设计
+
+```
+GameWorld (Autoload 单例)
+  └── get_actor(full_id)  ← 统一查询入口
+        ↓ 解析 ActorId
+  └── _instances: Dictionary<instance_id, GameplayInstance>
+        └── GameplayInstance
+              └── _actors: Array<Actor>
+                    └── Actor
+                          ├── get_id() → "{instance_id}:{local_id}"
+                          ├── get_local_id() → "local_id"
+                          └── get_ability_set()  ← IAbilitySetOwner 协议
+```
+
+### 查询 Actor
+
+**框架层**：使用 `GameWorld.get_actor()` 统一入口
+
+```gdscript
+# ✅ 正确：框架层使用 GameWorld 查询
+var actor = GameWorld.get_actor(actor_ref.id)
+var ability_set = IAbilitySetOwner.get_ability_set(actor)
+
+# ❌ 错误：框架层不应依赖 game_state_provider 的具体类型
+var actor = game_state_provider.get_actor(actor_ref.id)
+```
+
+**项目层**：可以直接使用具体实例
+
+```gdscript
+# 项目层可以使用具体类型
+var battle: HexBattle = ctx.game_state_provider
+var actor := battle.get_actor(actor_id)
+```
+
+### 创建 Actor
+
+Actor 必须通过 `GameplayInstance.create_actor()` 创建，以确保 ID 规范：
+
+```gdscript
+# ✅ 正确：通过 GameplayInstance 创建
+var actor := instance.create_actor(func(): return CharacterActor.new(class_config))
+# actor.get_id() → "instance_001:Character_001"
+
+# ❌ 错误：直接 new 不会设置 instance_id
+var actor := CharacterActor.new(class_config)
+# actor.get_id() → "Character_001"（缺少 instance_id 前缀）
+```
+
+### IAbilitySetOwner 协议
+
+Actor 如果持有 AbilitySet，需要实现 `get_ability_set()` 方法：
+
+```gdscript
+class_name CharacterActor
+extends Actor
+
+var ability_set: BattleAbilitySet
+
+## 实现 IAbilitySetOwner 协议
+func get_ability_set() -> BattleAbilitySet:
+    return ability_set
+```
+
+框架层通过 `IAbilitySetOwner` 工具类安全获取：
+
+```gdscript
+# 安全获取，未实现协议返回 null
+var ability_set := IAbilitySetOwner.get_ability_set(actor)
+if ability_set != null:
+    ability_set.apply_tag("buff", 1)
+```
+
+### 设计原则
+
+| 原则 | 说明 |
+|------|------|
+| **GameWorld 是唯一入口** | 框架层通过 GameWorld.get_actor() 查询 |
+| **GameplayInstance 持有 Actor** | Actor 生命周期绑定到实例 |
+| **ID 自描述归属** | `{instance_id}:{local_id}` 格式 |
+| **接口协议化** | 使用 `IXxx` 静态工具类检测协议 |

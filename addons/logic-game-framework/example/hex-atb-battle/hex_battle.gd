@@ -290,7 +290,7 @@ func get_all_actors() -> Array:
 func get_alive_actors() -> Array:
 	var result: Array = []
 	for actor in get_all_actors():
-		if actor.is_active():
+		if actor.get_hp() > 0:
 			result.append(actor)
 	return result
 
@@ -505,6 +505,7 @@ func _process_frame_events(events: Array[Dictionary]) -> void:
 					# 记录死亡
 					if _logging_enabled and logger != null:
 						logger.actor_died(target_id, source_id)
+					remove_actor(target_id)
 		
 		elif kind == "heal":
 			var source_id: String = event.get("source_actor_id", "")
@@ -540,11 +541,11 @@ func _check_battle_end() -> bool:
 	var right_alive := 0
 	
 	for actor in left_team:
-		if actor.is_active():
+		if actor.get_hp() > 0:
 			left_alive += 1
 	
 	for actor in right_team:
-		if actor.is_active():
+		if actor.get_hp() > 0:
 			right_alive += 1
 	
 	if left_alive == 0:
