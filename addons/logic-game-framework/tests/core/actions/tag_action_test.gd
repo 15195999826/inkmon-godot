@@ -1,17 +1,30 @@
 extends Node
 
 
+## Mock Actor 实现 IAbilitySetOwner 协议
+class DummyActor:
+	extends RefCounted
+
+	var _ability_set: AbilitySet
+
+	func _init(set_value: AbilitySet):
+		_ability_set = set_value
+
+	func get_ability_set() -> AbilitySet:
+		return _ability_set
+
+
 class DummyState:
 	extends RefCounted
 
-	var ability_set: AbilitySet
+	var _actor: DummyActor
 	var logicTime: float = 100.0
 
 	func _init(set_value: AbilitySet):
-		ability_set = set_value
+		_actor = DummyActor.new(set_value)
 
-	func get_ability_set_for_actor(_actor_id: String):
-		return ability_set
+	func get_actor(_actor_id: String) -> DummyActor:
+		return _actor
 
 
 func _init() -> void:

@@ -225,6 +225,3 @@ static func create(owner_value: ActorRef, attributes: Variant) -> AbilitySet:
 		"owner": owner_value,
 		"attributes": attributes,
 	})
-
-static func is_ability_set_provider(obj: Variant) -> bool:
-	return obj != null and typeof(obj) == TYPE_OBJECT and obj.has_method("get_ability_set_for_actor")

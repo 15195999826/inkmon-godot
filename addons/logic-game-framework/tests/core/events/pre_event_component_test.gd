@@ -18,18 +18,30 @@ class MockModifierTarget:
 	func has_modifier(_modifier_id: String) -> bool:
 		return false
 
+class MockActor:
+	extends RefCounted
+
+	var _ability_set: AbilitySet
+
+	func _init(set_value: AbilitySet):
+		_ability_set = set_value
+
+	func get_ability_set() -> AbilitySet:
+		return _ability_set
+
+
 class MockState:
 	extends RefCounted
 
-	var ability_set: AbilitySet
+	var _actor: MockActor
 	var event_processor: EventProcessor
 
 	func _init(as_value: AbilitySet, ep_value: EventProcessor):
-		ability_set = as_value
+		_actor = MockActor.new(as_value)
 		event_processor = ep_value
 
-	func get_ability_set_for_actor(_actor_id: String):
-		return ability_set
+	func get_actor(_actor_id: String) -> MockActor:
+		return _actor
 
 func _init() -> void:
 	TestFramework.register_test("PreEventComponent - registers handler when granted", _test_registration)

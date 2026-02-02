@@ -107,6 +107,11 @@ func get_skill_ability() -> Ability:
 	return ability_set.find_ability_by_id(_skill_ability_id)
 
 
+## 获取 AbilitySet（实现 IAbilitySetOwner 协议）
+func get_ability_set() -> BattleAbilitySet:
+	return ability_set
+
+
 # ========== 属性访问 ==========
 
 func get_hp() -> float:
