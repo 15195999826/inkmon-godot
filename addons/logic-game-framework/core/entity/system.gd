@@ -29,7 +29,7 @@ func on_register(instance: GameplayInstance) -> void:
 func on_unregister() -> void:
 	_instance = null
 
-func tick(_actors: Array, _dt: float) -> void:
+func tick(_actors: Array[Actor], _dt: float) -> void:
 	pass
 
 func get_logic_time() -> float:
@@ -39,21 +39,17 @@ func get_logic_time() -> float:
 		return float(_instance.get_logic_time())
 	return 0.0
 
-func filter_actors_by_type(actors: Array, actor_type: String) -> Array:
-	var results := []
+func filter_actors_by_type(actors: Array[Actor], actor_type: String) -> Array[Actor]:
+	var results: Array[Actor] = []
 	for actor in actors:
-		if actor != null and actor.has("type") and actor.type == actor_type:
-			results.append(actor)
-		elif actor != null and actor.has_method("type") and actor.type == actor_type:
+		if actor.type == actor_type:
 			results.append(actor)
 	return results
 
-func filter_active_actors(actors: Array) -> Array:
-	var results := []
+func filter_active_actors(actors: Array[Actor]) -> Array[Actor]:
+	var results: Array[Actor] = []
 	for actor in actors:
-		if actor == null:
-			continue
-		if actor.has("isActive") and actor.isActive:
+		if "isActive" in actor and actor.isActive:
 			results.append(actor)
 	return results
 

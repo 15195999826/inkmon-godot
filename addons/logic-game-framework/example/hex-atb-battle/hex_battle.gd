@@ -280,15 +280,15 @@ func _print_battle_info() -> void:
 
 # ========== 查询方法 ==========
 
-func get_all_actors() -> Array:
-	var result: Array = []
+func get_all_actors() -> Array[CharacterActor]:
+	var result: Array[CharacterActor] = []
 	result.append_array(left_team)
 	result.append_array(right_team)
 	return result
 
 
-func get_alive_actors() -> Array:
-	var result: Array = []
+func get_alive_actors() -> Array[CharacterActor]:
+	var result: Array[CharacterActor] = []
 	for actor in get_all_actors():
 		if actor.get_hp() > 0:
 			result.append(actor)
@@ -301,8 +301,10 @@ func get_actor(actor_id: String) -> CharacterActor:
 
 
 ## 重写父类方法，返回所有角色
-func get_actors() -> Array:
-	return _actor_dict.values()
+func get_actors() -> Array[Actor]:
+	var result: Array[Actor] = []
+	result.assign(_actor_dict.values())
+	return result
 
 
 func get_ability_set_for_actor(actor_id: String) -> BattleAbilitySet:

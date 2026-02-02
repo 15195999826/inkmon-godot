@@ -17,9 +17,9 @@ func _init(detector: CollisionDetector = null, collector: EventCollector = null,
 func set_event_collector(collector: EventCollector) -> void:
 	event_collector = collector
 
-func tick(actors: Array, dt: float) -> void:
-	var projectiles := []
-	var potential_targets := []
+func tick(actors: Array[Actor], dt: float) -> void:
+	var projectiles: Array[ProjectileActor] = []
+	var potential_targets: Array[Actor] = []
 
 	for actor in actors:
 		if actor is ProjectileActor and actor.is_flying():
@@ -33,7 +33,7 @@ func tick(actors: Array, dt: float) -> void:
 	if auto_remove:
 		_process_pending_removal(actors)
 
-func _update_projectile(projectile: ProjectileActor, potential_targets: Array, dt: float) -> void:
+func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Actor], dt: float) -> void:
 	if projectile.config.get("projectileType", "bullet") == ProjectileActor.PROJECTILE_TYPE_HITSCAN:
 		_process_hitscan(projectile, potential_targets)
 		return
@@ -52,7 +52,7 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array, d
 	if collision.get("hit", false) and collision.get("target"):
 		_process_hit(projectile, collision)
 
-func _process_hitscan(projectile: ProjectileActor, potential_targets: Array) -> void:
+func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
 	var valid_targets = _filter_valid_targets(projectile, potential_targets)
 
 	var target: ActorRef = projectile.get_target()
@@ -95,11 +95,11 @@ func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
 		_emit_hit_event(projectile, target, hit_position)
 		_mark_for_removal(projectile)
 
-func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array) -> Array:
+func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array[Actor]) -> Array[Actor]:
 	var source_ref: ActorRef = projectile.get_source()
 	var source_id: String = source_ref.id if source_ref else ""
 
-	var valid := []
+	var valid: Array[Actor] = []
 	for target in potential_targets:
 		if not (target is Actor):
 			continue
@@ -117,7 +117,7 @@ func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array
 func _mark_for_removal(projectile: ProjectileActor) -> void:
 	pending_removal[projectile.id] = true
 
-func _process_pending_removal(actors: Array) -> void:
+func _process_pending_removal(actors: Array[Actor]) -> void:
 	# Remove marked projectiles from actors array
 	var i = 0
 	while i < actors.size():
@@ -190,8 +190,8 @@ func _emit_pierce_event(projectile: ProjectileActor, target: ActorRef, pierce_po
 
 	event_collector.push(event)
 
-func get_active_projectiles(actors: Array) -> Array:
-	var projectiles := []
+func get_active_projectiles(actors: Array[Actor]) -> Array[ProjectileActor]:
+	var projectiles: Array[ProjectileActor] = []
 	for actor in actors:
 		if actor is ProjectileActor and actor.is_flying():
 			projectiles.append(actor)
