@@ -85,13 +85,11 @@ func _pay_costs(ctx: Dictionary) -> void:
 	for cost in _costs:
 		cost.pay(ctx)
 
-func _get_ability_set(context: Dictionary, game_state_provider):
-	if game_state_provider == null or not game_state_provider.has_method("get_actor"):
-		return null
+func _get_ability_set(context: Dictionary, _game_state_provider):
 	var owner_ref = context.get("owner", null)
 	if owner_ref == null:
 		return null
-	var actor = game_state_provider.get_actor(owner_ref.id)
+	var actor = GameWorld.get_actor(owner_ref.id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
 func _get_logic_time(event: Dictionary, game_state_provider) -> float:

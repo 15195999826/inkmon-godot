@@ -112,3 +112,24 @@ func _is_running_instance(instance: GameplayInstance) -> bool:
 
 func _matches_instance_type(instance: GameplayInstance, type_value: String) -> bool:
 	return instance.type == type_value
+
+
+# ========== Actor 查询（统一入口） ==========
+
+## 通过完整 Actor ID 获取 Actor
+## Actor ID 格式: "{instance_id}:{local_id}"
+## 如果 ID 格式无效或找不到，返回 null
+func get_actor(actor_id: String) -> Actor:
+	var parsed: Dictionary = ActorId.parse(actor_id)
+	if parsed.instance_id.is_empty():
+		# 兼容旧格式：遍历所有实例查找
+		for instance in _instances.values():
+			var actor = instance.get_actor(actor_id)
+			if actor != null:
+				return actor
+		return null
+	# 新格式：直接定位到实例
+	var instance := get_instance_by_id(parsed.instance_id)
+	if instance == null:
+		return null
+	return instance.get_actor(parsed.local_id)

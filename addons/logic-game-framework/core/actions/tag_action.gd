@@ -6,11 +6,8 @@ const PERMANENT_DURATION := -1.0
 ## 移除全部层数的 stacks 值
 const REMOVE_ALL_STACKS := -1
 
-static func _get_ability_set_for_target(ctx: ExecutionContext, target: ActorRef) -> AbilitySet:
-	var state = ctx.game_state_provider
-	if state == null or not state.has_method("get_actor"):
-		return null
-	var actor = state.get_actor(target.id)
+static func _get_ability_set_for_target(_ctx: ExecutionContext, target: ActorRef) -> AbilitySet:
+	var actor = GameWorld.get_actor(target.id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
 static func _get_logic_time(ctx: ExecutionContext) -> float:

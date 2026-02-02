@@ -80,9 +80,13 @@ func on_end() -> void:
 
 func create_actor(factory: Callable) -> Actor:
 	var actor: Actor = factory.call()
-	_actors.append(actor)
-	if actor != null and actor.has_method("on_spawn"):
-		actor.on_spawn()
+	if actor != null:
+		# 设置所属实例 ID，生成规范的 Actor ID
+		if actor.has_method("set_instance_id"):
+			actor.set_instance_id(id)
+		_actors.append(actor)
+		if actor.has_method("on_spawn"):
+			actor.on_spawn()
 	return actor
 
 func remove_actor(actor_id: String) -> bool:
@@ -96,8 +100,12 @@ func remove_actor(actor_id: String) -> bool:
 	return false
 
 func get_actor(actor_id: String) -> Actor:
+	# 支持完整 ID 或 local_id 查找
+	var local_id := actor_id
+	if ActorId.is_valid(actor_id):
+		local_id = ActorId.extract_local_id(actor_id)
 	for actor in _actors:
-		if actor != null and actor.has_method("get_id") and actor.get_id() == actor_id:
+		if actor != null and actor.has_method("get_local_id") and actor.get_local_id() == local_id:
 			return actor
 	return null
 
