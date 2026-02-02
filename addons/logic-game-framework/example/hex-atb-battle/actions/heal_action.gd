@@ -1,8 +1,25 @@
 ## HealAction - 治疗 Action
 ##
-## 支持的回调：
+## ========== 设计原则 ==========
+##
+## Action 是原子操作单元：push 事件 + 应用状态 + post 事件 必须连续执行。
+## 与 DamageAction 遵循相同的设计，确保状态同步的原子性。
+##
+## ========== 执行流程 ==========
+##
+## 1. 产生治疗事件 + 立即应用治疗（原子操作）：
+##    - ctx.event_collector.push(heal_event)  ← 事件入队（录像用）
+##    - target.set_hp(new_hp)                 ← 立即加血
+##
+## 2. 处理回调：on_heal / on_overheal
+##
+## 3. Post 阶段：触发治疗相关被动响应
+##
+## ========== 支持的回调 ==========
+##
 ## - on_heal: 每次治疗时触发
 ## - on_overheal: 过量治疗时触发（治疗量超过目标缺失生命值）
+##
 class_name HexBattleHealAction
 extends Action.BaseAction
 
@@ -61,6 +78,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	
 	# 产生回放格式事件
 	var all_events: Array[Dictionary] = []
+	var battle: HexBattle = ctx.game_state_provider
+	var event_processor: EventProcessor = GameWorld.event_processor
+	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+	
 	for target in targets:
 		var source_id_str := source.id if source != null else ""
 		
@@ -80,9 +101,33 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		all_events.append(heal_event)
 		
+		# ========== 实际应用治疗 ==========
+		var target_actor := battle.get_actor(target.id)
+		if target_actor != null:
+			var old_hp := target_actor.get_hp()
+			var max_hp := target_actor.get_max_hp()
+			var new_hp := minf(old_hp + heal_amount, max_hp)
+			target_actor.set_hp(new_hp)
+			
+			# 获取目标名称
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
+			
+			# 日志打印（与旧 _process_frame_events 格式一致）
+			print("  [治疗] %s 恢复 %.0f HP, HP: %.0f -> %.0f" % [
+				target_name, heal_amount, old_hp, new_hp
+			])
+			
+			# Logger 记录
+			if battle.logger != null:
+				battle.logger.heal_applied(source_id_str, target.id, heal_amount)
+		
 		# ========== 处理回调 ==========
 		var callback_events := _process_callbacks(heal_event, overheal, ctx)
 		all_events.append_array(callback_events)
+		
+		# ========== Post 阶段 ==========
+		if actors.size() > 0:
+			event_processor.process_post_event(heal_event, actors, battle)
 	
 	return ActionResult.create_success_result(all_events, { "heal_amount": heal_amount })
 

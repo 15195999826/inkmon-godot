@@ -1,3 +1,53 @@
+## EventProcessor - 事件处理器
+##
+## 统一处理 Pre/Post 双阶段事件，支持深度优先递归和追踪。
+##
+## ========== 核心职责 ==========
+##
+## 1. **Pre 阶段处理**：收集所有处理器的意图，应用修改，判断是否取消
+## 2. **Post 阶段处理**：广播事件到所有监听者，深度优先处理被动产生的新事件
+## 3. **追踪记录**：根据 trace_level 记录处理过程
+## 4. **递归保护**：限制最大递归深度（默认 10）
+##
+## ========== 双阶段设计 ==========
+##
+## Pre 阶段（process_pre_event）：
+## - 在效果应用**之前**调用
+## - 允许被动技能修改或取消即将发生的效果
+## - 返回 MutableEvent，包含修改后的值和取消状态
+##
+## Post 阶段（process_post_event）：
+## - 在效果应用**之后**调用
+## - 广播事件到所有存活角色的 AbilitySet
+## - 可能触发被动技能（如反伤、吸血）产生新事件
+##
+## ========== 使用示例 ==========
+##
+## @example 在 Action 中使用双阶段处理
+## ```gdscript
+## var event_processor: EventProcessor = GameWorld.event_processor
+## 
+## # Pre 阶段：允许减伤/免疫
+## var mutable: MutableEvent = event_processor.process_pre_event(pre_event, battle)
+## 
+## if not mutable.cancelled:
+##     # 获取修改后的伤害值
+##     var final_damage: float = mutable.get_current_value("damage")
+##     
+##     # 应用效果（原子操作）
+##     ctx.event_collector.push(damage_event)
+##     target.modify_hp(-final_damage)
+##     
+##     # Post 阶段：触发反伤/吸血等被动
+##     var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+##     event_processor.process_post_event(damage_event, actors, battle)
+## ```
+##
+## @example 查看追踪日志
+## ```gdscript
+## print(event_processor.export_trace_log())
+## ```
+
 extends RefCounted
 class_name EventProcessor
 

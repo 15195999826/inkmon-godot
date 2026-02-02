@@ -1,6 +1,28 @@
 ## HexBattle - 六边形战斗实例
 ##
 ## 实现 ATB 战斗系统的主类
+##
+## ========== 架构设计 ==========
+##
+## 本类遵循 TS 侧 InkMonBattle 的设计，核心原则：
+##
+## 1. **Action 内状态同步**：
+##    - 所有状态变更（扣血/加血/死亡）都在 Action.execute() 内完成
+##    - push 事件 + 应用状态 + post 事件 是原子操作
+##    - tick() 不做任何状态同步，只收集事件用于录像
+##
+## 2. **EventCollector 仅供录像/表演层消费**：
+##    - 不参与逻辑状态同步
+##    - flush() 只在 tick 结束时调用，用于录像记录
+##
+## 3. **ATB 行动系统**：
+##    - 每帧累积 ATB，满值时触发行动
+##    - 行动开始立即重置 ATB，不等待执行完成
+##    - Timeline 由 tickExecutions(dt) 逐帧推进
+##
+## 4. 状态变更在 Action 内立即完成
+##    tick() 只调用 flush() 收集事件用于录像
+##
 class_name HexBattle
 extends GameplayInstance
 
@@ -339,8 +361,8 @@ func tick(dt: float) -> void:
 			if actor.can_act():
 				_start_actor_action(actor)
 	
+	# 收集本帧事件（仅用于录像，状态已在 Action 内同步）
 	var frame_events: Array[Dictionary] = GameWorld.event_collector.flush()
-	_process_frame_events(frame_events)
 	
 	# 录像记录帧
 	if _recording_enabled and recorder != null:
@@ -478,64 +500,6 @@ func _create_action_use_event(ability_instance_id: String, source_id: String, ta
 		# 转换为 Dictionary 以便 JSON 序列化
 		event["target_coord"] = target_coord.to_dict()
 	return event
-
-
-func _process_frame_events(events: Array[Dictionary]) -> void:
-	for event in events:
-		var kind: String = event.get("kind", "")
-		
-		if kind == "damage":
-			var source_id: String = event.get("source_actor_id", "")
-			var target_id: String = event.get("target_actor_id", "")
-			var damage: float = event.get("damage", 0.0)
-			var damage_type: String = event.get("damage_type", "physical")
-			var is_reflected: bool = event.get("is_reflected", false)
-			var target_actor := get_actor(target_id)
-			
-			if target_actor != null:
-				target_actor.modify_hp(-damage)
-				print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f" % [
-					target_actor.get_display_name(), damage, target_actor.get_hp()
-				])
-				
-				# 记录伤害
-				if _logging_enabled and logger != null:
-					logger.damage_dealt(source_id, target_id, damage, damage_type, is_reflected)
-				
-				if target_actor.check_death():
-					print("  [死亡] %s 已阵亡" % target_actor.get_display_name())
-					# 记录死亡
-					if _logging_enabled and logger != null:
-						logger.actor_died(target_id, source_id)
-					remove_actor(target_id)
-		
-		elif kind == "heal":
-			var source_id: String = event.get("source_actor_id", "")
-			var target_id: String = event.get("target_actor_id", "")
-			var heal_amount: float = event.get("heal_amount", 0.0)
-			var target_actor := get_actor(target_id)
-			
-			if target_actor != null:
-				var old_hp := target_actor.get_hp()
-				var max_hp := target_actor.get_max_hp()
-				var new_hp := minf(old_hp + heal_amount, max_hp)
-				target_actor.set_hp(new_hp)
-				print("  [治疗] %s 恢复 %.0f HP, HP: %.0f -> %.0f" % [
-					target_actor.get_display_name(), heal_amount, old_hp, new_hp
-				])
-				
-				# 记录治疗
-				if _logging_enabled and logger != null:
-					logger.heal_applied(source_id, target_id, heal_amount)
-		
-		elif kind == "move":
-			var actor_id: String = event.get("actor_id", "")
-			var from_hex: Dictionary = event.get("from_hex", {})
-			var to_hex: Dictionary = event.get("to_hex", {})
-			
-			# 记录移动
-			if _logging_enabled and logger != null and not from_hex.is_empty() and not to_hex.is_empty():
-				logger.actor_moved(actor_id, from_hex, to_hex)
 
 
 func _check_battle_end() -> bool:

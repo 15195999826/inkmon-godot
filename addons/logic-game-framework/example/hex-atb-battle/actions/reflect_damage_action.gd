@@ -1,11 +1,27 @@
 ## ReflectDamageAction - 反伤 Action
 ##
+## ========== 设计原则 ==========
+##
+## Action 是原子操作单元：push 事件 + 应用状态 + post 事件 必须连续执行。
+## 与 DamageAction 遵循相同的设计，确保状态同步的原子性。
+##
+## ========== 用途 ==========
+##
 ## 用于被动技能触发时，对攻击来源造成固定伤害。
 ## 从触发事件中获取 source（攻击者），对其造成伤害。
 ##
-## 反伤链防护：
+## ========== 执行流程 ==========
+##
+## 1. 从 current_event 获取 source_actor_id（攻击者）
+## 2. 产生反伤事件 + 立即应用伤害（原子操作）
+## 3. 死亡检测：push(death_event) → process_post_event → remove_actor
+## 4. Post 阶段：触发其他被动（如吸血）
+##
+## ========== 反伤链防护 ==========
+##
 ## 反伤产生的 damage 事件带有 is_reflected: true 标记，
 ## 荆棘被动应在 filter 中排除这类事件，避免无限循环。
+##
 class_name HexBattleReflectDamageAction
 extends Action.BaseAction
 
@@ -62,6 +78,41 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		true    # is_reflected
 	)
 	var reflect_event: Dictionary = ctx.event_collector.push(event.to_dict())
+	
+	# ========== 实际应用反伤伤害 ==========
+	var attacker_actor := battle.get_actor(attacker_id)
+	if attacker_actor != null:
+		attacker_actor.modify_hp(-_damage)
+		
+		# 日志打印（与旧 _process_frame_events 格式一致，标记为反伤）
+		print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f (反伤)" % [
+			attacker_name, _damage, attacker_actor.get_hp()
+		])
+		
+		# Logger 记录（is_reflected = true）
+		if battle.logger != null:
+			battle.logger.damage_dealt(owner_id, attacker_id, _damage, damage_type_str, true)
+		
+		# 检查死亡
+		if attacker_actor.check_death():
+			print("  [死亡] %s 已阵亡" % attacker_name)
+			
+			# Logger 记录死亡
+			if battle.logger != null:
+				battle.logger.actor_died(attacker_id, owner_id)
+			
+			# 推送死亡事件
+			var death_event := BattleEvents.DeathEvent.create(attacker_id, owner_id)
+			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
+			
+			# Post 阶段处理死亡事件
+			var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+			if actors.size() > 0:
+				var event_processor: EventProcessor = GameWorld.event_processor
+				event_processor.process_post_event(death_dict, actors, battle)
+			
+			# 移除角色
+			battle.remove_actor(attacker_id)
 	
 	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
 	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)

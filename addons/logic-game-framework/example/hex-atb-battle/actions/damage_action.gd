@@ -1,14 +1,39 @@
 ## DamageAction - 伤害 Action
 ##
-## 实现完整的 Pre/Post 双阶段事件处理：
-## 1. Pre 阶段：创建 pre_damage 事件，允许减伤/免疫等被动修改或取消
-## 2. 如果未取消，使用修改后的伤害值产生 damage 事件
-## 3. Post 阶段：立即触发反伤/吸血等被动响应
+## ========== 设计原则 ==========
 ##
-## 支持的回调：
+## Action 是原子操作单元：push 事件 + 应用状态 + post 事件 必须连续执行。
+## EventCollector 仅供录像/表演层消费，不参与逻辑状态同步。
+##
+## 分层职责：
+## - AbilityComponent 决定「何时执行」
+## - Action 决定「做什么」
+## - BattleEvent 记录「结果」
+##
+## ========== 执行流程 ==========
+##
+## 1. Pre 阶段：创建 pre_damage 事件
+##    - 允许减伤/免疫等被动修改或取消伤害
+##    - 如果 mutable.cancelled，跳过此目标
+##
+## 2. 产生事件 + 应用状态（原子操作）：
+##    - ctx.event_collector.push(damage_event)  ← 事件入队（录像用）
+##    - target.modify_hp(-damage)               ← 立即扣血
+##
+## 3. 死亡检测：
+##    - if check_death(): 
+##        push(death_event) → process_post_event(death_event) → remove_actor()
+##
+## 4. 处理回调：on_hit / on_critical / on_kill
+##
+## 5. Post 阶段：触发反伤/吸血等被动响应
+##
+## ========== 支持的回调 ==========
+##
 ## - on_hit: 每次命中时触发
 ## - on_critical: 暴击时触发
 ## - on_kill: 击杀时触发
+##
 class_name HexBattleDamageAction
 extends Action.BaseAction
 
@@ -119,6 +144,40 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		)
 		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(damage_event)
+		
+		# ========== 实际应用伤害 ==========
+		var target_actor := battle.get_actor(target.id)
+		if target_actor != null:
+			target_actor.modify_hp(-final_damage)
+			
+			# 日志打印（与旧 _process_frame_events 格式一致）
+			print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f" % [
+				target_name, final_damage, target_actor.get_hp()
+			])
+			
+			# Logger 记录
+			if battle.logger != null:
+				battle.logger.damage_dealt(source_id, target.id, final_damage, damage_type_str, false)
+			
+			# 检查死亡
+			if target_actor.check_death():
+				print("  [死亡] %s 已阵亡" % target_name)
+				
+				# Logger 记录死亡
+				if battle.logger != null:
+					battle.logger.actor_died(target.id, source_id)
+				
+				# 推送死亡事件
+				var death_event := BattleEvents.DeathEvent.create(target.id, source_id)
+				var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
+				all_events.append(death_dict)
+				
+				# Post 阶段处理死亡事件（可能触发死亡相关被动）
+				if actors.size() > 0:
+					event_processor.process_post_event(death_dict, actors, battle)
+				
+				# 移除角色
+				battle.remove_actor(target.id)
 		
 		# ========== 处理回调 ==========
 		var callback_events := _process_callbacks(damage_event, is_critical, ctx)

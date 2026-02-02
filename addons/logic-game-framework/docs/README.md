@@ -178,6 +178,140 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 3. **代码复用**：辅助函数集中在一处，避免重复
 4. **关注点分离**：框架不依赖具体项目实现
 
+### 5. 技能执行流程（Action 原子性）⚡
+
+这是框架最核心的设计原则：**Action 内状态同步**。
+
+#### 核心原则
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Action 是原子操作单元                                               │
+│                                                                     │
+│  push(event) + 应用状态 + process_post_event 必须连续执行            │
+│                                                                     │
+│  EventCollector 仅供录像/表演层消费，不参与逻辑状态同步               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 分层职责
+
+| 层级 | 职责 | 示例 |
+|------|------|------|
+| **AbilityComponent** | 决定「何时执行」 | 触发条件、冷却、消耗 |
+| **Action** | 决定「做什么」 | 伤害计算、状态应用、Post 事件 |
+| **BattleEvent** | 记录「结果」 | 供录像/表演层消费 |
+
+#### 完整执行流程
+
+以 `DamageAction` 为例：
+
+```
+DamageAction.execute()
+│
+├─ 1. Pre 阶段
+│   └─ process_pre_event(pre_damage)
+│       └─ 允许减伤/免疫等被动修改或取消
+│       └─ if mutable.cancelled: 跳过此目标
+│
+├─ 2. 产生事件 + 应用状态（原子操作）
+│   ├─ ctx.event_collector.push(damage_event)  ← 事件入队（录像用）
+│   └─ target.modify_hp(-damage)               ← 立即扣血
+│
+├─ 3. 死亡检测
+│   └─ if check_death():
+│       ├─ push(death_event)                   ← 死亡事件入队
+│       ├─ process_post_event(death_event)     ← 触发死亡相关被动
+│       └─ battle.remove_actor()               ← 移除角色
+│
+├─ 4. 处理回调
+│   └─ on_hit / on_critical / on_kill
+│
+└─ 5. Post 阶段
+    └─ process_post_event(damage_event)        ← 触发反伤/吸血等被动
+```
+
+#### 代码示例
+
+```gdscript
+func execute(ctx: ExecutionContext) -> ActionResult:
+    var battle: HexBattle = ctx.game_state_provider
+    var event_processor: EventProcessor = GameWorld.event_processor
+    var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+    
+    for target in targets:
+        # ========== Pre 阶段 ==========
+        var pre_event := { "kind": "pre_damage", "damage": _damage, ... }
+        var mutable: MutableEvent = event_processor.process_pre_event(pre_event, battle)
+        
+        if mutable.cancelled:
+            continue  # 被减伤/免疫取消
+        
+        var final_damage: float = mutable.get_current_value("damage")
+        
+        # ========== 产生事件 + 应用状态（原子操作） ==========
+        var event := BattleEvents.DamageEvent.create(target.id, final_damage, ...)
+        var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
+        
+        var target_actor := battle.get_actor(target.id)
+        if target_actor != null:
+            target_actor.modify_hp(-final_damage)  # 立即扣血
+            
+            # ========== 死亡检测 ==========
+            if target_actor.check_death():
+                var death_event := BattleEvents.DeathEvent.create(target.id, source_id)
+                ctx.event_collector.push(death_event.to_dict())
+                event_processor.process_post_event(death_event, actors, battle)
+                battle.remove_actor(target.id)
+        
+        # ========== Post 阶段 ==========
+        event_processor.process_post_event(damage_event, actors, battle)
+    
+    return ActionResult.create_success_result(all_events, { "damage": _damage })
+```
+
+#### 错误模式（已废弃）
+
+```gdscript
+# ❌ 错误：状态同步在 tick() 中延迟处理
+func tick(dt: float) -> void:
+    # ... 执行 Action ...
+    
+    var frame_events := event_collector.flush()
+    _process_frame_events(frame_events)  # 遍历事件应用状态 ← 违反原子性！
+
+func _process_frame_events(events: Array) -> void:
+    for event in events:
+        if event.kind == "damage":
+            target.modify_hp(-damage)  # 状态与事件分离 ← 危险！
+```
+
+**问题**：
+1. push 事件与应用状态分离，破坏原子性
+2. Post 阶段被动可能基于过期状态触发
+3. 死亡检测时序错误
+
+#### 正确模式（当前设计）
+
+```gdscript
+# ✅ 正确：状态同步在 Action 内立即完成
+func tick(dt: float) -> void:
+    # ... 执行 Action（内部已完成状态同步） ...
+    
+    # 收集本帧事件（仅用于录像，状态已在 Action 内同步）
+    var frame_events := event_collector.flush()
+    recorder.record_frame(tick_count, frame_events)  # 仅录像
+```
+
+#### 关键要点
+
+| 要点 | 说明 |
+|------|------|
+| **push 后立即 modify_hp** | 事件入队 → 立即应用状态 |
+| **死亡检测在 Action 内** | 不在 tick 或外部处理 |
+| **Post 事件紧随状态变更** | 确保被动基于最新状态触发 |
+| **flush() 仅用于录像** | 不做任何状态处理 |
+
 ## 项目结构
 
 ```
