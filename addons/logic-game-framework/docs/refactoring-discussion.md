@@ -428,6 +428,16 @@ bug:
 死亡不消失， 角色扣血动画不见了。
 ---
 
+```
+DamageAction.gd:85, 这是要干嘛？
+# 获取 actors 列表（用于 Post 阶段广播）
+var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+	
+
+character_actor.to_event_processor_dict 是个什么东西？
+```
+---
+
 ## 💡 编码标准的适用性讨论
 
 ### 原则

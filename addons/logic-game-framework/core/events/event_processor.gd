@@ -178,7 +178,7 @@ func process_pre_event(event: Dictionary, game_state_provider = null) -> Mutable
 
 	return mutable
 
-func process_post_event(event: Dictionary, actors: Array, game_state_provider = null) -> void:
+func process_post_event(event: Dictionary, actors: Array[Dictionary], game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -198,7 +198,7 @@ func process_post_event(event: Dictionary, actors: Array, game_state_provider = 
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func process_post_event_to_related(event: Dictionary, actors: Array, related_actor_ids: Dictionary, game_state_provider = null) -> void:
+func process_post_event_to_related(event: Dictionary, actors: Array[Dictionary], related_actor_ids: Dictionary, game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return

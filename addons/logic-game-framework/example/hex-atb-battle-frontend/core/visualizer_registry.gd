@@ -55,17 +55,22 @@ func set_debug_mode(enabled: bool) -> FrontendVisualizerRegistry:
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var actions: Array[FrontendVisualAction] = []
 	var handled := false
+	var event_kind: String = event.get("kind", "unknown")
 	
 	for visualizer: FrontendBaseVisualizer in _visualizers:
 		if visualizer.can_handle(event):
 			handled = true
 			var result: Array[FrontendVisualAction] = visualizer.translate(event, context)
 			actions.append_array(result)
+			print("[Frontend:Registry] %s -> %s 生成 %d 个动作" % [
+				event_kind, visualizer.visualizer_name, result.size()
+			])
 	
 	# 调试模式下警告未处理的事件
-	if not handled and _debug_mode:
-		var kind := event.get("kind", "unknown")
-		push_warning("[VisualizerRegistry] Unhandled event: %s" % kind)
+	if not handled:
+		if _debug_mode:
+			push_warning("[VisualizerRegistry] Unhandled event: %s" % event_kind)
+		print("[Frontend:Registry] ⚠️ 事件 '%s' 无匹配 Visualizer" % event_kind)
 	
 	return actions
 

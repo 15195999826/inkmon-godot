@@ -268,10 +268,16 @@ func _tick(delta_ms: float) -> void:
 			var frame_data: Dictionary = _frame_data_map[next_frame]
 			var events: Array = frame_data.get("events", [])
 			
+			if events.size() > 0:
+				print("[Frontend:Director] 帧 %d: %d 个事件" % [next_frame, events.size()])
+			
 			# 翻译事件为动作
 			var context := _world.as_context()
 			for event in events:
-				var actions := _registry.translate(event as Dictionary, context)
+				var event_dict: Dictionary = event as Dictionary
+				var event_kind: String = event_dict.get("kind", "unknown")
+				print("[Frontend:Director]   - 事件: %s" % event_kind)
+				var actions := _registry.translate(event_dict, context)
 				_scheduler.enqueue(actions)
 		
 		frame_changed.emit(_current_frame, _total_frames)

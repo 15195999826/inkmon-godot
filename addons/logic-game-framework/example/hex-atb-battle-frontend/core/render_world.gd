@@ -211,15 +211,20 @@ func _apply_move_action(action: FrontendMoveAction, progress: float) -> void:
 func _apply_update_hp_action(action: FrontendUpdateHPAction, progress: float) -> void:
 	var actor: Dictionary = _actors.get(action.actor_id, {})
 	if actor.is_empty():
+		print("[Frontend:RenderWorld] ⚠️ UpdateHP 找不到 actor: %s" % action.actor_id)
 		return
 	
 	# 线性插值 HP
-	actor["visual_hp"] = action.get_interpolated_hp(progress)
+	var interpolated_hp := action.get_interpolated_hp(progress)
+	actor["visual_hp"] = interpolated_hp
 	
 	# 动画完成时确保精确值
 	if progress >= 1.0:
 		actor["visual_hp"] = action.to_hp
 		actor["is_alive"] = action.to_hp > 0
+		print("[Frontend:RenderWorld] HP更新完成: actor=%s hp=%.0f->%.0f alive=%s" % [
+			action.actor_id, action.from_hp, action.to_hp, actor["is_alive"]
+		])
 	
 	# 标记为脏，不立即触发信号 (修复 M1)
 	_dirty_actors[action.actor_id] = true
@@ -231,6 +236,10 @@ func _apply_floating_text_action(action: FrontendFloatingTextAction, action_id: 
 	for text in _floating_texts:
 		if text.get("id") == action_id:
 			return
+	
+	print("[Frontend:RenderWorld] 飘字: actor=%s text='%s' pos=%s" % [
+		action.actor_id, action.text, action.position
+	])
 	
 	var text_data := {
 		"id": action_id,
@@ -296,6 +305,7 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 func _apply_death_action(action: FrontendDeathAction, progress: float) -> void:
 	var actor: Dictionary = _actors.get(action.actor_id, {})
 	if actor.is_empty():
+		print("[Frontend:RenderWorld] ⚠️ Death 找不到 actor: %s" % action.actor_id)
 		return
 	
 	actor["is_alive"] = false
@@ -303,6 +313,7 @@ func _apply_death_action(action: FrontendDeathAction, progress: float) -> void:
 	actor["death_progress"] = progress
 	
 	if progress >= 1.0:
+		print("[Frontend:RenderWorld] 死亡动画完成: actor=%s" % action.actor_id)
 		actor_died.emit(action.actor_id)
 	
 	actor_state_changed.emit(action.actor_id, actor)
