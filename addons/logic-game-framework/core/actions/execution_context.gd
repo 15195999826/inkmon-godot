@@ -1,21 +1,24 @@
 extends RefCounted
 class_name ExecutionContext
 
-## 触发事件链，记录从原始触发事件到当前回调事件的完整链路。
-## 
-## 每个元素是一个 Dictionary，包含 "kind" 字段标识事件类型。
-## 所有事件都应继承自 GameEvent.Base，通过 .to_dict() 序列化后存入。
-## 
-## 示例数据：
+## 执行上下文
+##
+## Action 执行时的上下文信息，仅存在于 Action 链执行流程中。
+##
+## 设计原则：
+## - 输入：event_dict_chain, game_state_provider, ability_ref
+## - 输出：event_collector
+##
+## 事件链（字典形式）：
 ## [code]
 ## [
-##     # event_chain[0] - 原始触发事件（技能激活）
+##     # event_dict_chain[0] - 原始触发事件（技能激活）
 ##     { "kind": "abilityActivate", "abilityInstanceId": "skill_001", "sourceId": "actor_001" },
-##     # event_chain[1] - 回调事件（伤害事件）
+##     # event_dict_chain[1] - 回调事件（伤害事件）
 ##     { "kind": "damage", "target_actor_id": "actor_002", "damage": 150.0 }
 ## ]
 ## [/code]
-## 
+##
 ## 转换为强类型事件：
 ## [code]
 ## var dict := ctx.get_current_event()
@@ -23,43 +26,89 @@ class_name ExecutionContext
 ##     var event := BattleEvents.DamageEvent.from_dict(dict)
 ##     print(event.damage)  # 类型安全访问
 ## [/code]
-var event_chain: Array[Dictionary] = []
 
+## 触发事件链（字典形式），记录从原始触发事件到当前回调事件的完整链路。
+## 每个元素是 GameEvent.to_dict() 的结果。
+var event_dict_chain: Array[Dictionary] = []
+
+## 游戏状态提供者（项目层实现）
 var game_state_provider = null
+
+## 事件收集器
 var event_collector: EventCollector = null
-var ability: Dictionary = {}
-var execution: Dictionary = {}
 
-func _init(config: Dictionary = {}):
-	event_chain.assign(config.get("eventChain", []))
-	game_state_provider = config.get("gameplayState", null)
-	event_collector = config.get("eventCollector", null)
-	ability = config.get("ability", {})
-	execution = config.get("execution", {})
+## 触发此 Action 的能力引用（可选）
+var ability_ref: AbilityRef = null
 
+## 执行实例信息（可选，当 Action 由 AbilityExecutionInstance 触发时存在）
+var execution_info: AbilityExecutionInfo = null
+
+
+func _init(
+	p_event_dict_chain: Array[Dictionary] = [],
+	p_game_state_provider = null,
+	p_event_collector: EventCollector = null,
+	p_ability_ref: AbilityRef = null,
+	p_execution_info: AbilityExecutionInfo = null
+) -> void:
+	event_dict_chain.assign(p_event_dict_chain)
+	game_state_provider = p_game_state_provider
+	event_collector = p_event_collector
+	ability_ref = p_ability_ref
+	execution_info = p_execution_info
+
+
+## 获取当前触发事件（事件链的最后一个元素）
 func get_current_event() -> Variant:
-	if event_chain.is_empty():
+	if event_dict_chain.is_empty():
 		return null
-	return event_chain[event_chain.size() - 1]
+	return event_dict_chain[event_dict_chain.size() - 1]
 
+
+## 获取原始触发事件（事件链的第一个元素）
 func get_original_event() -> Variant:
-	if event_chain.is_empty():
+	if event_dict_chain.is_empty():
 		return null
-	return event_chain[0]
+	return event_dict_chain[0]
 
+
+## 推送事件到收集器
 func push_event(event: Dictionary) -> Dictionary:
 	if event_collector != null and event_collector.has_method("push"):
 		return event_collector.push(event)
 	return event
 
-static func create_execution_context(config: Dictionary) -> ExecutionContext:
-	return ExecutionContext.new(config)
 
+## 创建执行上下文
+static func create(
+	p_event_dict_chain: Array[Dictionary],
+	p_game_state_provider,
+	p_event_collector: EventCollector,
+	p_ability_ref: AbilityRef = null,
+	p_execution_info: AbilityExecutionInfo = null
+) -> ExecutionContext:
+	return ExecutionContext.new(
+		p_event_dict_chain,
+		p_game_state_provider,
+		p_event_collector,
+		p_ability_ref,
+		p_execution_info
+	)
+
+
+## 创建回调执行上下文
+##
+## 在原有上下文基础上追加新事件到事件链。
+## 其他字段（game_state_provider, event_collector, ability_ref）保持不变。
+## 注意：execution_info 不传递到回调上下文（回调不在 Timeline 执行流程中）。
 static func create_callback_context(ctx: ExecutionContext, callback_event: Dictionary) -> ExecutionContext:
-	return ExecutionContext.new({
-		"eventChain": ctx.event_chain + [callback_event],
-		"gameplayState": ctx.game_state_provider,
-		"eventCollector": ctx.event_collector,
-		"ability": ctx.ability,
-		"execution": ctx.execution,
-	})
+	var new_chain: Array[Dictionary] = []
+	new_chain.assign(ctx.event_dict_chain)
+	new_chain.append(callback_event)
+	return ExecutionContext.new(
+		new_chain,
+		ctx.game_state_provider,
+		ctx.event_collector,
+		ctx.ability_ref,
+		null  # 回调上下文不继承 execution_info
+	)

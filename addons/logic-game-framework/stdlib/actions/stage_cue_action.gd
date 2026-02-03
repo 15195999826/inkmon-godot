@@ -21,11 +21,11 @@ func _init(
 	_cue_params = cue_params
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	if ctx.ability.is_empty():
-		push_error("[StageCueAction] ctx.ability is required")
-		return ActionResult.create_failure_result("ctx.ability is required")
+	if ctx.ability_ref == null:
+		push_error("[StageCueAction] ctx.ability_ref is required")
+		return ActionResult.create_failure_result("ctx.ability_ref is required")
 
-	var source_actor_id: String = ctx.ability.get("source_actor_id", "")
+	var source_actor_id: String = ctx.ability_ref.source_actor_id
 
 	var targets := get_targets(ctx)
 	var target_actor_ids: Array[String] = []

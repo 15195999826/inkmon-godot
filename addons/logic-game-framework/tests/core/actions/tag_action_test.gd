@@ -41,12 +41,14 @@ func _create_test_actor(ability_set: AbilitySet) -> TestActor:
 
 
 func _build_context(event: Dictionary = {}) -> ExecutionContext:
-	return ExecutionContext.create_execution_context({
-		"eventChain": [event],
-		"gameplayState": _test_instance,
-		"eventCollector": GameWorld.event_collector,
-		"ability": {},
-	})
+	var event_chain: Array[Dictionary] = [event]
+	return ExecutionContext.create(
+		event_chain,
+		_test_instance,
+		GameWorld.event_collector,
+		null,  # ability_ref
+		null   # execution_info
+	)
 
 
 func _test_apply_loose() -> void:

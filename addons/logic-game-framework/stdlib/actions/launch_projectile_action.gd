@@ -74,7 +74,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		direction_value = _direction.resolve(ctx)
 	var custom_data_value := _custom_data.resolve(ctx)
 
-	var source_actor_id: String = ctx.ability.get("source_actor_id", "") if not ctx.ability.is_empty() else "unknown"
+	var source_actor_id: String = ctx.ability_ref.source_actor_id if ctx.ability_ref != null else "unknown"
 
 	var projectile := ProjectileActor.new(projectile_config if projectile_config else {})
 

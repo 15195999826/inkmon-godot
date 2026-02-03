@@ -59,18 +59,15 @@ func _execute_actions(event_dict: Dictionary, context: AbilityLifecycleContext, 
 		action.execute(exec_context)
 
 func _build_execution_context(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> ExecutionContext:
-	var ability: Ability = context.ability
-	return ExecutionContext.create_execution_context({
-		"eventChain": [event_dict],
-		"gameplayState": game_state_provider,
-		"eventCollector": GameWorld.event_collector,
-		"ability": {
-			"id": ability.id if ability != null else "",
-			"configId": ability.config_id if ability != null else "",
-			"owner": context.owner,
-			"source": context.owner,
-		},
-	})
+	var ability_ref := AbilityRef.from_ability(context.ability)
+	var event_chain: Array[Dictionary] = [event_dict]
+	return ExecutionContext.create(
+		event_chain,
+		game_state_provider,
+		GameWorld.event_collector,
+		ability_ref,
+		null  # NoInstanceComponent 不产生 ExecutionInfo
+	)
 
 func serialize() -> Dictionary:
 	return {

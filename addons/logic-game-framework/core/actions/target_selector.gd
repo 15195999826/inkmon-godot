@@ -50,10 +50,8 @@ class CurrentTarget extends TargetSelector:
 ## 选择 Ability 的 owner
 class AbilityOwner extends TargetSelector:
 	func select(ctx: ExecutionContext) -> Array[TargetRef]:
-		if ctx.ability is Dictionary and ctx.ability.has("owner_actor_id"):
-			var owner_id = ctx.ability["owner_actor_id"]
-			if owner_id is String:
-				return [TargetRef.new(owner_id)]
+		if ctx.ability_ref != null and not ctx.ability_ref.owner_actor_id.is_empty():
+			return [TargetRef.new(ctx.ability_ref.owner_actor_id)]
 		return []
 
 

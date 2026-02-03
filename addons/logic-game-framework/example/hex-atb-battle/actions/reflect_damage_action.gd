@@ -56,8 +56,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([], { "skipped": true })
 	
 	var owner_actor_id: String = ""
-	if not ctx.ability.is_empty():
-		owner_actor_id = ctx.ability.get("owner_actor_id", "")
+	if ctx.ability_ref != null:
+		owner_actor_id = ctx.ability_ref.owner_actor_id
 	
 	var battle: HexBattle = ctx.game_state_provider
 	

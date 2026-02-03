@@ -123,23 +123,20 @@ func _match_pattern(pattern: String, tag_name: String) -> bool:
 	return false
 
 func _build_execution_context(current_tag: String) -> ExecutionContext:
-	return ExecutionContext.create_execution_context({
-		"eventChain": _event_chain,
-		"gameplayState": _game_state_provider,
-		"eventCollector": GameWorld.event_collector,
-		"ability": {
-			"id": _ability_info.get("id", ""),
-			"configId": _ability_info.get("configId", ""),
-			"owner_actor_id": _ability_info.get("owner_actor_id", ""),
-			"source_actor_id": _ability_info.get("source_actor_id", ""),
-		},
-		"execution": {
-			"id": id,
-			"timelineId": timeline_id,
-			"elapsed": _elapsed,
-			"currentTag": current_tag,
-		},
-	})
+	var ability_ref := AbilityRef.create(
+		_ability_info.get("id", ""),
+		_ability_info.get("configId", ""),
+		_ability_info.get("owner_actor_id", ""),
+		_ability_info.get("source_actor_id", "")
+	)
+	var exec_info := AbilityExecutionInfo.create(id, timeline_id, _elapsed, current_tag)
+	return ExecutionContext.create(
+		_event_chain,
+		_game_state_provider,
+		GameWorld.event_collector,
+		ability_ref,
+		exec_info
+	)
 
 func _collect_action_types(actions: Array) -> Array[String]:
 	var types: Array[String] = []

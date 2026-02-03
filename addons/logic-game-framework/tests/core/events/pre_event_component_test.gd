@@ -32,12 +32,14 @@ func _init() -> void:
 	TestFramework.register_test("PreEventComponent - cancels event", _test_cancel_event)
 
 func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
-	return ExecutionContext.create_execution_context({
-		"eventChain": [event],
-		"gameplayState": state,
-		"eventCollector": EventCollector.new(),
-		"ability": {},
-	})
+	var event_chain: Array[Dictionary] = [event]
+	return ExecutionContext.create(
+		event_chain,
+		state,
+		EventCollector.new(),
+		null,  # ability_ref
+		null   # execution_info
+	)
 
 func _test_registration() -> void:
 	var owner_actor_id := "unit-1"

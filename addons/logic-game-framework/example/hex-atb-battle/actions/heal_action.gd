@@ -62,8 +62,8 @@ func on_overheal(action: Action.BaseAction) -> HexBattleHealAction:
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var source_actor_id: String = ""
-	if not ctx.ability.is_empty():
-		source_actor_id = ctx.ability.get("owner_actor_id", "")
+	if ctx.ability_ref != null:
+		source_actor_id = ctx.ability_ref.owner_actor_id
 	var targets := get_targets(ctx)
 	
 	# 解析参数
