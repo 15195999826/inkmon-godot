@@ -18,7 +18,7 @@
 ##
 ## Post 阶段（process_post_event）：
 ## - 在效果应用**之后**调用
-## - 广播事件到所有存活角色的 AbilitySet
+## - 通过 GameWorld.get_actor() + IAbilitySetOwner 广播事件到所有存活角色
 ## - 可能触发被动技能（如反伤、吸血）产生新事件
 ##
 ## ========== 使用示例 ==========
@@ -28,7 +28,7 @@
 ## var event_processor: EventProcessor = GameWorld.event_processor
 ## 
 ## # Pre 阶段：允许减伤/免疫
-## var mutable: MutableEvent = event_processor.process_pre_event(pre_event, battle)
+## var mutable: MutableEvent = event_processor.process_pre_event(pre_event, game_state_provider)
 ## 
 ## if not mutable.cancelled:
 ##     # 获取修改后的伤害值
@@ -39,8 +39,8 @@
 ##     target.modify_hp(-final_damage)
 ##     
 ##     # Post 阶段：触发反伤/吸血等被动
-##     var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
-##     event_processor.process_post_event(damage_event, actors, battle)
+##     var alive_actor_ids := game_state_provider.get_alive_actor_ids()
+##     event_processor.process_post_event(damage_event, alive_actor_ids, game_state_provider)
 ## ```
 ##
 ## @example 查看追踪日志
@@ -178,7 +178,7 @@ func process_pre_event(event: Dictionary, game_state_provider = null) -> Mutable
 
 	return mutable
 
-func process_post_event(event: Dictionary, actors: Array[Dictionary], game_state_provider = null) -> void:
+func process_post_event(event: Dictionary, actor_ids: Array[String], game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -188,17 +188,19 @@ func process_post_event(event: Dictionary, actors: Array[Dictionary], game_state
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
-	for actor in actors:
-		if actor.has("abilitySet") and actor["abilitySet"] != null:
-			var ability_set = actor["abilitySet"]
-			if ability_set.has_method("receive_event"):
-				ability_set.receive_event(event, game_state_provider)
+	for actor_id in actor_ids:
+		var actor = GameWorld.get_actor(actor_id)
+		if actor == null:
+			continue
+		var ability_set := IAbilitySetOwner.get_ability_set(actor)
+		if ability_set != null and ability_set.has_method("receive_event"):
+			ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func process_post_event_to_related(event: Dictionary, actors: Array[Dictionary], related_actor_ids: Dictionary, game_state_provider = null) -> void:
+func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -208,13 +210,15 @@ func process_post_event_to_related(event: Dictionary, actors: Array[Dictionary],
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
-	for actor in actors:
-		if not related_actor_ids.has(actor.get("id", "")):
+	for actor_id in actor_ids:
+		if not related_actor_ids.has(actor_id):
 			continue
-		if actor.has("abilitySet") and actor["abilitySet"] != null:
-			var ability_set = actor["abilitySet"]
-			if ability_set.has_method("receive_event"):
-				ability_set.receive_event(event, game_state_provider)
+		var actor = GameWorld.get_actor(actor_id)
+		if actor == null:
+			continue
+		var ability_set := IAbilitySetOwner.get_ability_set(actor)
+		if ability_set != null and ability_set.has_method("receive_event"):
+			ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id

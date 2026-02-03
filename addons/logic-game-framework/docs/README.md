@@ -140,17 +140,6 @@ static func get_actor_display_name(actor_ref: ActorRef, game_state_provider: Hex
         if actor != null:
             return actor.get_display_name()
     return actor_ref.id
-
-## 获取用于 EventProcessor 的角色列表
-static func get_actors_for_event_processor(game_state_provider: HexBattle) -> Array:
-    if game_state_provider == null:
-        return []
-    var actors: Array = game_state_provider.get_alive_actors()
-    var result: Array = []
-    for actor in actors:
-        if actor != null and actor.has_method("to_event_processor_dict"):
-            result.append(actor.to_event_processor_dict())
-    return result
 ```
 
 #### 在 Action 中使用
@@ -164,11 +153,14 @@ func execute(ctx: ExecutionContext) -> ActionResult:
     # 项目层负责类型转换
     var battle: HexBattle = ctx.game_state_provider
     
-    # 使用 Utils 类获取类型安全的数据
-    var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+    # 获取存活角色 ID 列表（用于 Post 阶段广播）
+    var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
     var name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
     
     # ... 业务逻辑
+    
+    # Post 阶段：EventProcessor 通过 GameWorld.get_actor() + IAbilitySetOwner 获取 AbilitySet
+    event_processor.process_post_event(damage_event, alive_actor_ids, battle)
 ```
 
 #### 为什么这样设计？
@@ -237,7 +229,7 @@ DamageAction.execute()
 func execute(ctx: ExecutionContext) -> ActionResult:
     var battle: HexBattle = ctx.game_state_provider
     var event_processor: EventProcessor = GameWorld.event_processor
-    var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+    var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
     
     for target in targets:
         # ========== Pre 阶段 ==========
@@ -261,11 +253,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
             if target_actor.check_death():
                 var death_event := BattleEvents.DeathEvent.create(target.id, source_id)
                 ctx.event_collector.push(death_event.to_dict())
-                event_processor.process_post_event(death_event, actors, battle)
+                event_processor.process_post_event(death_event, alive_actor_ids, battle)
                 battle.remove_actor(target.id)
         
         # ========== Post 阶段 ==========
-        event_processor.process_post_event(damage_event, actors, battle)
+        event_processor.process_post_event(damage_event, alive_actor_ids, battle)
     
     return ActionResult.create_success_result(all_events, { "damage": _damage })
 ```

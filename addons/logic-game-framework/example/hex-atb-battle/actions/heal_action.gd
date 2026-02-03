@@ -80,7 +80,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var all_events: Array[Dictionary] = []
 	var battle: HexBattle = ctx.game_state_provider
 	var event_processor: EventProcessor = GameWorld.event_processor
-	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
 	
 	for target in targets:
 		var source_id_str := source.id if source != null else ""
@@ -126,8 +126,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		all_events.append_array(callback_events)
 		
 		# ========== Post 阶段 ==========
-		if actors.size() > 0:
-			event_processor.process_post_event(heal_event, actors, battle)
+		if alive_actor_ids.size() > 0:
+			event_processor.process_post_event(heal_event, alive_actor_ids, battle)
 	
 	return ActionResult.create_success_result(all_events, { "heal_amount": heal_amount })
 

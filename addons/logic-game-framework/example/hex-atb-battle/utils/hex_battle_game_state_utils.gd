@@ -6,7 +6,6 @@
 ## 使用示例：
 ## ```gdscript
 ## var name := HexBattleGameStateUtils.get_actor_display_name(actor_ref, battle)
-## var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
 ## ```
 class_name HexBattleGameStateUtils
 
@@ -23,23 +22,6 @@ static func get_actor_display_name(actor_ref: ActorRef, game_state_provider: Hex
 		if actor != null:
 			return actor.get_display_name()
 	return actor_ref.id
-
-
-## 获取用于 EventProcessor 的角色列表
-## 将 HexBattle 中的角色转换为 EventProcessor 兼容的字典格式
-## @param game_state_provider: HexBattle 实例
-## @return: 角色字典数组，用于 EventProcessor.process_post_event()
-static func get_actors_for_event_processor(game_state_provider: HexBattle) -> Array[Dictionary]:
-	if game_state_provider == null:
-		return []
-	
-	var actors: Array[CharacterActor] = game_state_provider.get_alive_actors()
-	var result: Array[Dictionary] = []
-	
-	for actor: CharacterActor in actors:
-		result.append(actor.to_event_processor_dict())
-	
-	return result
 
 
 ## 检查角色是否已死亡

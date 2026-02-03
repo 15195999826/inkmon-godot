@@ -94,8 +94,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var event_processor: EventProcessor = GameWorld.event_processor
 	var all_events: Array[Dictionary] = []
 	
-	# 获取 actors 列表（用于 Post 阶段广播）
-	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
+	# 获取存活角色 ID 列表（用于 Post 阶段广播）
+	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
 	
 	for target in targets:
 		# ========== Pre 阶段 ==========
@@ -173,8 +173,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 				all_events.append(death_dict)
 				
 				# Post 阶段处理死亡事件（可能触发死亡相关被动）
-				if actors.size() > 0:
-					event_processor.process_post_event(death_dict, actors, battle)
+				if alive_actor_ids.size() > 0:
+					event_processor.process_post_event(death_dict, alive_actor_ids, battle)
 				
 				# 移除角色
 				battle.remove_actor(target.id)
@@ -185,8 +185,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		# ========== Post 阶段 ==========
 		# 立即触发被动响应（如反伤、吸血）
-		if actors.size() > 0:
-			event_processor.process_post_event(damage_event, actors, battle)
+		if alive_actor_ids.size() > 0:
+			event_processor.process_post_event(damage_event, alive_actor_ids, battle)
 	
 	return ActionResult.create_success_result(all_events, { "damage": _damage })
 

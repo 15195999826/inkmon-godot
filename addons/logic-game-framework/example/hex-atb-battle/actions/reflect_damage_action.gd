@@ -106,18 +106,18 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 			
 			# Post 阶段处理死亡事件
-			var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
-			if actors.size() > 0:
+			var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
+			if alive_actor_ids.size() > 0:
 				var event_processor: EventProcessor = GameWorld.event_processor
-				event_processor.process_post_event(death_dict, actors, battle)
+				event_processor.process_post_event(death_dict, alive_actor_ids, battle)
 			
 			# 移除角色
 			battle.remove_actor(attacker_id)
 	
 	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
-	var actors := HexBattleGameStateUtils.get_actors_for_event_processor(battle)
-	if actors.size() > 0:
+	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
+	if alive_actor_ids.size() > 0:
 		var event_processor: EventProcessor = GameWorld.event_processor
-		event_processor.process_post_event(reflect_event, actors, battle)
+		event_processor.process_post_event(reflect_event, alive_actor_ids, battle)
 	
 	return ActionResult.create_success_result([reflect_event], { "damage": _damage, "target": attacker_id })

@@ -149,24 +149,4 @@ func getTagSnapshot() -> Dictionary:
 	return {}
 
 
-# ========== EventProcessor 兼容性 ==========
 
-## 转换为 EventProcessor 兼容的字典格式
-## 子类应覆盖此方法以提供完整的事件处理器数据
-func to_event_processor_dict() -> Dictionary:
-	return {
-		"id": get_id(),
-		"team": get_team(),
-		"isActive": _is_active_for_event_processor(),
-		"abilitySet": _get_ability_set_for_event_processor(),
-	}
-
-
-## 检查是否活跃（子类应覆盖）
-func _is_active_for_event_processor() -> bool:
-	return true
-
-
-## 获取 AbilitySet（子类应覆盖）
-func _get_ability_set_for_event_processor() -> Variant:
-	return null

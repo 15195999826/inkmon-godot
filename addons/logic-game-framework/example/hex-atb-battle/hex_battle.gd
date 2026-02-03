@@ -318,6 +318,15 @@ func get_alive_actors() -> Array[CharacterActor]:
 	return result
 
 
+## 获取所有存活角色的 ID 列表（用于 EventProcessor.process_post_event）
+func get_alive_actor_ids() -> Array[String]:
+	var result: Array[String] = []
+	for actor in get_all_actors():
+		if actor.get_hp() > 0:
+			result.append(actor.get_id())
+	return result
+
+
 ## 重写父类方法，使用 Dictionary 实现 O(1) 查找
 func get_actor(actor_id: String) -> CharacterActor:
 	return _actor_dict.get(actor_id, null) as CharacterActor

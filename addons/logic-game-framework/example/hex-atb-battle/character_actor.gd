@@ -260,28 +260,6 @@ func setupRecording(ctx: Dictionary) -> Array:
 	return unsubscribes
 
 
-# ========== EventProcessor 兼容性 ==========
-
-## 转换为 EventProcessor 兼容的字典格式（覆盖基类）
-func to_event_processor_dict() -> Dictionary:
-	return {
-		"id": get_id(),
-		"team": get_team(),
-		"isActive": is_active(),
-		"abilitySet": ability_set,
-	}
-
-
-## 检查是否活跃（覆盖基类）
-func _is_active_for_event_processor() -> bool:
-	return is_active()
-
-
-## 获取 AbilitySet（覆盖基类）
-func _get_ability_set_for_event_processor() -> Variant:
-	return ability_set
-
-
 # ========== 序列化 ==========
 
 func serialize() -> Dictionary:
