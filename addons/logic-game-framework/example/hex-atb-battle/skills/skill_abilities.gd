@@ -44,11 +44,11 @@ static func _get_target_coord_from_event() -> DictResolver:
 
 
 ## 触发器过滤函数：匹配当前 Ability 的激活事件
-static func _ability_activate_filter(event: Dictionary, ctx: Dictionary) -> bool:
-	var ability = ctx.get("ability", null)
+static func _ability_activate_filter(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
+	var ability: Ability = ctx.ability
 	if ability == null:
 		return false
-	return event.get("abilityInstanceId", "") == ability.id
+	return event_dict.get("abilityInstanceId", "") == ability.id
 
 
 # ========== 移动 Ability ==========

@@ -17,7 +17,7 @@ var tags: Array = []
 var _state: String = STATE_PENDING
 var _expire_reason: String = ""
 var _components: Array[AbilityComponent] = []
-var _lifecycle_context = null
+var _lifecycle_context: AbilityLifecycleContext = null
 var _execution_instances: Array[AbilityExecutionInstance] = []
 var _on_triggered_callbacks: Array[Callable] = []
 var _on_execution_callbacks: Array[Callable] = []
@@ -35,8 +35,7 @@ func _init(config: AbilityConfig, owner_value: ActorRef, source_value: ActorRef 
 	_components = _resolve_components(config.active_use_components, config.components)
 
 	for component in _components:
-		if component and component.has_method("initialize"):
-			component.initialize(self)
+		component.initialize(self)
 
 func get_state() -> String:
 	return _state
@@ -57,9 +56,8 @@ func tick(dt: float) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	for component in _components:
-		if component and component.has_method("get_state") and component.get_state() == "active":
-			if component.has_method("on_tick"):
-				component.on_tick(dt)
+		if component.is_active():
+			component.on_tick(dt)
 
 func tick_executions(dt: float) -> Array:
 	if _state == STATE_EXPIRED:
@@ -103,18 +101,15 @@ func cancel_all_executions() -> void:
 			instance.cancel()
 	_execution_instances = []
 
-func receive_event(event: Dictionary, context: Dictionary, game_state_provider: Variant) -> void:
+func receive_event(event: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	var triggered_components := []
 	for component in _components:
-		if typeof(component) != TYPE_OBJECT:
+		if not component.is_active():
 			continue
-		if not _is_active_component(component):
-			continue
-		if component.has_method("on_event"):
-			if component.on_event(event, context, game_state_provider):
-				triggered_components.append(_get_component_name(component))
+		if component.on_event(event, context, game_state_provider):
+			triggered_components.append(_get_component_name(component))
 	if not triggered_components.is_empty():
 		for callback in _on_triggered_callbacks:
 			if callback.is_valid():
@@ -134,22 +129,20 @@ func add_execution_activated_listener(callback: Callable) -> Callable:
 		if index != -1:
 			_on_execution_callbacks.remove_at(index)
 
-func apply_effects(context: Dictionary) -> void:
+func apply_effects(context: AbilityLifecycleContext) -> void:
 	if _state == STATE_GRANTED:
 		Log.warning("Ability", "Ability already granted: %s" % id)
 		return
 	_state = STATE_GRANTED
 	_lifecycle_context = context
 	for component in _components:
-		if component and component.has_method("on_apply"):
-			component.on_apply(context)
+		component.on_apply(context)
 
 func remove_effects() -> void:
 	if _lifecycle_context == null:
 		return
 	for component in _components:
-		if component and component.has_method("on_remove"):
-			component.on_remove(_lifecycle_context)
+		component.on_remove(_lifecycle_context)
 	_lifecycle_context = null
 
 func expire(reason: String) -> void:
@@ -165,11 +158,10 @@ func has_tag(tag: String) -> bool:
 func serialize() -> Dictionary:
 	var serialized_components := []
 	for component in _components:
-		if component and component.has_method("serialize"):
-			serialized_components.append({
-				"type": component.type,
-				"data": component.serialize(),
-			})
+		serialized_components.append({
+			"type": component.type,
+			"data": component.serialize(),
+		})
 	var serialized_instances := []
 	for instance in _execution_instances:
 		if instance and instance.has_method("serialize"):
@@ -216,16 +208,5 @@ func _resolve_components(active_use_configs: Array, component_configs: Array) ->
 func _is_executing_instance(instance: AbilityExecutionInstance) -> bool:
 	return instance and instance.is_executing()
 
-func _is_active_component(component: AbilityComponent) -> bool:
-	if component.has_method("is_active"):
-		return component.is_active()
-	if component.has_method("get_state"):
-		return component.get_state() == "active"
-	return true
-
 func _get_component_name(component: AbilityComponent) -> String:
-	if component.has_method("get_type"):
-		return str(component.get_type())
-	if "type" in component:
-		return str(component.type)
-	return component.get_class()
+	return component.type if component.type != "" else component.get_class()

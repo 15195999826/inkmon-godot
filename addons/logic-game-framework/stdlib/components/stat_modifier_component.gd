@@ -11,13 +11,13 @@ func _init(modifier_configs: Array):
 	modifier_prefix = IdGenerator.generate_id("statmod")
 	type = "StatModifierComponent"
 
-func on_apply(context: Dictionary) -> void:
+func on_apply(context: AbilityLifecycleContext) -> void:
 	var mod_list := _create_modifiers_internal(context)
 
 	for modifier in mod_list:
 		context.attributes.add_modifier(modifier)
 
-func _create_modifiers_internal(context: Dictionary) -> Array:
+func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array:
 	var result := []
 	for i in range(configs.size()):
 		var config = configs[i]
@@ -32,7 +32,7 @@ func _create_modifiers_internal(context: Dictionary) -> Array:
 			result.append(modifier)
 	return result
 
-func on_remove(context: Dictionary) -> void:
+func on_remove(context: AbilityLifecycleContext) -> void:
 	context.attributes.remove_modifiers_by_source(context.ability.id)
 	_clear_modifiers_internal()
 

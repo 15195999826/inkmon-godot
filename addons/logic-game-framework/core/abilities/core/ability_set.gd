@@ -60,7 +60,7 @@ func grant_ability(ability: Ability) -> void:
 			Log.warning("AbilitySet", "Ability already granted: %s" % ability.id)
 			return
 	_abilities.append(ability)
-	var context := _create_lifecycle_context(ability)
+	var context: AbilityLifecycleContext = _create_lifecycle_context(ability)
 	ability.apply_effects(context)
 	Log.debug("AbilitySet", "获得能力")
 	_notify_granted(ability)
@@ -117,7 +117,7 @@ func tick_executions(dt: float) -> Array:
 
 func receive_event(event: Dictionary, game_state_provider: Variant) -> void:
 	_process_abilities(func(ability: Ability):
-		var context := _create_lifecycle_context(ability)
+		var context: AbilityLifecycleContext = _create_lifecycle_context(ability)
 		ability.receive_event(event, context, game_state_provider)
 	)
 
@@ -173,9 +173,6 @@ func on_ability_revoked(callback: Callable) -> Callable:
 		if index != -1:
 			_on_revoked_callbacks.remove_at(index)
 
-func on_tag_changed(callback: Callable) -> Callable:
-	return tag_container.on_tag_changed(callback)
-
 func serialize() -> Dictionary:
 	var abilities := []
 	for ability in _abilities:
@@ -185,14 +182,14 @@ func serialize() -> Dictionary:
 		"abilities": abilities,
 	}
 
-func _create_lifecycle_context(ability: Ability) -> Dictionary:
-	return {
-		"owner": owner,
-		"attributes": _attributes,
-		"ability": ability,
-		"abilitySet": self,
-		"eventProcessor": get_event_processor(),
-	}
+func _create_lifecycle_context(ability: Ability) -> AbilityLifecycleContext:
+	return AbilityLifecycleContext.new(
+		owner,
+		_attributes,
+		ability,
+		self,
+		get_event_processor()
+	)
 
 func _process_abilities(processor: Callable) -> void:
 	var expired := []

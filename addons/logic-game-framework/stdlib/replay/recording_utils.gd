@@ -29,7 +29,7 @@ static func record_attribute_changes(attr_set: Variant, ctx: Dictionary) -> Arra
 ## 订阅 AbilitySet 的 Ability 生命周期变化
 ##
 ## 监听 Ability 的获得、移除、事件触发和执行实例激活，自动转换为对应事件。
-## 同时自动订阅 Tag 变化（通过 AbilitySet 代理的 TagContainer）。
+## 同时自动订阅 Tag 变化（通过 AbilitySet.tag_container）。
 ##
 ## 订阅内容：
 ## - abilityGranted: Ability 被授予时
@@ -127,7 +127,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 	unsubscribes.append(revoked_unsub)
 
 	# 订阅 Tag 变化
-	unsubscribes.append(record_tag_changes(ability_set, ctx))
+	unsubscribes.append(record_tag_changes(ability_set.tag_container, ctx))
 
 	# 添加清理所有 Ability 订阅的函数
 	var cleanup_all := func():
@@ -147,17 +147,8 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 ##
 ## 监听所有来源（Loose/AutoDuration/Component）的 Tag 总层数变化，
 ## 自动转换为 TagChangedEvent。
-##
-## 可以接受 TagContainer 或 AbilitySet（两者都实现了 on_tag_changed）。
-static func record_tag_changes(tag_source: Variant, ctx: Dictionary) -> Callable:
-	# 支持两种命名风格：on_tag_changed（GDScript 风格）和 onTagChanged（TS 风格）
-	var has_snake_case: bool = tag_source.has_method("on_tag_changed")
-	var has_camel_case: bool = tag_source.has_method("onTagChanged")
-	
-	if not has_snake_case and not has_camel_case:
-		return func(): pass
-
-	var listener_func = func(tag: String, old_count: int, new_count: int, _container):
+static func record_tag_changes(tag_container: TagContainer, ctx: Dictionary) -> Callable:
+	var listener_func = func(tag: String, old_count: int, new_count: int, _container: TagContainer) -> void:
 		ctx.pushEvent.call(
 			GameEvent.TagChanged.create(
 				ctx.actorId,
@@ -167,10 +158,7 @@ static func record_tag_changes(tag_source: Variant, ctx: Dictionary) -> Callable
 			).to_dict()
 		)
 
-	if has_snake_case:
-		return tag_source.on_tag_changed(listener_func)
-	else:
-		return tag_source.onTagChanged(listener_func)
+	return tag_container.on_tag_changed(listener_func)
 
 ## 订阅 Actor 生命周期事件
 ##

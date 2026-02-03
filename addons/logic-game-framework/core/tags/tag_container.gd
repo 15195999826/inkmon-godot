@@ -1,3 +1,47 @@
+## TagContainer - 标签容器
+##
+## 独立的 Tag 管理组件，可以被 AbilitySet 持有，也可以独立使用。
+## 支持三种 Tag 来源：Loose Tags、Auto Duration Tags、Component Tags。
+##
+## [b]设计原则[/b]
+## - 单一职责: 只管理 Tag，不关心 Ability
+## - 可独立使用: 不需要 Ability 的场景也能用 Tag（如环境物体状态标记）
+## - 三层 Tag 来源分离: 便于追踪和调试
+##
+## [b]三种 Tag 来源[/b]
+## [codeblock]
+## | 来源              | 特点                         | 典型用途           |
+## |-------------------|------------------------------|-------------------|
+## | Loose Tags        | 手动添加/移除，永不自动过期    | 冷却回合数、状态标记 |
+## | Auto Duration Tags| 每层独立计时，tick 时自动清理  | 持续时间 Buff      |
+## | Component Tags    | 随外部生命周期管理            | Ability 附加的 Tag |
+## [/codeblock]
+##
+## [b]使用示例[/b]
+## [codeblock]
+## # 独立使用
+## var tags := TagContainer.create("env_object_1")
+## tags.add_loose_tag("interactive", 1)
+## 
+## # 检查 tag
+## if tags.has_tag("interactive"):
+##     print("可交互")
+## 
+## # 添加自动过期的 tag（3秒后过期）
+## tags.add_auto_duration_tag("burning", 3.0)
+## 
+## # 监听 tag 变化
+## var unsubscribe := tags.on_tag_changed(func(tag, old_count, new_count, container):
+##     print("%s: %d -> %d" % [tag, old_count, new_count])
+## )
+## 
+## # 取消监听
+## unsubscribe.call()
+## 
+## # 被 AbilitySet 持有时，通过 ability_set.tag_container 访问
+## var ability_set := actor.get_ability_set()
+## ability_set.tag_container.add_loose_tag("stunned", 1)
+## [/codeblock]
 extends RefCounted
 class_name TagContainer
 

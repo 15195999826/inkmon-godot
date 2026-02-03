@@ -24,51 +24,51 @@ func _init(config: NoInstanceConfig):
 func get_triggers() -> Array:
 	return _triggers
 
-func matches_event(event: Dictionary, context: Dictionary) -> bool:
-	return _check_triggers(event, context)
+func matches_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
+	return _check_triggers(event_dict, context)
 
-func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
-	if _check_triggers(event, context):
-		_execute_actions(event, context, game_state_provider)
+func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
+	if _check_triggers(event_dict, context):
+		_execute_actions(event_dict, context, game_state_provider)
 		return true
 	return false
 
-func _check_triggers(event: Dictionary, context: Dictionary) -> bool:
+func _check_triggers(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
 	if _triggers.is_empty():
 		return false
 	if _trigger_mode == "any":
 		for trigger in _triggers:
-			if _match_trigger(trigger, event, context):
+			if _match_trigger(trigger, event_dict, context):
 				return true
 		return false
 	for trigger in _triggers:
-		if not _match_trigger(trigger, event, context):
+		if not _match_trigger(trigger, event_dict, context):
 			return false
 	return true
 
-func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary) -> bool:
-	if event.get("kind", "") != str(trigger.get("eventKind", "")):
+func _match_trigger(trigger: Dictionary, event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
+	if event_dict.get("kind", "") != str(trigger.get("eventKind", "")):
 		return false
 	if trigger.has("filter") and trigger["filter"] is Callable:
-		return trigger["filter"].call(event, context)
+		return trigger["filter"].call(event_dict, context)
 	return true
 
-func _execute_actions(event: Dictionary, context: Dictionary, game_state_provider) -> void:
-	var exec_context = _build_execution_context(event, context, game_state_provider)
+func _execute_actions(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
+	var exec_context := _build_execution_context(event_dict, context, game_state_provider)
 	for action in _actions:
 		action.execute(exec_context)
 
-func _build_execution_context(event: Dictionary, context: Dictionary, game_state_provider):
-	var ability = context.get("ability", null)
+func _build_execution_context(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> ExecutionContext:
+	var ability: Ability = context.ability
 	return ExecutionContext.create_execution_context({
-		"eventChain": [event],
+		"eventChain": [event_dict],
 		"gameplayState": game_state_provider,
 		"eventCollector": GameWorld.event_collector,
 		"ability": {
 			"id": ability.id if ability != null else "",
 			"configId": ability.config_id if ability != null else "",
-			"owner": context.get("owner", null),
-			"source": context.get("owner", null),
+			"owner": context.owner,
+			"source": context.owner,
 		},
 	})
 

@@ -10,13 +10,13 @@ class TestComponent:
 	func _init():
 		type = "TestComponent"
 
-	func on_apply(_context: Dictionary) -> void:
+	func on_apply(_context: AbilityLifecycleContext) -> void:
 		applied = true
 
-	func on_remove(_context: Dictionary) -> void:
+	func on_remove(_context: AbilityLifecycleContext) -> void:
 		removed = true
 
-	func on_event(_event: Dictionary, _context: Dictionary, _game_state_provider) -> bool:
+	func on_event(_event_dict: Dictionary, _context: AbilityLifecycleContext, _game_state_provider: Variant) -> bool:
 		event_hit = true
 		return true
 
@@ -38,7 +38,7 @@ func _test_lifecycle() -> void:
 		[component]
 	)
 	var ability := Ability.new(config, owner)
-	var context := { "owner": owner, "ability": ability }
+	var context := AbilityLifecycleContext.new(owner, null, ability, null, null)
 
 	ability.apply_effects(context)
 	TestFramework.assert_equal(Ability.STATE_GRANTED, ability.get_state())
@@ -64,12 +64,12 @@ func _test_triggered_listener() -> void:
 		[component]
 	)
 	var ability := Ability.new(config, owner)
-	var context := { "owner": owner, "ability": ability }
+	var context := AbilityLifecycleContext.new(owner, null, ability, null, null)
 	ability.apply_effects(context)
 
 	var result := { "event": {}, "components": [] }
-	ability.add_triggered_listener(func(event: Dictionary, components: Array) -> void:
-		result["event"] = event
+	ability.add_triggered_listener(func(event_dict: Dictionary, components: Array) -> void:
+		result["event"] = event_dict
 		result["components"] = components
 	)
 

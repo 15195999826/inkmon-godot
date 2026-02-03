@@ -22,43 +22,43 @@ func _init(config: ActiveUseConfig):
 
 
 func _create_default_trigger_config() -> TriggerConfig:
-	var filter_fn := func(event: Dictionary, ctx: Dictionary) -> bool:
-		var ability_ref = ctx.get("ability", null)
-		var owner_ref = ctx.get("owner", null)
+	var filter_fn := func(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
+		var ability_ref: Ability = ctx.ability
+		var owner_ref: ActorRef = ctx.owner
 		if ability_ref == null or owner_ref == null:
 			return false
-		return event.get("abilityInstanceId", "") == ability_ref.id and event.get("sourceId", "") == owner_ref.id
+		return event_dict.get("abilityInstanceId", "") == ability_ref.id and event_dict.get("sourceId", "") == owner_ref.id
 	return TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, filter_fn)
 
-func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
-	if not _check_triggers(event, context):
+func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
+	if not _check_triggers(event_dict, context):
 		return false
-	var ability_set = _get_ability_set(context, game_state_provider)
+	var ability_set := _get_ability_set(context, game_state_provider)
 	if ability_set == null:
-		return _activate_without_checks(event, context, game_state_provider)
-	var logic_time := _get_logic_time(event, game_state_provider)
+		return _activate_without_checks(event_dict, context, game_state_provider)
+	var logic_time := _get_logic_time(event_dict, game_state_provider)
 	var condition_ctx := {
-		"owner": context.get("owner", null),
+		"owner": context.owner,
 		"abilitySet": ability_set,
-		"ability": context.get("ability", null),
+		"ability": context.ability,
 		"gameplayState": game_state_provider,
 	}
 	if not _check_conditions(condition_ctx):
 		return false
 	var cost_ctx := {
-		"owner": context.get("owner", null),
+		"owner": context.owner,
 		"abilitySet": ability_set,
-		"ability": context.get("ability", null),
+		"ability": context.ability,
 		"gameplayState": game_state_provider,
 		"logicTime": logic_time,
 	}
 	if not _check_costs(cost_ctx):
 		return false
 	_pay_costs(cost_ctx)
-	return _activate_without_checks(event, context, game_state_provider)
+	return _activate_without_checks(event_dict, context, game_state_provider)
 
-func _activate_without_checks(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
-	_activate_execution(event, context, game_state_provider)
+func _activate_without_checks(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
+	_activate_execution(event_dict, context, game_state_provider)
 	return true
 
 func _check_conditions(ctx: Dictionary) -> bool:
@@ -85,16 +85,16 @@ func _pay_costs(ctx: Dictionary) -> void:
 	for cost in _costs:
 		cost.pay(ctx)
 
-func _get_ability_set(context: Dictionary, _game_state_provider):
-	var owner_ref = context.get("owner", null)
+func _get_ability_set(context: AbilityLifecycleContext, _game_state_provider: Variant) -> AbilitySet:
+	var owner_ref: ActorRef = context.owner
 	if owner_ref == null:
 		return null
-	var actor = GameWorld.get_actor(owner_ref.id)
+	var actor := GameWorld.get_actor(owner_ref.id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
-func _get_logic_time(event: Dictionary, game_state_provider) -> float:
-	if event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
-		return float(event["logicTime"])
+func _get_logic_time(event_dict: Dictionary, game_state_provider: Variant) -> float:
+	if event_dict.has("logicTime") and typeof(event_dict["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
+		return float(event_dict["logicTime"])
 	if game_state_provider != null and game_state_provider.has_method("get_logic_time"):
 		return game_state_provider.get_logic_time()
 	return float(Time.get_ticks_msec())

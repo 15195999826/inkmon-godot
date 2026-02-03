@@ -23,40 +23,40 @@ func _init(config: ActivateInstanceConfig):
 		else:
 			_triggers.append(trigger)
 
-func on_event(event: Dictionary, context: Dictionary, game_state_provider) -> bool:
-	if _check_triggers(event, context):
-		_activate_execution(event, context, game_state_provider)
+func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
+	if _check_triggers(event_dict, context):
+		_activate_execution(event_dict, context, game_state_provider)
 		return true
 	return false
 
-func _check_triggers(event: Dictionary, context: Dictionary) -> bool:
+func _check_triggers(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
 	if _triggers.is_empty():
 		return false
 	if _trigger_mode == "any":
 		for trigger in _triggers:
-			if _match_trigger(trigger, event, context):
+			if _match_trigger(trigger, event_dict, context):
 				return true
 		return false
 	for trigger in _triggers:
-		if not _match_trigger(trigger, event, context):
+		if not _match_trigger(trigger, event_dict, context):
 			return false
 	return true
 
-func _match_trigger(trigger: Dictionary, event: Dictionary, context: Dictionary) -> bool:
-	if event.get("kind", "") != str(trigger.get("eventKind", "")):
+func _match_trigger(trigger: Dictionary, event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
+	if event_dict.get("kind", "") != str(trigger.get("eventKind", "")):
 		return false
 	if trigger.has("filter") and trigger["filter"] is Callable:
-		return trigger["filter"].call(event, context)
+		return trigger["filter"].call(event_dict, context)
 	return true
 
-func _activate_execution(event: Dictionary, context: Dictionary, game_state_provider) -> void:
-	var ability = context.get("ability", null)
+func _activate_execution(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
+	var ability: Ability = context.ability
 	if ability == null:
 		return
-	var instance = ability.activate_new_execution_instance({
+	var instance: AbilityExecutionInstance = ability.activate_new_execution_instance({
 		"timelineId": _timeline_id,
 		"tagActions": _tag_actions,
-		"eventChain": [event],
+		"eventChain": [event_dict],
 		"gameplayState": game_state_provider,
 	})
 	Log.debug("ActivateInstanceComponent", "开始执行")
