@@ -15,25 +15,23 @@ const INSPIRE_DEF_BONUS := 10.0
 ## - 效果：防御力 +10（AddBase）
 ## - 持续：2 秒
 ## - 标签：buff, inspire
-static var INSPIRE_BUFF := AbilityConfig.new(
-	"buff_inspire",
-	"振奋",
-	"防御力 +10，持续 2 秒",
-	"",
-	["buff", "inspire"],
-	[],
-	[
-		# 属性修改：防御力 +10
-		StatModifierComponent.new([
-			{
-				"attributeName": "def",
-				"modifierType": AttributeModifier.MODIFIER_TYPE_ADD_BASE,
-				"value": INSPIRE_DEF_BONUS,
-			},
-		]),
-		# 持续时间：2 秒
-		TimeDurationComponent.new(INSPIRE_DURATION_MS),
-	]
+static var INSPIRE_BUFF := (
+	AbilityConfig.builder()
+	.config_id("buff_inspire")
+	.display_name("振奋")
+	.description("防御力 +10，持续 2 秒")
+	.ability_tags(["buff", "inspire"])
+	# 属性修改：防御力 +10
+	.component(StatModifierComponent.new([
+		{
+			"attributeName": "def",
+			"modifierType": AttributeModifier.MODIFIER_TYPE_ADD_BASE,
+			"value": INSPIRE_DEF_BONUS,
+		},
+	]))
+	# 持续时间：2 秒
+	.component(TimeDurationComponent.new(INSPIRE_DURATION_MS))
+	.build()
 )
 
 
