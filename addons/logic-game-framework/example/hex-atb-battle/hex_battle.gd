@@ -116,16 +116,16 @@ func start(config: Dictionary = {}) -> void:
 	
 	# 创建左方队伍
 	left_team = [
-		_create_actor(HexBattleClassConfig.CharacterClass.PRIEST),
-		_create_actor(HexBattleClassConfig.CharacterClass.WARRIOR),
-		_create_actor(HexBattleClassConfig.CharacterClass.ARCHER),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.PRIEST),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.WARRIOR),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.ARCHER),
 	]
 	
 	# 创建右方队伍
 	right_team = [
-		_create_actor(HexBattleClassConfig.CharacterClass.MAGE),
-		_create_actor(HexBattleClassConfig.CharacterClass.BERSERKER),
-		_create_actor(HexBattleClassConfig.CharacterClass.ASSASSIN),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.MAGE),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.BERSERKER),
+		_create_character_actor(HexBattleClassConfig.CharacterClass.ASSASSIN),
 	]
 	
 	# 设置队伍 ID
@@ -233,9 +233,10 @@ func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
 		}
 
 
-func _create_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
+func _create_character_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
+	var instance_id := id  # 使用 HexBattle 的 id 作为 instance_id
 	var actor := create_actor(func():
-		return CharacterActor.new(char_class)
+		return CharacterActor.new(char_class, instance_id)
 	) as CharacterActor
 	_actor_dict[actor.get_id()] = actor
 	return actor

@@ -2,7 +2,6 @@ extends RefCounted
 class_name Actor
 
 var _id: String = ""
-var _instance_id: String = ""
 var type: String = "actor"
 var _team: String = ""
 var _display_name: String = ""
@@ -10,29 +9,20 @@ var _on_spawn_callbacks: Array = []
 var _on_despawn_callbacks: Array = []
 
 
-## 获取完整 Actor ID（格式: "{instance_id}:{local_id}"）
+## 获取 Actor ID
+## 如果 ID 未初始化，返回空字符串
 func get_id() -> String:
-	var local_id := get_local_id()
-	if _instance_id.is_empty():
-		return local_id
-	return ActorId.format(_instance_id, local_id)
-
-
-## 获取本地 ID（不含 instance_id 前缀）
-func get_local_id() -> String:
-	if _id == "":
-		_id = IdGenerator.generate(type)
 	return _id
 
 
-## 设置所属实例 ID（由 GameplayInstance.create_actor 调用）
-func set_instance_id(instance_id: String) -> void:
-	_instance_id = instance_id
+## 检查 ID 是否有效（已初始化）
+func is_id_valid() -> bool:
+	return _id != ""
 
 
-## 获取所属实例 ID
-func get_instance_id_value() -> String:
-	return _instance_id
+## 设置 Actor ID（由子类或工厂函数调用）
+func set_id(id_value: String) -> void:
+	_id = id_value
 
 
 func get_team() -> String:

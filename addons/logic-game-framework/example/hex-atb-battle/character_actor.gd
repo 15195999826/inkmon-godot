@@ -37,9 +37,16 @@ var _atb_gauge: float = 0.0
 
 # ========== 初始化 ==========
 
-func _init(p_character_class: HexBattleClassConfig.CharacterClass) -> void:
+func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: String = "") -> void:
 	character_class = p_character_class
 	type = "Character"
+	
+	# 生成完整 ID（如果提供了 instance_id，则使用 instance_id:local_id 格式）
+	var local_id := IdGenerator.generate(type)
+	if instance_id != "":
+		_id = "%s:%s" % [instance_id, local_id]
+	else:
+		_id = local_id
 	
 	var class_config := HexBattleClassConfig.get_class_config(character_class)
 	_display_name = class_config.name
@@ -55,7 +62,7 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass) -> void:
 	attributes.setDefBase(stats["def"])
 	attributes.setSpeedBase(stats["speed"])
 	
-	# 创建能力集（传入底层 RawAttributeSet）
+	# 创建能力集（此时 ID 已确定，to_ref() 返回正确 ID）
 	ability_set = BattleAbilitySet.create_battle_ability_set(to_ref(), attributes._raw)
 
 
