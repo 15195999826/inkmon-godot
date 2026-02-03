@@ -45,8 +45,7 @@ var grid: GridMapModel:
 var left_team: Array[CharacterActor] = []
 var right_team: Array[CharacterActor] = []
 
-## 所有角色（ID -> Actor）- Dictionary 用于 O(1) 查找
-var _actor_dict: Dictionary = {}
+
 
 ## 战斗是否结束
 var _ended: bool = false
@@ -238,7 +237,6 @@ func _create_character_actor(char_class: HexBattleClassConfig.CharacterClass) ->
 	var actor := create_actor(func():
 		return CharacterActor.new(char_class, instance_id)
 	) as CharacterActor
-	_actor_dict[actor.get_id()] = actor
 	return actor
 
 
@@ -327,16 +325,9 @@ func get_alive_actor_ids() -> Array[String]:
 	return result
 
 
-## 重写父类方法，使用 Dictionary 实现 O(1) 查找
+## 重写父类方法，返回类型收窄为 CharacterActor
 func get_actor(actor_id: String) -> CharacterActor:
-	return _actor_dict.get(actor_id, null) as CharacterActor
-
-
-## 重写父类方法，返回所有角色
-func get_actors() -> Array[Actor]:
-	var result: Array[Actor] = []
-	result.assign(_actor_dict.values())
-	return result
+	return super.get_actor(actor_id) as CharacterActor
 
 
 func get_ability_set_for_actor(actor_id: String) -> BattleAbilitySet:

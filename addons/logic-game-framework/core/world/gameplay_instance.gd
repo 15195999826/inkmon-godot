@@ -5,6 +5,7 @@ var id: String
 var type: String = "instance"
 var _systems: Array[System] = []
 var _actors: Array[Actor] = []
+var _actor_id_2_actor_dic: Dictionary = {}
 var _logic_time: float = 0.0
 var _state: String = "created"
 
@@ -77,23 +78,21 @@ func create_actor(factory: Callable) -> Actor:
 	var actor: Actor = factory.call()
 	if actor != null:
 		_actors.append(actor)
+		_actor_id_2_actor_dic[actor.get_id()] = actor
 		actor.on_spawn()
 	return actor
 
 func remove_actor(actor_id: String) -> bool:
-	for i in range(_actors.size()):
-		if _actors[i].get_id() == actor_id:
-			var actor := _actors[i]
-			actor.on_despawn()
-			_actors.remove_at(i)
-			return true
-	return false
+	var actor: Actor = _actor_id_2_actor_dic.get(actor_id, null)
+	if actor == null:
+		return false
+	actor.on_despawn()
+	_actors.erase(actor)
+	_actor_id_2_actor_dic.erase(actor_id)
+	return true
 
 func get_actor(actor_id: String) -> Actor:
-	for actor in _actors:
-		if actor.get_id() == actor_id:
-			return actor
-	return null
+	return _actor_id_2_actor_dic.get(actor_id, null)
 
 func get_actors() -> Array[Actor]:
 	return _actors
