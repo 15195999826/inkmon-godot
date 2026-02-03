@@ -9,7 +9,7 @@ class_name AbilityLifecycleContext
 var owner: ActorRef
 
 ## 拥有者的属性集
-var attributes: RawAttributeSet
+var attribute_set: BaseGeneratedAttributeSet
 
 ## 当前能力实例
 var ability: Ability
@@ -23,13 +23,13 @@ var event_processor: EventProcessor
 
 func _init(
 	p_owner: ActorRef,
-	p_attributes: RawAttributeSet,
+	p_attribute_set: BaseGeneratedAttributeSet,
 	p_ability: Ability,
 	p_ability_set: AbilitySet,
 	p_event_processor: EventProcessor
 ) -> void:
 	owner = p_owner
-	attributes = p_attributes
+	attribute_set = p_attribute_set
 	ability = p_ability
 	ability_set = p_ability_set
 	event_processor = p_event_processor

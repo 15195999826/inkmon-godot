@@ -7,15 +7,15 @@ const REVOKE_REASON_REPLACED := "replaced"
 const REVOKE_REASON_MANUAL := "manual"
 
 var owner: ActorRef
-var _attributes = null
-var _abilities: Array = []
+var _attribute_set: BaseGeneratedAttributeSet = null
+var _abilities: Array[Ability] = []
 var tag_container: TagContainer
-var _on_granted_callbacks: Array = []
-var _on_revoked_callbacks: Array = []
+var _on_granted_callbacks: Array[Callable] = []
+var _on_revoked_callbacks: Array[Callable] = []
 
-func _init(config: Dictionary):
-	owner = config.get("owner")
-	_attributes = config.get("attributes", null)
+func _init(p_owner: ActorRef, p_attribute_set: BaseGeneratedAttributeSet = null) -> void:
+	owner = p_owner
+	_attribute_set = p_attribute_set
 	tag_container = TagContainer.create(owner.id)
 
 func get_event_processor() -> EventProcessor:
@@ -121,7 +121,7 @@ func receive_event(event: Dictionary, game_state_provider: Variant) -> void:
 		ability.receive_event(event, context, game_state_provider)
 	)
 
-func get_abilities() -> Array:
+func get_abilities() -> Array[Ability]:
 	return _abilities
 
 func find_ability_by_id(ability_id: String) -> Ability:
@@ -185,7 +185,7 @@ func serialize() -> Dictionary:
 func _create_lifecycle_context(ability: Ability) -> AbilityLifecycleContext:
 	return AbilityLifecycleContext.new(
 		owner,
-		_attributes,
+		_attribute_set,
 		ability,
 		self,
 		get_event_processor()
@@ -217,8 +217,5 @@ func _notify_revoked(ability: Ability, reason: String, expire_reason: String) ->
 		else:
 			Log.error("AbilitySet", "Error in ability revoked callback")
 
-static func create(owner_value: ActorRef, attributes: Variant) -> AbilitySet:
-	return AbilitySet.new({
-		"owner": owner_value,
-		"attributes": attributes,
-	})
+static func create(p_owner: ActorRef, p_attribute_set: BaseGeneratedAttributeSet = null) -> AbilitySet:
+	return AbilitySet.new(p_owner, p_attribute_set)

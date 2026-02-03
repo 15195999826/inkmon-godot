@@ -63,7 +63,7 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	attributes.setSpeedBase(stats["speed"])
 	
 	# 创建能力集（此时 ID 已确定，to_ref() 返回正确 ID）
-	ability_set = BattleAbilitySet.create_battle_ability_set(to_ref(), attributes._raw)
+	ability_set = BattleAbilitySet.create_battle_ability_set(to_ref(), attributes)
 
 
 ## 装备技能（在 HexBattle 初始化时调用）

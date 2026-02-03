@@ -38,9 +38,5 @@ func _get_cooldown_tag(ability_config_id: String) -> String:
 
 # ========== 工厂方法 ==========
 
-static func create_battle_ability_set(owner_ref: ActorRef, attributes: RawAttributeSet) -> BattleAbilitySet:
-	var ability_set := BattleAbilitySet.new({
-		"owner": owner_ref,
-		"attributes": attributes,
-	})
-	return ability_set
+static func create_battle_ability_set(p_owner: ActorRef, p_attribute_set: BaseGeneratedAttributeSet = null) -> BattleAbilitySet:
+	return BattleAbilitySet.new(p_owner, p_attribute_set)

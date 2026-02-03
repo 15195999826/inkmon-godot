@@ -13,9 +13,9 @@ func _init(modifier_configs: Array):
 
 func on_apply(context: AbilityLifecycleContext) -> void:
 	var mod_list := _create_modifiers_internal(context)
-
+	var raw: RawAttributeSet = context.attribute_set.get_raw()
 	for modifier in mod_list:
-		context.attributes.add_modifier(modifier)
+		raw.add_modifier(modifier)
 
 func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array:
 	var result := []
@@ -33,7 +33,7 @@ func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array:
 	return result
 
 func on_remove(context: AbilityLifecycleContext) -> void:
-	context.attributes.remove_modifiers_by_source(context.ability.id)
+	context.attribute_set.get_raw().remove_modifiers_by_source(context.ability.id)
 	_clear_modifiers_internal()
 
 func _clear_modifiers_internal() -> void:

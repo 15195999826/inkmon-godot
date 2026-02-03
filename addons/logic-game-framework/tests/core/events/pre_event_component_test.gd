@@ -1,23 +1,5 @@
 extends Node
 
-class MockModifierTarget:
-	extends RefCounted
-
-	func add_modifier(_modifier: Dictionary) -> void:
-		pass
-
-	func remove_modifier(_modifier_id: String) -> bool:
-		return true
-
-	func remove_modifiers_by_source(_source: String) -> int:
-		return 0
-
-	func get_modifiers() -> Array:
-		return []
-
-	func has_modifier(_modifier_id: String) -> bool:
-		return false
-
 class MockActor:
 	extends RefCounted
 
@@ -59,8 +41,7 @@ func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
 
 func _test_registration() -> void:
 	var owner = ActorRef.new("unit-1")
-	var modifier_target = MockModifierTarget.new()
-	var ability_set = AbilitySet.create(owner, modifier_target)
+	var ability_set = AbilitySet.create(owner, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -87,8 +68,7 @@ func _test_registration() -> void:
 
 func _test_unregistration() -> void:
 	var owner = ActorRef.new("unit-1")
-	var modifier_target = MockModifierTarget.new()
-	var ability_set = AbilitySet.create(owner, modifier_target)
+	var ability_set = AbilitySet.create(owner, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -113,8 +93,7 @@ func _test_unregistration() -> void:
 
 func _test_modify_event() -> void:
 	var owner = ActorRef.new("unit-1")
-	var modifier_target = MockModifierTarget.new()
-	var ability_set = AbilitySet.create(owner, modifier_target)
+	var ability_set = AbilitySet.create(owner, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -140,8 +119,7 @@ func _test_modify_event() -> void:
 
 func _test_cancel_event() -> void:
 	var owner = ActorRef.new("unit-1")
-	var modifier_target = MockModifierTarget.new()
-	var ability_set = AbilitySet.create(owner, modifier_target)
+	var ability_set = AbilitySet.create(owner, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
