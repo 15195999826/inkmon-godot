@@ -143,6 +143,9 @@ func load_replay(replay_data: Dictionary) -> void:
 	# 初始化渲染世界
 	_world.initialize_from_replay(replay_data)
 	
+	# 分析事件覆盖情况（只在加载时打印一次）
+	_analyze_event_coverage()
+	
 	# 重置状态
 	_current_frame = 0
 	_logic_accumulator = 0.0
@@ -269,14 +272,12 @@ func _tick(delta_ms: float) -> void:
 			var events: Array = frame_data.get("events", [])
 			
 			if events.size() > 0:
-				print("[Frontend:Director] 帧 %d: %d 个事件" % [next_frame, events.size()])
+				Log.debug("BattleDirector", "帧 %d: %d 个事件" % [next_frame, events.size()])
 			
 			# 翻译事件为动作
 			var context := _world.as_context()
 			for event in events:
 				var event_dict: Dictionary = event as Dictionary
-				var event_kind: String = event_dict.get("kind", "unknown")
-				print("[Frontend:Director]   - 事件: %s" % event_kind)
 				var actions := _registry.translate(event_dict, context)
 				_scheduler.enqueue(actions)
 		
@@ -309,6 +310,50 @@ func _tick(delta_ms: float) -> void:
 ## 检查是否已结束
 func _is_ended() -> bool:
 	return _current_frame >= _total_frames and _scheduler.get_action_count() == 0
+
+
+## 分析事件覆盖情况
+## 在表演开始时调用，打印一次事件类型与 Visualizer 匹配摘要
+func _analyze_event_coverage() -> void:
+	var all_event_kinds: Dictionary = {}  # kind -> count
+	
+	# 收集所有事件类型及其出现次数
+	var timeline: Array = _replay_data.get("timeline", [])
+	for frame_data in timeline:
+		var frame_dict := frame_data as Dictionary
+		var events: Array = frame_dict.get("events", [])
+		for event in events:
+			var event_dict := event as Dictionary
+			var kind: String = event_dict.get("kind", "unknown")
+			all_event_kinds[kind] = all_event_kinds.get(kind, 0) + 1
+	
+	if all_event_kinds.is_empty():
+		print("[Frontend:Director] 事件覆盖分析: 无事件")
+		return
+	
+	# 分类：已覆盖 vs 未覆盖
+	var covered: Array[String] = []
+	var uncovered: Array[String] = []
+	
+	for kind: String in all_event_kinds.keys():
+		var count: int = all_event_kinds[kind]
+		var visualizers := _registry.get_visualizers_for(kind)
+		
+		if visualizers.size() > 0:
+			covered.append("%s (%d) -> %s" % [kind, count, ", ".join(visualizers)])
+		else:
+			uncovered.append("%s (%d)" % [kind, count])
+	
+	# 打印摘要
+	print("[Frontend:Director] 事件覆盖分析 (共 %d 种事件类型):" % all_event_kinds.size())
+	
+	if covered.size() > 0:
+		print("  ✓ 已覆盖 (%d 种):" % covered.size())
+		for item in covered:
+			print("    - %s" % item)
+	
+	if uncovered.size() > 0:
+		print("  ⚠ 未覆盖 (%d 种): %s" % [uncovered.size(), ", ".join(uncovered)])
 
 
 # ========== 信号处理 ==========

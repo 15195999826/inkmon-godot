@@ -54,23 +54,16 @@ func set_debug_mode(enabled: bool) -> FrontendVisualizerRegistry:
 ## 遍历所有注册的 Visualizer，收集能处理该事件的所有结果
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
 	var actions: Array[FrontendVisualAction] = []
-	var handled := false
 	var event_kind: String = event.get("kind", "unknown")
 	
 	for visualizer: FrontendBaseVisualizer in _visualizers:
 		if visualizer.can_handle(event):
-			handled = true
 			var result: Array[FrontendVisualAction] = visualizer.translate(event, context)
 			actions.append_array(result)
-			print("[Frontend:Registry] %s -> %s 生成 %d 个动作" % [
-				event_kind, visualizer.visualizer_name, result.size()
-			])
-	
-	# 调试模式下警告未处理的事件
-	if not handled:
-		if _debug_mode:
-			push_warning("[VisualizerRegistry] Unhandled event: %s" % event_kind)
-		print("[Frontend:Registry] ⚠️ 事件 '%s' 无匹配 Visualizer" % event_kind)
+			if _debug_mode:
+				Log.debug("VisualizerRegistry", "%s -> %s 生成 %d 个动作" % [
+					event_kind, visualizer.visualizer_name, result.size()
+				])
 	
 	return actions
 
@@ -84,6 +77,25 @@ func translate_all(events: Array[Dictionary], context: FrontendVisualizerContext
 
 
 # ========== 查询方法 ==========
+
+## 检查是否有 Visualizer 能处理指定事件类型
+func has_visualizer_for(event_kind: String) -> bool:
+	var test_event := { "kind": event_kind }
+	for visualizer: FrontendBaseVisualizer in _visualizers:
+		if visualizer.can_handle(test_event):
+			return true
+	return false
+
+
+## 获取能处理指定事件类型的 Visualizer 名称列表
+func get_visualizers_for(event_kind: String) -> Array[String]:
+	var test_event := { "kind": event_kind }
+	var names: Array[String] = []
+	for visualizer: FrontendBaseVisualizer in _visualizers:
+		if visualizer.can_handle(test_event):
+			names.append(visualizer.visualizer_name)
+	return names
+
 
 ## 获取已注册的 Visualizer 数量
 func get_count() -> int:
