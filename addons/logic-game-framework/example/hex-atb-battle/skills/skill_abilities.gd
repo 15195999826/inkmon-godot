@@ -59,7 +59,7 @@ static var MOVE_ABILITY := (
 	.config_id("action_move")
 	.display_name("移动")
 	.description("移动到相邻格子")
-	.tags(["action", "move"])
+	.ability_tags(["action", "move"])
 	.component(
 		ActivateInstanceConfig.builder()
 		.trigger(TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, _ability_activate_filter))
@@ -87,7 +87,7 @@ static var SLASH_ABILITY := (
 	.config_id("skill_slash")
 	.display_name("横扫斩")
 	.description("近战攻击，对敌人造成物理伤害（暴击时额外伤害）")
-	.tags(["skill", "active", "melee", "enemy"])
+	.ability_tags(["skill", "active", "melee", "enemy"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SLASH)
@@ -122,7 +122,7 @@ static var PRECISE_SHOT_ABILITY := (
 	.config_id("skill_precise_shot")
 	.display_name("精准射击")
 	.description("远程攻击，发射箭矢精准命中敌人")
-	.tags(["skill", "active", "ranged", "enemy", "projectile"])
+	.ability_tags(["skill", "active", "ranged", "enemy", "projectile"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.PRECISE_SHOT)
@@ -149,7 +149,7 @@ static var FIREBALL_ABILITY := (
 	.config_id("skill_fireball")
 	.display_name("火球术")
 	.description("远程魔法攻击，造成高额伤害")
-	.tags(["skill", "active", "ranged", "magic", "enemy"])
+	.ability_tags(["skill", "active", "ranged", "magic", "enemy"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL)
@@ -176,7 +176,7 @@ static var CRUSHING_BLOW_ABILITY := (
 	.config_id("skill_crushing_blow")
 	.display_name("毁灭重击")
 	.description("近战重击，造成毁灭性伤害")
-	.tags(["skill", "active", "melee", "enemy"])
+	.ability_tags(["skill", "active", "melee", "enemy"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.CRUSHING_BLOW)
@@ -203,7 +203,7 @@ static var SWIFT_STRIKE_ABILITY := (
 	.config_id("skill_swift_strike")
 	.display_name("疾风连刺")
 	.description("快速近战攻击，三连击")
-	.tags(["skill", "active", "melee", "enemy"])
+	.ability_tags(["skill", "active", "melee", "enemy"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SWIFT_STRIKE)
@@ -241,7 +241,7 @@ static var HOLY_HEAL_ABILITY := (
 	.config_id("skill_holy_heal")
 	.display_name("圣光治愈")
 	.description("治疗友方单位，恢复生命值")
-	.tags(["skill", "active", "heal", "ally"])
+	.ability_tags(["skill", "active", "heal", "ally"])
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.HOLY_HEAL)

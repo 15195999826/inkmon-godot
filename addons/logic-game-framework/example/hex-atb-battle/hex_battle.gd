@@ -445,7 +445,7 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 	var use_skill := skill_ready and randf() > 0.1
 	
 	if use_skill and enemies.size() > 0:
-		var is_heal := skill.has_tag("ally")
+		var is_heal := skill.has_ability_tag("ally")
 		
 		if is_heal and allies.size() > 0:
 			var target_actor = allies[randi() % allies.size()]

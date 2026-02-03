@@ -12,7 +12,7 @@ var owner: ActorRef
 var display_name: String = ""
 var description: String = ""
 var icon: String = ""
-var tags: Array = []
+var ability_tags: Array[String] = []
 
 var _state: String = STATE_PENDING
 var _expire_reason: String = ""
@@ -30,7 +30,7 @@ func _init(config: AbilityConfig, owner_value: ActorRef, source_value: ActorRef 
 	display_name = config.display_name
 	description = config.description
 	icon = config.icon
-	tags = config.tags
+	ability_tags = config.ability_tags
 
 	_components = _resolve_components(config.active_use_components, config.components)
 
@@ -152,8 +152,8 @@ func expire(reason: String) -> void:
 	remove_effects()
 	_state = STATE_EXPIRED
 
-func has_tag(tag: String) -> bool:
-	return tags.has(tag)
+func has_ability_tag(tag: String) -> bool:
+	return ability_tags.has(tag)
 
 func serialize() -> Dictionary:
 	var serialized_components := []
@@ -173,7 +173,7 @@ func serialize() -> Dictionary:
 		"owner": owner,
 		"state": _state,
 		"displayName": display_name,
-		"tags": tags,
+		"abilityTags": ability_tags,
 		"components": serialized_components,
 		"executionInstances": serialized_instances,
 	}

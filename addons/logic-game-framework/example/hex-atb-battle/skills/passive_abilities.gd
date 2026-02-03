@@ -17,7 +17,7 @@ static var THORN_PASSIVE := (
 	.config_id("passive_thorn")
 	.display_name("荆棘反伤")
 	.description("受到伤害时，对攻击者造成 2 点伤害")
-	.tags(["passive", "defensive", "reflect"])
+	.ability_tags(["passive", "defensive", "reflect"])
 	.component(
 		NoInstanceConfig.builder()
 		.trigger(TriggerConfig.new("damage", _thorn_filter()))

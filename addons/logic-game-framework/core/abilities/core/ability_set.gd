@@ -92,10 +92,10 @@ func revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_RE
 		revoke_ability(ability.id, reason)
 	return to_revoke.size()
 
-func revoke_abilities_by_tag(tag: String, reason: String = REVOKE_REASON_MANUAL) -> int:
+func revoke_abilities_by_ability_tag(tag: String, reason: String = REVOKE_REASON_MANUAL) -> int:
 	var to_revoke := []
 	for ability in _abilities:
-		if ability.has_tag(tag):
+		if ability.has_ability_tag(tag):
 			to_revoke.append(ability)
 	for ability in to_revoke:
 		revoke_ability(ability.id, reason)
@@ -143,10 +143,10 @@ func find_abilities_by_config_id(config_id: String) -> Array:
 			results.append(ability)
 	return results
 
-func find_abilities_by_tag(tag: String) -> Array:
+func find_abilities_by_ability_tag(tag: String) -> Array:
 	var results := []
 	for ability in _abilities:
-		if ability.has_tag(tag):
+		if ability.has_ability_tag(tag):
 			results.append(ability)
 	return results
 

@@ -9,7 +9,7 @@
 ##     .config_id("skill_slash") \
 ##     .display_name("横扫斩") \
 ##     .description("近战攻击") \
-##     .tags(["skill", "active", "melee"]) \
+##     .ability_tags(["skill", "active", "melee"]) \
 ##     .active_use(ActiveUseConfig.builder()...) \
 ##     .build()
 ## [/codeblock]
@@ -30,7 +30,7 @@ var description: String
 var icon: String
 
 ## 标签列表
-var tags: Array
+var ability_tags: Array[String]
 
 ## 主动使用组件配置列表
 var active_use_components: Array
@@ -44,7 +44,7 @@ func _init(
 	display_name: String = "",
 	description: String = "",
 	icon: String = "",
-	tags: Array = [],
+	ability_tags: Array[String] = [],
 	active_use_components: Array = [],
 	components: Array = []
 ) -> void:
@@ -52,7 +52,7 @@ func _init(
 	self.display_name = display_name
 	self.description = description
 	self.icon = icon
-	self.tags = tags
+	self.ability_tags = ability_tags
 	self.active_use_components = active_use_components
 	self.components = components
 
@@ -73,7 +73,7 @@ class AbilityConfigBuilder:
 	var _display_name: String = ""
 	var _description: String = ""
 	var _icon: String = ""
-	var _tags: Array = []
+	var _ability_tags: Array[String] = []
 	var _active_use_components: Array = []
 	var _components: Array = []
 	
@@ -99,8 +99,8 @@ class AbilityConfigBuilder:
 		return self
 	
 	## 设置标签列表
-	func tags(value: Array) -> AbilityConfigBuilder:
-		_tags = value
+	func ability_tags(value: Array[String]) -> AbilityConfigBuilder:
+		_ability_tags = value
 		return self
 	
 	## 添加主动使用组件
@@ -122,7 +122,7 @@ class AbilityConfigBuilder:
 			_display_name,
 			_description,
 			_icon,
-			_tags,
+			_ability_tags,
 			_active_use_components,
 			_components
 		)
