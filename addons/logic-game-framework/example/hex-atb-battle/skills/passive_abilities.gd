@@ -12,23 +12,22 @@ extends RefCounted
 ##
 ## 触发条件：自己受到伤害时
 ## 效果：对攻击者造成 2 点纯粹伤害
-static var THORN_PASSIVE := AbilityConfig.new(
-	"passive_thorn",
-	"荆棘反伤",
-	"受到伤害时，对攻击者造成 2 点伤害",
-	"",
-	["passive", "defensive", "reflect"],
-	[],
-	[NoInstanceConfig.new(
-		[TriggerConfig.new(
-			"damage",
-			_thorn_filter()
-		)],
-		[HexBattleReflectDamageAction.new(
+static var THORN_PASSIVE := (
+	AbilityConfig.builder()
+	.config_id("passive_thorn")
+	.display_name("荆棘反伤")
+	.description("受到伤害时，对攻击者造成 2 点伤害")
+	.tags(["passive", "defensive", "reflect"])
+	.component(
+		NoInstanceConfig.builder()
+		.trigger(TriggerConfig.new("damage", _thorn_filter()))
+		.action(HexBattleReflectDamageAction.new(
 			2.0,
 			BattleEvents.DamageType.PURE
-		)]
-	)]
+		))
+		.build()
+	)
+	.build()
 )
 
 

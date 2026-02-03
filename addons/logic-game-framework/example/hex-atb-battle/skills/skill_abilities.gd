@@ -62,6 +62,7 @@ static var MOVE_ABILITY := (
 	.tags(["action", "move"])
 	.component(
 		ActivateInstanceConfig.builder()
+		.trigger(TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, _ability_activate_filter))
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.MOVE)
 		.on_tag(TimelineTags.START, [HexBattleStartMoveAction.new(
 			TargetSelector.ability_owner(),
@@ -71,7 +72,6 @@ static var MOVE_ABILITY := (
 			TargetSelector.ability_owner(),
 			_get_target_coord_from_event()
 		)])
-		.trigger(TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, _ability_activate_filter))
 		.build()
 	)
 	.build()
