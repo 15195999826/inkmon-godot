@@ -35,7 +35,7 @@ func on_apply(context: AbilityLifecycleContext) -> void:
 		"id": "%s_pre_%s" % [ability.id, _event_kind],
 		"name": _handler_name if _handler_name != "" else (ability.display_name if ability.display_name != "" else ability.config_id),
 		"eventKind": _event_kind,
-		"ownerId": context.owner.id,
+		"ownerId": context.owner_actor_id,
 		"abilityId": ability.id,
 		"configId": ability.config_id,
 		"filter": handler_filter,

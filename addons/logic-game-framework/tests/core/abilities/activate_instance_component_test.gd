@@ -12,7 +12,7 @@ func _test_any_trigger() -> void:
 		"tags": {},
 	})
 
-	var owner := ActorRef.new("actor-1")
+	var owner_actor_id := "actor-1"
 	var component_config := ActivateInstanceConfig.new(
 		"t-any",
 		{},
@@ -32,11 +32,8 @@ func _test_any_trigger() -> void:
 		[],
 		[component]
 	)
-	var ability := Ability.new(ability_config, owner)
-	var context := {
-		"owner": owner,
-		"ability": ability,
-	}
+	var ability := Ability.new(ability_config, owner_actor_id)
+	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
 	var triggered := component.on_event({"kind": "hit"}, context, null)
@@ -51,7 +48,7 @@ func _test_all_trigger() -> void:
 		"tags": {},
 	})
 
-	var owner := ActorRef.new("actor-2")
+	var owner_actor_id := "actor-2"
 	var component_config := ActivateInstanceConfig.new(
 		"t-all",
 		{},
@@ -71,11 +68,8 @@ func _test_all_trigger() -> void:
 		[],
 		[component]
 	)
-	var ability := Ability.new(ability_config, owner)
-	var context := {
-		"owner": owner,
-		"ability": ability,
-	}
+	var ability := Ability.new(ability_config, owner_actor_id)
+	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
 	var triggered := component.on_event({"kind": "hit"}, context, null)

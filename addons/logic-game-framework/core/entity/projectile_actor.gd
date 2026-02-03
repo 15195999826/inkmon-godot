@@ -48,11 +48,11 @@ func is_flying() -> bool:
 func get_launch_params() -> Dictionary:
 	return _launch_params
 
-func get_source() -> ActorRef:
-	return _launch_params.get("source", null)
+func get_source_actor_id() -> String:
+	return _launch_params.get("source_actor_id", "")
 
-func get_target() -> ActorRef:
-	return _launch_params.get("target", null)
+func get_target_actor_id() -> String:
+	return _launch_params.get("target_actor_id", "")
 
 func get_fly_time() -> float:
 	return _fly_time
@@ -63,8 +63,10 @@ func get_fly_distance() -> float:
 func get_pierce_count() -> int:
 	return _pierce_count
 
-func get_hit_targets() -> Array:
-	return _hit_targets.keys()
+func get_hit_targets() -> Array[String]:
+	var result: Array[String] = []
+	result.assign(_hit_targets.keys())
+	return result
 
 func launch(params: Dictionary) -> void:
 	if _projectile_state != STATE_IDLE:

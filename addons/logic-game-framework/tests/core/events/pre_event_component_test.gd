@@ -40,8 +40,8 @@ func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
 	})
 
 func _test_registration() -> void:
-	var owner = ActorRef.new("unit-1")
-	var ability_set = AbilitySet.create(owner, null)
+	var owner_actor_id := "unit-1"
+	var ability_set = AbilitySet.create(owner_actor_id, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -53,11 +53,11 @@ func _test_registration() -> void:
 				{"field": "damage", "operation": "multiply", "value": 0.7},
 			]),
 		func(event, ctx):
-			return event.get("targetId") == ctx.owner.id
+			return event.get("targetId") == ctx.owner_actor_id
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner)
+	var ability = Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
@@ -67,8 +67,8 @@ func _test_registration() -> void:
 	TestFramework.assert_near(70, float(mutable.get_current_value("damage")))
 
 func _test_unregistration() -> void:
-	var owner = ActorRef.new("unit-1")
-	var ability_set = AbilitySet.create(owner, null)
+	var owner_actor_id := "unit-1"
+	var ability_set = AbilitySet.create(owner_actor_id, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -82,7 +82,7 @@ func _test_unregistration() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner)
+	var ability = Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 	ability_set.revoke_ability(ability.id)
 
@@ -92,8 +92,8 @@ func _test_unregistration() -> void:
 	TestFramework.assert_near(100, float(mutable.get_current_value("damage")))
 
 func _test_modify_event() -> void:
-	var owner = ActorRef.new("unit-1")
-	var ability_set = AbilitySet.create(owner, null)
+	var owner_actor_id := "unit-1"
+	var ability_set = AbilitySet.create(owner_actor_id, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -108,7 +108,7 @@ func _test_modify_event() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner)
+	var ability = Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
@@ -118,8 +118,8 @@ func _test_modify_event() -> void:
 	TestFramework.assert_near(60, float(mutable.get_current_value("damage")))
 
 func _test_cancel_event() -> void:
-	var owner = ActorRef.new("unit-1")
-	var ability_set = AbilitySet.create(owner, null)
+	var owner_actor_id := "unit-1"
+	var ability_set = AbilitySet.create(owner_actor_id, null)
 
 	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
 	var state = MockState.new(ability_set, event_processor)
@@ -131,7 +131,7 @@ func _test_cancel_event() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_immune", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner)
+	var ability = Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
 	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}

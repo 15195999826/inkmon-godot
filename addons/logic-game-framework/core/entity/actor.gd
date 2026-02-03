@@ -5,8 +5,8 @@ var _id: String = ""
 var type: String = "actor"
 var _team: String = ""
 var _display_name: String = ""
-var _on_spawn_callbacks: Array = []
-var _on_despawn_callbacks: Array = []
+var _on_spawn_callbacks: Array[Callable] = []
+var _on_despawn_callbacks: Array[Callable] = []
 
 
 ## 获取 Actor ID
@@ -63,8 +63,8 @@ func add_despawn_listener(callback: Callable) -> Callable:
 		if index != -1:
 			_on_despawn_callbacks.remove_at(index)
 
-func to_ref() -> ActorRef:
-	return ActorRef.new(get_id())
+func to_ref() -> TargetSelector.TargetRef:
+	return TargetSelector.TargetRef.new(get_id())
 
 func serialize_base() -> Dictionary:
 	return {
@@ -123,14 +123,14 @@ func _get_position() -> Vector3:
 ## 获取位置快照
 ## 返回 [x, y, z] 格式的数组，用于录像存储
 ## 具体含义（hex/world/tile）由 configs.positionFormats 声明，渲染层解释
-func getPositionSnapshot() -> Array:
+func getPositionSnapshot() -> Array[float]:
 	var pos := _get_position()
 	return [pos.x, pos.y, pos.z]
 
 
 ## 设置录像回调（BattleRecorder 调用）
 ## 子类可覆盖此方法以订阅事件并返回取消订阅的回调数组
-func setupRecording(_ctx: Dictionary) -> Array:
+func setupRecording(_ctx: Dictionary) -> Array[Callable]:
 	return []
 
 
@@ -140,7 +140,7 @@ func getAttributeSnapshot() -> Dictionary:
 
 
 ## 获取 Ability 快照（子类应覆盖）
-func getAbilitySnapshot() -> Array:
+func getAbilitySnapshot() -> Array[Dictionary]:
 	return []
 
 

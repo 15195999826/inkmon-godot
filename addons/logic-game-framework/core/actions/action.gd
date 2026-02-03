@@ -18,7 +18,7 @@ class BaseAction:
 	func execute(_ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
 
-	func get_targets(ctx: ExecutionContext) -> Array[ActorRef]:
+	func get_targets(ctx: ExecutionContext) -> Array[TargetSelector.TargetRef]:
 		return _target_selector.select(ctx)
 
 

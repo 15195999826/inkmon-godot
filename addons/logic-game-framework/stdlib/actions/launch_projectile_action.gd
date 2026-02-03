@@ -65,6 +65,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var targets := get_targets(ctx)
 	var target = targets[0] if targets.size() > 0 else null
+	var target_actor_id: String = target.id if target != null else ""
 
 	# 解析其他参数
 	var projectile_config := _projectile_config.resolve(ctx)
@@ -73,13 +74,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		direction_value = _direction.resolve(ctx)
 	var custom_data_value := _custom_data.resolve(ctx)
 
-	var source = ctx.ability.source if ctx.ability else {"id": "unknown"}
+	var source_actor_id: String = ctx.ability.get("source_actor_id", "") if not ctx.ability.is_empty() else "unknown"
 
 	var projectile := ProjectileActor.new(projectile_config if projectile_config else {})
 
 	var launch_params := {
-		"source": source,
-		"target": target,
+		"source_actor_id": source_actor_id,
+		"target_actor_id": target_actor_id,
 		"startPosition": start_position,
 		"targetPosition": target_position,
 		"direction": direction_value,
@@ -90,11 +91,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var launched_event = ProjectileEvents.create_projectile_launched_event(
 		projectile.id,
-		source,
+		source_actor_id,
 		start_position,
 		projectile.config.get("projectileType", "bullet"),
 		projectile.config.get("speed", 500.0),
-		target,
+		target_actor_id,
 		target_position
 	)
 

@@ -47,7 +47,7 @@ func get_trigger_event() -> Variant:
 		return null
 	return _event_chain[_event_chain.size() - 1]
 
-func tick(dt: float) -> Array:
+func tick(dt: float) -> Array[String]:
 	if _state != STATE_EXECUTING:
 		return []
 	if _timeline == null:
@@ -57,7 +57,7 @@ func tick(dt: float) -> Array:
 	var previous_elapsed := _elapsed
 	_elapsed += dt
 
-	var triggered_this_tick: Array = []
+	var triggered_this_tick: Array[Dictionary] = []
 	var tags: Dictionary = _timeline.get("tags", {})
 	for tag_name in tags.keys():
 		var tag_time := float(tags[tag_name])
@@ -86,7 +86,7 @@ func tick(dt: float) -> Array:
 		_state = STATE_COMPLETED
 		Log.debug("AbilityExecutionInstance", "执行完成")
 
-	var triggered_tags := []
+	var triggered_tags: Array[String] = []
 	for entry in triggered_this_tick:
 		triggered_tags.append(entry["tagName"])
 	return triggered_tags
@@ -130,8 +130,8 @@ func _build_execution_context(current_tag: String) -> ExecutionContext:
 		"ability": {
 			"id": _ability_info.get("id", ""),
 			"configId": _ability_info.get("configId", ""),
-			"owner": _ability_info.get("owner", null),
-			"source": _ability_info.get("source", null),
+			"owner_actor_id": _ability_info.get("owner_actor_id", ""),
+			"source_actor_id": _ability_info.get("source_actor_id", ""),
 		},
 		"execution": {
 			"id": id,
@@ -141,8 +141,8 @@ func _build_execution_context(current_tag: String) -> ExecutionContext:
 		},
 	})
 
-func _collect_action_types(actions: Array) -> Array:
-	var types := []
+func _collect_action_types(actions: Array) -> Array[String]:
+	var types: Array[String] = []
 	for action in actions:
 		if action == null:
 			continue

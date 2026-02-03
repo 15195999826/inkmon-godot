@@ -26,7 +26,7 @@ func _init() -> void:
 	TestFramework.register_test("Ability ticks execution instances", _test_execution_instances)
 
 func _test_lifecycle() -> void:
-	var owner := ActorRef.new("actor-1")
+	var owner_actor_id := "actor-1"
 	var component := TestComponent.new()
 	var config := AbilityConfig.new(
 		"fire",
@@ -37,8 +37,8 @@ func _test_lifecycle() -> void:
 		[],
 		[component]
 	)
-	var ability := Ability.new(config, owner)
-	var context := AbilityLifecycleContext.new(owner, null, ability, null, null)
+	var ability := Ability.new(config, owner_actor_id)
+	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 
 	ability.apply_effects(context)
 	TestFramework.assert_equal(Ability.STATE_GRANTED, ability.get_state())
@@ -52,7 +52,7 @@ func _test_lifecycle() -> void:
 	TestFramework.assert_equal("manual", ability.get_expire_reason())
 
 func _test_triggered_listener() -> void:
-	var owner := ActorRef.new("actor-2")
+	var owner_actor_id := "actor-2"
 	var component := TestComponent.new()
 	var config := AbilityConfig.new(
 		"storm",
@@ -63,8 +63,8 @@ func _test_triggered_listener() -> void:
 		[],
 		[component]
 	)
-	var ability := Ability.new(config, owner)
-	var context := AbilityLifecycleContext.new(owner, null, ability, null, null)
+	var ability := Ability.new(config, owner_actor_id)
+	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
 	var result := { "event": {}, "components": [] }
@@ -85,9 +85,9 @@ func _test_execution_instances() -> void:
 	TimelineRegistry.reset()
 	TimelineRegistry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
 
-	var owner := ActorRef.new("actor-3")
+	var owner_actor_id := "actor-3"
 	var config := AbilityConfig.new("blink")
-	var ability := Ability.new(config, owner)
+	var ability := Ability.new(config, owner_actor_id)
 
 	ability.activate_new_execution_instance({
 		"timelineId": "t-ability",

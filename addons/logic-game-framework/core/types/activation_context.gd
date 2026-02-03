@@ -1,11 +1,11 @@
 extends RefCounted
 class_name ActivationContext
 
-var source: ActorRef
+var source_actor_id: String
 var targets: Array
 var logic_time: float
 
-func _init(source_value: ActorRef, targets_value: Array, logic_time_value: float) -> void:
-	source = source_value
+func _init(source_actor_id_value: String, targets_value: Array, logic_time_value: float) -> void:
+	source_actor_id = source_actor_id_value
 	targets = targets_value
 	logic_time = logic_time_value

@@ -11,7 +11,7 @@ var _cache: Dictionary = {}
 var _dirty_set: Dictionary = {}
 var _computing_set: Dictionary = {}
 var _constraints: Dictionary = {}
-var _listeners: Array = []
+var _listeners: Array[Callable] = []
 var _hooks: Dictionary = {}
 var _global_hooks: Dictionary = {}
 
@@ -206,7 +206,7 @@ func remove_modifiers_by_source(source: String) -> int:
 				})
 	return count
 
-func get_modifiers(name: String) -> Array:
+func get_modifiers(name: String) -> Array[Dictionary]:
 	return _modifiers.get(name, [])
 
 func has_modifier(modifier_id: String) -> bool:

@@ -55,25 +55,25 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
 	var valid_targets = _filter_valid_targets(projectile, potential_targets)
 
-	var target: ActorRef = projectile.get_target()
-	if target:
+	var target_actor_id: String = projectile.get_target_actor_id()
+	if target_actor_id != "":
 		var target_actor: Actor = null
 		for actor in potential_targets:
-			if actor is Actor and actor.id == target.id:
+			if actor is Actor and actor.id == target_actor_id:
 				target_actor = actor
 				break
 		if target_actor:
 			var hit_position: Vector3 = projectile.position if projectile.position else target_actor.position
-			projectile.hit(target.id)
-			_emit_hit_event(projectile, target, hit_position)
+			projectile.hit(target_actor_id)
+			_emit_hit_event(projectile, target_actor_id, hit_position)
 			_mark_for_removal(projectile)
 			return
 
 	var collision = collision_detector.detect(projectile, valid_targets)
-	if collision.get("hit", false) and collision.get("target"):
-		var hit_target: ActorRef = collision.get("target")
-		projectile.hit(hit_target.id)
-		_emit_hit_event(projectile, hit_target, collision.get("hitPosition"))
+	if collision.get("hit", false) and collision.get("target_actor_id"):
+		var hit_target_actor_id: String = collision.get("target_actor_id")
+		projectile.hit(hit_target_actor_id)
+		_emit_hit_event(projectile, hit_target_actor_id, collision.get("hitPosition"))
 	else:
 		projectile.miss("no_target")
 		_emit_miss_event(projectile, "no_target")
@@ -81,30 +81,29 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 	_mark_for_removal(projectile)
 
 func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
-	var target: ActorRef = collision.get("target")
+	var target_actor_id: String = collision.get("target_actor_id", "")
 	var hit_position: Vector3 = collision.get("hitPosition")
 
-	if not target or not hit_position:
+	if target_actor_id == "" or not hit_position:
 		return
 
-	var continue_flying = projectile.hit(target.id)
+	var continue_flying = projectile.hit(target_actor_id)
 
 	if continue_flying:
-		_emit_pierce_event(projectile, target, hit_position)
+		_emit_pierce_event(projectile, target_actor_id, hit_position)
 	else:
-		_emit_hit_event(projectile, target, hit_position)
+		_emit_hit_event(projectile, target_actor_id, hit_position)
 		_mark_for_removal(projectile)
 
 func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array[Actor]) -> Array[Actor]:
-	var source_ref: ActorRef = projectile.get_source()
-	var source_id: String = source_ref.id if source_ref else ""
+	var source_actor_id: String = projectile.get_source_actor_id()
 
 	var valid: Array[Actor] = []
 	for target in potential_targets:
 		if not (target is Actor):
 			continue
 
-		if source_id and target.id == source_id:
+		if source_actor_id != "" and target.id == source_actor_id:
 			continue
 
 		if projectile.has_hit_target(target.id):
@@ -128,15 +127,17 @@ func _process_pending_removal(actors: Array[Actor]) -> void:
 			i += 1
 	pending_removal.clear()
 
-func _emit_hit_event(projectile: ProjectileActor, target: ActorRef, hit_position: Vector3) -> void:
+func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_position: Vector3) -> void:
 	if not event_collector:
 		return
 
-	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
+	var source_actor_id: String = projectile.get_source_actor_id()
+	if source_actor_id == "":
+		source_actor_id = "unknown"
 	var event = ProjectileEvents.create_projectile_hit_event(
 		projectile.id,
-		source,
-		target,
+		source_actor_id,
+		target_actor_id,
 		hit_position,
 		projectile.get_fly_time(),
 		projectile.get_fly_distance(),
@@ -152,37 +153,41 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 	if not event_collector:
 		return
 
-	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
+	var source_actor_id: String = projectile.get_source_actor_id()
+	if source_actor_id == "":
+		source_actor_id = "unknown"
 	var final_position := projectile.position
 
 	var event = ProjectileEvents.create_projectile_miss_event(
 		projectile.id,
-		source,
+		source_actor_id,
 		reason,
 		final_position,
 		projectile.get_fly_time(),
-		projectile.get_target()
+		projectile.get_target_actor_id()
 	)
 
 	event_collector.push(event)
 
 	var despawn_event = ProjectileEvents.create_projectile_despawn_event(
 		projectile.id,
-		source,
+		source_actor_id,
 		"miss"
 	)
 
 	event_collector.push(despawn_event)
 
-func _emit_pierce_event(projectile: ProjectileActor, target: ActorRef, pierce_position: Vector3) -> void:
+func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pierce_position: Vector3) -> void:
 	if not event_collector:
 		return
 
-	var source: ActorRef = projectile.get_source() if projectile.get_source() else ActorRef.new("unknown")
+	var source_actor_id: String = projectile.get_source_actor_id()
+	if source_actor_id == "":
+		source_actor_id = "unknown"
 	var event = ProjectileEvents.create_projectile_pierce_event(
 		projectile.id,
-		source,
-		target,
+		source_actor_id,
+		target_actor_id,
 		pierce_position,
 		projectile.get_pierce_count(),
 		projectile.config.get("damage")
@@ -200,12 +205,12 @@ func get_active_projectiles(actors: Array[Actor]) -> Array[ProjectileActor]:
 func get_pending_removal_ids() -> Dictionary:
 	return pending_removal.duplicate()
 
-func force_hit(projectile: ProjectileActor, target: ActorRef, hit_position: Vector3) -> void:
+func force_hit(projectile: ProjectileActor, target_actor_id: String, hit_position: Vector3) -> void:
 	if not projectile.is_flying():
 		return
 
-	projectile.hit(target.id)
-	_emit_hit_event(projectile, target, hit_position)
+	projectile.hit(target_actor_id)
+	_emit_hit_event(projectile, target_actor_id, hit_position)
 	_mark_for_removal(projectile)
 
 func force_miss(projectile: ProjectileActor, reason: String = "forced") -> void:

@@ -7,8 +7,8 @@ const STATE_EXPIRED := "expired"
 
 var id: String
 var config_id: String
-var source: ActorRef
-var owner: ActorRef
+var source_actor_id: String
+var owner_actor_id: String
 var display_name: String = ""
 var description: String = ""
 var icon: String = ""
@@ -22,11 +22,11 @@ var _execution_instances: Array[AbilityExecutionInstance] = []
 var _on_triggered_callbacks: Array[Callable] = []
 var _on_execution_callbacks: Array[Callable] = []
 
-func _init(config: AbilityConfig, owner_value: ActorRef, source_value: ActorRef = null):
+func _init(config: AbilityConfig, owner_actor_id_value: String, source_actor_id_value: String = ""):
 	id = IdGenerator.generate("ability")
 	config_id = config.config_id
-	owner = owner_value
-	source = source_value if source_value else owner_value
+	owner_actor_id = owner_actor_id_value
+	source_actor_id = source_actor_id_value if source_actor_id_value != "" else owner_actor_id_value
 	display_name = config.display_name
 	description = config.description
 	icon = config.icon
@@ -59,10 +59,10 @@ func tick(dt: float) -> void:
 		if component.is_active():
 			component.on_tick(dt)
 
-func tick_executions(dt: float) -> Array:
+func tick_executions(dt: float) -> Array[String]:
 	if _state == STATE_EXPIRED:
 		return []
-	var all_triggered := []
+	var all_triggered: Array[String] = []
 	for instance in _execution_instances:
 		if _is_executing_instance(instance):
 			all_triggered.append_array(instance.tick(dt))
@@ -78,8 +78,8 @@ func activate_new_execution_instance(config: Dictionary) -> AbilityExecutionInst
 		"abilityInfo": {
 			"id": id,
 			"configId": config_id,
-			"owner": owner,
-			"source": source,
+			"owner_actor_id": owner_actor_id,
+			"source_actor_id": source_actor_id,
 		},
 	})
 	_execution_instances.append(instance)
@@ -89,10 +89,10 @@ func activate_new_execution_instance(config: Dictionary) -> AbilityExecutionInst
 	instance.tick(0)
 	return instance
 
-func get_executing_instances() -> Array:
+func get_executing_instances() -> Array[AbilityExecutionInstance]:
 	return _execution_instances.filter(_is_executing_instance)
 
-func get_all_execution_instances() -> Array:
+func get_all_execution_instances() -> Array[AbilityExecutionInstance]:
 	return _execution_instances
 
 func cancel_all_executions() -> void:
@@ -169,8 +169,8 @@ func serialize() -> Dictionary:
 	return {
 		"id": id,
 		"configId": config_id,
-		"source": source,
-		"owner": owner,
+		"source_actor_id": source_actor_id,
+		"owner_actor_id": owner_actor_id,
 		"state": _state,
 		"displayName": display_name,
 		"abilityTags": ability_tags,

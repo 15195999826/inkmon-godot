@@ -34,14 +34,14 @@ static var THORN_PASSIVE := (
 ## 荆棘反伤过滤器
 static func _thorn_filter() -> Callable:
 	return func(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
-		var owner: ActorRef = ctx.owner
-		if owner == null:
+		var owner_id: String = ctx.owner_actor_id
+		if owner_id == "":
 			return false
 		# 使用回放事件格式：target_actor_id/source_actor_id
-		var is_target: bool = event_dict.get("target_actor_id", "") == owner.id
+		var is_target: bool = event_dict.get("target_actor_id", "") == owner_id
 		var has_source: bool = event_dict.get("source_actor_id", "") != ""
 		# 不反弹自己对自己的伤害
-		var not_self_damage: bool = event_dict.get("source_actor_id", "") != owner.id
+		var not_self_damage: bool = event_dict.get("source_actor_id", "") != owner_id
 		# 不反弹反伤产生的伤害（防止无限循环）
 		var not_reflected_damage: bool = not event_dict.get("is_reflected", false)
 		return is_target and has_source and not_self_damage and not_reflected_damage

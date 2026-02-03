@@ -62,21 +62,21 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	attributes.setDefBase(stats["def"])
 	attributes.setSpeedBase(stats["speed"])
 	
-	# 创建能力集（此时 ID 已确定，to_ref() 返回正确 ID）
-	ability_set = BattleAbilitySet.create_battle_ability_set(to_ref(), attributes)
+	# 创建能力集（此时 ID 已确定）
+	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attributes)
 
 
 ## 装备技能（在 HexBattle 初始化时调用）
 func equip_abilities() -> void:
 	# 装备移动 Ability
-	var move_ability := Ability.new(HexBattleSkillAbilities.MOVE_ABILITY, to_ref())
+	var move_ability := Ability.new(HexBattleSkillAbilities.MOVE_ABILITY, get_id())
 	ability_set.grant_ability(move_ability)
 	_move_ability_id = move_ability.id
 	
 	# 装备职业对应的技能
 	var skill_type := HexBattleSkillConfig.get_class_skill(character_class)
 	var skill_config := HexBattleSkillAbilities.get_skill_ability(skill_type)
-	var skill_ability := Ability.new(skill_config, to_ref())
+	var skill_ability := Ability.new(skill_config, get_id())
 	ability_set.grant_ability(skill_ability)
 	_skill_ability_id = skill_ability.id
 	
@@ -88,7 +88,7 @@ func equip_abilities() -> void:
 func _grant_class_passives() -> void:
 	# 战士：荆棘反伤
 	if character_class == HexBattleClassConfig.CharacterClass.WARRIOR:
-		var thorn_passive := Ability.new(HexBattlePassiveAbilities.THORN_PASSIVE, to_ref())
+		var thorn_passive := Ability.new(HexBattlePassiveAbilities.THORN_PASSIVE, get_id())
 		ability_set.grant_ability(thorn_passive)
 
 

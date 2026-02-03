@@ -6,7 +6,7 @@ const PERMANENT_DURATION := -1.0
 ## 移除全部层数的 stacks 值
 const REMOVE_ALL_STACKS := -1
 
-static func _get_ability_set_for_target(_ctx: ExecutionContext, target: ActorRef) -> AbilitySet:
+static func _get_ability_set_for_target(_ctx: ExecutionContext, target: TargetSelector.TargetRef) -> AbilitySet:
 	var actor = GameWorld.get_actor(target.id)
 	return IAbilitySetOwner.get_ability_set(actor)
 

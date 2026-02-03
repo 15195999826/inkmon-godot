@@ -61,9 +61,9 @@ func on_overheal(action: Action.BaseAction) -> HexBattleHealAction:
 # ============================================================
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var source: ActorRef = null
-	if ctx.ability != null:
-		source = ctx.ability.owner
+	var source_actor_id: String = ""
+	if not ctx.ability.is_empty():
+		source_actor_id = ctx.ability.get("owner_actor_id", "")
 	var targets := get_targets(ctx)
 	
 	# 解析参数
@@ -73,8 +73,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var target_ids: Array[String] = []
 	for t in targets:
 		target_ids.append(t.id)
-	var source_id := source.id if source != null else "???"
-	print("  [HealAction] %s 对 [%s] 治疗 %.0f HP" % [source_id, ", ".join(target_ids), heal_amount])
+	var source_id_for_log := source_actor_id if source_actor_id != "" else "???"
+	print("  [HealAction] %s 对 [%s] 治疗 %.0f HP" % [source_id_for_log, ", ".join(target_ids), heal_amount])
 	
 	# 产生回放格式事件
 	var all_events: Array[Dictionary] = []
@@ -83,15 +83,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
 	
 	for target in targets:
-		var source_id_str := source.id if source != null else ""
-		
 		# 计算过量治疗
-		var overheal := _calculate_overheal(target, heal_amount, ctx)
+		var overheal := _calculate_overheal(target.id, heal_amount, ctx)
 		
 		var event := BattleEvents.HealEvent.create(
 			target.id,
 			heal_amount,
-			source_id_str
+			source_actor_id
 		)
 		var heal_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		
@@ -110,7 +108,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			target_actor.set_hp(new_hp)
 			
 			# 获取目标名称
-			var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
 			
 			# 日志打印（与旧 _process_frame_events 格式一致）
 			print("  [治疗] %s 恢复 %.0f HP, HP: %.0f -> %.0f" % [
@@ -119,7 +117,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			
 			# Logger 记录
 			if battle.logger != null:
-				battle.logger.heal_applied(source_id_str, target.id, heal_amount)
+				battle.logger.heal_applied(source_actor_id, target.id, heal_amount)
 		
 		# ========== 处理回调 ==========
 		var callback_events := _process_callbacks(heal_event, overheal, ctx)
@@ -156,12 +154,12 @@ func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionC
 	return events
 
 
-func _calculate_overheal(target: ActorRef, heal_amount: float, ctx: ExecutionContext) -> float:
+func _calculate_overheal(target_actor_id: String, heal_amount: float, ctx: ExecutionContext) -> float:
 	if ctx.game_state_provider == null:
 		return 0.0
 	
 	if ctx.game_state_provider.has_method("get_actor"):
-		var target_actor = ctx.game_state_provider.get_actor(target.id)
+		var target_actor = ctx.game_state_provider.get_actor(target_actor_id)
 		if target_actor != null:
 			var current_hp := 0.0
 			var max_hp := 0.0

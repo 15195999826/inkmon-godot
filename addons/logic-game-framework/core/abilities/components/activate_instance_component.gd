@@ -3,7 +3,7 @@ class_name ActivateInstanceComponent
 
 const TYPE := "ActivateInstanceComponent"
 
-var _triggers: Array = []
+var _triggers: Array[Dictionary] = []
 var _trigger_mode: String = "any"
 var _timeline_id: String = ""
 var _tag_actions: Dictionary = {}

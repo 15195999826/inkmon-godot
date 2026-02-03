@@ -5,8 +5,8 @@ class_name AbilityLifecycleContext
 ## 在 Ability 的 apply/remove/event 等生命周期方法中传递的上下文对象。
 ## 包含 Ability 运行所需的所有依赖引用。
 
-## 能力拥有者的引用
-var owner: ActorRef
+## 能力拥有者的 ID
+var owner_actor_id: String
 
 ## 拥有者的属性集
 var attribute_set: BaseGeneratedAttributeSet
@@ -22,13 +22,13 @@ var event_processor: EventProcessor
 
 
 func _init(
-	p_owner: ActorRef,
+	p_owner_actor_id: String,
 	p_attribute_set: BaseGeneratedAttributeSet,
 	p_ability: Ability,
 	p_ability_set: AbilitySet,
 	p_event_processor: EventProcessor
 ) -> void:
-	owner = p_owner
+	owner_actor_id = p_owner_actor_id
 	attribute_set = p_attribute_set
 	ability = p_ability
 	ability_set = p_ability_set

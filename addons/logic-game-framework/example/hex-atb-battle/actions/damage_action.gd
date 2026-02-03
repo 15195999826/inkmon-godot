@@ -85,9 +85,9 @@ func on_kill(action: Action.BaseAction) -> HexBattleDamageAction:
 # ============================================================
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var source: ActorRef = null
-	if ctx.ability != null:
-		source = ctx.ability.owner
+	var source_actor_id: String = ""
+	if not ctx.ability.is_empty():
+		source_actor_id = ctx.ability.get("owner_actor_id", "")
 	var targets := get_targets(ctx)
 	var battle: HexBattle = ctx.game_state_provider
 	
@@ -99,19 +99,18 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	
 	for target in targets:
 		# ========== Pre 阶段 ==========
-		var pre_event := {
-			"kind": "pre_damage",
-			"source": source,
-			"target": target,
-			"damage": _damage,
-			"damage_type": BattleEvents._damage_type_to_string(_damage_type),
-		}
+		var pre_event := GameEvent.PreDamageEvent.create(
+			source_actor_id,
+			target.id,
+			_damage,
+			BattleEvents._damage_type_to_string(_damage_type)
+		)
 		
-		var mutable: MutableEvent = event_processor.process_pre_event(pre_event, battle)
+		var mutable: MutableEvent = event_processor.process_pre_event(pre_event.to_dict(), battle)
 		
 		# 如果被取消（如免疫），跳过此目标
 		if mutable.cancelled:
-			var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
 			print("  [DamageAction] %s 的伤害被取消" % target_name)
 			continue
 		
@@ -124,8 +123,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			final_damage *= 1.5
 		
 		# 打印日志
-		var source_name := HexBattleGameStateUtils.get_actor_display_name(source, battle)
-		var target_name := HexBattleGameStateUtils.get_actor_display_name(target, battle)
+		var source_name := HexBattleGameStateUtils.get_actor_display_name(source_actor_id, battle)
+		var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
 		var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 		var crit_text := " (暴击!)" if is_critical else ""
 		if final_damage != _damage:
@@ -134,12 +133,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s" % [source_name, target_name, final_damage, damage_type_str, crit_text])
 		
 		# ========== 产生最终事件（回放格式） ==========
-		var source_id := source.id if source != null else ""
 		var event := BattleEvents.DamageEvent.create(
 			target.id,
 			final_damage,
 			_damage_type,
-			source_id,
+			source_actor_id,
 			is_critical
 		)
 		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
@@ -157,7 +155,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			
 			# Logger 记录
 			if battle.logger != null:
-				battle.logger.damage_dealt(source_id, target.id, final_damage, damage_type_str, false)
+				battle.logger.damage_dealt(source_actor_id, target.id, final_damage, damage_type_str, false)
 			
 			# 检查死亡
 			if target_actor.check_death():
@@ -165,10 +163,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 				
 				# Logger 记录死亡
 				if battle.logger != null:
-					battle.logger.actor_died(target.id, source_id)
+					battle.logger.actor_died(target.id, source_actor_id)
 				
 				# 推送死亡事件
-				var death_event := BattleEvents.DeathEvent.create(target.id, source_id)
+				var death_event := BattleEvents.DeathEvent.create(target.id, source_actor_id)
 				var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 				all_events.append(death_dict)
 				

@@ -259,7 +259,7 @@ func _place_team_randomly(team: Array[CharacterActor], range_config: Dictionary)
 
 func _apply_inspire_buff_to_all() -> void:
 	for actor in get_all_actors():
-		var inspire_buff := Ability.new(HexBattleInspireBuff.INSPIRE_BUFF, actor.to_ref())
+		var inspire_buff := Ability.new(HexBattleInspireBuff.INSPIRE_BUFF, actor.get_id())
 		actor.ability_set.grant_ability(inspire_buff)
 		
 		var current_def: float = actor.get_def()
@@ -404,8 +404,7 @@ func _start_actor_action(actor: CharacterActor) -> void:
 		var coord = decision["target_coord"]
 		decision_text = "移动到 (%d, %d)" % [coord.q, coord.r]
 	else:
-		var target_ref = decision.get("target", null)
-		var target_id: String = target_ref.id if target_ref != null else ""
+		var target_id: String = decision.get("target_actor_id", "")
 		var target_actor := get_actor(target_id)
 		var target_name := target_actor.get_display_name() if target_actor != null else "未知"
 		var skill := actor.get_skill_ability()
@@ -421,7 +420,7 @@ func _start_actor_action(actor: CharacterActor) -> void:
 	var event := _create_action_use_event(
 		decision["ability_instance_id"],
 		actor.get_id(),
-		decision.get("target", null),
+		decision.get("target_actor_id", ""),
 		decision.get("target_coord", null)
 	)
 	
@@ -452,14 +451,14 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target": ActorRef.new(target_actor.get_id()),
+				"target_actor_id": target_actor.get_id(),
 			}
 		else:
 			var target_actor = enemies[randi() % enemies.size()]
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target": ActorRef.new(target_actor.get_id()),
+				"target_actor_id": target_actor.get_id(),
 			}
 	else:
 		if my_pos.is_valid():
@@ -482,21 +481,21 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target": ActorRef.new(target_actor.get_id()),
+				"target_actor_id": target_actor.get_id(),
 			}
 		
 		return { "type": "skip" }
 
 
-func _create_action_use_event(ability_instance_id: String, source_id: String, target: ActorRef, target_coord: HexCoord) -> Dictionary:
+func _create_action_use_event(ability_instance_id: String, source_id: String, target_actor_id: String, target_coord: HexCoord) -> Dictionary:
 	var event := {
 		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
 		"abilityInstanceId": ability_instance_id,
 		"sourceId": source_id,
 		"logicTime": _logic_time,  # 事件快照：记录事件发生时的逻辑时间
 	}
-	if target != null:
-		event["target"] = target
+	if target_actor_id != "":
+		event["target_actor_id"] = target_actor_id
 	if target_coord != null and target_coord is HexCoord:
 		# 转换为 Dictionary 以便 JSON 序列化
 		event["target_coord"] = target_coord.to_dict()

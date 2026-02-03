@@ -112,8 +112,12 @@ func _run_suite(suite_name: String) -> void:
 	print("-".repeat(60))
 
 	_current_suite_name = suite_name
-	_before_each_callbacks = before_each_list
-	_after_each_callbacks = after_each_list
+	_before_each_callbacks.clear()
+	for cb in before_each_list:
+		_before_each_callbacks.append(cb)
+	_after_each_callbacks.clear()
+	for cb in after_each_list:
+		_after_each_callbacks.append(cb)
 
 	for test_data in tests:
 		_run_test(suite_name, test_data)

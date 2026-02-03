@@ -24,10 +24,10 @@ func _init(config: ActiveUseConfig):
 func _create_default_trigger_config() -> TriggerConfig:
 	var filter_fn := func(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
 		var ability_ref: Ability = ctx.ability
-		var owner_ref: ActorRef = ctx.owner
-		if ability_ref == null or owner_ref == null:
+		var owner_id: String = ctx.owner_actor_id
+		if ability_ref == null or owner_id == "":
 			return false
-		return event_dict.get("abilityInstanceId", "") == ability_ref.id and event_dict.get("sourceId", "") == owner_ref.id
+		return event_dict.get("abilityInstanceId", "") == ability_ref.id and event_dict.get("sourceId", "") == owner_id
 	return TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, filter_fn)
 
 func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
@@ -38,7 +38,7 @@ func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_sta
 		return _activate_without_checks(event_dict, context, game_state_provider)
 	var logic_time := _get_logic_time(event_dict, game_state_provider)
 	var condition_ctx := {
-		"owner": context.owner,
+		"owner_actor_id": context.owner_actor_id,
 		"abilitySet": ability_set,
 		"ability": context.ability,
 		"gameplayState": game_state_provider,
@@ -46,7 +46,7 @@ func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_sta
 	if not _check_conditions(condition_ctx):
 		return false
 	var cost_ctx := {
-		"owner": context.owner,
+		"owner_actor_id": context.owner_actor_id,
 		"abilitySet": ability_set,
 		"ability": context.ability,
 		"gameplayState": game_state_provider,
@@ -86,10 +86,10 @@ func _pay_costs(ctx: Dictionary) -> void:
 		cost.pay(ctx)
 
 func _get_ability_set(context: AbilityLifecycleContext, _game_state_provider: Variant) -> AbilitySet:
-	var owner_ref: ActorRef = context.owner
-	if owner_ref == null:
+	var owner_id: String = context.owner_actor_id
+	if owner_id == "":
 		return null
-	var actor := GameWorld.get_actor(owner_ref.id)
+	var actor := GameWorld.get_actor(owner_id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
 func _get_logic_time(event_dict: Dictionary, game_state_provider: Variant) -> float:

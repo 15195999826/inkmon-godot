@@ -6,13 +6,13 @@ var phase: String
 var cancelled := false
 var cancel_reason := ""
 var cancelled_by := ""
-var _modifications: Array = []
+var _modifications: Array[Dictionary] = []
 
 func _init(original_event: Dictionary, phase_value: String):
 	original = original_event
 	phase = phase_value
 
-func get_modifications() -> Array:
+func get_modifications() -> Array[Dictionary]:
 	return _modifications
 
 func add_modification(modification: Dictionary) -> void:
@@ -90,8 +90,8 @@ func get_field_computation_steps(field: String) -> Variant:
 		"steps": steps,
 	}
 
-func get_all_computation_steps() -> Array:
-	var records := []
+func get_all_computation_steps() -> Array[Dictionary]:
+	var records: Array[Dictionary] = []
 	for field in _get_modified_fields():
 		var record = get_field_computation_steps(str(field))
 		if record:
@@ -112,11 +112,13 @@ func format_computation_log(field: String) -> String:
 
 	return "\n".join(lines)
 
-func _get_modified_fields() -> Array:
+func _get_modified_fields() -> Array[String]:
 	var fields := {}
 	for mod in _modifications:
 		fields[mod.get("field", "")] = true
-	return fields.keys()
+	var result: Array[String] = []
+	result.assign(fields.keys())
+	return result
 
 func _get_grouped_field_mods(field: String) -> Dictionary:
 	var sets := []

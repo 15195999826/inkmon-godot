@@ -57,7 +57,7 @@ const DEFAULT_TRACE_LEVEL := 1
 var _max_depth: int
 var _trace_level: int
 var _current_depth := 0
-var _traces: Array = []
+var _traces: Array[Dictionary] = []
 var _current_trace_id := ""
 var _pre_handlers: Dictionary = {}
 
@@ -224,7 +224,7 @@ func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], 
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func get_traces() -> Array:
+func get_traces() -> Array[Dictionary]:
 	return _traces
 
 func clear_traces() -> void:

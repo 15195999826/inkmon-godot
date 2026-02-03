@@ -21,8 +21,10 @@ func get(timeline_id: StringName) -> Dictionary:
 func has(timeline_id: String) -> bool:
 	return _timelines.has(timeline_id)
 
-func get_all_ids() -> Array:
-	return _timelines.keys()
+func get_all_ids() -> Array[String]:
+	var result: Array[String] = []
+	result.assign(_timelines.keys())
+	return result
 
 func reset() -> void:
 	_timelines = {}
@@ -34,22 +36,26 @@ static func get_tag_time(timeline: Dictionary, tag_name: String) -> float:
 		return float(tags[tag_name])
 	return -1.0
 
-static func get_tag_names(timeline: Dictionary) -> Array:
-	var tags = timeline.get("tags", {})
-	return tags.keys() if tags is Dictionary else []
-
-static func get_sorted_tags(timeline: Dictionary) -> Array:
+static func get_tag_names(timeline: Dictionary) -> Array[String]:
 	var tags = timeline.get("tags", {})
 	if not tags is Dictionary:
 		return []
-	var result := []
+	var result: Array[String] = []
+	result.assign(tags.keys())
+	return result
+
+static func get_sorted_tags(timeline: Dictionary) -> Array[Dictionary]:
+	var tags = timeline.get("tags", {})
+	if not tags is Dictionary:
+		return []
+	var result: Array[Dictionary] = []
 	for tag_name in tags.keys():
 		result.append({ "name": tag_name, "time": float(tags[tag_name]) })
 	result.sort_custom(func(a, b): return a["time"] < b["time"])
 	return result
 
-static func validate_timeline(timeline: Dictionary) -> Array:
-	var errors := []
+static func validate_timeline(timeline: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
 	var timeline_id := str(timeline.get("id", ""))
 	if timeline_id == "":
 		errors.append("Timeline id is required")

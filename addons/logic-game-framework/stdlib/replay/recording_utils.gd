@@ -37,8 +37,8 @@ static func record_attribute_changes(
 ## - abilityTriggered: Ability 收到事件且有 Component 被触发时
 ## - executionActivated: Ability 创建新的 ExecutionInstance 时（用于表演层获取 timelineId）
 ## - tagChanged: Tag 层数变化时
-static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary) -> Array:
-	var unsubscribes := []
+static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary) -> Array[Callable]:
+	var unsubscribes: Array[Callable] = []
 
 	# 存储每个 Ability 的触发事件订阅取消函数
 	var ability_trigger_unsubscribes := {}
@@ -163,8 +163,8 @@ static func record_tag_changes(tag_container: TagContainer, ctx: Dictionary) -> 
 ## 订阅 Actor 生命周期事件
 ##
 ## 监听 Actor 的生成和销毁，自动转换为对应事件。
-static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array:
-	var unsubscribes := []
+static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array[Callable]:
+	var unsubscribes: Array[Callable] = []
 
 	# 订阅 Actor 生成事件
 	var spawn_listener = func():

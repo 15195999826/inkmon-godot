@@ -3,7 +3,7 @@ class_name NoInstanceComponent
 
 const TYPE := "NoInstanceComponent"
 
-var _triggers: Array = []
+var _triggers: Array[Dictionary] = []
 var _trigger_mode: String = "any"
 var _actions: Array[Action.BaseAction] = []
 
@@ -21,7 +21,7 @@ func _init(config: NoInstanceConfig):
 		else:
 			_triggers.append(trigger)
 
-func get_triggers() -> Array:
+func get_triggers() -> Array[Dictionary]:
 	return _triggers
 
 func matches_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:

@@ -55,25 +55,23 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		print("  [ReflectDamageAction] 无攻击来源，跳过反伤")
 		return ActionResult.create_success_result([], { "skipped": true })
 	
-	var owner: ActorRef = null
-	if ctx.ability != null:
-		owner = ctx.ability.owner
+	var owner_actor_id: String = ""
+	if not ctx.ability.is_empty():
+		owner_actor_id = ctx.ability.get("owner_actor_id", "")
 	
 	var battle: HexBattle = ctx.game_state_provider
 	
 	# 获取显示名称
-	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner, battle)
-	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(ActorRef.new(attacker_id), battle)
+	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner_actor_id, battle)
+	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(attacker_id, battle)
 	var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 	print("  [ReflectDamageAction] %s 反伤 %s %.0f 点 %s 伤害" % [owner_name, attacker_name, _damage, damage_type_str])
 	
-	# 产生伤害事件（回放格式），带 is_reflected 标记防止无限循环
-	var owner_id := owner.id if owner != null else ""
 	var event := BattleEvents.DamageEvent.create(
 		attacker_id,
 		_damage,
 		_damage_type,
-		owner_id,
+		owner_actor_id,
 		false,  # is_critical
 		true    # is_reflected
 	)
@@ -91,7 +89,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		# Logger 记录（is_reflected = true）
 		if battle.logger != null:
-			battle.logger.damage_dealt(owner_id, attacker_id, _damage, damage_type_str, true)
+			battle.logger.damage_dealt(owner_actor_id, attacker_id, _damage, damage_type_str, true)
 		
 		# 检查死亡
 		if attacker_actor.check_death():
@@ -99,10 +97,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			
 			# Logger 记录死亡
 			if battle.logger != null:
-				battle.logger.actor_died(attacker_id, owner_id)
+				battle.logger.actor_died(attacker_id, owner_actor_id)
 			
 			# 推送死亡事件
-			var death_event := BattleEvents.DeathEvent.create(attacker_id, owner_id)
+			var death_event := BattleEvents.DeathEvent.create(attacker_id, owner_actor_id)
 			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 			
 			# Post 阶段处理死亡事件

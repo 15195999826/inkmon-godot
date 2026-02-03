@@ -1,7 +1,16 @@
 extends Node
 class_name RunTests
-
 ## 测试运行器
+##
+## 使用方法（必须通过场景运行，不能直接运行脚本）：
+## @example
+## ```bash
+## # ✅ 正确：通过场景运行
+## godot --headless addons/logic-game-framework/tests/run_tests.tscn
+##
+## # ❌ 错误：直接运行脚本会报错 "doesn't inherit from SceneTree or MainLoop"
+## godot --headless --script addons/logic-game-framework/tests/run_tests.gd
+## ```
 
 # 测试文件路径
 const TEST_PATHS := [

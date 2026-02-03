@@ -6,17 +6,17 @@ const REVOKE_REASON_DISPELLED := "dispelled"
 const REVOKE_REASON_REPLACED := "replaced"
 const REVOKE_REASON_MANUAL := "manual"
 
-var owner: ActorRef
+var owner_actor_id: String
 var _attribute_set: BaseGeneratedAttributeSet = null
 var _abilities: Array[Ability] = []
 var tag_container: TagContainer
 var _on_granted_callbacks: Array[Callable] = []
 var _on_revoked_callbacks: Array[Callable] = []
 
-func _init(p_owner: ActorRef, p_attribute_set: BaseGeneratedAttributeSet = null) -> void:
-	owner = p_owner
+func _init(p_owner_actor_id: String, p_attribute_set: BaseGeneratedAttributeSet = null) -> void:
+	owner_actor_id = p_owner_actor_id
 	_attribute_set = p_attribute_set
-	tag_container = TagContainer.create(owner.id)
+	tag_container = TagContainer.create(owner_actor_id)
 
 func get_event_processor() -> EventProcessor:
 	return GameWorld.event_processor
@@ -107,8 +107,8 @@ func tick(dt: float, logic_time: float = -1.0) -> void:
 		ability.tick(dt)
 	)
 
-func tick_executions(dt: float) -> Array:
-	var all_triggered := []
+func tick_executions(dt: float) -> Array[String]:
+	var all_triggered: Array[String] = []
 	_process_abilities(func(ability: Ability):
 		var triggered := ability.tick_executions(dt)
 		all_triggered.append_array(triggered)
@@ -136,15 +136,15 @@ func find_ability_by_config_id(config_id: String) -> Ability:
 			return ability
 	return null
 
-func find_abilities_by_config_id(config_id: String) -> Array:
-	var results := []
+func find_abilities_by_config_id(config_id: String) -> Array[Ability]:
+	var results: Array[Ability] = []
 	for ability in _abilities:
 		if ability.config_id == config_id:
 			results.append(ability)
 	return results
 
-func find_abilities_by_ability_tag(tag: String) -> Array:
-	var results := []
+func find_abilities_by_ability_tag(tag: String) -> Array[Ability]:
+	var results: Array[Ability] = []
 	for ability in _abilities:
 		if ability.has_ability_tag(tag):
 			results.append(ability)
@@ -178,13 +178,13 @@ func serialize() -> Dictionary:
 	for ability in _abilities:
 		abilities.append(ability.serialize())
 	return {
-		"owner": owner,
+		"owner_actor_id": owner_actor_id,
 		"abilities": abilities,
 	}
 
 func _create_lifecycle_context(ability: Ability) -> AbilityLifecycleContext:
 	return AbilityLifecycleContext.new(
-		owner,
+		owner_actor_id,
 		_attribute_set,
 		ability,
 		self,
@@ -217,5 +217,5 @@ func _notify_revoked(ability: Ability, reason: String, expire_reason: String) ->
 		else:
 			Log.error("AbilitySet", "Error in ability revoked callback")
 
-static func create(p_owner: ActorRef, p_attribute_set: BaseGeneratedAttributeSet = null) -> AbilitySet:
-	return AbilitySet.new(p_owner, p_attribute_set)
+static func create(p_owner_actor_id: String, p_attribute_set: BaseGeneratedAttributeSet = null) -> AbilitySet:
+	return AbilitySet.new(p_owner_actor_id, p_attribute_set)
