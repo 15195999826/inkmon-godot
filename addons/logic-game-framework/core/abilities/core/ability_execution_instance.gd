@@ -42,7 +42,7 @@ func is_completed() -> bool:
 func is_cancelled() -> bool:
 	return _state == STATE_CANCELLED
 
-func get_trigger_event():
+func get_trigger_event() -> Variant:
 	if _event_chain.is_empty():
 		return null
 	return _event_chain[_event_chain.size() - 1]
@@ -122,7 +122,7 @@ func _match_pattern(pattern: String, tag_name: String) -> bool:
 		return tag_name.begins_with(prefix)
 	return false
 
-func _build_execution_context(current_tag: String):
+func _build_execution_context(current_tag: String) -> ExecutionContext:
 	return ExecutionContext.create_execution_context({
 		"eventChain": _event_chain,
 		"gameplayState": _game_state_provider,

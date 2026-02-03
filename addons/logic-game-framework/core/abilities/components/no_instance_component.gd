@@ -79,7 +79,7 @@ func serialize() -> Dictionary:
 		"actionsCount": _actions.size(),
 	}
 
-static func create_event_trigger(event_kind: String, filter_callable = null) -> Dictionary:
+static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
 	var trigger := {
 		"eventKind": event_kind,
 	}

@@ -49,7 +49,7 @@ func on_remove(_context: AbilityLifecycleContext) -> void:
 		_unregister = Callable()
 	_lifecycle_context = null
 
-func _handle_pre_event(mutable: MutableEvent, _handler_context: Dictionary):
+func _handle_pre_event(mutable: MutableEvent, _handler_context: Dictionary) -> Dictionary:
 	if _lifecycle_context == null:
 		Log.warning("PreEventComponent", "PreEventComponent: lifecycleContext not available")
 		return EventPhase.pass_intent()

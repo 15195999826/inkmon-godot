@@ -26,7 +26,7 @@ func cancel(handler_id: String, reason: String) -> void:
 	cancelled_by = handler_id
 	cancel_reason = reason
 
-func get_current_value(field: String):
+func get_current_value(field: String) -> Variant:
 	var original_value = original.get(field, null)
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return original_value

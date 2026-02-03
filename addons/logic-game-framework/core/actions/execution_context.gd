@@ -37,12 +37,12 @@ func _init(config: Dictionary = {}):
 	ability = config.get("ability", {})
 	execution = config.get("execution", {})
 
-func get_current_event():
+func get_current_event() -> Variant:
 	if event_chain.is_empty():
 		return null
 	return event_chain[event_chain.size() - 1]
 
-func get_original_event():
+func get_original_event() -> Variant:
 	if event_chain.is_empty():
 		return null
 	return event_chain[0]

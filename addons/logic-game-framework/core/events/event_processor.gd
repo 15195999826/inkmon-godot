@@ -118,11 +118,11 @@ func process_pre_event(event: Dictionary, game_state_provider = null) -> Mutable
 			"ownerId": registration.get("ownerId", ""),
 			"abilityId": registration.get("abilityId", ""),
 			"configId": registration.get("configId", ""),
-		"gameplayState": game_state_provider,
-	}
+			"gameplayState": game_state_provider,
+		}
 
 		var start_time := Time.get_ticks_msec()
-		var intent := { "type": EventPhase.INTENT_PASS }
+		var intent := {"type": EventPhase.INTENT_PASS}
 		var handler_error: Dictionary = {}
 
 		if registration.has("handler") and registration["handler"] is Callable:

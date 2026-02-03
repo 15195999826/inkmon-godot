@@ -19,7 +19,7 @@ func _init(attributes: Array = []):
 	for attr in attributes:
 		define_attribute(str(attr.get("name", "")), float(attr.get("baseValue", 0.0)), attr.get("minValue", null), attr.get("maxValue", null))
 
-func define_attribute(name: String, base_value: float, min_value = null, max_value = null) -> void:
+func define_attribute(name: String, base_value: float, min_value: Variant = null, max_value: Variant = null) -> void:
 	if name == "":
 		return
 	_base_values[name] = base_value
@@ -313,7 +313,7 @@ func _notify_change(event: Dictionary) -> void:
 		else:
 			Log.error("AttributeSet", "Error in attribute change listener")
 
-func _invoke_pre_hook(hook_name: String, event: Dictionary):
+func _invoke_pre_hook(hook_name: String, event: Dictionary) -> Variant:
 	var attr_hooks: Dictionary = _hooks.get(event.get("attributeName", ""), {})
 	if attr_hooks.has(hook_name):
 		var hook = attr_hooks[hook_name]
