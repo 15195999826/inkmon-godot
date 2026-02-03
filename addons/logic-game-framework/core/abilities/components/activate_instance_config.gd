@@ -3,13 +3,20 @@
 ## 用于配置 ActivateInstanceComponent，定义触发器和 Timeline 执行。
 ## 推荐使用 Builder 模式构造，提供清晰的可读性和 IDE 自动补全。
 ##
-## 示例:
+## [b]注意[/b]
+##
+## 与 ActiveUseConfig 不同，ActivateInstanceConfig [b]没有默认触发器[/b]，
+## 必须显式调用 .trigger() 方法配置触发条件。
+##
+## [b]推荐链式调用顺序[/b]
+##
+## 建议按照 "何时触发 → 执行什么 → 怎么执行" 的语义顺序：
 ## [codeblock]
 ## var config := ActivateInstanceConfig.builder() \
-##     .timeline_id(HexBattleSkillTimelines.TIMELINE_ID.MOVE) \
-##     .on_tag(TimelineTags.START, [StartMoveAction.new(...)]) \
-##     .on_tag(TimelineTags.EXECUTE, [ApplyMoveAction.new(...)]) \
-##     .trigger(TriggerConfig.new(...)) \
+##     .trigger(TriggerConfig.new(...))                  # 1. 何时触发（必须配置）
+##     .timeline_id(TIMELINE_ID.MOVE)                    # 2. 使用哪个时间线
+##     .on_tag(TimelineTags.START, [StartMoveAction...]) # 3. 时间线各阶段做什么
+##     .on_tag(TimelineTags.EXECUTE, [ApplyMoveAction...])
 ##     .build()
 ## [/codeblock]
 class_name ActivateInstanceConfig
@@ -52,6 +59,8 @@ static func builder() -> ActivateInstanceConfigBuilder:
 ##
 ## 使用链式调用构建 ActivateInstanceConfig，提供清晰的可读性。
 ## 必填字段：timeline_id
+##
+## 推荐调用顺序：trigger → timeline_id → on_tag
 class ActivateInstanceConfigBuilder:
 	extends RefCounted
 	
@@ -60,24 +69,33 @@ class ActivateInstanceConfigBuilder:
 	var _triggers: Array = []
 	var _trigger_mode: String = "any"
 	
-	## 设置 Timeline ID（必填）
-	func timeline_id(value: String) -> ActivateInstanceConfigBuilder:
-		_timeline_id = value
-		return self
+	# ========== 1. 触发配置 ==========
 	
-	## 添加 Tag -> Actions 映射（可选）
-	func on_tag(tag: String, actions: Array) -> ActivateInstanceConfigBuilder:
-		_tag_actions[tag] = actions
-		return self
-	
-	## 添加触发器（可选，默认监听 AbilityActivateEvent）
+	## 添加触发器（必须配置）
+	## 与 ActiveUseConfig 不同，此组件没有默认触发器
 	func trigger(config: TriggerConfig) -> ActivateInstanceConfigBuilder:
 		_triggers.append(config)
 		return self
 	
 	## 设置触发模式（可选，默认 "any"）
+	## "any": 任一触发器匹配即触发
+	## "all": 所有触发器都匹配才触发
 	func trigger_mode(value: String) -> ActivateInstanceConfigBuilder:
 		_trigger_mode = value
+		return self
+	
+	# ========== 2. 时间线配置 ==========
+	
+	## 设置 Timeline ID（必填）
+	## 指定执行时使用的时间线定义
+	func timeline_id(value: String) -> ActivateInstanceConfigBuilder:
+		_timeline_id = value
+		return self
+	
+	## 添加 Tag -> Actions 映射
+	## 定义时间线各阶段（如 START, EXECUTE, END）执行的动作
+	func on_tag(tag: String, actions: Array) -> ActivateInstanceConfigBuilder:
+		_tag_actions[tag] = actions
 		return self
 	
 	## 构建 ActivateInstanceConfig
