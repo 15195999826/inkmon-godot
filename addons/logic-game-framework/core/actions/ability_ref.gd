@@ -37,14 +37,14 @@ func _init(
 
 
 ## 从 Ability 实例创建 AbilityRef
-static func from_ability(ability: Ability) -> AbilityRef:
-	if ability == null:
+static func from_ability(in_ability: Ability) -> AbilityRef:
+	if in_ability == null:
 		return null
 	return AbilityRef.new(
-		ability.id,
-		ability.config_id,
-		ability.owner_actor_id,
-		ability.source_actor_id
+		in_ability.id,
+		in_ability.config_id,
+		in_ability.owner_actor_id,
+		in_ability.source_actor_id
 	)
 
 

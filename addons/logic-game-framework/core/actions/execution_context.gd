@@ -32,7 +32,7 @@ class_name ExecutionContext
 var event_dict_chain: Array[Dictionary] = []
 
 ## 游戏状态提供者（项目层实现）
-var game_state_provider = null
+var game_state_provider: Variant = null
 
 ## 事件收集器
 var event_collector: EventCollector = null
@@ -46,7 +46,7 @@ var execution_info: AbilityExecutionInfo = null
 
 func _init(
 	p_event_dict_chain: Array[Dictionary] = [],
-	p_game_state_provider = null,
+	p_game_state_provider: Variant = null,
 	p_event_collector: EventCollector = null,
 	p_ability_ref: AbilityRef = null,
 	p_execution_info: AbilityExecutionInfo = null
@@ -74,15 +74,13 @@ func get_original_event() -> Variant:
 
 ## 推送事件到收集器
 func push_event(event: Dictionary) -> Dictionary:
-	if event_collector != null and event_collector.has_method("push"):
-		return event_collector.push(event)
-	return event
+	return event_collector.push(event)
 
 
 ## 创建执行上下文
 static func create(
 	p_event_dict_chain: Array[Dictionary],
-	p_game_state_provider,
+	p_game_state_provider: Variant,
 	p_event_collector: EventCollector,
 	p_ability_ref: AbilityRef = null,
 	p_execution_info: AbilityExecutionInfo = null
