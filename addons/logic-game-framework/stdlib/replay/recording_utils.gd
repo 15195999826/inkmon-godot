@@ -4,13 +4,16 @@ class_name RecordingUtils
 ## 订阅 AttributeSet 的属性变化
 ##
 ## 监听所有属性的变化，自动转换为 AttributeChangedEvent。
-static func record_attribute_changes(attr_set: Variant, ctx: Dictionary) -> Array:
-	var unsubscribes := []
+## @param generated_attr_set 生成的 AttributeSet 类（继承 BaseGeneratedAttributeSet）
+## @param ctx 录像上下文，包含 pushEvent 和 actorId
+## @return 取消订阅函数数组
+static func record_attribute_changes(
+	generated_attr_set: BaseGeneratedAttributeSet,
+	ctx: Dictionary
+) -> Array[Callable]:
+	var unsubscribes: Array[Callable] = []
 
-	if not attr_set.has_method("addChangeListener"):
-		return unsubscribes
-
-	var listener_func = func(event):
+	var listener_func := func(event: Dictionary) -> void:
 		ctx.pushEvent.call(
 			GameEvent.AttributeChanged.create(
 				ctx.actorId,
@@ -20,10 +23,7 @@ static func record_attribute_changes(attr_set: Variant, ctx: Dictionary) -> Arra
 			).to_dict()
 		)
 
-	var unsub = attr_set.addChangeListener(listener_func)
-	if unsub != null:
-		unsubscribes.append(unsub)
-
+	unsubscribes.append(generated_attr_set.add_change_listener(listener_func))
 	return unsubscribes
 
 ## 订阅 AbilitySet 的 Ability 生命周期变化
