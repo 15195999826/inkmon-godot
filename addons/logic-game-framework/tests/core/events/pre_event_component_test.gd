@@ -43,12 +43,12 @@ func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
 
 func _test_registration() -> void:
 	var owner_actor_id := "unit-1"
-	var ability_set = AbilitySet.create(owner_actor_id, null)
+	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
-	var state = MockState.new(ability_set, event_processor)
+	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var state := MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new(PreEventConfig.new(
+	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
 		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
@@ -59,23 +59,23 @@ func _test_registration() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner_actor_id)
+	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
-	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
-	var mutable = event_processor.process_pre_event(event, state)
+	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
+	var mutable := event_processor.process_pre_event(event, state)
 
 	TestFramework.assert_true(not mutable.cancelled)
 	TestFramework.assert_near(70, float(mutable.get_current_value("damage")))
 
 func _test_unregistration() -> void:
 	var owner_actor_id := "unit-1"
-	var ability_set = AbilitySet.create(owner_actor_id, null)
+	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
-	var state = MockState.new(ability_set, event_processor)
+	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var state := MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new(PreEventConfig.new(
+	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
 		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
@@ -84,23 +84,23 @@ func _test_unregistration() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner_actor_id)
+	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 	ability_set.revoke_ability(ability.id)
 
-	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
-	var mutable = event_processor.process_pre_event(event, state)
+	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
+	var mutable := event_processor.process_pre_event(event, state)
 
 	TestFramework.assert_near(100, float(mutable.get_current_value("damage")))
 
 func _test_modify_event() -> void:
 	var owner_actor_id := "unit-1"
-	var ability_set = AbilitySet.create(owner_actor_id, null)
+	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
-	var state = MockState.new(ability_set, event_processor)
+	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var state := MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new(PreEventConfig.new(
+	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
 		func(_mutable, ctx):
 			return EventPhase.modify_intent(ctx.ability.id, [
@@ -110,35 +110,35 @@ func _test_modify_event() -> void:
 	))
 
 	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner_actor_id)
+	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
-	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
-	var mutable = event_processor.process_pre_event(event, state)
+	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
+	var mutable := event_processor.process_pre_event(event, state)
 
 	# 100 * 0.7 - 10 = 60
 	TestFramework.assert_near(60, float(mutable.get_current_value("damage")))
 
 func _test_cancel_event() -> void:
 	var owner_actor_id := "unit-1"
-	var ability_set = AbilitySet.create(owner_actor_id, null)
+	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor = EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
-	var state = MockState.new(ability_set, event_processor)
+	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var state := MockState.new(ability_set, event_processor)
 
-	var component = PreEventComponent.new(PreEventConfig.new(
+	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
 		func(_mutable, ctx):
 			return EventPhase.cancel_intent(ctx.ability.id, "immune")
 	))
 
 	var ability_config := AbilityConfig.new("buff_immune", "", "", "", [], [], [component])
-	var ability = Ability.new(ability_config, owner_actor_id)
+	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
-	var event = {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
-	var mutable = event_processor.process_pre_event(event, state)
+	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
+	var mutable := event_processor.process_pre_event(event, state)
 
 	TestFramework.assert_true(not mutable.cancelled)
-	var damage_value = mutable.get_current_value("damage")
+	var damage_value := mutable.get_current_value("damage")
 	TestFramework.assert_near(70, float(damage_value))

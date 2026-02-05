@@ -15,7 +15,7 @@ func _test_generated_example() -> void:
 	if script == null:
 		return
 
-	var instance = script.new()
+	var instance: RefCounted = script.new()
 	TestFramework.assert_true(instance != null, "Failed to instantiate generated attribute set")
 	if instance == null:
 		return

@@ -65,7 +65,7 @@ func _test_apply_loose() -> void:
 		"combo",
 		Resolvers.int_val(2)  # stacks
 	)
-	var result = action.execute(ctx)
+	var result := action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(2, ability_set.get_loose_tag_stacks("combo"))
 	_teardown_test_instance()
@@ -86,7 +86,7 @@ func _test_apply_auto_duration() -> void:
 		Resolvers.int_val(1),    # stacks
 		Resolvers.float_val(5.0)   # duration
 	)
-	var result = action.execute(ctx)
+	var result := action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(1, ability_set.get_tag_stacks("window"))
 	ability_set.tick(6.0, 7.0)
@@ -109,7 +109,7 @@ func _test_remove_tag() -> void:
 		"charge",
 		Resolvers.int_val(1)  # stacks to remove
 	)
-	var result = action.execute(ctx)
+	var result := action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(2, ability_set.get_loose_tag_stacks("charge"))
 	_teardown_test_instance()
@@ -134,7 +134,7 @@ func _test_has_tag_action() -> void:
 		[then_action],
 		[else_action]
 	)
-	var result = action.execute(ctx)
+	var result := action.execute(ctx)
 	TestFramework.assert_true(result.success)
 	TestFramework.assert_equal(0, result.events.size())
 	_teardown_test_instance()

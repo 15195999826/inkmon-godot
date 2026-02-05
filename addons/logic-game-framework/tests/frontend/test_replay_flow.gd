@@ -24,7 +24,7 @@ func _ready() -> void:
 	
 	# 加载演示回放
 	print("Step 1: Loading demo replay...")
-	var demo_replay = _create_demo_replay()
+	var demo_replay := _create_demo_replay()
 	_replay_scene.load_replay(demo_replay)
 	print("  ✓ Replay loaded")
 	print("  - Total frames: %d" % _director.get_total_frames())

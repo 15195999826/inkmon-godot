@@ -24,7 +24,7 @@ func _ready() -> void:
 	
 	# 加载演示回放
 	print("Step 1: Loading demo replay...")
-	var demo_replay = _create_demo_replay()
+	var demo_replay := _create_demo_replay()
 	_replay_scene.load_replay(demo_replay)
 	print("  ✓ Replay loaded")
 	
@@ -65,16 +65,16 @@ func _process(delta: float) -> void:
 
 func _check_units() -> void:
 	# 获取单位根节点
-	var units_root = _replay_scene.get_node("UnitsRoot")
+	var units_root := _replay_scene.get_node("UnitsRoot")
 	if units_root == null:
 		print("  ✗ UnitsRoot not found!")
 		return
 	
-	var unit_count = units_root.get_child_count()
+	var unit_count := units_root.get_child_count()
 	print("  - Units created: %d" % unit_count)
 	
 	for i in range(unit_count):
-		var unit = units_root.get_child(i)
+		var unit := units_root.get_child(i)
 		print("    - Unit %d: %s (position: %s)" % [i, unit.name, unit.position])
 
 
@@ -87,9 +87,9 @@ func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
 
 
 func _on_floating_text_created(data: Dictionary) -> void:
-	var actor_id = data.get("actor_id", "unknown")
-	var text = data.get("text", "")
-	var color = data.get("color", Color.WHITE)
+	var actor_id := data.get("actor_id", "unknown")
+	var text := data.get("text", "")
+	var color := data.get("color", Color.WHITE)
 	print("  [Signal] Floating text created: %s -> '%s'" % [actor_id, text])
 
 

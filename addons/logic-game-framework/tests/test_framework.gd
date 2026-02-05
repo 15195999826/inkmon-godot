@@ -255,7 +255,7 @@ class Expectation extends RefCounted:
 		return self
 
 	func to_be(expected: Variant) -> void:
-		var passed = _actual == expected
+		var passed: bool = _actual == expected
 		if _negated:
 			passed = not passed
 
@@ -263,7 +263,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected %s to%s be %s, got %s" % [
+			var message := "Expected %s to%s be %s, got %s" % [
 				_value_to_string(_actual),
 				" not" if _negated else "",
 				_value_to_string(expected),
@@ -285,7 +285,7 @@ class Expectation extends RefCounted:
 		to_be(null)
 
 	func to_be_greater_than(expected: float) -> void:
-		var passed = float(_actual) > float(expected)
+		var passed := float(_actual) > float(expected)
 		if _negated:
 			passed = not passed
 
@@ -293,7 +293,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected %s to%s be greater than %s" % [
+			var message := "Expected %s to%s be greater than %s" % [
 				_value_to_string(_actual),
 				" not" if _negated else "",
 				_value_to_string(expected),
@@ -302,7 +302,7 @@ class Expectation extends RefCounted:
 				_framework.register_failure(message)
 
 	func to_be_less_than(expected: float) -> void:
-		var passed = float(_actual) < float(expected)
+		var passed := float(_actual) < float(expected)
 		if _negated:
 			passed = not passed
 
@@ -310,7 +310,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected %s to%s be less than %s" % [
+			var message := "Expected %s to%s be less than %s" % [
 				_value_to_string(_actual),
 				" not" if _negated else "",
 				_value_to_string(expected),
@@ -319,8 +319,8 @@ class Expectation extends RefCounted:
 				_framework.register_failure(message)
 
 	func to_be_close_to(expected: float, tolerance: float = 0.0001) -> void:
-		var actual_val = float(_actual)
-		var passed = abs(actual_val - expected) <= tolerance
+		var actual_val := float(_actual)
+		var passed: bool = abs(actual_val - expected) <= tolerance
 		if _negated:
 			passed = not passed
 
@@ -328,7 +328,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected %s to%s be close to %s (±%s)" % [
+			var message := "Expected %s to%s be close to %s (±%s)" % [
 				_value_to_string(_actual),
 				" not" if _negated else "",
 				_value_to_string(expected),
@@ -338,7 +338,7 @@ class Expectation extends RefCounted:
 				_framework.register_failure(message)
 
 	func to_have_length(expected: int) -> void:
-		var actual_length = 0
+		var actual_length := 0
 		if _actual is Array:
 			actual_length = _actual.size()
 		elif _actual is Dictionary:
@@ -346,7 +346,7 @@ class Expectation extends RefCounted:
 		elif _actual is String:
 			actual_length = _actual.length()
 
-		var passed = actual_length == expected
+		var passed := actual_length == expected
 		if _negated:
 			passed = not passed
 
@@ -354,7 +354,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected length %s to%s be %s" % [
+			var message := "Expected length %s to%s be %s" % [
 				actual_length,
 				" not" if _negated else "",
 				expected,
@@ -379,7 +379,7 @@ class Expectation extends RefCounted:
 			_framework.register_assertion()
 
 		if not passed:
-			var message = "Expected %s to%s contain %s" % [
+			var message := "Expected %s to%s contain %s" % [
 				_value_to_string(_actual),
 				" not" if _negated else "",
 				_value_to_string(item),

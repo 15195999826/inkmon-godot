@@ -1,3 +1,14 @@
+# Godot/GDScript 开发指南
+
+---
+
+## 📋 目录
+
+1. [GDScript 编码规范](#gdscript-编码规范)
+2. [常见错误与解决方案](#常见错误与解决方案)
+
+---
+
 # GDScript 编码规范
 
 ## 1. 避免变量名遮蔽
@@ -65,7 +76,8 @@ func get_tile(coord: HexCoord) -> GridTileData:
 func process_data(data: Dictionary) -> void:
 ```
 
-### 类型不明确时使用 `as` 转换
+### 类型不明确时使用显式标注或 `as` 转换
+
 ```gdscript
 # ❌ 错误：类型推断失败
 var failures: int = framework.run()
@@ -73,6 +85,24 @@ var failures: int = framework.run()
 # ✅ 正确：显式转换
 var failures: int = framework.run() as int
 ```
+
+### 动态加载脚本的类型标注
+
+使用 `load()` 动态加载脚本后调用 `.new()` 时，必须显式标注类型：
+
+```gdscript
+# ❌ 错误：无法推断 load().new() 的类型
+var instance := script.new()
+# Parse Error: Cannot infer the type of "instance" variable because the value doesn't have a set type.
+
+# ✅ 正确：显式标注基类类型
+var instance: RefCounted = script.new()
+
+# ✅ 或者：如果知道具体类型
+var instance: MyClass = script.new()
+```
+
+**原因**：`load()` 返回 `Resource` 类型，调用 `.new()` 返回 `Variant`，GDScript 无法自动推断具体类型。
 
 ## 5. Autoload 要求
 
@@ -85,15 +115,7 @@ extends RefCounted
 extends Node
 ```
 
-## 6. 测试脚本继承要求
-
-使用 `godot --script` 运行的脚本必须继承 `SceneTree` 或 `MainLoop`：
-
-**Headless 模式运行方式**：
-- ❌ 错误：`godot --headless --script main.gd` (Autoload 不加载)
-- ✅ 正确：`godot --headless main.tscn` (场景模式，Autoload 正常)
-
-## 7.纯静态工具类声明
+## 6. 纯静态工具类声明
 
 仅提供静态函数、不会被实例化的工具类，**不要写 `extends RefCounted`**：
 
@@ -112,7 +134,7 @@ class_name IAbilitySetOwner
 
 **原因**：GDScript 默认继承 `RefCounted`，显式写出是冗余的。省略 `extends` 还能明确表达"这个类不需要实例化"。
 
-## 8. 类型系统：优先使用继承多态，避免鸭子类型
+## 7. 类型系统：优先使用继承多态，避免鸭子类型
 
 ### 原则
 - ✅ 默认使用继承 + 类型化数组
@@ -129,7 +151,7 @@ func _check_conditions(ctx: Dictionary) -> bool:
     return true
 ```
 
-## 9. 接口模拟：静态工具类模式
+## 8. 接口模拟：静态工具类模式
 
 GDScript 无 `interface`，用静态工具类封装 `has_method`。
 
@@ -184,3 +206,67 @@ if ability_set != null:
 - **优先用继承**：如果有共同基类，直接用类型标注，不需要 `I*` 工具类
 - 框架层/跨模块无共同基类时才用工具类
 - 内部仍用 `has_method`，避免到处散落
+
+---
+
+# 常见错误与解决方案
+
+## 1. 无头模式执行错误
+
+### 错误：Can't load the script as it doesn't inherit from SceneTree or MainLoop
+
+**完整错误信息**：
+```
+ERROR: Can't load the script "xxx.gd" as it doesn't inherit from SceneTree or MainLoop.
+   at: start (main/main.cpp:4251)
+```
+
+**原因**：使用 `godot --script` 直接运行继承 `Node` 的脚本。
+
+**解决方案**：
+
+#### 方案 1：通过场景运行（推荐）
+
+```bash
+# ❌ 错误
+godot --headless --script addons/logic-game-framework/tests/test_framework.gd
+
+# ✅ 正确
+godot --headless addons/logic-game-framework/tests/run_tests.tscn
+```
+
+**适用场景**：
+- 测试脚本（需要 Autoload）
+- 依赖场景树的逻辑
+- 需要加载资源的脚本
+
+#### 方案 2：改为继承 SceneTree 或 MainLoop
+
+```gdscript
+# 原代码
+extends Node
+class_name TestRunner
+
+# 修改为
+extends SceneTree  # 或 extends MainLoop
+class_name TestRunner
+```
+
+**适用场景**：
+- 独立工具脚本
+- 不需要场景树的逻辑
+- 不依赖 Autoload
+
+### Autoload 加载规则
+
+| 运行方式 | Autoload 是否加载 | 适用场景 |
+|----------|-------------------|----------|
+| `godot --script main.gd` | ❌ 不加载 | 独立脚本工具 |
+| `godot main.tscn` | ✅ 加载 | 正常游戏运行 |
+| `godot --headless main.tscn` | ✅ 加载 | 测试、服务器模式 |
+
+**最佳实践**：
+- **测试脚本**：创建 `.tscn` 场景文件，挂载继承 `Node` 的测试运行器脚本
+- **工具脚本**：如需独立运行，继承 `SceneTree` 或 `MainLoop`
+- **依赖 Autoload**：必须通过场景运行，不能使用 `--script`
+

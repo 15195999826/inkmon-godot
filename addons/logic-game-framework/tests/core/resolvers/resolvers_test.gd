@@ -157,7 +157,7 @@ func _test_vec3_val() -> void:
 func _test_vec3_fn() -> void:
 	var resolver := Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
 		var event: Dictionary = ctx.get_current_event()
-		var pos = event.get("position", Vector3.ZERO)
+		var pos := event.get("position", Vector3.ZERO)
 		return pos as Vector3
 	)
 	var ctx := _create_mock_context({ "position": Vector3(50, 75, 10) })

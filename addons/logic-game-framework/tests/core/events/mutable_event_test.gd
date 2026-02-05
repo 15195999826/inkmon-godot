@@ -27,6 +27,6 @@ func _test_steps() -> void:
 	var mutable := MutableEvent.new(event, EventPhase.PHASE_PRE)
 	mutable.add_modification({ "field": "damage", "operation": "set", "value": 60.0, "sourceId": "buff" })
 	mutable.add_modification({ "field": "damage", "operation": "add", "value": 10.0, "sourceId": "bonus" })
-	var record = mutable.get_field_computation_steps("damage")
+	var record := mutable.get_field_computation_steps("damage")
 	TestFramework.assert_true(record != null)
 	TestFramework.assert_near(70.0, float(record["finalValue"]))

@@ -34,8 +34,8 @@ func _init() -> void:
 
 func _test_world_instances() -> void:
 	GameWorld.init()
-	var world = GameWorld
-	var instance = world.create_instance(func():
+	var world := GameWorld
+	var instance := world.create_instance(func():
 		return DummyInstance.new("inst-1")
 	)
 	TestFramework.assert_true(instance != null)
