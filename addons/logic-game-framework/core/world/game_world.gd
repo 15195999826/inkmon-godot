@@ -65,8 +65,8 @@ func get_instances_by_type(type_value: String) -> Array[GameplayInstance]:
 func destroy_instance(id_value: String) -> bool:
 	if not _instances.has(id_value):
 		return false
-	var instance = _instances[id_value]
-	if instance and instance.has_method("end"):
+	var instance: GameplayInstance = _instances[id_value]
+	if instance:
 		instance.end()
 	_instances.erase(id_value)
 	Log.debug("GameWorld", "Instance destroyed: %s" % id_value)
@@ -93,12 +93,12 @@ func has_running_instances() -> bool:
 
 func get_debug_info() -> Dictionary:
 	var instances_info := []
-	for instance in _instances.values():
+	for instance: GameplayInstance in _instances.values():
 		instances_info.append({
 			"id": instance.id,
 			"type": instance.type,
-			"state": instance.get_state() if instance.has_method("get_state") else "",
-			"actorCount": instance.get_actor_count() if instance.has_method("get_actor_count") else 0,
+			"state": instance.get_state(),
+			"actorCount": instance.get_actor_count(),
 		})
 	return {
 		"initialized": _initialized,
@@ -107,8 +107,8 @@ func get_debug_info() -> Dictionary:
 	}
 
 func _end_all_instances() -> void:
-	for instance in _instances.values():
-		if instance and instance.has_method("end"):
+	for instance: GameplayInstance in _instances.values():
+		if instance:
 			instance.end()
 
 func _is_running_instance(instance: GameplayInstance) -> bool:

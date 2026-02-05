@@ -110,9 +110,50 @@ func _check_conditions(ctx: Dictionary) -> bool:
     return true
 ```
 
-## 8. 接口模拟：静态工具类模式
+## 8.纯静态工具类声明
+
+仅提供静态函数、不会被实例化的工具类，**不要写 `extends RefCounted`**：
+
+```gdscript
+# ✅ 正确：纯静态工具类，只写 class_name
+class_name IAbilitySetOwner
+## 协议要求: get_ability_set() -> AbilitySet
+
+static func get_ability_set(owner: Object) -> AbilitySet:
+    ...
+
+# ❌ 错误：冗余的 extends RefCounted
+extends RefCounted
+class_name IAbilitySetOwner
+```
+
+**原因**：GDScript 默认继承 `RefCounted`，显式写出是冗余的。省略 `extends` 还能明确表达"这个类不需要实例化"。
+
+---
+
+## 9. 接口模拟：静态工具类模式
 
 GDScript 无 `interface`，用静态工具类封装 `has_method`。
+
+### 何时使用 `I*` 接口工具类
+
+| 场景 | 方案 | 原因 |
+|------|------|------|
+| 已有明确继承体系 | ✅ 直接用基类类型 | 基类已保证方法存在，无需检查 |
+| 跨模块、无共同基类 | ✅ 创建 `I*` 工具类 | 模块间不想有硬依赖 |
+| 框架需兼容用户自定义类 | ✅ 创建 `I*` 工具类 | 用户可能不继承框架基类 |
+| 真正的"协议"场景 | ✅ 创建 `I*` 工具类 | 只关心有没有某方法，不关心类型 |
+
+```gdscript
+# ❌ 错误：已有基类却用 has_method
+var instance: GameplayInstance = _instances[id]
+if instance.has_method("end"):  # 多余！基类已定义 end()
+    instance.end()
+
+# ✅ 正确：直接调用基类方法
+var instance: GameplayInstance = _instances[id]
+instance.end()
+```
 
 ### 模式
 ```gdscript
@@ -142,5 +183,6 @@ if ability_set != null:
 
 ### 要点
 - 命名：`I` + 协议名（如 `IAbilitySetOwner`）
-- 业务层优先用继承；框架层/跨模块用工具类
+- **优先用继承**：如果有共同基类，直接用类型标注，不需要 `I*` 工具类
+- 框架层/跨模块无共同基类时才用工具类
 - 内部仍用 `has_method`，避免到处散落

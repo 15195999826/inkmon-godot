@@ -3,13 +3,13 @@ class_name Cost
 
 var type: String = "cost"
 
-func can_pay(_ctx: Dictionary) -> bool:
+func can_pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 	return true
 
-func pay(_ctx: Dictionary) -> void:
+func pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
 	pass
 
-func get_fail_reason(_ctx: Dictionary) -> String:
+func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 	return ""
 
 
@@ -24,20 +24,17 @@ class ConsumeTagCost:
 		tag = tag_value
 		stacks = stacks_value
 
-	func can_pay(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		return ability_set != null and ability_set.get_loose_tag_stacks(tag) >= stacks
+	func can_pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		return ctx.ability_set != null and ctx.ability_set.get_loose_tag_stacks(tag) >= stacks
 
-	func pay(ctx: Dictionary) -> void:
-		var ability_set = ctx.get("abilitySet", null)
-		if ability_set != null:
-			ability_set.remove_loose_tag(tag, stacks)
+	func pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
+		if ctx.ability_set != null:
+			ctx.ability_set.remove_loose_tag(tag, stacks)
 
-	func get_fail_reason(ctx: Dictionary) -> String:
-		var ability_set = ctx.get("abilitySet", null)
+	func get_fail_reason(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		var current := 0
-		if ability_set != null:
-			current = ability_set.get_loose_tag_stacks(tag)
+		if ctx.ability_set != null:
+			current = ctx.ability_set.get_loose_tag_stacks(tag)
 		return "%s 层数不足: %s/%s" % [tag, str(current), str(stacks)]
 
 
@@ -50,16 +47,14 @@ class RemoveTagCost:
 		type = "removeTag"
 		tag = tag_value
 
-	func can_pay(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		return ability_set != null and ability_set.has_loose_tag(tag)
+	func can_pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		return ctx.ability_set != null and ctx.ability_set.has_loose_tag(tag)
 
-	func pay(ctx: Dictionary) -> void:
-		var ability_set = ctx.get("abilitySet", null)
-		if ability_set != null:
-			ability_set.remove_loose_tag(tag)
+	func pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
+		if ctx.ability_set != null:
+			ctx.ability_set.remove_loose_tag(tag)
 
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "缺少 Tag: %s" % tag
 
 
@@ -74,15 +69,14 @@ class AddTagCost:
 		tag = tag_value
 		options = options_value
 
-	func can_pay(_ctx: Dictionary) -> bool:
+	func can_pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 		return true
 
-	func pay(ctx: Dictionary) -> void:
-		var ability_set = ctx.get("abilitySet", null)
-		if ability_set == null:
+	func pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
+		if ctx.ability_set == null:
 			return
-		var duration = options.get("duration", null)
+		var duration: Variant = options.get("duration", null)
 		if duration != null and float(duration) > 0.0:
-			ability_set.add_auto_duration_tag(tag, float(duration))
+			ctx.ability_set.add_auto_duration_tag(tag, float(duration))
 		else:
-			ability_set.add_loose_tag(tag, int(options.get("stacks", 1)))
+			ctx.ability_set.add_loose_tag(tag, int(options.get("stacks", 1)))

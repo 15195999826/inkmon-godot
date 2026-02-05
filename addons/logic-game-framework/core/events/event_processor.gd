@@ -193,8 +193,8 @@ func process_post_event(event: Dictionary, actor_ids: Array[String], game_state_
 		if actor == null:
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
-		if ability_set != null and ability_set.has_method("receive_event"):
-			ability_set.receive_event(event, game_state_provider)
+		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
+		ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
@@ -217,8 +217,8 @@ func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], 
 		if actor == null:
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
-		if ability_set != null and ability_set.has_method("receive_event"):
-			ability_set.receive_event(event, game_state_provider)
+		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
+		ability_set.receive_event(event, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id

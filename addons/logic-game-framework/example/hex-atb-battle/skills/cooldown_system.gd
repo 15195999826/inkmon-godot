@@ -1,6 +1,7 @@
 ## 冷却系统 - 条件和消耗
 ##
 ## 实现技能冷却的条件检查和消耗支付
+## 注意：此模块假设 AbilitySet 是 BattleAbilitySet 类型
 class_name HexBattleCooldownSystem
 extends RefCounted
 
@@ -14,16 +15,12 @@ class CooldownCondition:
 	func get_condition_type() -> String:
 		return "cooldown_ready"
 	
-	func check(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		var ability = ctx.get("ability", null)
-		if ability_set == null or ability == null:
-			return true
-		if ability_set.has_method("is_on_cooldown"):
-			return not ability_set.is_on_cooldown(ability.config_id)
-		return true
+	func check(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		var battle_ability_set := ctx.ability_set as BattleAbilitySet
+		assert(battle_ability_set != null, "CooldownCondition requires BattleAbilitySet")
+		return not battle_ability_set.is_on_cooldown(ctx.ability.config_id)
 	
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "技能冷却中"
 
 
@@ -39,19 +36,16 @@ class TimedCooldownCost:
 		type = "timed_cooldown"
 		_duration = duration
 	
-	func can_pay(_ctx: Dictionary) -> bool:
+	func can_pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 		# 冷却消耗总是可以支付（条件检查在 CooldownCondition 中）
 		return true
 	
-	func pay(ctx: Dictionary) -> void:
-		var ability_set = ctx.get("abilitySet", null)
-		var ability = ctx.get("ability", null)
-		if ability_set == null or ability == null:
-			return
-		if ability_set.has_method("start_cooldown"):
-			ability_set.start_cooldown(ability.config_id, _duration)
+	func pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
+		var battle_ability_set := ctx.ability_set as BattleAbilitySet
+		assert(battle_ability_set != null, "TimedCooldownCost requires BattleAbilitySet")
+		battle_ability_set.start_cooldown(ctx.ability.config_id, _duration)
 	
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "冷却消耗失败"
 
 

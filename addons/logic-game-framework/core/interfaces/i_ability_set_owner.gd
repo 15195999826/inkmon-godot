@@ -1,4 +1,3 @@
-extends RefCounted
 class_name IAbilitySetOwner
 ## 静态接口检测工具类
 ##

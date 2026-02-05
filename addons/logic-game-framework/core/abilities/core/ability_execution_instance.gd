@@ -138,21 +138,6 @@ func _build_execution_context(current_tag: String) -> ExecutionContext:
 		exec_info
 	)
 
-func _collect_action_types(actions: Array) -> Array[String]:
-	var types: Array[String] = []
-	for action in actions:
-		if action == null:
-			continue
-		if action.has("type"):
-			types.append(action["type"])
-		elif action.has_method("get_type"):
-			types.append(action.get_type())
-		elif action.has_method("type"):
-			types.append(action.type)
-		else:
-			types.append("unknown")
-	return types
-
 func serialize() -> Dictionary:
 	var triggered := []
 	for tag in _triggered_tags.keys():

@@ -12,7 +12,7 @@ const SystemPriority = {
 var type: String = "system"
 var priority: int = SystemPriority.NORMAL
 var _enabled := true
-var _instance = null
+var _instance: GameplayInstance = null
 
 func _init(priority_value: int = SystemPriority.NORMAL):
 	priority = priority_value
@@ -35,9 +35,7 @@ func tick(_actors: Array[Actor], _dt: float) -> void:
 func get_logic_time() -> float:
 	if _instance == null:
 		return 0.0
-	if _instance.has_method("get_logic_time"):
-		return float(_instance.get_logic_time())
-	return 0.0
+	return _instance.get_logic_time()
 
 func filter_actors_by_type(actors: Array[Actor], actor_type: String) -> Array[Actor]:
 	var results: Array[Actor] = []

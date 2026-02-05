@@ -14,10 +14,7 @@ static func _get_logic_time(ctx: ExecutionContext) -> float:
 	var event = ctx.get_current_event()
 	if event != null and event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
 		return float(event["logicTime"])
-	var state = ctx.game_state_provider
-	if state != null and state.has_method("get_logic_time"):
-		return state.get_logic_time()
-	return float(Time.get_ticks_msec())
+	return IGameStateProvider.get_logic_time(ctx.game_state_provider)
 
 class ApplyTagAction:
 	extends Action.BaseAction

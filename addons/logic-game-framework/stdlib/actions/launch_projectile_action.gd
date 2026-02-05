@@ -3,9 +3,9 @@ class_name LaunchProjectileAction
 
 const TYPE = "launchProjectile"
 
-var _hit_callbacks: Array = []
-var _miss_callbacks: Array = []
-var _pierce_callbacks: Array = []
+var _hit_callbacks: Array[Action.BaseAction] = []
+var _miss_callbacks: Array[Action.BaseAction] = []
+var _pierce_callbacks: Array[Action.BaseAction] = []
 
 var _projectile_config: DictResolver
 var _start_position: Vector3Resolver
@@ -114,11 +114,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Array:
 	var events: Array = []
 	for callback in _hit_callbacks:
-		if callback.has_method("execute"):
-			var callback_ctx = ExecutionContext.create_callback_context(ctx, hit_event)
-			var callback_result = callback.execute(callback_ctx)
-			if callback_result != null and callback_result.events:
-				events.append_array(callback_result.events)
+		var callback_ctx := ExecutionContext.create_callback_context(ctx, hit_event)
+		var callback_result := callback.execute(callback_ctx)
+		if callback_result != null and callback_result.events:
+			events.append_array(callback_result.events)
 	return events
 
 
@@ -126,11 +125,10 @@ func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Arra
 func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Array:
 	var events: Array = []
 	for callback in _miss_callbacks:
-		if callback.has_method("execute"):
-			var callback_ctx = ExecutionContext.create_callback_context(ctx, miss_event)
-			var callback_result = callback.execute(callback_ctx)
-			if callback_result != null and callback_result.events:
-				events.append_array(callback_result.events)
+		var callback_ctx := ExecutionContext.create_callback_context(ctx, miss_event)
+		var callback_result := callback.execute(callback_ctx)
+		if callback_result != null and callback_result.events:
+			events.append_array(callback_result.events)
 	return events
 
 
@@ -138,11 +136,10 @@ func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Ar
 func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -> Array:
 	var events: Array = []
 	for callback in _pierce_callbacks:
-		if callback.has_method("execute"):
-			var callback_ctx = ExecutionContext.create_callback_context(ctx, pierce_event)
-			var callback_result = callback.execute(callback_ctx)
-			if callback_result != null and callback_result.events:
-				events.append_array(callback_result.events)
+		var callback_ctx := ExecutionContext.create_callback_context(ctx, pierce_event)
+		var callback_result := callback.execute(callback_ctx)
+		if callback_result != null and callback_result.events:
+			events.append_array(callback_result.events)
 	return events
 
 
@@ -153,11 +150,9 @@ static func create_actor_position_resolver(actor_ref_resolver: Callable) -> Vect
 		if not (actor_ref is Dictionary) or not actor_ref.has("id"):
 			return Vector3.ZERO
 
-		var state = ctx.game_state_provider
-		if state and state.has_method("get_actor"):
-			var actor = state.get_actor(actor_ref.id)
-			if actor and actor.has("position"):
-				return actor.position
+		var actor := GameWorld.get_actor(actor_ref.id)
+		if actor != null and "position" in actor:
+			return actor.position
 		return Vector3.ZERO
 	)
 

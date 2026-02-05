@@ -97,7 +97,7 @@ func get_all_execution_instances() -> Array[AbilityExecutionInstance]:
 
 func cancel_all_executions() -> void:
 	for instance in _execution_instances:
-		if instance and instance.has_method("cancel"):
+		if instance:
 			instance.cancel()
 	_execution_instances = []
 
@@ -164,7 +164,7 @@ func serialize() -> Dictionary:
 		})
 	var serialized_instances := []
 	for instance in _execution_instances:
-		if instance and instance.has_method("serialize"):
+		if instance:
 			serialized_instances.append(instance.serialize())
 	return {
 		"id": id,

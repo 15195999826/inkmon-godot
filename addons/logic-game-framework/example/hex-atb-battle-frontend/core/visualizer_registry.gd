@@ -23,14 +23,6 @@ var _debug_mode: bool = false
 
 ## 注册 Visualizer
 func register(visualizer: FrontendBaseVisualizer) -> FrontendVisualizerRegistry:
-	# 验证 visualizer 实现了必要的方法
-	if not visualizer.has_method("can_handle"):
-		push_error("[VisualizerRegistry] Visualizer missing can_handle() method")
-		return self
-	if not visualizer.has_method("translate"):
-		push_error("[VisualizerRegistry] Visualizer missing translate() method")
-		return self
-	
 	_visualizers.append(visualizer)
 	return self
 

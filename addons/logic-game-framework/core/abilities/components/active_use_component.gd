@@ -33,68 +33,37 @@ func _create_default_trigger_config() -> TriggerConfig:
 func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
 	if not _check_triggers(event_dict, context):
 		return false
-	var ability_set := _get_ability_set(context, game_state_provider)
-	if ability_set == null:
-		return _activate_without_checks(event_dict, context, game_state_provider)
-	var logic_time := _get_logic_time(event_dict, game_state_provider)
-	var condition_ctx := {
-		"owner_actor_id": context.owner_actor_id,
-		"abilitySet": ability_set,
-		"ability": context.ability,
-		"gameplayState": game_state_provider,
-	}
-	if not _check_conditions(condition_ctx):
+	if not _check_conditions(context, event_dict, game_state_provider):
 		return false
-	var cost_ctx := {
-		"owner_actor_id": context.owner_actor_id,
-		"abilitySet": ability_set,
-		"ability": context.ability,
-		"gameplayState": game_state_provider,
-		"logicTime": logic_time,
-	}
-	if not _check_costs(cost_ctx):
+	if not _check_costs(context, event_dict, game_state_provider):
 		return false
-	_pay_costs(cost_ctx)
+	_pay_costs(context, event_dict, game_state_provider)
 	return _activate_without_checks(event_dict, context, game_state_provider)
 
 func _activate_without_checks(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
 	_activate_execution(event_dict, context, game_state_provider)
 	return true
 
-func _check_conditions(ctx: Dictionary) -> bool:
+func _check_conditions(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 	for condition in _conditions:
-		if not condition.check(ctx):
-			var reason: String = condition.type if condition.has("type") else ""
-			if condition.has_method("get_fail_reason"):
-				reason = str(condition.get_fail_reason(ctx))
+		if not condition.check(ctx, event, game_state):
+			var reason := condition.get_fail_reason(ctx, event, game_state)
+			if reason == "":
+				reason = condition.get_condition_type()
 			Log.debug("ActiveUseComponent", "条件不满足: %s" % reason)
 			return false
 	return true
 
-func _check_costs(ctx: Dictionary) -> bool:
+func _check_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 	for cost in _costs:
-		if not cost.can_pay(ctx):
-			var reason: String = cost.type if cost.has("type") else ""
-			if cost.has_method("get_fail_reason"):
-				reason = str(cost.get_fail_reason(ctx))
+		if not cost.can_pay(ctx, event, game_state):
+			var reason := cost.get_fail_reason(ctx, event, game_state)
+			if reason == "":
+				reason = cost.type
 			Log.debug("ActiveUseComponent", "消耗不足: %s" % reason)
 			return false
 	return true
 
-func _pay_costs(ctx: Dictionary) -> void:
+func _pay_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> void:
 	for cost in _costs:
-		cost.pay(ctx)
-
-func _get_ability_set(context: AbilityLifecycleContext, _game_state_provider: Variant) -> AbilitySet:
-	var owner_id: String = context.owner_actor_id
-	if owner_id == "":
-		return null
-	var actor := GameWorld.get_actor(owner_id)
-	return IAbilitySetOwner.get_ability_set(actor)
-
-func _get_logic_time(event_dict: Dictionary, game_state_provider: Variant) -> float:
-	if event_dict.has("logicTime") and typeof(event_dict["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
-		return float(event_dict["logicTime"])
-	if game_state_provider != null and game_state_provider.has_method("get_logic_time"):
-		return game_state_provider.get_logic_time()
-	return float(Time.get_ticks_msec())
+		cost.pay(ctx, event, game_state)

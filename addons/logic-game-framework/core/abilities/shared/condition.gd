@@ -4,14 +4,16 @@ class_name Condition
 func get_condition_type() -> String:
 	return "condition"
 
-func check(_ctx: Dictionary) -> bool:
+func check(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 	return true
 
-func get_fail_reason(_ctx: Dictionary) -> String:
+func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 	return ""
 
 class HasTagCondition:
 	extends Condition
+
+	var tag: String
 
 	func _init(tag_value: String):
 		tag = tag_value
@@ -19,18 +21,17 @@ class HasTagCondition:
 	func get_condition_type() -> String:
 		return "hasTag"
 
-	var tag: String
+	func check(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		return ctx.ability_set != null and ctx.ability_set.has_tag(tag)
 
-	func check(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		return ability_set != null and ability_set.has_tag(tag)
-
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "缺少 Tag: %s" % tag
 
 
 class NoTagCondition:
 	extends Condition
+
+	var tag: String
 
 	func _init(tag_value: String):
 		tag = tag_value
@@ -38,18 +39,18 @@ class NoTagCondition:
 	func get_condition_type() -> String:
 		return "noTag"
 
-	var tag: String
+	func check(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		return ctx.ability_set == null or not ctx.ability_set.has_tag(tag)
 
-	func check(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		return ability_set == null or not ability_set.has_tag(tag)
-
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "已有 Tag: %s" % tag
 
 
 class TagStacksCondition:
 	extends Condition
+
+	var tag: String
+	var min_stacks: int
 
 	func _init(tag_value: String, min_stacks_value: int):
 		tag = tag_value
@@ -58,25 +59,22 @@ class TagStacksCondition:
 	func get_condition_type() -> String:
 		return "tagStacks"
 
-	var tag: String
-	var min_stacks: int
-
-	func check(ctx: Dictionary) -> bool:
-		var ability_set = ctx.get("abilitySet", null)
-		if ability_set == null:
+	func check(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
+		if ctx.ability_set == null:
 			return false
-		return ability_set.get_tag_stacks(tag) >= min_stacks
+		return ctx.ability_set.get_tag_stacks(tag) >= min_stacks
 
-	func get_fail_reason(ctx: Dictionary) -> String:
-		var ability_set = ctx.get("abilitySet", null)
+	func get_fail_reason(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		var current := 0
-		if ability_set != null:
-			current = ability_set.get_tag_stacks(tag)
+		if ctx.ability_set != null:
+			current = ctx.ability_set.get_tag_stacks(tag)
 		return "%s 层数不足: %s/%s" % [tag, str(current), str(min_stacks)]
 
 
 class AllConditions:
 	extends Condition
+
+	var conditions: Array[Condition] = []
 
 	func _init(conditions_value: Array):
 		conditions.assign(conditions_value)
@@ -84,25 +82,26 @@ class AllConditions:
 	func get_condition_type() -> String:
 		return "all"
 
-	var conditions: Array[Condition] = []
-
-	func check(ctx: Dictionary) -> bool:
+	func check(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
-			if not condition.check(ctx):
+			if not condition.check(ctx, event, game_state):
 				return false
 		return true
 
-	func get_fail_reason(ctx: Dictionary) -> String:
+	func get_fail_reason(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> String:
 		for condition in conditions:
-			if not condition.check(ctx):
-				if condition.has_method("get_fail_reason"):
-					return condition.get_fail_reason(ctx)
-				return "条件不满足: %s" % (condition.get_condition_type() if condition.has_method("get_condition_type") else "")
+			if not condition.check(ctx, event, game_state):
+				var reason := condition.get_fail_reason(ctx, event, game_state)
+				if reason != "":
+					return reason
+				return "条件不满足: %s" % condition.get_condition_type()
 		return ""
 
 
 class AnyCondition:
 	extends Condition
+
+	var conditions: Array[Condition] = []
 
 	func _init(conditions_value: Array):
 		conditions.assign(conditions_value)
@@ -110,13 +109,11 @@ class AnyCondition:
 	func get_condition_type() -> String:
 		return "any"
 
-	var conditions: Array[Condition] = []
-
-	func check(ctx: Dictionary) -> bool:
+	func check(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
-			if condition.check(ctx):
+			if condition.check(ctx, event, game_state):
 				return true
 		return false
 
-	func get_fail_reason(_ctx: Dictionary) -> String:
+	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 		return "所有条件都不满足"
