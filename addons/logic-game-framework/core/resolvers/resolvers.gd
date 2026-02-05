@@ -16,7 +16,6 @@
 ##   # 作为默认参数
 ##   func _init(duration: FloatResolver = Resolvers.float_val(-1.0)) -> void:
 class_name Resolvers
-extends RefCounted
 
 
 # ============================================================

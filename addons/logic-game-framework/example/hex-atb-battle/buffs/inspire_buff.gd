@@ -1,6 +1,5 @@
 ## 振奋 Buff - 防御力 +10，持续 2 秒
 class_name HexBattleInspireBuff
-extends RefCounted
 
 
 ## 振奋 Buff 持续时间（毫秒）

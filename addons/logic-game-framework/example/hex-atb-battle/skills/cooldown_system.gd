@@ -3,7 +3,6 @@
 ## 实现技能冷却的条件检查和消耗支付
 ## 注意：此模块假设 AbilitySet 是 BattleAbilitySet 类型
 class_name HexBattleCooldownSystem
-extends RefCounted
 
 
 # ========== 冷却就绪条件 ==========

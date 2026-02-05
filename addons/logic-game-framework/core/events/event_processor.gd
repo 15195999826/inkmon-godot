@@ -189,7 +189,7 @@ func process_post_event(event: Dictionary, actor_ids: Array[String], game_state_
 	_current_trace_id = trace.get("traceId", "")
 
 	for actor_id in actor_ids:
-		var actor = GameWorld.get_actor(actor_id)
+		var actor: Actor = GameWorld.get_actor(actor_id)
 		if actor == null:
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
@@ -213,7 +213,7 @@ func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], 
 	for actor_id in actor_ids:
 		if not related_actor_ids.has(actor_id):
 			continue
-		var actor = GameWorld.get_actor(actor_id)
+		var actor: Actor = GameWorld.get_actor(actor_id)
 		if actor == null:
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
@@ -258,7 +258,7 @@ func export_trace_log() -> String:
 				lines.append("  Original: %s" % JSON.stringify(original_values))
 			var intents: Array = trace.get("intents", [])
 			for record in intents:
-				var intent = record.get("intent", {})
+				var intent: Dictionary = record.get("intent", {})
 				var intent_type: String = intent.get("type", "")
 				var error_suffix := ""
 				if record.get("error", null) != null:

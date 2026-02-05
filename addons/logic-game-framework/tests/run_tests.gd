@@ -53,8 +53,8 @@ func _load_test_scripts() -> void:
 ## 自动发现测试
 
 func discover_tests() -> Array:
-	var test_paths := []
-	var dir = DirAccess.open("res://addons/logic-game-framework/tests/")
+	var test_paths: Array = []
+	var dir: DirAccess = DirAccess.open("res://addons/logic-game-framework/tests/")
 	if not dir:
 		push_error("Failed to open tests directory")
 		return test_paths
@@ -64,14 +64,14 @@ func discover_tests() -> Array:
 
 func _collect_test_files_recursive(dir: DirAccess, base_path: String, paths: Array) -> void:
 	dir.list_dir_begin()
-	var file_name = dir.get_next()
+	var file_name := dir.get_next()
 
 	while file_name != "":
-		var full_path = base_path + file_name
+		var full_path := base_path + file_name
 
 		if dir.current_is_dir():
 			if file_name != "." and file_name != "..":
-				var sub_dir = DirAccess.open(full_path + "/")
+				var sub_dir: DirAccess = DirAccess.open(full_path + "/")
 				if sub_dir:
 					_collect_test_files_recursive(sub_dir, full_path + "/", paths)
 		else:

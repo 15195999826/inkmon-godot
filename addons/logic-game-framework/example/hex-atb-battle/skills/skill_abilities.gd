@@ -3,7 +3,6 @@
 ## 使用框架 Ability 系统实现的技能和行动配置。
 ## 包括移动、攻击技能、治疗技能等。
 class_name HexBattleSkillAbilities
-extends RefCounted
 
 
 # ========== 技能冷却配置（毫秒） ==========

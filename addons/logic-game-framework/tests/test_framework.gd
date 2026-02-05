@@ -43,7 +43,7 @@ static func it(test_name: String, test_fn: Callable) -> void:
 		push_error("[TestFramework] it() must be called inside describe()")
 		return
 
-	var suite = instance._suites[instance._current_suite_name]
+	var suite: Dictionary = instance._suites[instance._current_suite_name]
 	suite["tests"].append({
 		"name": test_name,
 		"fn": test_fn,
@@ -57,7 +57,7 @@ static func before_each(callback: Callable) -> void:
 		push_error("[TestFramework] before_each() must be called inside describe()")
 		return
 
-	var suite = instance._suites[instance._current_suite_name]
+	var suite: Dictionary = instance._suites[instance._current_suite_name]
 	suite["beforeEach"].append(callback)
 
 static func after_each(callback: Callable) -> void:
@@ -66,7 +66,7 @@ static func after_each(callback: Callable) -> void:
 		push_error("[TestFramework] after_each() must be called inside describe()")
 		return
 
-	var suite = instance._suites[instance._current_suite_name]
+	var suite: Dictionary = instance._suites[instance._current_suite_name]
 	suite["afterEach"].append(callback)
 
 ## 断言函数
@@ -103,10 +103,10 @@ func run() -> int:
 	return _fail_count
 
 func _run_suite(suite_name: String) -> void:
-	var suite = _suites[suite_name]
-	var tests = suite["tests"]
-	var before_each_list = suite["beforeEach"]
-	var after_each_list = suite["afterEach"]
+	var suite: Dictionary = _suites[suite_name]
+	var tests: Array = suite["tests"]
+	var before_each_list: Array = suite["beforeEach"]
+	var after_each_list: Array = suite["afterEach"]
 
 	print("📦 %s" % suite_name)
 	print("-".repeat(60))
@@ -125,8 +125,8 @@ func _run_suite(suite_name: String) -> void:
 	print("")
 
 func _run_test(suite_name: String, test_data: Dictionary) -> void:
-	var test_name = test_data["name"]
-	var test_fn = test_data["fn"]
+	var test_name: String = test_data["name"]
+	var test_fn: Callable = test_data["fn"]
 
 	_current_test_name = test_name
 	_assertion_count = 0
@@ -218,7 +218,7 @@ static func assert_true(value: bool, message: String = "") -> void:
 		return
 	instance.register_assertion()
 	if not value:
-		var msg = message if not message.is_empty() else "Expected true but got false"
+		var msg := message if not message.is_empty() else "Expected true but got false"
 		instance.register_failure(msg)
 
 static func assert_false(value: bool, message: String = "") -> void:
@@ -227,7 +227,7 @@ static func assert_false(value: bool, message: String = "") -> void:
 		return
 	instance.register_assertion()
 	if value:
-		var msg = message if not message.is_empty() else "Expected false but got true"
+		var msg := message if not message.is_empty() else "Expected false but got true"
 		instance.register_failure(msg)
 
 static func assert_near(actual: float, expected: float, tolerance: float = 0.0001, message: String = "") -> void:
@@ -236,7 +236,7 @@ static func assert_near(actual: float, expected: float, tolerance: float = 0.000
 		return
 	instance.register_assertion()
 	if abs(actual - expected) > tolerance:
-		var msg = message if not message.is_empty() else "Expected %s to be close to %s (±%s)" % [str(actual), str(expected), str(tolerance)]
+		var msg := message if not message.is_empty() else "Expected %s to be close to %s (±%s)" % [str(actual), str(expected), str(tolerance)]
 		instance.register_failure(msg)
 
 ## 断言类

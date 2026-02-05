@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AttributeCalculator
+## 纯静态工具类：属性计算器
 
 const _MODIFIER_ADD_BASE := AttributeModifier.MODIFIER_TYPE_ADD_BASE
 const _MODIFIER_MUL_BASE := AttributeModifier.MODIFIER_TYPE_MUL_BASE

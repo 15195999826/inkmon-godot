@@ -1,5 +1,5 @@
-extends RefCounted
 class_name ProjectileEvents
+## 纯静态工具类：投射物事件工厂
 
 const PROJECTILE_LAUNCHED_EVENT := "projectileLaunched"
 const PROJECTILE_HIT_EVENT := "projectileHit"

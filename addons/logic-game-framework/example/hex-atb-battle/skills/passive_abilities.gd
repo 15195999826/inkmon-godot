@@ -3,7 +3,6 @@
 ## 使用 NoInstanceComponent 实现被动触发效果。
 ## 被动技能监听游戏事件，满足条件时自动执行 Action 链。
 class_name HexBattlePassiveAbilities
-extends RefCounted
 
 
 # ========== 被动技能配置 ==========

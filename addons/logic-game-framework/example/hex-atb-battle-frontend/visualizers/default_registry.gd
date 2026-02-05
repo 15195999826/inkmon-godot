@@ -1,8 +1,5 @@
-## DefaultRegistry - 默认 Visualizer 注册表
-##
-## 创建包含所有默认 Visualizer 的注册表
 class_name FrontendDefaultRegistry
-extends RefCounted
+## 纯静态工具类：默认 Visualizer 注册表工厂
 
 
 ## 创建默认注册表

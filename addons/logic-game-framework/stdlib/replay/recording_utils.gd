@@ -1,5 +1,5 @@
-extends RefCounted
 class_name RecordingUtils
+## 纯静态工具类：录像订阅辅助函数
 
 ## 订阅 AttributeSet 的属性变化
 ##

@@ -1,6 +1,5 @@
 ## 职业配置
 class_name HexBattleClassConfig
-extends RefCounted
 
 
 # ========== 职业类型 ==========

@@ -128,7 +128,7 @@ func get_actor(actor_id: String) -> Actor:
 	if parsed.instance_id.is_empty():
 		# 兼容旧格式：遍历所有实例查找
 		for instance in _instances.values():
-			var actor = instance.get_actor(actor_id)
+			var actor: Actor = instance.get_actor(actor_id)
 			if actor != null:
 				return actor
 		return null

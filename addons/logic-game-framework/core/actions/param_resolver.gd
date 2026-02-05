@@ -1,5 +1,5 @@
-extends RefCounted
 class_name ParamResolver
+## 纯静态工具类：参数解析辅助函数
 
 static func resolve_param(resolver: Variant, ctx: ExecutionContext) -> Variant:
 	if resolver is Callable:

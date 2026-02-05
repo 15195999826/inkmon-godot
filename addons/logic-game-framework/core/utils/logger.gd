@@ -69,11 +69,11 @@ func _log(level: LogLevel, module: String, message: String, with_stack: bool) ->
 		return
 
 	# 构建日志消息
-	var log_msg = ""
+	var log_msg := ""
 
 	# 添加时间戳
 	if show_timestamp:
-		var time = Time.get_time_dict_from_system()
+		var time: Dictionary = Time.get_time_dict_from_system()
 		log_msg += "[%02d:%02d:%02d] " % [time.hour, time.minute, time.second]
 
 	# 添加帧号
@@ -81,7 +81,7 @@ func _log(level: LogLevel, module: String, message: String, with_stack: bool) ->
 		log_msg += "[%d] " % Engine.get_process_frames()
 
 	# 添加级别标识
-	var level_prefix = ""
+	var level_prefix := ""
 	match level:
 		LogLevel.DEBUG:   level_prefix = "[DEBUG]"
 		LogLevel.INFO:    level_prefix = "[INFO]"

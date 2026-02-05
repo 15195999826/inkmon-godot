@@ -93,24 +93,7 @@ extends Node
 - ❌ 错误：`godot --headless --script main.gd` (Autoload 不加载)
 - ✅ 正确：`godot --headless main.tscn` (场景模式，Autoload 正常)
 
-## 7. 类型系统：优先使用继承多态，避免鸭子类型
-
-### 原则
-- ✅ 默认使用继承 + 类型化数组
-- ❌ 非必要不使用 has_method（会损失类型检查与补全）
-
-### 规范示例
-```gdscript
-var _conditions: Array[Condition] = []
-
-func _check_conditions(ctx: Dictionary) -> bool:
-    for condition in _conditions:
-        if not condition.check(ctx):
-            return false
-    return true
-```
-
-## 8.纯静态工具类声明
+## 7.纯静态工具类声明
 
 仅提供静态函数、不会被实例化的工具类，**不要写 `extends RefCounted`**：
 
@@ -129,7 +112,22 @@ class_name IAbilitySetOwner
 
 **原因**：GDScript 默认继承 `RefCounted`，显式写出是冗余的。省略 `extends` 还能明确表达"这个类不需要实例化"。
 
----
+## 8. 类型系统：优先使用继承多态，避免鸭子类型
+
+### 原则
+- ✅ 默认使用继承 + 类型化数组
+- ❌ 非必要不使用 has_method（会损失类型检查与补全）
+
+### 规范示例
+```gdscript
+var _conditions: Array[Condition] = []
+
+func _check_conditions(ctx: Dictionary) -> bool:
+    for condition in _conditions:
+        if not condition.check(ctx):
+            return false
+    return true
+```
 
 ## 9. 接口模拟：静态工具类模式
 

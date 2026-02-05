@@ -1,6 +1,5 @@
 ## 技能配置
 class_name HexBattleSkillConfig
-extends RefCounted
 
 
 # ========== 技能类型 ==========

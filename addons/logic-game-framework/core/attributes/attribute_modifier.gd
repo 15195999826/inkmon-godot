@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AttributeModifier
+## 纯静态工具类：属性修改器工厂
 
 const MODIFIER_TYPE_ADD_BASE := "AddBase"
 const MODIFIER_TYPE_MUL_BASE := "MulBase"

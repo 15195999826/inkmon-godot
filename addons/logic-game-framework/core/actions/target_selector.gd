@@ -32,7 +32,7 @@ func select(_ctx: ExecutionContext) -> Array[TargetRef]:
 ## 从当前事件获取目标（event.target_actor_id 或 event.target_actor_ids）
 class CurrentTarget extends TargetSelector:
 	func select(ctx: ExecutionContext) -> Array[TargetRef]:
-		var event = ctx.get_current_event()
+		var event: Dictionary = ctx.get_current_event()
 		if event == null:
 			return []
 		if event is Dictionary:

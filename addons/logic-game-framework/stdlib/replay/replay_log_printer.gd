@@ -1,5 +1,5 @@
-extends RefCounted
 class_name ReplayLogPrinter
+## 纯静态工具类：录像日志打印
 
 static func print_record(record: Dictionary) -> void:
 	var meta = record.get("meta", {})

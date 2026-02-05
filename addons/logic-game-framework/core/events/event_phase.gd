@@ -1,5 +1,5 @@
-extends RefCounted
 class_name EventPhase
+## 纯静态工具类：事件阶段常量和工厂函数
 
 const PHASE_PRE := "pre"
 const PHASE_POST := "post"

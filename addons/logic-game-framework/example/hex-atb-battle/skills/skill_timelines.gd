@@ -3,7 +3,6 @@
 ## Timeline 描述技能执行的时间轴，定义各个动作点（Tag）的时间。
 ## 使用 TimelineTags 常量定义 tag 名称，避免硬编码字符串。
 class_name HexBattleSkillTimelines
-extends RefCounted
 
 
 # ========== Timeline ID 常量 ==========
