@@ -3,7 +3,6 @@ extends Node
 func _init() -> void:
 	TestFramework.register_test("RawAttributeSet - should get base value", _test_get_base)
 	TestFramework.register_test("RawAttributeSet - should set base value", _test_set_base)
-	TestFramework.register_test("RawAttributeSet - should modify base value", _test_modify_base)
 	TestFramework.register_test("RawAttributeSet - should calculate with AddBase modifier", _test_add_base_modifier)
 	TestFramework.register_test("RawAttributeSet - should calculate with MulBase modifier", _test_mul_base_modifier)
 	TestFramework.register_test("RawAttributeSet - should calculate with AddFinal modifier", _test_add_final_modifier)
@@ -34,15 +33,6 @@ func _test_set_base() -> void:
 	])
 	attribute_set.set_base("hp", 120)
 	TestFramework.assert_equal(120, attribute_set.get_base("hp"))
-
-func _test_modify_base() -> void:
-	var attribute_set = RawAttributeSet.new([
-		{"name": "hp", "baseValue": 100},
-		{"name": "atk", "baseValue": 50},
-		{"name": "def", "baseValue": 30},
-	])
-	attribute_set.modify_base("hp", -20)
-	TestFramework.assert_equal(80, attribute_set.get_base("hp"))
 
 func _test_add_base_modifier() -> void:
 	var attribute_set = RawAttributeSet.new([

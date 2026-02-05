@@ -262,7 +262,7 @@ func _apply_inspire_buff_to_all() -> void:
 		var inspire_buff := Ability.new(HexBattleInspireBuff.INSPIRE_BUFF, actor.get_id())
 		actor.ability_set.grant_ability(inspire_buff)
 		
-		var current_def: float = actor.get_def()
+		var current_def: float = actor.attribute_set.def
 		print("  %s 获得振奋 Buff: DEF %.0f -> %.0f (+%.0f)" % [
 			actor.get_display_name(),
 			current_def - HexBattleInspireBuff.INSPIRE_DEF_BONUS,
@@ -311,7 +311,7 @@ func get_all_actors() -> Array[CharacterActor]:
 func get_alive_actors() -> Array[CharacterActor]:
 	var result: Array[CharacterActor] = []
 	for actor in get_all_actors():
-		if actor.get_hp() > 0:
+		if actor.attribute_set.hp > 0:
 			result.append(actor)
 	return result
 
@@ -320,7 +320,7 @@ func get_alive_actors() -> Array[CharacterActor]:
 func get_alive_actor_ids() -> Array[String]:
 	var result: Array[String] = []
 	for actor in get_all_actors():
-		if actor.get_hp() > 0:
+		if actor.attribute_set.hp > 0:
 			result.append(actor.get_id())
 	return result
 
@@ -507,11 +507,11 @@ func _check_battle_end() -> bool:
 	var right_alive := 0
 	
 	for actor in left_team:
-		if actor.get_hp() > 0:
+		if actor.attribute_set.hp > 0:
 			left_alive += 1
 	
 	for actor in right_team:
-		if actor.get_hp() > 0:
+		if actor.attribute_set.hp > 0:
 			right_alive += 1
 	
 	if left_alive == 0:

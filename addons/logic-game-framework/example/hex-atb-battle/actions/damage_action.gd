@@ -18,7 +18,7 @@
 ##
 ## 2. 产生事件 + 应用状态（原子操作）：
 ##    - ctx.event_collector.push(damage_event)  ← 事件入队（录像用）
-##    - target.modify_hp(-damage)               ← 立即扣血
+##    - target.attribute_set.set_hp_base(target.attribute_set.hp - damage) ← 立即扣血
 ##
 ## 3. 死亡检测：
 ##    - if check_death(): 
@@ -146,11 +146,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# ========== 实际应用伤害 ==========
 		var target_actor := battle.get_actor(target.id)
 		if target_actor != null:
-			target_actor.modify_hp(-final_damage)
+			target_actor.attribute_set.set_hp_base(target_actor.attribute_set.hp - final_damage)
 			
 			# 日志打印（与旧 _process_frame_events 格式一致）
 			print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f" % [
-				target_name, final_damage, target_actor.get_hp()
+				target_name, final_damage, target_actor.attribute_set.hp
 			])
 			
 			# Logger 记录

@@ -61,7 +61,8 @@ func _generate_from_config(config_path: String, output_dir: String) -> bool:
 
 func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) -> void:
 	var set_class_name := "%sAttributeSet" % set_name
-	var file_path := "%s/%s.gd" % [output_dir, set_class_name]
+	var file_name := _to_snake_case(set_class_name)
+	var file_path := "%s/%s.gd" % [output_dir, file_name]
 	var lines: Array[String] = []
 
 	# 文件头警告
@@ -95,21 +96,21 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	for attr_name in attr_names:
 		var attr_key := str(attr_name)
 		var safe_key: String = _escape_identifier(attr_key)
-		var capitalized: String = _capitalize_attr(attr_key)
+		var snake_case_key: String = _to_snake_case(attr_key)
 		lines.append("")
 		lines.append("var %s: float:" % safe_key)
 		lines.append("\tget:")
 		lines.append("\t\treturn _raw.get_current_value(\"%s\")" % attr_key)
-		lines.append("var %sBreakdown: Dictionary:" % safe_key)
+		lines.append("var %s_breakdown: Dictionary:" % safe_key)
 		lines.append("\tget:")
 		lines.append("\t\treturn _raw.get_breakdown(\"%s\")" % attr_key)
-		lines.append("func get%sBreakdown() -> Dictionary:" % capitalized)
+		lines.append("func get_%s_breakdown() -> Dictionary:" % snake_case_key)
 		lines.append("\treturn _raw.get_breakdown(\"%s\")" % attr_key)
-		lines.append("const %sAttribute := \"%s\"" % [safe_key, attr_key])
+		lines.append("const %s_attribute := \"%s\"" % [safe_key, attr_key])
 
-		lines.append("func set%sBase(value: float) -> void:" % capitalized)
+		lines.append("func set_%s_base(value: float) -> void:" % snake_case_key)
 		lines.append("\t_raw.set_base(\"%s\", value)" % attr_key)
-		lines.append("func on%sChanged(callback: Callable) -> Callable:" % capitalized)
+		lines.append("func on_%s_changed(callback: Callable) -> Callable:" % snake_case_key)
 		lines.append("\tvar filtered_listener := func(event: Dictionary) -> void:")
 		lines.append("\t\tif event.get(\"attributeName\", \"\") == \"%s\":" % attr_key)
 		lines.append("\t\t\tcallback.call(event)")
@@ -129,10 +130,19 @@ func _escape_identifier(name: String) -> String:
 		return "%s_" % name
 	return name
 
-func _capitalize_attr(name: String) -> String:
-	if name.is_empty():
-		return name
-	return name.left(1).to_upper() + name.substr(1)
+func _to_snake_case(pascal_case: String) -> String:
+	# 如果已经包含下划线，假定已经是 snake_case
+	if "_" in pascal_case:
+		return pascal_case.to_lower()
+	
+	var result := ""
+	for i in range(pascal_case.length()):
+		var c := pascal_case[i]
+		# 在大写字母前添加下划线（除了第一个字符）
+		if c == c.to_upper() and c.to_lower() != c and i > 0:
+			result += "_"
+		result += c.to_lower()
+	return result
 
 func _value_to_string(value: Variant) -> String:
 	match typeof(value):

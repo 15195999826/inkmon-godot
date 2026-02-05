@@ -9,7 +9,7 @@
 ##
 ## 1. 产生治疗事件 + 立即应用治疗（原子操作）：
 ##    - ctx.event_collector.push(heal_event)  ← 事件入队（录像用）
-##    - target.set_hp(new_hp)                 ← 立即加血
+##    - target.attribute_set.set_hp_base(new_hp) ← 立即加血
 ##
 ## 2. 处理回调：on_heal / on_overheal
 ##
@@ -102,10 +102,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		# ========== 实际应用治疗 ==========
 		var target_actor := battle.get_actor(target.id)
 		if target_actor != null:
-			var old_hp := target_actor.get_hp()
-			var max_hp := target_actor.get_max_hp()
+			var old_hp: float = target_actor.attribute_set.hp
+			var max_hp: float = target_actor.attribute_set.max_hp
 			var new_hp := minf(old_hp + heal_amount, max_hp)
-			target_actor.set_hp(new_hp)
+			target_actor.attribute_set.set_hp_base(new_hp)
 			
 			# 获取目标名称
 			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
@@ -158,23 +158,15 @@ func _calculate_overheal(target_actor_id: String, heal_amount: float, ctx: Execu
 	if ctx.game_state_provider == null:
 		return 0.0
 	
-	if ctx.game_state_provider.has_method("get_actor"):
-		var target_actor = ctx.game_state_provider.get_actor(target_actor_id)
-		if target_actor != null:
-			var current_hp := 0.0
-			var max_hp := 0.0
-			
-			if target_actor.has_method("get_current_hp"):
-				current_hp = target_actor.get_current_hp()
-			if target_actor.has_method("get_max_hp"):
-				max_hp = target_actor.get_max_hp()
-			
-			if max_hp > 0:
-				var missing_hp := max_hp - current_hp
-				if heal_amount > missing_hp:
-					return heal_amount - missing_hp
+	var battle: HexBattle = ctx.game_state_provider
+	var target_actor := battle.get_actor(target_actor_id)
+	if target_actor != null:
+		var current_hp: float = target_actor.attribute_set.hp
+		var max_hp: float = target_actor.attribute_set.max_hp
+		
+		if max_hp > 0:
+			var missing_hp: float = max_hp - current_hp
+			if heal_amount > missing_hp:
+				return heal_amount - missing_hp
 	
 	return 0.0
-
-
-

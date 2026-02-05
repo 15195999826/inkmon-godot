@@ -11,7 +11,7 @@ func _init() -> void:
 		"atk": { "baseValue": 50.0 },
 		"def": { "baseValue": 30.0 },
 		"hp": { "baseValue": 100.0, "minValue": 0.0 },
-		"maxHp": { "baseValue": 100.0, "minValue": 1.0 },
+		"max_hp": { "baseValue": 100.0, "minValue": 1.0 },
 		"speed": { "baseValue": 100.0 },
 	})
 
@@ -19,15 +19,15 @@ func _init() -> void:
 var atk: float:
 	get:
 		return _raw.get_current_value("atk")
-var atkBreakdown: Dictionary:
+var atk_breakdown: Dictionary:
 	get:
 		return _raw.get_breakdown("atk")
-func getAtkBreakdown() -> Dictionary:
+func get_atk_breakdown() -> Dictionary:
 	return _raw.get_breakdown("atk")
-const atkAttribute := "atk"
-func setAtkBase(value: float) -> void:
+const atk_attribute := "atk"
+func set_atk_base(value: float) -> void:
 	_raw.set_base("atk", value)
-func onAtkChanged(callback: Callable) -> Callable:
+func on_atk_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
 		if event.get("attributeName", "") == "atk":
 			callback.call(event)
@@ -38,15 +38,15 @@ func onAtkChanged(callback: Callable) -> Callable:
 var def: float:
 	get:
 		return _raw.get_current_value("def")
-var defBreakdown: Dictionary:
+var def_breakdown: Dictionary:
 	get:
 		return _raw.get_breakdown("def")
-func getDefBreakdown() -> Dictionary:
+func get_def_breakdown() -> Dictionary:
 	return _raw.get_breakdown("def")
-const defAttribute := "def"
-func setDefBase(value: float) -> void:
+const def_attribute := "def"
+func set_def_base(value: float) -> void:
 	_raw.set_base("def", value)
-func onDefChanged(callback: Callable) -> Callable:
+func on_def_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
 		if event.get("attributeName", "") == "def":
 			callback.call(event)
@@ -57,15 +57,15 @@ func onDefChanged(callback: Callable) -> Callable:
 var hp: float:
 	get:
 		return _raw.get_current_value("hp")
-var hpBreakdown: Dictionary:
+var hp_breakdown: Dictionary:
 	get:
 		return _raw.get_breakdown("hp")
-func getHpBreakdown() -> Dictionary:
+func get_hp_breakdown() -> Dictionary:
 	return _raw.get_breakdown("hp")
-const hpAttribute := "hp"
-func setHpBase(value: float) -> void:
+const hp_attribute := "hp"
+func set_hp_base(value: float) -> void:
 	_raw.set_base("hp", value)
-func onHpChanged(callback: Callable) -> Callable:
+func on_hp_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
 		if event.get("attributeName", "") == "hp":
 			callback.call(event)
@@ -73,20 +73,20 @@ func onHpChanged(callback: Callable) -> Callable:
 	return func() -> void:
 		_raw.remove_change_listener(filtered_listener)
 
-var maxHp: float:
+var max_hp: float:
 	get:
-		return _raw.get_current_value("maxHp")
-var maxHpBreakdown: Dictionary:
+		return _raw.get_current_value("max_hp")
+var max_hp_breakdown: Dictionary:
 	get:
-		return _raw.get_breakdown("maxHp")
-func getMaxHpBreakdown() -> Dictionary:
-	return _raw.get_breakdown("maxHp")
-const maxHpAttribute := "maxHp"
-func setMaxHpBase(value: float) -> void:
-	_raw.set_base("maxHp", value)
-func onMaxHpChanged(callback: Callable) -> Callable:
+		return _raw.get_breakdown("max_hp")
+func get_max_hp_breakdown() -> Dictionary:
+	return _raw.get_breakdown("max_hp")
+const max_hp_attribute := "max_hp"
+func set_max_hp_base(value: float) -> void:
+	_raw.set_base("max_hp", value)
+func on_max_hp_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "maxHp":
+		if event.get("attributeName", "") == "max_hp":
 			callback.call(event)
 	_raw.add_change_listener(filtered_listener)
 	return func() -> void:
@@ -95,15 +95,15 @@ func onMaxHpChanged(callback: Callable) -> Callable:
 var speed: float:
 	get:
 		return _raw.get_current_value("speed")
-var speedBreakdown: Dictionary:
+var speed_breakdown: Dictionary:
 	get:
 		return _raw.get_breakdown("speed")
-func getSpeedBreakdown() -> Dictionary:
+func get_speed_breakdown() -> Dictionary:
 	return _raw.get_breakdown("speed")
-const speedAttribute := "speed"
-func setSpeedBase(value: float) -> void:
+const speed_attribute := "speed"
+func set_speed_base(value: float) -> void:
 	_raw.set_base("speed", value)
-func onSpeedChanged(callback: Callable) -> Callable:
+func on_speed_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
 		if event.get("attributeName", "") == "speed":
 			callback.call(event)

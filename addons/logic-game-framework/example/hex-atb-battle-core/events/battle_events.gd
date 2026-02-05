@@ -8,7 +8,6 @@
 ## - Actor 引用使用 actor_id: String
 ## - 坐标使用 Dictionary { "q": int, "r": int }
 class_name BattleEvents
-extends RefCounted
 
 
 # ========== 枚举 ==========

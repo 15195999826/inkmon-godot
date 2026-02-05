@@ -8,25 +8,25 @@ class_name ExampleTowerAttributeSet
 func _init() -> void:
 	super()
 	_raw.apply_config({
-		"maxHp": { "baseValue": 350.0 },
+		"max_hp": { "baseValue": 350.0 },
 		"range": { "baseValue": 6.0 },
 	})
 
 
-var maxHp: float:
+var max_hp: float:
 	get:
-		return _raw.get_current_value("maxHp")
-var maxHpBreakdown: Dictionary:
+		return _raw.get_current_value("max_hp")
+var max_hp_breakdown: Dictionary:
 	get:
-		return _raw.get_breakdown("maxHp")
-func getMaxHpBreakdown() -> Dictionary:
-	return _raw.get_breakdown("maxHp")
-const maxHpAttribute := "maxHp"
-func setMaxHpBase(value: float) -> void:
-	_raw.set_base("maxHp", value)
-func onMaxHpChanged(callback: Callable) -> Callable:
+		return _raw.get_breakdown("max_hp")
+func get_max_hp_breakdown() -> Dictionary:
+	return _raw.get_breakdown("max_hp")
+const max_hp_attribute := "max_hp"
+func set_max_hp_base(value: float) -> void:
+	_raw.set_base("max_hp", value)
+func on_max_hp_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "maxHp":
+		if event.get("attributeName", "") == "max_hp":
 			callback.call(event)
 	_raw.add_change_listener(filtered_listener)
 	return func() -> void:
@@ -35,15 +35,15 @@ func onMaxHpChanged(callback: Callable) -> Callable:
 var range_: float:
 	get:
 		return _raw.get_current_value("range")
-var range_Breakdown: Dictionary:
+var range__breakdown: Dictionary:
 	get:
 		return _raw.get_breakdown("range")
-func getRangeBreakdown() -> Dictionary:
+func get_range_breakdown() -> Dictionary:
 	return _raw.get_breakdown("range")
-const range_Attribute := "range"
-func setRangeBase(value: float) -> void:
+const range__attribute := "range"
+func set_range_base(value: float) -> void:
 	_raw.set_base("range", value)
-func onRangeChanged(callback: Callable) -> Callable:
+func on_range_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
 		if event.get("attributeName", "") == "range":
 			callback.call(event)

@@ -14,7 +14,7 @@ const ATB_FULL := 100.0
 
 var character_class: HexBattleClassConfig.CharacterClass
 ## 生成式属性集
-var attributes: HexBattleCharacterAttributeSet
+var attribute_set: HexBattleCharacterAttributeSet
 var ability_set: BattleAbilitySet
 var _is_dead: bool = false
 
@@ -52,18 +52,18 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	_display_name = class_config.name
 	
 	# 创建生成式属性集
-	attributes = HexBattleCharacterAttributeSet.new()
+	attribute_set = HexBattleCharacterAttributeSet.new()
 	
 	# 应用职业属性
 	var stats := class_config.stats
-	attributes.setHpBase(stats["hp"])
-	attributes.setMaxHpBase(stats["max_hp"])
-	attributes.setAtkBase(stats["atk"])
-	attributes.setDefBase(stats["def"])
-	attributes.setSpeedBase(stats["speed"])
+	attribute_set.set_hp_base(stats["hp"])
+	attribute_set.set_max_hp_base(stats["max_hp"])
+	attribute_set.set_atk_base(stats["atk"])
+	attribute_set.set_def_base(stats["def"])
+	attribute_set.set_speed_base(stats["speed"])
 	
 	# 创建能力集（此时 ID 已确定）
-	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attributes)
+	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
 
 
 ## 装备技能（在 HexBattle 初始化时调用）
@@ -119,45 +119,14 @@ func get_skill_ability() -> Ability:
 func get_ability_set() -> BattleAbilitySet:
 	return ability_set
 
-
-# ========== 属性访问 ==========
-
-func get_hp() -> float:
-	return attributes.hp
-
-
-func get_max_hp() -> float:
-	return attributes.maxHp
-
-
-func get_atk() -> float:
-	return attributes.atk
-
-
-func get_def() -> float:
-	return attributes.def
-
-
-func get_speed() -> float:
-	return attributes.speed
-
-
-func set_hp(value: float) -> void:
-	attributes.setHpBase(value)
-
-
-func modify_hp(delta: float) -> void:
-	attributes._raw.modify_base("hp", delta)
-
-
 ## 获取当前属性快照
 func get_stats() -> Dictionary:
 	return {
-		"hp": get_hp(),
-		"max_hp": get_max_hp(),
-		"atk": get_atk(),
-		"def": get_def(),
-		"speed": get_speed(),
+		"hp": attribute_set.hp,
+		"max_hp": attribute_set.max_hp,
+		"atk": attribute_set.atk,
+		"def": attribute_set.def,
+		"speed": attribute_set.speed,
 	}
 
 
@@ -170,7 +139,7 @@ func get_atb_gauge() -> float:
 
 ## 累积 ATB（按速度）
 func accumulate_atb(dt: float) -> void:
-	var speed := get_speed()
+	var speed: float = attribute_set.speed
 	# 速度 100 时，1000ms 充满
 	_atb_gauge += (speed / 1000.0) * dt
 
@@ -189,7 +158,7 @@ func reset_atb() -> void:
 
 ## 检查是否死亡
 func check_death() -> bool:
-	if get_hp() <= 0 and not _is_dead:
+	if attribute_set.hp <= 0 and not _is_dead:
 		_is_dead = true
 		return true
 	return false
@@ -198,7 +167,7 @@ func is_dead() -> bool:
 	return _is_dead
 
 func is_active() -> bool:
-	return get_hp() > 0
+	return attribute_set.hp > 0
 
 
 # ========== 录像支持（覆盖 Actor 基类方法） ==========
@@ -249,7 +218,7 @@ func setupRecording(ctx: Dictionary) -> Array:
 	var unsubscribes := []
 	
 	# 录制属性变化
-	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attributes, ctx))
+	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attribute_set, ctx))
 	
 	# 录制 AbilitySet 相关事件（Ability 授予/移除、触发、执行、Tag 变化）
 	unsubscribes.append_array(RecordingUtils.record_ability_set_changes(ability_set, ctx))
@@ -267,5 +236,5 @@ func serialize() -> Dictionary:
 	base["character_class"] = HexBattleClassConfig.class_to_string(character_class)
 	base["hex_position"] = hex_position.to_dict() if hex_position.is_valid() else {}
 	base["atb_gauge"] = _atb_gauge
-	base["attributes"] = attributes._raw.serialize()
+	base["attribute_set"] = attribute_set._raw.serialize()
 	return base

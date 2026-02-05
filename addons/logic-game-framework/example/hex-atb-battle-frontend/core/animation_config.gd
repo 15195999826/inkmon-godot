@@ -53,12 +53,6 @@ var skill_basic_attack_duration: float = 1000.0
 var skill_basic_attack_hit_frame: float = 500.0
 
 
-# ========== 构造函数 ==========
-
-func _init() -> void:
-	pass
-
-
 # ========== 工厂方法 ==========
 
 ## 创建默认配置

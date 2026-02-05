@@ -74,9 +74,6 @@ func set_base(name: String, value: float) -> void:
 	_invoke_post_hook("postBaseChange", final_event)
 	_notify_change(final_event)
 
-func modify_base(name: String, delta: float) -> void:
-	set_base(name, get_base(name) + delta)
-
 func get_body_value(name: String) -> float:
 	return float(get_breakdown(name).get("bodyValue", 0.0))
 

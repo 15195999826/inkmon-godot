@@ -141,7 +141,6 @@ func _initialize_actor(actor_data: Dictionary) -> void:
 
 ## 从位置数组提取六边形坐标
 ## 根据 positionFormats 配置解释 position 数组的含义
-@warning_ignore("untyped_declaration")
 func _extract_hex_position(position_arr: Array, actor_type: String) -> HexCoord:
 	if position_arr.is_empty():
 		return HexCoord.zero()

@@ -1,5 +1,7 @@
+## FrontendDefaultRegistry - 默认 Visualizer 注册表工厂
+##
+## 纯静态工具类，用于创建预配置的 VisualizerRegistry
 class_name FrontendDefaultRegistry
-## 纯静态工具类：默认 Visualizer 注册表工厂
 
 
 ## 创建默认注册表

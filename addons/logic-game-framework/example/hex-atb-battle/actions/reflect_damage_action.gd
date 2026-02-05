@@ -80,11 +80,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	# ========== 实际应用反伤伤害 ==========
 	var attacker_actor := battle.get_actor(attacker_id)
 	if attacker_actor != null:
-		attacker_actor.modify_hp(-_damage)
+		attacker_actor.attribute_set.set_hp_base(attacker_actor.attribute_set.hp - _damage)
 		
 		# 日志打印（与旧 _process_frame_events 格式一致，标记为反伤）
 		print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f (反伤)" % [
-			attacker_name, _damage, attacker_actor.get_hp()
+			attacker_name, _damage, attacker_actor.attribute_set.hp
 		])
 		
 		# Logger 记录（is_reflected = true）

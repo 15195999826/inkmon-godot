@@ -20,10 +20,10 @@ func _test_generated_example() -> void:
 	if instance == null:
 		return
 
-	TestFramework.assert_near(120.0, instance.maxHp)
-	instance.setMaxHpBase(150.0)
-	TestFramework.assert_near(150.0, instance.maxHp)
+	TestFramework.assert_near(120.0, instance.max_hp)
+	instance.set_max_hp_base(150.0)
+	TestFramework.assert_near(150.0, instance.max_hp)
 
 	TestFramework.assert_near(12.0, instance.attack)
-	instance.setAttackBase(20.0)
+	instance.set_attack_base(20.0)
 	TestFramework.assert_near(20.0, instance.attack)
