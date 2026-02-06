@@ -59,7 +59,7 @@ static var MOVE_ABILITY := (
 	.display_name("移动")
 	.description("移动到相邻格子")
 	.ability_tags(["action", "move"])
-	.component(
+	.component_config(
 		ActivateInstanceConfig.builder()
 		.trigger(TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, _ability_activate_filter))
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.MOVE)

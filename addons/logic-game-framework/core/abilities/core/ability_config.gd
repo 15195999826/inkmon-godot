@@ -11,6 +11,7 @@
 ##     .description("近战攻击") \
 ##     .ability_tags(["skill", "active", "melee"]) \
 ##     .active_use(ActiveUseConfig.builder()...) \
+##     .component_config(StatModifierConfig.builder()...) \
 ##     .build()
 ## [/codeblock]
 class_name AbilityConfig
@@ -108,8 +109,8 @@ class AbilityConfigBuilder:
 		_active_use_components.append(config)
 		return self
 	
-	## 添加效果组件
-	func component(config) -> AbilityConfigBuilder:
+	## 添加效果组件配置
+	func component_config(config) -> AbilityConfigBuilder:
 		_components.append(config)
 		return self
 	

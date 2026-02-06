@@ -21,15 +21,13 @@ static var INSPIRE_BUFF := (
 	.description("防御力 +10，持续 2 秒")
 	.ability_tags(["buff", "inspire"])
 	# 属性修改：防御力 +10
-	.component(StatModifierComponent.new([
-		{
-			"attributeName": "def",
-			"modifierType": AttributeModifier.MODIFIER_TYPE_ADD_BASE,
-			"value": INSPIRE_DEF_BONUS,
-		},
-	]))
+	.component_config(
+		StatModifierConfig.builder()
+		.modifier("def", AttributeModifier.MODIFIER_TYPE_ADD_BASE, INSPIRE_DEF_BONUS)
+		.build()
+	)
 	# 持续时间：2 秒
-	.component(TimeDurationComponent.new(INSPIRE_DURATION_MS))
+	.component_config(TimeDurationConfig.new(INSPIRE_DURATION_MS))
 	.build()
 )
 
