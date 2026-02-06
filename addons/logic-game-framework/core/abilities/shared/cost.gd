@@ -2,6 +2,7 @@ extends RefCounted
 class_name Cost
 
 var type: String = "cost"
+var _frozen_hash: int = 0
 
 func can_pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 	return true
@@ -11,6 +12,32 @@ func pay(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant
 
 func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
 	return ""
+
+## 冻结 Cost，记录当前状态 hash
+func _freeze() -> void:
+	if _is_state_check_enabled():
+		_frozen_hash = _compute_state_hash()
+
+## 验证状态未被修改
+func _verify_unchanged() -> void:
+	if _frozen_hash != 0:
+		var current := _compute_state_hash()
+		assert(current == _frozen_hash,
+			"Cost state modified during pay()! Cost: %s" % get_script().resource_path)
+
+## 检查是否启用状态检测（通过项目设置控制）
+static func _is_state_check_enabled() -> bool:
+	return ProjectSettings.get_setting("logic_game_framework/debug/action_state_check", false)
+
+## 计算所有成员变量的 hash
+func _compute_state_hash() -> int:
+	var state := {}
+	for prop in get_property_list():
+		if prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			var prop_name: String = prop.name
+			if not prop_name.begins_with("_frozen"):
+				state[prop_name] = get(prop_name)
+	return hash(var_to_str(state))
 
 
 class ConsumeTagCost:

@@ -19,6 +19,8 @@ func _init(config: ActiveUseConfig):
 	type = COMPONENT_TYPE
 	_conditions.assign(config.conditions)
 	_costs.assign(config.costs)
+	# Debug: 冻结所有 Condition 和 Cost，检测无状态约束
+	_freeze_conditions_and_costs()
 
 
 func _create_default_trigger_config() -> TriggerConfig:
@@ -51,7 +53,11 @@ func _check_conditions(ctx: AbilityLifecycleContext, event: Dictionary, game_sta
 			if reason == "":
 				reason = condition.get_condition_type()
 			Log.debug("ActiveUseComponent", "条件不满足: %s" % reason)
+			# Debug: 验证 Condition 状态未被修改
+			condition._verify_unchanged()
 			return false
+		# Debug: 验证 Condition 状态未被修改
+		condition._verify_unchanged()
 	return true
 
 func _check_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
@@ -61,9 +67,22 @@ func _check_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: V
 			if reason == "":
 				reason = cost.type
 			Log.debug("ActiveUseComponent", "消耗不足: %s" % reason)
+			# Debug: 验证 Cost 状态未被修改（can_pay 不应修改状态）
+			cost._verify_unchanged()
 			return false
+		# Debug: 验证 Cost 状态未被修改
+		cost._verify_unchanged()
 	return true
 
 func _pay_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> void:
 	for cost in _costs:
 		cost.pay(ctx, event, game_state)
+		# Debug: 验证 Cost 状态未被修改（pay 不应修改 self）
+		cost._verify_unchanged()
+
+## Debug: 冻结所有 Condition 和 Cost，用于检测无状态约束
+func _freeze_conditions_and_costs() -> void:
+	for condition in _conditions:
+		condition._freeze()
+	for cost in _costs:
+		cost._freeze()

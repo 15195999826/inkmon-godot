@@ -103,6 +103,9 @@ func _execute_actions_for_tag(tag_name: String, actions: Array) -> void:
 	for action in actions:
 		if action != null:
 			action.execute(exec_context)
+			# Debug: 验证 Action 状态未被修改
+			if action is Action.BaseAction:
+				action._verify_unchanged()
 		else:
 			Log.warning("AbilityExecutionInstance", "ExecutionInstance missing action")
 

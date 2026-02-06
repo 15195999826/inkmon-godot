@@ -37,6 +37,17 @@ func _init(
 	_custom_data = custom_data
 
 
+## 重写 _freeze 以冻结回调 Action
+func _freeze() -> void:
+	super._freeze()
+	for callback in _hit_callbacks:
+		callback._freeze()
+	for callback in _miss_callbacks:
+		callback._freeze()
+	for callback in _pierce_callbacks:
+		callback._freeze()
+
+
 func on_projectile_hit(action: Action.BaseAction) -> LaunchProjectileAction:
 	_hit_callbacks.append(action)
 	return self
@@ -116,6 +127,7 @@ func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Arra
 	for callback in _hit_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, hit_event)
 		var callback_result := callback.execute(callback_ctx)
+		callback._verify_unchanged()
 		if callback_result != null and callback_result.events:
 			events.append_array(callback_result.events)
 	return events
@@ -127,6 +139,7 @@ func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Ar
 	for callback in _miss_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, miss_event)
 		var callback_result := callback.execute(callback_ctx)
+		callback._verify_unchanged()
 		if callback_result != null and callback_result.events:
 			events.append_array(callback_result.events)
 	return events
@@ -138,6 +151,7 @@ func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -
 	for callback in _pierce_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, pierce_event)
 		var callback_result := callback.execute(callback_ctx)
+		callback._verify_unchanged()
 		if callback_result != null and callback_result.events:
 			events.append_array(callback_result.events)
 	return events

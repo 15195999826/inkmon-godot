@@ -110,6 +110,14 @@ class HasTagAction:
 		then_actions.assign(then_action_list)
 		else_actions.assign(else_action_list)
 
+	## 重写 _freeze 以冻结嵌套 Action
+	func _freeze() -> void:
+		super._freeze()
+		for action in then_actions:
+			action._freeze()
+		for action in else_actions:
+			action._freeze()
+
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")
 		var targets = get_targets(ctx)
@@ -122,6 +130,7 @@ class HasTagAction:
 			var actions = then_actions if has_tag else else_actions
 			for action in actions:
 				var result: ActionResult = action.execute(ctx)
+				action._verify_unchanged()
 				if result != null and result.events is Array:
 					all_events.append_array(result.events)
 		return ActionResult.create_success_result(all_events)

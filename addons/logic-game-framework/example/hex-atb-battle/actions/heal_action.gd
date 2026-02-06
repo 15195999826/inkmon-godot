@@ -40,6 +40,15 @@ func _init(
 	_heal_amount = heal_amount
 
 
+## 重写 _freeze 以冻结回调 Action
+func _freeze() -> void:
+	super._freeze()
+	for callback in _on_heal_callbacks:
+		callback._freeze()
+	for callback in _on_overheal_callbacks:
+		callback._freeze()
+
+
 # ============================================================
 # 回调注册（链式调用）
 # ============================================================
@@ -141,6 +150,7 @@ func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionC
 	# on_heal: 每次治疗都触发
 	for callback in _on_heal_callbacks:
 		var result := callback.execute(callback_ctx)
+		callback._verify_unchanged()
 		if result != null and result.events:
 			events.append_array(result.events)
 	
@@ -148,6 +158,7 @@ func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionC
 	if overheal > 0:
 		for callback in _on_overheal_callbacks:
 			var result := callback.execute(callback_ctx)
+			callback._verify_unchanged()
 			if result != null and result.events:
 				events.append_array(result.events)
 	

@@ -58,6 +58,17 @@ func _init(
 	_damage_type = damage_type
 
 
+## 重写 _freeze 以冻结回调 Action
+func _freeze() -> void:
+	super._freeze()
+	for callback in _on_hit_callbacks:
+		callback._freeze()
+	for callback in _on_critical_callbacks:
+		callback._freeze()
+	for callback in _on_kill_callbacks:
+		callback._freeze()
+
+
 # ============================================================
 # 回调注册（链式调用）
 # ============================================================
@@ -200,6 +211,7 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 	# on_hit: 每次命中都触发
 	for callback in _on_hit_callbacks:
 		var result := callback.execute(callback_ctx)
+		callback._verify_unchanged()
 		if result != null and result.events:
 			events.append_array(result.events)
 	
@@ -207,6 +219,7 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 	if is_critical:
 		for callback in _on_critical_callbacks:
 			var result := callback.execute(callback_ctx)
+			callback._verify_unchanged()
 			if result != null and result.events:
 				events.append_array(result.events)
 	
@@ -215,6 +228,7 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 	if is_kill:
 		for callback in _on_kill_callbacks:
 			var result := callback.execute(callback_ctx)
+			callback._verify_unchanged()
 			if result != null and result.events:
 				events.append_array(result.events)
 	

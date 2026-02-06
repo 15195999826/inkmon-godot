@@ -36,3 +36,6 @@ enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/ultra
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+
+[logic_game_framework]
+debug/action_state_check=true

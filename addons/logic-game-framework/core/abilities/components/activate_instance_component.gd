@@ -22,6 +22,8 @@ func _init(config: ActivateInstanceConfig):
 			_triggers.append(trigger_dict)
 		else:
 			_triggers.append(trigger)
+	# Debug: 冻结所有 Action，检测无状态约束
+	_freeze_all_actions()
 
 func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
 	if _check_triggers(event_dict, context):
@@ -68,6 +70,14 @@ func serialize() -> Dictionary:
 		"timelineId": _timeline_id,
 		"tagActionsCount": _tag_actions.size(),
 	}
+
+## Debug: 冻结所有 Action，用于检测无状态约束
+func _freeze_all_actions() -> void:
+	for tag in _tag_actions:
+		var actions: Array = _tag_actions[tag]
+		for action in actions:
+			if action is Action.BaseAction:
+				action._freeze()
 
 static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
 	var trigger := {

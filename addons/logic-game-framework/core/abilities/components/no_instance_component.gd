@@ -20,6 +20,8 @@ func _init(config: NoInstanceConfig):
 			_triggers.append(trigger_dict)
 		else:
 			_triggers.append(trigger)
+	# Debug: 冻结所有 Action
+	_freeze_all_actions()
 
 func get_triggers() -> Array[Dictionary]:
 	return _triggers
@@ -57,6 +59,12 @@ func _execute_actions(event_dict: Dictionary, context: AbilityLifecycleContext, 
 	var exec_context := _build_execution_context(event_dict, context, game_state_provider)
 	for action in _actions:
 		action.execute(exec_context)
+		action._verify_unchanged()
+
+## Debug: 冻结所有 Action，用于检测无状态约束
+func _freeze_all_actions() -> void:
+	for action in _actions:
+		action._freeze()
 
 func _build_execution_context(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> ExecutionContext:
 	var ability_ref := AbilityRef.from_ability(context.ability)
