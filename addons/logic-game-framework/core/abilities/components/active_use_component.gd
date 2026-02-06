@@ -8,7 +8,11 @@ var _costs: Array[Cost] = []
 
 func _init(config: ActiveUseConfig):
 	# 构建父类配置
-	var triggers_to_use: Array = config.triggers if not config.triggers.is_empty() else [_create_default_trigger_config()]
+	var triggers_to_use: Array[TriggerConfig] = []
+	if not config.triggers.is_empty():
+		triggers_to_use.assign(config.triggers)
+	else:
+		triggers_to_use = [TriggerConfig.ABILITY_ACTIVATE]
 	var parent_config := ActivateInstanceConfig.new(
 		config.timeline_id,
 		config.tag_actions,
@@ -22,15 +26,6 @@ func _init(config: ActiveUseConfig):
 	# Debug: 冻结所有 Condition 和 Cost，检测无状态约束
 	_freeze_conditions_and_costs()
 
-
-func _create_default_trigger_config() -> TriggerConfig:
-	var filter_fn := func(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
-		var ability_ref: Ability = ctx.ability
-		var owner_id: String = ctx.owner_actor_id
-		if ability_ref == null or owner_id == "":
-			return false
-		return event_dict.get("abilityInstanceId", "") == ability_ref.id and event_dict.get("sourceId", "") == owner_id
-	return TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, filter_fn)
 
 func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
 	if not _check_triggers(event_dict, context):

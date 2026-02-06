@@ -131,6 +131,6 @@ class HasTagAction:
 			for action in actions:
 				var result: ActionResult = action.execute(ctx)
 				action._verify_unchanged()
-				if result != null and result.events is Array:
-					all_events.append_array(result.events)
+				if result != null and result.event_dicts is Array:
+					all_events.append_array(result.event_dicts)
 		return ActionResult.create_success_result(all_events)

@@ -23,7 +23,7 @@ extends RefCounted
 
 
 ## 触发器列表
-var triggers: Array
+var triggers: Array[TriggerConfig]
 
 ## 触发模式: "any" 或 "all"
 var trigger_mode: String
@@ -33,8 +33,8 @@ var actions: Array[Action.BaseAction] = []
 
 
 func _init(
-	triggers: Array = [],
-	actions: Array = [],
+	triggers: Array[TriggerConfig] = [],
+	actions: Array[Action.BaseAction] = [],
 	trigger_mode: String = "any"
 ) -> void:
 	self.triggers = triggers
@@ -56,9 +56,9 @@ static func builder() -> NoInstanceConfigBuilder:
 class NoInstanceConfigBuilder:
 	extends RefCounted
 	
-	var _triggers: Array = []
+	var _triggers: Array[TriggerConfig] = []
 	var _trigger_mode: String = "any"
-	var _actions: Array = []
+	var _actions: Array[Action.BaseAction] = []
 	
 	# ========== 1. 触发配置 ==========
 	
@@ -84,7 +84,7 @@ class NoInstanceConfigBuilder:
 		return self
 	
 	## 批量添加动作
-	func actions(acts: Array) -> NoInstanceConfigBuilder:
+	func actions(acts: Array[Action.BaseAction]) -> NoInstanceConfigBuilder:
 		_actions.append_array(acts)
 		return self
 	

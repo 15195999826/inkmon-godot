@@ -6,7 +6,7 @@ const TYPE := "ActivateInstanceComponent"
 var _triggers: Array[Dictionary] = []
 var _trigger_mode: String = "any"
 var _timeline_id: String = ""
-var _tag_actions: Dictionary = {}
+var _tag_actions: Dictionary[String, Array] = {}
 
 func _init(config: ActivateInstanceConfig):
 	type = TYPE
@@ -15,13 +15,10 @@ func _init(config: ActivateInstanceConfig):
 	_trigger_mode = config.trigger_mode
 	# 转换 TriggerConfig 为内部格式
 	for trigger in config.triggers:
-		if trigger is TriggerConfig:
-			var trigger_dict := { "eventKind": trigger.event_kind }
-			if trigger.filter.is_valid():
-				trigger_dict["filter"] = trigger.filter
-			_triggers.append(trigger_dict)
-		else:
-			_triggers.append(trigger)
+		var trigger_dict := { "eventKind": trigger.event_kind }
+		if trigger.filter.is_valid():
+			trigger_dict["filter"] = trigger.filter
+		_triggers.append(trigger_dict)
 	# Debug: 冻结所有 Action，检测无状态约束
 	_freeze_all_actions()
 
@@ -74,10 +71,8 @@ func serialize() -> Dictionary:
 ## Debug: 冻结所有 Action，用于检测无状态约束
 func _freeze_all_actions() -> void:
 	for tag in _tag_actions:
-		var actions: Array = _tag_actions[tag]
-		for action in actions:
-			if action is Action.BaseAction:
-				action._freeze()
+		for action: Action.BaseAction in _tag_actions[tag]:
+			action._freeze()
 
 static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
 	var trigger := {

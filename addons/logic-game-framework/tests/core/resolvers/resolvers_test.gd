@@ -32,10 +32,10 @@ func _init() -> void:
 # ============================================================
 
 func _create_mock_context(event: Dictionary = {}) -> ExecutionContext:
-	var event_chain: Array[Dictionary] = []
+	var event_dict_chain: Array[Dictionary] = []
 	if not event.is_empty():
-		event_chain = [event]
-	return ExecutionContext.new(event_chain, null, null, null, null)
+		event_dict_chain = [event]
+	return ExecutionContext.new(event_dict_chain, null, null, null, null)
 
 
 # ============================================================

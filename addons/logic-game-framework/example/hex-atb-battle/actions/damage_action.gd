@@ -212,16 +212,16 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 	for callback in _on_hit_callbacks:
 		var result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
-		if result != null and result.events:
-			events.append_array(result.events)
+		if result != null and result.event_dicts:
+			events.append_array(result.event_dicts)
 	
 	# on_critical: 仅暴击时触发
 	if is_critical:
 		for callback in _on_critical_callbacks:
 			var result := callback.execute(callback_ctx)
 			callback._verify_unchanged()
-			if result != null and result.events:
-				events.append_array(result.events)
+			if result != null and result.event_dicts:
+				events.append_array(result.event_dicts)
 	
 	# on_kill: 检查目标是否死亡
 	var is_kill := _check_target_killed(damage_event, ctx)
@@ -229,8 +229,8 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 		for callback in _on_kill_callbacks:
 			var result := callback.execute(callback_ctx)
 			callback._verify_unchanged()
-			if result != null and result.events:
-				events.append_array(result.events)
+			if result != null and result.event_dicts:
+				events.append_array(result.event_dicts)
 	
 	return events
 

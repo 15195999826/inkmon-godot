@@ -41,9 +41,9 @@ func _create_test_actor(ability_set: AbilitySet) -> TestActor:
 
 
 func _build_context(event: Dictionary = {}) -> ExecutionContext:
-	var event_chain: Array[Dictionary] = [event]
+	var event_dict_chain: Array[Dictionary] = [event]
 	return ExecutionContext.create(
-		event_chain,
+		event_dict_chain,
 		_test_instance,
 		GameWorld.event_collector,
 		null,  # ability_ref
@@ -136,5 +136,5 @@ func _test_has_tag_action() -> void:
 	)
 	var result := action.execute(ctx)
 	TestFramework.assert_true(result.success)
-	TestFramework.assert_equal(0, result.events.size())
+	TestFramework.assert_equal(0, result.event_dicts.size())
 	_teardown_test_instance()

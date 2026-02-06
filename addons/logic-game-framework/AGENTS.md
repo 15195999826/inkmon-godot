@@ -52,6 +52,7 @@ func take_damage(amount: float) -> void:
 | **Action** | `HexBattleDamageAction.new(...)` 在 `static var` 中创建 | **所有角色共享** | ❌ 禁止 |
 | **Condition** | 同 Action | **所有角色共享** | ❌ 禁止 |
 | **Cost** | 同 Action | **所有角色共享** | ❌ 禁止 |
+| **TriggerConfig** | `TriggerConfig.new(...)` 在 `static var` 或 Builder 中创建 | **所有角色共享** | ❌ 禁止（无需校验，结构简单） |
 
 ### 为什么会共享
 

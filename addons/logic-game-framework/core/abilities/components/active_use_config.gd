@@ -42,11 +42,11 @@ var timeline_id: String
 
 ## Tag -> Actions 映射
 ## key: TimelineTags 常量（如 TimelineTags.HIT）
-## value: Array[Action]
-var tag_actions: Dictionary
+## value: Array[Action.BaseAction]
+var tag_actions: Dictionary[String, Array]
 
 ## 触发器列表（可选，默认监听 AbilityActivateEvent）
-var triggers: Array
+var triggers: Array[TriggerConfig]
 
 ## 触发模式: "any" 或 "all"
 var trigger_mode: String
@@ -60,10 +60,10 @@ var costs: Array[Cost] = []
 
 func _init(
 	timeline_id: String = "",
-	tag_actions: Dictionary = {},
-	conditions: Array = [],
-	costs: Array = [],
-	triggers: Array = [],
+	tag_actions: Dictionary[String, Array] = {},
+	conditions: Array[Condition] = [],
+	costs: Array[Cost] = [],
+	triggers: Array[TriggerConfig] = [],
 	trigger_mode: String = "any"
 ) -> void:
 	self.timeline_id = timeline_id
@@ -89,11 +89,11 @@ class ActiveUseConfigBuilder:
 	extends RefCounted
 	
 	var _timeline_id: String = ""
-	var _tag_actions: Dictionary = {}
-	var _triggers: Array = []
+	var _tag_actions: Dictionary[String, Array] = {}
+	var _triggers: Array[TriggerConfig] = []
 	var _trigger_mode: String = "any"
-	var _conditions: Array = []
-	var _costs: Array = []
+	var _conditions: Array[Condition] = []
+	var _costs: Array[Cost] = []
 	
 	# ========== 1. 触发配置 ==========
 	
@@ -121,7 +121,7 @@ class ActiveUseConfigBuilder:
 	
 	## 添加 Tag -> Actions 映射
 	## 定义时间线各阶段（如 START, HIT, END）执行的动作
-	func on_tag(tag: String, actions: Array) -> ActiveUseConfigBuilder:
+	func on_tag(tag: String, actions: Array[Action.BaseAction]) -> ActiveUseConfigBuilder:
 		_tag_actions[tag] = actions
 		return self
 	
@@ -129,13 +129,13 @@ class ActiveUseConfigBuilder:
 	
 	## 添加前置条件（可选）
 	## 所有条件满足才能激活技能
-	func condition(cond) -> ActiveUseConfigBuilder:
+	func condition(cond: Condition) -> ActiveUseConfigBuilder:
 		_conditions.append(cond)
 		return self
 	
 	## 添加消耗（可选）
 	## 激活技能时扣除的资源
-	func cost(c) -> ActiveUseConfigBuilder:
+	func cost(c: Cost) -> ActiveUseConfigBuilder:
 		_costs.append(c)
 		return self
 	

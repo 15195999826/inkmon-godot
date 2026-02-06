@@ -28,11 +28,11 @@ var timeline_id: String
 
 ## Tag -> Actions 映射
 ## key: TimelineTags 常量（如 TimelineTags.HIT）
-## value: Array[Action]
-var tag_actions: Dictionary
+## value: Array[Action.BaseAction]
+var tag_actions: Dictionary[String, Array]
 
 ## 触发器列表
-var triggers: Array
+var triggers: Array[TriggerConfig]
 
 ## 触发模式: "any" 或 "all"
 var trigger_mode: String
@@ -40,8 +40,8 @@ var trigger_mode: String
 
 func _init(
 	timeline_id: String = "",
-	tag_actions: Dictionary = {},
-	triggers: Array = [],
+	tag_actions: Dictionary[String, Array] = {},
+	triggers: Array[TriggerConfig] = [],
 	trigger_mode: String = "any"
 ) -> void:
 	self.timeline_id = timeline_id
@@ -65,8 +65,8 @@ class ActivateInstanceConfigBuilder:
 	extends RefCounted
 	
 	var _timeline_id: String = ""
-	var _tag_actions: Dictionary = {}
-	var _triggers: Array = []
+	var _tag_actions: Dictionary[String, Array] = {}
+	var _triggers: Array[TriggerConfig] = []
 	var _trigger_mode: String = "any"
 	
 	# ========== 1. 触发配置 ==========
@@ -94,7 +94,7 @@ class ActivateInstanceConfigBuilder:
 	
 	## 添加 Tag -> Actions 映射
 	## 定义时间线各阶段（如 START, EXECUTE, END）执行的动作
-	func on_tag(tag: String, actions: Array) -> ActivateInstanceConfigBuilder:
+	func on_tag(tag: String, actions: Array[Action.BaseAction]) -> ActivateInstanceConfigBuilder:
 		_tag_actions[tag] = actions
 		return self
 	

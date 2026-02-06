@@ -1,13 +1,16 @@
 extends Node
 
 class TestAction:
-	extends RefCounted
+	extends Action.BaseAction
 
-	var type := "testAction"
 	var calls: Array = []
 
-	func execute(ctx) -> void:
+	func _init() -> void:
+		super._init()
+
+	func execute(ctx: ExecutionContext) -> ActionResult:
 		calls.append(ctx)
+		return ActionResult.create_success_result([])
 
 func _init() -> void:
 	TestFramework.register_test("AbilityExecutionInstance triggers tags", _test_trigger_tags)

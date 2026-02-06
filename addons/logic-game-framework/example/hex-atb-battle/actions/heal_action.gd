@@ -151,16 +151,16 @@ func _process_callbacks(heal_event: Dictionary, overheal: float, ctx: ExecutionC
 	for callback in _on_heal_callbacks:
 		var result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
-		if result != null and result.events:
-			events.append_array(result.events)
+		if result != null and result.event_dicts:
+			events.append_array(result.event_dicts)
 	
 	# on_overheal: 仅过量治疗时触发
 	if overheal > 0:
 		for callback in _on_overheal_callbacks:
 			var result := callback.execute(callback_ctx)
 			callback._verify_unchanged()
-			if result != null and result.events:
-				events.append_array(result.events)
+			if result != null and result.event_dicts:
+				events.append_array(result.event_dicts)
 	
 	return events
 

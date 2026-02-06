@@ -8,8 +8,8 @@ const STATE_CANCELLED := "cancelled"
 var id: String
 var timeline_id: String
 var _timeline = null
-var _tag_actions: Dictionary = {}
-var _event_chain: Array[Dictionary] = []
+var _tag_actions: Dictionary[String, Array] = {}
+var _event_dict_chain: Array[Dictionary] = []
 var _game_state_provider = null
 var _ability_info: Dictionary = {}
 var _elapsed: float = 0.0
@@ -20,8 +20,8 @@ func _init(config: Dictionary):
 	id = IdGenerator.generate("execution")
 	timeline_id = str(config.get("timelineId", ""))
 	_timeline = TimelineRegistry.get_timeline(timeline_id)
-	_tag_actions = config.get("tagActions", {})
-	_event_chain.assign(config.get("eventChain", []))
+	_tag_actions.assign(config.get("tagActions", {}))
+	_event_dict_chain.assign(config.get("eventChain", []))
 	_game_state_provider = config.get("gameplayState", null)
 	_ability_info = config.get("abilityInfo", {})
 	if _timeline == null:
@@ -43,9 +43,9 @@ func is_cancelled() -> bool:
 	return _state == STATE_CANCELLED
 
 func get_trigger_event() -> Variant:
-	if _event_chain.is_empty():
+	if _event_dict_chain.is_empty():
 		return null
-	return _event_chain[_event_chain.size() - 1]
+	return _event_dict_chain[_event_dict_chain.size() - 1]
 
 func tick(dt: float) -> Array[String]:
 	if _state != STATE_EXECUTING:
@@ -77,7 +77,7 @@ func tick(dt: float) -> Array[String]:
 	triggered_this_tick.sort_custom(func(a, b): return a["tagTime"] < b["tagTime"])
 
 	for entry in triggered_this_tick:
-		var actions: Array = _resolve_actions_for_tag(str(entry["tagName"]))
+		var actions: Array[Action.BaseAction] = _resolve_actions_for_tag(str(entry["tagName"]))
 		Log.debug("AbilityExecutionInstance", "触发 %s" % str(entry["tagName"]))
 		_execute_actions_for_tag(str(entry["tagName"]), actions)
 
@@ -96,7 +96,7 @@ func cancel() -> void:
 		_state = STATE_CANCELLED
 		Log.debug("AbilityExecutionInstance", "执行取消")
 
-func _execute_actions_for_tag(tag_name: String, actions: Array) -> void:
+func _execute_actions_for_tag(tag_name: String, actions: Array[Action.BaseAction]) -> void:
 	if actions.is_empty():
 		return
 	var exec_context = _build_execution_context(tag_name)
@@ -104,17 +104,20 @@ func _execute_actions_for_tag(tag_name: String, actions: Array) -> void:
 		if action != null:
 			action.execute(exec_context)
 			# Debug: 验证 Action 状态未被修改
-			if action is Action.BaseAction:
-				action._verify_unchanged()
+			action._verify_unchanged()
 		else:
 			Log.warning("AbilityExecutionInstance", "ExecutionInstance missing action")
 
-func _resolve_actions_for_tag(tag_name: String) -> Array:
+func _resolve_actions_for_tag(tag_name: String) -> Array[Action.BaseAction]:
 	if _tag_actions.has(tag_name):
-		return _tag_actions[tag_name]
+		var actions: Array[Action.BaseAction] = []
+		actions.assign(_tag_actions[tag_name])
+		return actions
 	for pattern in _tag_actions.keys():
 		if _match_pattern(str(pattern), tag_name):
-			return _tag_actions[pattern]
+			var actions: Array[Action.BaseAction] = []
+			actions.assign(_tag_actions[pattern])
+			return actions
 	return []
 
 func _match_pattern(pattern: String, tag_name: String) -> bool:
@@ -134,7 +137,7 @@ func _build_execution_context(current_tag: String) -> ExecutionContext:
 	)
 	var exec_info := AbilityExecutionInfo.create(id, timeline_id, _elapsed, current_tag)
 	return ExecutionContext.create(
-		_event_chain,
+		_event_dict_chain,
 		_game_state_provider,
 		GameWorld.event_collector,
 		ability_ref,

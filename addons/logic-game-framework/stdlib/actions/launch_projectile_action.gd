@@ -128,8 +128,8 @@ func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Arra
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, hit_event)
 		var callback_result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
-		if callback_result != null and callback_result.events:
-			events.append_array(callback_result.events)
+		if callback_result != null and callback_result.event_dicts:
+			events.append_array(callback_result.event_dicts)
 	return events
 
 
@@ -140,8 +140,8 @@ func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Ar
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, miss_event)
 		var callback_result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
-		if callback_result != null and callback_result.events:
-			events.append_array(callback_result.events)
+		if callback_result != null and callback_result.event_dicts:
+			events.append_array(callback_result.event_dicts)
 	return events
 
 
@@ -152,8 +152,8 @@ func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, pierce_event)
 		var callback_result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
-		if callback_result != null and callback_result.events:
-			events.append_array(callback_result.events)
+		if callback_result != null and callback_result.event_dicts:
+			events.append_array(callback_result.event_dicts)
 	return events
 
 

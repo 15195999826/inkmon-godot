@@ -13,13 +13,10 @@ func _init(config: NoInstanceConfig):
 	_actions.assign(config.actions)
 	# 转换 TriggerConfig 为内部格式
 	for trigger in config.triggers:
-		if trigger is TriggerConfig:
-			var trigger_dict := { "eventKind": trigger.event_kind }
-			if trigger.filter.is_valid():
-				trigger_dict["filter"] = trigger.filter
-			_triggers.append(trigger_dict)
-		else:
-			_triggers.append(trigger)
+		var trigger_dict := { "eventKind": trigger.event_kind }
+		if trigger.filter.is_valid():
+			trigger_dict["filter"] = trigger.filter
+		_triggers.append(trigger_dict)
 	# Debug: 冻结所有 Action
 	_freeze_all_actions()
 
@@ -68,9 +65,9 @@ func _freeze_all_actions() -> void:
 
 func _build_execution_context(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> ExecutionContext:
 	var ability_ref := AbilityRef.from_ability(context.ability)
-	var event_chain: Array[Dictionary] = [event_dict]
+	var event_dict_chain: Array[Dictionary] = [event_dict]
 	return ExecutionContext.create(
-		event_chain,
+		event_dict_chain,
 		game_state_provider,
 		GameWorld.event_collector,
 		ability_ref,
