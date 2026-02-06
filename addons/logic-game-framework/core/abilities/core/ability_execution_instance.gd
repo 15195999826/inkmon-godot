@@ -7,7 +7,7 @@ const STATE_CANCELLED := "cancelled"
 
 var id: String
 var timeline_id: String
-var _timeline: Dictionary = {}
+var _timeline: TimelineData = null
 var _tag_actions: Array[TagActionsEntry] = []
 var _trigger_event_dict: Dictionary = {}
 var _game_state_provider: Variant = null
@@ -30,7 +30,7 @@ func _init(
 	_trigger_event_dict = p_trigger_event_dict
 	_game_state_provider = p_game_state_provider
 	_ability_ref = p_ability_ref
-	if _timeline.is_empty():
+	if _timeline == null:
 		Log.warning("AbilityExecutionInstance", "Timeline not found: %s" % timeline_id)
 
 func get_elapsed() -> float:
@@ -54,7 +54,7 @@ func get_trigger_event() -> Dictionary:
 func tick(dt: float) -> Array[String]:
 	if _state != STATE_EXECUTING:
 		return []
-	if _timeline.is_empty():
+	if _timeline == null:
 		_state = STATE_COMPLETED
 		return []
 
@@ -62,7 +62,7 @@ func tick(dt: float) -> Array[String]:
 	_elapsed += dt
 
 	var triggered_this_tick: Array[Dictionary] = []
-	var tags: Dictionary = _timeline.get("tags", {})
+	var tags: Dictionary = _timeline.tags
 	for tag_name in tags.keys():
 		var tag_time := float(tags[tag_name])
 		var should_trigger := false
@@ -78,14 +78,14 @@ func tick(dt: float) -> Array[String]:
 				"elapsed": _elapsed,
 			})
 
-	triggered_this_tick.sort_custom(func(a: Dictionary, b: Dictionary): return a["tagTime"] < b["tagTime"])
+	triggered_this_tick.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["tagTime"] < b["tagTime"])
 
 	for entry in triggered_this_tick:
 		var actions: Array[Action.BaseAction] = _resolve_actions_for_tag(str(entry["tagName"]))
 		Log.debug("AbilityExecutionInstance", "触发 %s" % str(entry["tagName"]))
 		_execute_actions_for_tag(str(entry["tagName"]), actions)
 
-	var total_duration := float(_timeline.get("totalDuration", 0.0))
+	var total_duration := _timeline.total_duration
 	if _elapsed >= total_duration:
 		_state = STATE_COMPLETED
 		Log.debug("AbilityExecutionInstance", "执行完成")

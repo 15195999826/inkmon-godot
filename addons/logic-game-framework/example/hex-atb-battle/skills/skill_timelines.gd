@@ -23,103 +23,103 @@ class TIMELINE_ID:
 ## - 0ms: 开始移动，预订目标格子（激活时立即触发）
 ## - 100ms: 应用移动，实际到达目标格子
 ## - 200ms: 结束
-static var MOVE_TIMELINE := {
-	"id": TIMELINE_ID.MOVE,
-	"totalDuration": 200.0,
-	"tags": {
+static var MOVE_TIMELINE := TimelineData.new(
+	TIMELINE_ID.MOVE,
+	200.0,
+	{
 		TimelineTags.START: 0.0,      # 0ms 时执行 StartMoveAction（立即预订）
 		TimelineTags.EXECUTE: 100.0,  # 100ms 时执行 ApplyMoveAction（实际移动）
 		TimelineTags.END: 200.0,
-	},
-}
+	}
+)
 
 
 ## 横扫斩 Timeline
 ## - 近战攻击，0ms 发送动画提示，0.3s 时命中
-static var SLASH_TIMELINE := {
-	"id": TIMELINE_ID.SLASH,
-	"totalDuration": 500.0,
-	"tags": {
+static var SLASH_TIMELINE := TimelineData.new(
+	TIMELINE_ID.SLASH,
+	500.0,
+	{
 		TimelineTags.START: 0.0,  # 0ms 发送 stageCue 给表演层
 		TimelineTags.HIT: 300.0,  # 300ms 时造成伤害
 		TimelineTags.END: 500.0,
-	},
-}
+	}
+)
 
 
 ## 精准射击 Timeline
 ## - 远程攻击，0ms 发送动画提示，0.3s 发射箭矢，0.5s 时命中
-static var PRECISE_SHOT_TIMELINE := {
-	"id": TIMELINE_ID.PRECISE_SHOT,
-	"totalDuration": 800.0,
-	"tags": {
+static var PRECISE_SHOT_TIMELINE := TimelineData.new(
+	TIMELINE_ID.PRECISE_SHOT,
+	800.0,
+	{
 		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
 		TimelineTags.LAUNCH: 300.0,  # 300ms 时发射箭矢
 		TimelineTags.HIT: 500.0,     # 500ms 时命中（如果是瞬时伤害的话）
 		TimelineTags.END: 800.0,
-	},
-}
+	}
+)
 
 
 ## 火球术 Timeline
 ## - 远程魔法，0ms 发送动画提示，0.2s 施法，0.4s 发射火球，0.8s 时命中
-static var FIREBALL_TIMELINE := {
-	"id": TIMELINE_ID.FIREBALL,
-	"totalDuration": 1200.0,
-	"tags": {
+static var FIREBALL_TIMELINE := TimelineData.new(
+	TIMELINE_ID.FIREBALL,
+	1200.0,
+	{
 		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
 		TimelineTags.CAST: 200.0,    # 施法动作
 		TimelineTags.LAUNCH: 400.0,  # 400ms 时发射火球
 		TimelineTags.HIT: 800.0,     # 800ms 时命中（如果是瞬时伤害的话）
 		TimelineTags.END: 1200.0,
-	},
-}
+	}
+)
 
 
 ## 毁灭重击 Timeline
 ## - 近战重击，0ms 发送动画提示，0.3s 蓄力，0.6s 时命中
-static var CRUSHING_BLOW_TIMELINE := {
-	"id": TIMELINE_ID.CRUSHING_BLOW,
-	"totalDuration": 1000.0,
-	"tags": {
+static var CRUSHING_BLOW_TIMELINE := TimelineData.new(
+	TIMELINE_ID.CRUSHING_BLOW,
+	1000.0,
+	{
 		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
 		TimelineTags.WINDUP: 300.0,  # 蓄力
 		TimelineTags.HIT: 600.0,     # 命中
 		TimelineTags.END: 1000.0,
-	},
-}
+	}
+)
 
 
 ## 疾风连刺 Timeline
 ## - 快速近战，0ms 发送动画提示，多段伤害
-static var SWIFT_STRIKE_TIMELINE := {
-	"id": TIMELINE_ID.SWIFT_STRIKE,
-	"totalDuration": 400.0,
-	"tags": {
+static var SWIFT_STRIKE_TIMELINE := TimelineData.new(
+	TIMELINE_ID.SWIFT_STRIKE,
+	400.0,
+	{
 		TimelineTags.START: 0.0,   # 0ms 发送 stageCue 给表演层
 		TimelineTags.HIT1: 100.0,  # 第一击
 		TimelineTags.HIT2: 200.0,  # 第二击
 		TimelineTags.HIT3: 300.0,  # 第三击
 		TimelineTags.END: 400.0,
-	},
-}
+	}
+)
 
 
 ## 圣光治愈 Timeline
 ## - 远程治疗，0ms 发送动画提示，0.4s 时生效
-static var HOLY_HEAL_TIMELINE := {
-	"id": TIMELINE_ID.HOLY_HEAL,
-	"totalDuration": 600.0,
-	"tags": {
+static var HOLY_HEAL_TIMELINE := TimelineData.new(
+	TIMELINE_ID.HOLY_HEAL,
+	600.0,
+	{
 		TimelineTags.START: 0.0,   # 0ms 发送 stageCue 给表演层
 		TimelineTags.HEAL: 400.0,  # 治疗生效
 		TimelineTags.END: 600.0,
-	},
-}
+	}
+)
 
 
 ## 所有 Timeline
-static func get_all_timelines() -> Array[Dictionary]:
+static func get_all_timelines() -> Array[TimelineData]:
 	return [
 		MOVE_TIMELINE,
 		SLASH_TIMELINE,
@@ -132,8 +132,9 @@ static func get_all_timelines() -> Array[Dictionary]:
 
 
 ## 根据 ID 获取 Timeline
-static func get_timeline(timeline_id: String) -> Dictionary:
+static func get_timeline(timeline_id: String) -> TimelineData:
 	for timeline in get_all_timelines():
-		if timeline["id"] == timeline_id:
+		if timeline.id == timeline_id:
 			return timeline
-	return {}
+	return null
+

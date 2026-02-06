@@ -32,10 +32,10 @@ var _actors: Dictionary = {}
 var _interpolated_positions: Dictionary = {}
 
 ## 活跃的飘字
-var _floating_texts: Array = []
+var _floating_texts: Array[Dictionary] = []
 
 ## 活跃的程序化特效
-var _procedural_effects: Array = []
+var _procedural_effects: Array[Dictionary] = []
 
 ## 震屏状态
 var _screen_shake: Dictionary = {}
@@ -317,7 +317,7 @@ func _apply_death_action(action: FrontendDeathAction, progress: float) -> void:
 ## 清理过期效果
 func cleanup(now_ms: int) -> void:
 	# 清理过期飘字
-	var valid_texts: Array = []
+	var valid_texts: Array[Dictionary] = []
 	for text in _floating_texts:
 		var start_time: int = text.get("start_time", 0)
 		var duration: float = text.get("duration", 0.0)
@@ -326,7 +326,7 @@ func cleanup(now_ms: int) -> void:
 	_floating_texts = valid_texts
 	
 	# 清理过期程序化特效
-	var valid_effects: Array = []
+	var valid_effects: Array[Dictionary] = []
 	for effect in _procedural_effects:
 		var start_time: int = effect.get("start_time", 0)
 		var duration: float = effect.get("duration", 0.0)

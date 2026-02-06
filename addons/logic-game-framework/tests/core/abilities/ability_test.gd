@@ -83,7 +83,7 @@ func _test_triggered_listener() -> void:
 
 func _test_execution_instances() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({ "id": "t-ability", "totalDuration": 1.0, "tags": {} })
+	TimelineRegistry.register(TimelineData.new("t-ability", 1.0, {}))
 
 	var owner_actor_id := "actor-3"
 	var config := AbilityConfig.new("blink")

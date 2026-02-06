@@ -6,11 +6,11 @@ func _init() -> void:
 
 func _test_any_trigger() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-any",
-		"totalDuration": 1.0,
-		"tags": {},
-	})
+	TimelineRegistry.register(TimelineData.new(
+		"t-any",
+		1.0,
+		{}
+	))
 
 	var owner_actor_id := "actor-1"
 	var component_config := ActivateInstanceConfig.new(
@@ -42,11 +42,11 @@ func _test_any_trigger() -> void:
 
 func _test_all_trigger() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-all",
-		"totalDuration": 1.0,
-		"tags": {},
-	})
+	TimelineRegistry.register(TimelineData.new(
+		"t-all",
+		1.0,
+		{}
+	))
 
 	var owner_actor_id := "actor-2"
 	var component_config := ActivateInstanceConfig.new(

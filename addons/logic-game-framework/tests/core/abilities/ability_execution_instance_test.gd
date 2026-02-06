@@ -3,7 +3,7 @@ extends Node
 class TestAction:
 	extends Action.BaseAction
 
-	var calls: Array = []
+	var calls: Array[ExecutionContext] = []
 
 	func _init() -> void:
 		super._init()
@@ -19,14 +19,14 @@ func _init() -> void:
 
 func _test_trigger_tags() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-tags",
-		"totalDuration": 1.0,
-		"tags": {
+	TimelineRegistry.register(TimelineData.new(
+		"t-tags",
+		1.0,
+		{
 			"start": 0.0,
 			"impact": 0.5,
-		},
-	})
+		}
+	))
 	GameWorld.init()
 
 	var action := TestAction.new()
@@ -53,13 +53,13 @@ func _test_trigger_tags() -> void:
 
 func _test_wildcard() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-wild",
-		"totalDuration": 1.0,
-		"tags": {
+	TimelineRegistry.register(TimelineData.new(
+		"t-wild",
+		1.0,
+		{
 			"hit-1": 0.2,
-		},
-	})
+		}
+	))
 	GameWorld.init()
 
 	var action := TestAction.new()
@@ -78,11 +78,11 @@ func _test_wildcard() -> void:
 
 func _test_complete_cancel() -> void:
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-complete",
-		"totalDuration": 0.1,
-		"tags": {},
-	})
+	TimelineRegistry.register(TimelineData.new(
+		"t-complete",
+		0.1,
+		{}
+	))
 
 	var instance := AbilityExecutionInstance.new(
 		"t-complete", [], {}, null, AbilityRef.new()
@@ -93,11 +93,11 @@ func _test_complete_cancel() -> void:
 	TestFramework.assert_true(instance.is_completed())
 
 	TimelineRegistry.reset()
-	TimelineRegistry.register({
-		"id": "t-cancel",
-		"totalDuration": 1.0,
-		"tags": {},
-	})
+	TimelineRegistry.register(TimelineData.new(
+		"t-cancel",
+		1.0,
+		{}
+	))
 
 	var cancelled := AbilityExecutionInstance.new(
 		"t-cancel", [], {}, null, AbilityRef.new()

@@ -84,10 +84,10 @@ func get_is_recording() -> bool:
 func get_current_frame() -> int:
 	return current_frame
 
-func get_timeline() -> Array:
+func get_timeline() -> Array[Dictionary]:
 	if _record == null:
 		return []
-	var result: Array = []
+	var result: Array[Dictionary] = []
 	for f in _record.timeline:
 		result.append(f.to_dict() if f is ReplayData.FrameData else f)
 	return result

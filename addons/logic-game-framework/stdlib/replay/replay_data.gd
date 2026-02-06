@@ -75,7 +75,7 @@ class BattleMeta:
 
 class FrameData:
 	var frame: int = 0
-	var events: Array = []  # Array of Dictionary (事件保持 Dictionary)
+	var events: Array[Dictionary] = []
 	
 	func to_dict() -> Dictionary:
 		return { "frame": frame, "events": events }
@@ -93,9 +93,9 @@ class ActorInitData:
 	var config_id: String = ""
 	var display_name: String = ""
 	var team: int = 0
-	var position: Array = []
+	var position: Array = []  # 元素可能是 int/float，保持无类型
 	var attributes: Dictionary = {}
-	var abilities: Array = []
+	var abilities: Array[Dictionary] = []
 	var tags: Dictionary = {}
 	
 	## 从 Actor 实例创建 ActorInitData（用于录像）

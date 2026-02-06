@@ -50,7 +50,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var ability_id: String = ability.id
 		var ability_config_id: String = ability.config_id
 		var unsubscribe := ability.add_triggered_listener(
-			func(event: Dictionary, triggered_components: Array[String]):
+			func(event: Dictionary, triggered_components: Array[String]) -> void:
 				ctx.pushEvent.call(
 					GameEvent.AbilityTriggered.create(
 						ctx.actorId,
@@ -68,7 +68,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var ability_id: String = ability.id
 		var ability_config_id: String = ability.config_id
 		var unsubscribe := ability.add_execution_activated_listener(
-			func(instance: AbilityExecutionInstance):
+			func(instance: AbilityExecutionInstance) -> void:
 				var instance_id: String = instance.id if "id" in instance else ""
 				var timeline_id: String = instance.timeline_id if "timeline_id" in instance else ""
 				ctx.pushEvent.call(
@@ -90,7 +90,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 
 	# 订阅 Ability 获得
 	var granted_unsub := ability_set.on_ability_granted(
-		func(ability: Ability, _ability_set: AbilitySet):
+		func(ability: Ability, _ability_set: AbilitySet) -> void:
 			# 记录 Ability 获得事件
 			ctx.pushEvent.call(
 				GameEvent.AbilityGranted.create(ctx.actorId, {
@@ -106,7 +106,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 
 	# 订阅 Ability 移除
 	var revoked_unsub := ability_set.on_ability_revoked(
-		func(ability: Ability, _reason: String, _ability_set: AbilitySet, _expire_reason: String):
+		func(ability: Ability, _reason: String, _ability_set: AbilitySet, _expire_reason: String) -> void:
 			# 记录 Ability 移除事件
 			ctx.pushEvent.call(
 				GameEvent.AbilityRemoved.create(ctx.actorId, ability.id).to_dict()
@@ -130,7 +130,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 	unsubscribes.append(record_tag_changes(ability_set.tag_container, ctx))
 
 	# 添加清理所有 Ability 订阅的函数
-	var cleanup_all := func():
+	var cleanup_all := func() -> void:
 		for unsub in ability_trigger_unsubscribes.values():
 			if unsub is Callable and unsub.is_valid():
 				unsub.call()
@@ -167,14 +167,14 @@ static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array[Calla
 	var unsubscribes: Array[Callable] = []
 
 	# 订阅 Actor 生成事件
-	var spawn_listener := func():
+	var spawn_listener := func() -> void:
 		ctx.pushEvent.call(
 			GameEvent.ActorSpawned.create(actor.id, actor.to_dict()).to_dict()
 		)
 	unsubscribes.append(actor.add_spawn_listener(spawn_listener))
 
 	# 订阅 Actor 销毁事件
-	var despawn_listener := func():
+	var despawn_listener := func() -> void:
 		ctx.pushEvent.call(
 			GameEvent.ActorDestroyed.create(ctx.actorId).to_dict()
 		)

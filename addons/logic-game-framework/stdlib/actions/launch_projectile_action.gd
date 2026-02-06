@@ -134,8 +134,8 @@ func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Arra
 
 
 ## 处理投射物未命中回调
-func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Array:
-	var events: Array = []
+func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
 	for callback in _miss_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, miss_event)
 		var callback_result := callback.execute(callback_ctx)
@@ -146,8 +146,8 @@ func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Ar
 
 
 ## 处理投射物穿透回调
-func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -> Array:
-	var events: Array = []
+func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
 	for callback in _pierce_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, pierce_event)
 		var callback_result := callback.execute(callback_ctx)
