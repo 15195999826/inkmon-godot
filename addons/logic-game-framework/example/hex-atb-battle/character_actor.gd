@@ -192,12 +192,12 @@ func _get_position() -> Vector3:
 
 
 ## 获取属性快照（覆盖基类）
-func getAttributeSnapshot() -> Dictionary:
+func get_attribute_snapshot() -> Dictionary:
 	return get_stats()
 
 
 ## 获取 Ability 快照（覆盖基类）
-func getAbilitySnapshot() -> Array:
+func get_ability_snapshot() -> Array:
 	var result := []
 	for ability in ability_set.get_abilities():
 		result.append({
@@ -208,13 +208,13 @@ func getAbilitySnapshot() -> Array:
 
 
 ## 获取 Tag 快照（覆盖基类）
-func getTagSnapshot() -> Dictionary:
+func get_tag_snapshot() -> Dictionary:
 	return ability_set.get_all_tags()
 
 
 ## 设置录像回调（覆盖基类）
 ## 订阅所有框架事件：属性变化、Ability 生命周期、触发、执行、Tag 变化
-func setupRecording(ctx: Dictionary) -> Array:
+func setup_recording(ctx: Dictionary) -> Array:
 	var unsubscribes := []
 	
 	# 录制属性变化

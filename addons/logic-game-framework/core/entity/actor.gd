@@ -123,29 +123,29 @@ func _get_position() -> Vector3:
 ## 获取位置快照
 ## 返回 [x, y, z] 格式的数组，用于录像存储
 ## 具体含义（hex/world/tile）由 configs.positionFormats 声明，渲染层解释
-func getPositionSnapshot() -> Array[float]:
+func get_position_snapshot() -> Array[float]:
 	var pos := _get_position()
 	return [pos.x, pos.y, pos.z]
 
 
 ## 设置录像回调（BattleRecorder 调用）
 ## 子类可覆盖此方法以订阅事件并返回取消订阅的回调数组
-func setupRecording(_ctx: Dictionary) -> Array[Callable]:
+func setup_recording(_ctx: Dictionary) -> Array[Callable]:
 	return []
 
 
 ## 获取属性快照（子类应覆盖）
-func getAttributeSnapshot() -> Dictionary:
+func get_attribute_snapshot() -> Dictionary:
 	return {}
 
 
 ## 获取 Ability 快照（子类应覆盖）
-func getAbilitySnapshot() -> Array[Dictionary]:
+func get_ability_snapshot() -> Array[Dictionary]:
 	return []
 
 
 ## 获取 Tag 快照（子类应覆盖）
-func getTagSnapshot() -> Dictionary:
+func get_tag_snapshot() -> Dictionary:
 	return {}
 
 

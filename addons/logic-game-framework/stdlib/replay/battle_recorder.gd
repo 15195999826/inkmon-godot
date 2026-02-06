@@ -138,7 +138,7 @@ func _subscribe_actor(actor: Actor) -> void:
 				state.pending_events.append(event),
 	}
 
-	var unsubscribes: Array = actor.setupRecording(ctx)
+	var unsubscribes: Array = actor.setup_recording(ctx)
 
 	if not unsubscribes.is_empty():
 		actor_subscriptions[actor_id] = {

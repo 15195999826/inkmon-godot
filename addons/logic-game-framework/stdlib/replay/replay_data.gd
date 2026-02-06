@@ -106,10 +106,10 @@ class ActorInitData:
 		data.config_id = actor.config_id
 		data.display_name = actor.display_name
 		data.team = actor.team
-		data.position = actor.getPositionSnapshot()  # 使用 Actor 的快照方法
-		data.attributes = actor.getAttributeSnapshot()
-		data.abilities = actor.getAbilitySnapshot()
-		data.tags = actor.getTagSnapshot()
+		data.position = actor.get_position_snapshot()  # 使用 Actor 的快照方法
+		data.attributes = actor.get_attribute_snapshot()
+		data.abilities = actor.get_ability_snapshot()
+		data.tags = actor.get_tag_snapshot()
 		return data
 	
 	func to_dict() -> Dictionary:
