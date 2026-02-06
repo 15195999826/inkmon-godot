@@ -96,7 +96,8 @@ func remove_handlers_by_owner_id(owner_id: String) -> void:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
-func process_pre_event(event_dict: Dictionary, game_state_provider = null) -> MutableEvent:
+func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> MutableEvent:
+	assert(game_state_provider != null, "game_state_provider is required")
 	var mutable := MutableEvent.new(event_dict, EventPhase.PHASE_PRE)
 
 	if _current_depth >= _max_depth:
@@ -178,7 +179,8 @@ func process_pre_event(event_dict: Dictionary, game_state_provider = null) -> Mu
 
 	return mutable
 
-func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider = null) -> void:
+func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider: Variant) -> void:
+	assert(game_state_provider != null, "game_state_provider is required")
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
@@ -200,7 +202,8 @@ func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_s
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider = null) -> void:
+func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider: Variant) -> void:
+	assert(game_state_provider != null, "game_state_provider is required")
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
