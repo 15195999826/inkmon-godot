@@ -89,12 +89,7 @@ func _test_execution_instances() -> void:
 	var config := AbilityConfig.new("blink")
 	var ability := Ability.new(config, owner_actor_id)
 
-	ability.activate_new_execution_instance({
-		"timelineId": "t-ability",
-		"tagActions": [],
-		"eventChain": [],
-		"gameplayState": null,
-	})
+	ability.activate_new_execution_instance("t-ability", [], {}, null)
 
 	TestFramework.assert_equal(1, ability.get_executing_instances().size())
 	ability.tick_executions(1.0)

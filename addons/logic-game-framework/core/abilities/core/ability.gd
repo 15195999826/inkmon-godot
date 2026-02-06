@@ -69,19 +69,20 @@ func tick_executions(dt: float) -> Array[String]:
 	_execution_instances = _execution_instances.filter(_is_executing_instance)
 	return all_triggered
 
-func activate_new_execution_instance(config: Dictionary) -> AbilityExecutionInstance:
-	var instance = AbilityExecutionInstance.new({
-		"timelineId": config.get("timelineId", ""),
-		"tagActions": config.get("tagActions", {}),
-		"eventChain": config.get("eventChain", []),
-		"gameplayState": config.get("gameplayState", null),
-		"abilityInfo": {
-			"id": id,
-			"configId": config_id,
-			"owner_actor_id": owner_actor_id,
-			"source_actor_id": source_actor_id,
-		},
-	})
+func activate_new_execution_instance(
+	p_timeline_id: String,
+	p_tag_actions: Array[TagActionsEntry],
+	p_trigger_event_dict: Dictionary,
+	p_game_state_provider: Variant
+) -> AbilityExecutionInstance:
+	var ability_ref := AbilityRef.from_ability(self)
+	var instance := AbilityExecutionInstance.new(
+		p_timeline_id,
+		p_tag_actions,
+		p_trigger_event_dict,
+		p_game_state_provider,
+		ability_ref
+	)
 	_execution_instances.append(instance)
 	for callback in _on_execution_callbacks:
 		if callback.is_valid():

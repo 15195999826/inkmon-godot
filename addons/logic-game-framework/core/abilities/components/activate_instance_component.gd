@@ -52,12 +52,12 @@ func _activate_execution(event_dict: Dictionary, context: AbilityLifecycleContex
 	var ability: Ability = context.ability
 	if ability == null:
 		return
-	var instance: AbilityExecutionInstance = ability.activate_new_execution_instance({
-		"timelineId": _timeline_id,
-		"tagActions": _tag_actions,
-		"eventChain": [event_dict],
-		"gameplayState": game_state_provider,
-	})
+	var instance: AbilityExecutionInstance = ability.activate_new_execution_instance(
+		_timeline_id,
+		_tag_actions,
+		event_dict,
+		game_state_provider
+	)
 	Log.debug("ActivateInstanceComponent", "开始执行")
 
 func serialize() -> Dictionary:

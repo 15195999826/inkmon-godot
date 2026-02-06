@@ -9,21 +9,27 @@ var id: String
 var timeline_id: String
 var _timeline = null
 var _tag_actions: Array[TagActionsEntry] = []
-var _event_dict_chain: Array[Dictionary] = []
+var _trigger_event_dict: Dictionary = {}
 var _game_state_provider = null
-var _ability_info: Dictionary = {}
+var _ability_ref: AbilityRef = null
 var _elapsed: float = 0.0
 var _state: String = STATE_EXECUTING
 var _triggered_tags: Dictionary = {}
 
-func _init(config: Dictionary):
+func _init(
+	p_timeline_id: String,
+	p_tag_actions: Array[TagActionsEntry],
+	p_trigger_event_dict: Dictionary,
+	p_game_state_provider: Variant,
+	p_ability_ref: AbilityRef
+) -> void:
 	id = IdGenerator.generate("execution")
-	timeline_id = str(config.get("timelineId", ""))
+	timeline_id = p_timeline_id
 	_timeline = TimelineRegistry.get_timeline(timeline_id)
-	_tag_actions.assign(config.get("tagActions", []))
-	_event_dict_chain.assign(config.get("eventChain", []))
-	_game_state_provider = config.get("gameplayState", null)
-	_ability_info = config.get("abilityInfo", {})
+	_tag_actions = p_tag_actions
+	_trigger_event_dict = p_trigger_event_dict
+	_game_state_provider = p_game_state_provider
+	_ability_ref = p_ability_ref
 	if _timeline == null:
 		Log.warning("AbilityExecutionInstance", "Timeline not found: %s" % timeline_id)
 
@@ -42,10 +48,8 @@ func is_completed() -> bool:
 func is_cancelled() -> bool:
 	return _state == STATE_CANCELLED
 
-func get_trigger_event() -> Variant:
-	if _event_dict_chain.is_empty():
-		return null
-	return _event_dict_chain[_event_dict_chain.size() - 1]
+func get_trigger_event() -> Dictionary:
+	return _trigger_event_dict
 
 func tick(dt: float) -> Array[String]:
 	if _state != STATE_EXECUTING:
@@ -115,18 +119,12 @@ func _resolve_actions_for_tag(tag_name: String) -> Array[Action.BaseAction]:
 	return []
 
 func _build_execution_context(current_tag: String) -> ExecutionContext:
-	var ability_ref := AbilityRef.create(
-		_ability_info.get("id", ""),
-		_ability_info.get("configId", ""),
-		_ability_info.get("owner_actor_id", ""),
-		_ability_info.get("source_actor_id", "")
-	)
 	var exec_info := AbilityExecutionInfo.create(id, timeline_id, _elapsed, current_tag)
 	return ExecutionContext.create(
-		_event_dict_chain,
+		[_trigger_event_dict],
 		_game_state_provider,
 		GameWorld.event_collector,
-		ability_ref,
+		_ability_ref,
 		exec_info
 	)
 

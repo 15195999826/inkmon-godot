@@ -30,21 +30,16 @@ func _test_trigger_tags() -> void:
 	GameWorld.init()
 
 	var action := TestAction.new()
-	var instance := AbilityExecutionInstance.new({
-		"timelineId": "t-tags",
-		"tagActions": [
+	var instance := AbilityExecutionInstance.new(
+		"t-tags",
+		[
 			TagActionsEntry.new("start", [action]),
 			TagActionsEntry.new("impact", [action]),
 		],
-		"eventChain": [],
-		"gameplayState": null,
-		"abilityInfo": {
-			"id": "a1",
-			"configId": "c1",
-			"owner": null,
-			"source": null,
-		},
-	})
+		{},
+		null,
+		AbilityRef.new("a1", "c1")
+	)
 
 	var triggered := instance.tick(0.0)
 	TestFramework.assert_equal(1, triggered.size())
@@ -68,20 +63,13 @@ func _test_wildcard() -> void:
 	GameWorld.init()
 
 	var action := TestAction.new()
-	var instance := AbilityExecutionInstance.new({
-		"timelineId": "t-wild",
-		"tagActions": [
-			TagActionsEntry.new("hit*", [action]),
-		],
-		"eventChain": [],
-		"gameplayState": null,
-		"abilityInfo": {
-			"id": "a2",
-			"configId": "c2",
-			"owner": null,
-			"source": null,
-		},
-	})
+	var instance := AbilityExecutionInstance.new(
+		"t-wild",
+		[TagActionsEntry.new("hit*", [action])],
+		{},
+		null,
+		AbilityRef.new("a2", "c2")
+	)
 
 	var triggered := instance.tick(0.2)
 	TestFramework.assert_equal(1, triggered.size())
@@ -96,13 +84,9 @@ func _test_complete_cancel() -> void:
 		"tags": {},
 	})
 
-	var instance := AbilityExecutionInstance.new({
-		"timelineId": "t-complete",
-		"tagActions": [],
-		"eventChain": [],
-		"gameplayState": null,
-		"abilityInfo": {},
-	})
+	var instance := AbilityExecutionInstance.new(
+		"t-complete", [], {}, null, AbilityRef.new()
+	)
 
 	TestFramework.assert_true(instance.is_executing())
 	instance.tick(0.1)
@@ -115,12 +99,8 @@ func _test_complete_cancel() -> void:
 		"tags": {},
 	})
 
-	var cancelled := AbilityExecutionInstance.new({
-		"timelineId": "t-cancel",
-		"tagActions": [],
-		"eventChain": [],
-		"gameplayState": null,
-		"abilityInfo": {},
-	})
+	var cancelled := AbilityExecutionInstance.new(
+		"t-cancel", [], {}, null, AbilityRef.new()
+	)
 	cancelled.cancel()
 	TestFramework.assert_true(cancelled.is_cancelled())
