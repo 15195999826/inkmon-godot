@@ -85,19 +85,13 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	var map_config: Dictionary = replay_data.get("mapConfig", {})
 	if not map_config.is_empty():
 		var hex_size: float = float(map_config.get("size", 10.0))
-		# 支持枚举数值和字符串
-		var orientation_val: Variant = map_config.get("orientation", 0)
-		var orientation: GridMapConfig.Orientation
-		if orientation_val is int:
-			orientation = (orientation_val as int) as GridMapConfig.Orientation
-		else:
-			orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
+		var orientation: int = map_config.get("orientation", 0) as int
 		
 		_layout = GridLayout.new(
 			GridMapConfig.GridType.HEX,
 			hex_size,
 			Vector2.ZERO,
-			orientation,
+			orientation as GridMapConfig.Orientation,
 			Vector2.ONE
 		)
 	

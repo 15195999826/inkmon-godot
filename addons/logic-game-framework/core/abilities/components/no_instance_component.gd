@@ -80,11 +80,3 @@ func serialize() -> Dictionary:
 		"triggerMode": _trigger_mode,
 		"actionsCount": _actions.size(),
 	}
-
-static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
-	var trigger := {
-		"eventKind": event_kind,
-	}
-	if filter_callable != null:
-		trigger["filter"] = filter_callable
-	return trigger

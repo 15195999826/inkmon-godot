@@ -80,12 +80,12 @@ func _init() -> void:
 ##   - console_log: bool - 是否输出到控制台 (默认 false)
 ##   - file_log: bool - 是否输出到文件 (默认 true)
 ##   - map_config: Dictionary - 地图配置，支持以下字段:
-##       - draw_mode: "row_column" | "radius" (默认 "row_column")
+##       - draw_mode: GridMapConfig.DrawMode (默认 ROW_COLUMN)
 ##       - rows: int (默认 9)
 ##       - columns: int (默认 9)
 ##       - radius: int (默认 4，仅 radius 模式)
-##       - hex_size: float (默认 10.0)
-##       - orientation: "flat" | "pointy" (默认 "flat")
+##       - size: float (默认 10.0)
+##       - orientation: GridMapConfig.Orientation (默认 FLAT)
 func start(config: Dictionary = {}) -> void:
 	super.start()
 	print("\n========== HexBattle 开始 ==========\n")
@@ -171,25 +171,25 @@ func start(config: Dictionary = {}) -> void:
 
 ## 根据外部传入的地图配置构建 UGridMap 配置
 func _build_grid_config(map_config: Dictionary) -> Dictionary:
-	var draw_mode: String = map_config.get("draw_mode", "row_column")
+	var draw_mode: int = map_config.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as int
 	var hex_size: float = map_config.get("size", 10.0)
-	var orientation: String = map_config.get("orientation", "flat")
+	var orientation: int = map_config.get("orientation", GridMapConfig.Orientation.FLAT) as int
 	
 	var grid_config := {
 		"size": hex_size,
 		"orientation": orientation,
 	}
 	
-	if draw_mode == "radius":
+	if draw_mode == GridMapConfig.DrawMode.RADIUS:
 		# Radius 模式
 		var radius: int = map_config.get("radius", 4)
-		grid_config["draw_mode"] = "radius"
+		grid_config["draw_mode"] = GridMapConfig.DrawMode.RADIUS
 		grid_config["radius"] = radius
 	else:
 		# Row/Column 模式（默认）
 		var rows: int = map_config.get("rows", 9)
 		var columns: int = map_config.get("columns", 9)
-		grid_config["draw_mode"] = "row_column"
+		grid_config["draw_mode"] = GridMapConfig.DrawMode.ROW_COLUMN
 		grid_config["rows"] = rows
 		grid_config["columns"] = columns
 	

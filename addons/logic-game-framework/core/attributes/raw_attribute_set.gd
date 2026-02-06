@@ -19,16 +19,18 @@ var _global_hooks: Dictionary = {}
 
 func _init(attributes: Array[Dictionary] = []) -> void:
 	for attr in attributes:
-		define_attribute(str(attr.get("name", "")), float(attr.get("baseValue", 0.0)), attr.get("minValue", null), attr.get("maxValue", null))
+		var min_val: float = -INF if attr.get("minValue") == null else float(attr.get("minValue"))
+		var max_val: float = INF if attr.get("maxValue") == null else float(attr.get("maxValue"))
+		define_attribute(str(attr.get("name", "")), float(attr.get("baseValue", 0.0)), min_val, max_val)
 
-func define_attribute(name: String, base_value: float, min_value: Variant = null, max_value: Variant = null) -> void:
+func define_attribute(name: String, base_value: float, min_value: float = -INF, max_value: float = INF) -> void:
 	if name == "":
 		return
 	_base_values[name] = base_value
 	var empty_mods: Array[AttributeModifier] = []
 	_modifiers[name] = empty_mods
 	_dirty_set[name] = true
-	if min_value != null or max_value != null:
+	if min_value != -INF or max_value != INF:
 		_constraints[name] = {
 			"min": min_value,
 			"max": max_value,
@@ -310,10 +312,12 @@ func _clamp_value(name: String, value: float) -> float:
 		return value
 	var constraint: Dictionary = _constraints[name]
 	var result := value
-	if constraint.has("min") and constraint["min"] != null and result < float(constraint["min"]):
-		result = float(constraint["min"])
-	if constraint.has("max") and constraint["max"] != null and result > float(constraint["max"]):
-		result = float(constraint["max"])
+	var min_val: float = constraint.get("min", -INF)
+	var max_val: float = constraint.get("max", INF)
+	if min_val != -INF and result < min_val:
+		result = min_val
+	if max_val != INF and result > max_val:
+		result = max_val
 	return result
 
 func _notify_change(event: Dictionary) -> void:

@@ -72,11 +72,3 @@ func serialize() -> Dictionary:
 func _freeze_all_actions() -> void:
 	for entry in _tag_actions:
 		entry.freeze_actions()
-
-static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
-	var trigger := {
-		"eventKind": event_kind,
-	}
-	if filter_callable != null:
-		trigger["filter"] = filter_callable
-	return trigger

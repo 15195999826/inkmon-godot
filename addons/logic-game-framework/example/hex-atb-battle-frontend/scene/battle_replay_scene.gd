@@ -160,23 +160,13 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 	grid_config.size = float(map_config.get("size", 10.0))
 	grid_config.origin = Vector2.ZERO
 	
-	# 转换方向枚举（支持枚举数值和字符串）
-	var orientation_val: Variant = map_config.get("orientation", 0)
-	if orientation_val is int:
-		grid_config.orientation = (orientation_val as int) as GridMapConfig.Orientation
-	else:
-		grid_config.orientation = GridMapConfig.Orientation.FLAT if str(orientation_val) == "flat" else GridMapConfig.Orientation.POINTY
+	# 转换方向枚举
+	var orientation_val: int = map_config.get("orientation", 0) as int
+	grid_config.orientation = orientation_val as GridMapConfig.Orientation
 	
-	# 转换绘制模式（支持枚举数值和字符串）
-	var draw_mode_val: Variant = map_config.get("draw_mode", 0)
-	if draw_mode_val is int:
-		grid_config.draw_mode = (draw_mode_val as int) as GridMapConfig.DrawMode
-	else:
-		var draw_mode_str := str(draw_mode_val)
-		if draw_mode_str == "radius":
-			grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
-		else:
-			grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+	# 转换绘制模式
+	var draw_mode_val: int = map_config.get("draw_mode", 0) as int
+	grid_config.draw_mode = draw_mode_val as GridMapConfig.DrawMode
 	
 	# 设置行列或半径
 	if grid_config.draw_mode == GridMapConfig.DrawMode.ROW_COLUMN:

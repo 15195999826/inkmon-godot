@@ -97,25 +97,25 @@ func _update_input_visibility() -> void:
 
 ## 获取当前地图配置
 func _get_map_config() -> Dictionary:
-	var orientation_str := "flat" if _orientation_option.selected == 0 else "pointy"
+	var orientation: GridMapConfig.Orientation = GridMapConfig.Orientation.FLAT if _orientation_option.selected == 0 else GridMapConfig.Orientation.POINTY
 	var config: Dictionary
 	
 	if _draw_mode_option.selected == 0:
 		# Row/Column 模式
 		config = {
-			"draw_mode": "row_column",
+			"draw_mode": GridMapConfig.DrawMode.ROW_COLUMN,
 			"rows": int(_rows_input.value),
 			"columns": int(_columns_input.value),
 			"size": _hex_size_input.value,
-			"orientation": orientation_str,
+			"orientation": orientation,
 		}
 	else:
 		# Radius 模式
 		config = {
-			"draw_mode": "radius",
+			"draw_mode": GridMapConfig.DrawMode.RADIUS,
 			"radius": int(_radius_input.value),
 			"size": _hex_size_input.value,
-			"orientation": orientation_str,
+			"orientation": orientation,
 		}
 	
 	return config
