@@ -30,13 +30,15 @@ static func _is_state_check_enabled() -> bool:
 
 ## 计算所有成员变量的 hash
 func _compute_state_hash() -> int:
-	var state := {}
+	var parts: Array[String] = []
 	for prop in get_property_list():
 		if prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			var prop_name: String = prop.name
 			if not prop_name.begins_with("_frozen"):
-				state[prop_name] = get(prop_name)
-	return hash(var_to_str(state))
+				var value = get(prop_name)
+				# 使用 str() 安全转换，引用对象会得到实例标识
+				parts.append("%s=%s" % [prop_name, str(value)])
+	return hash(",".join(parts))
 
 class HasTagCondition:
 	extends Condition
@@ -110,10 +112,20 @@ class AllConditions:
 	func get_condition_type() -> String:
 		return "all"
 
+	## 重写 _freeze 以冻结嵌套 Condition
+	func _freeze() -> void:
+		super._freeze()
+		for condition in conditions:
+			condition._freeze()
+
 	func check(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
 			if not condition.check(ctx, event, game_state):
+				# Debug: 验证子 Condition 状态未被修改
+				condition._verify_unchanged()
 				return false
+			# Debug: 验证子 Condition 状态未被修改
+			condition._verify_unchanged()
 		return true
 
 	func get_fail_reason(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> String:
@@ -137,10 +149,20 @@ class AnyCondition:
 	func get_condition_type() -> String:
 		return "any"
 
+	## 重写 _freeze 以冻结嵌套 Condition
+	func _freeze() -> void:
+		super._freeze()
+		for condition in conditions:
+			condition._freeze()
+
 	func check(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
 			if condition.check(ctx, event, game_state):
+				# Debug: 验证子 Condition 状态未被修改
+				condition._verify_unchanged()
 				return true
+			# Debug: 验证子 Condition 状态未被修改
+			condition._verify_unchanged()
 		return false
 
 	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:

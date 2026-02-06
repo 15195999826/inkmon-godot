@@ -31,13 +31,15 @@ static func _is_state_check_enabled() -> bool:
 
 ## 计算所有成员变量的 hash
 func _compute_state_hash() -> int:
-	var state := {}
+	var parts: Array[String] = []
 	for prop in get_property_list():
 		if prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			var prop_name: String = prop.name
 			if not prop_name.begins_with("_frozen"):
-				state[prop_name] = get(prop_name)
-	return hash(var_to_str(state))
+				var value = get(prop_name)
+				# 使用 str() 安全转换，引用对象会得到实例标识
+				parts.append("%s=%s" % [prop_name, str(value)])
+	return hash(",".join(parts))
 
 
 class ConsumeTagCost:
