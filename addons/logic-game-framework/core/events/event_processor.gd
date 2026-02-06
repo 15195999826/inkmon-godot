@@ -96,22 +96,22 @@ func remove_handlers_by_owner_id(owner_id: String) -> void:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
-func process_pre_event(event: Dictionary, game_state_provider = null) -> MutableEvent:
-	var mutable := MutableEvent.new(event, EventPhase.PHASE_PRE)
+func process_pre_event(event_dict: Dictionary, game_state_provider = null) -> MutableEvent:
+	var mutable := MutableEvent.new(event_dict, EventPhase.PHASE_PRE)
 
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return mutable
 
-	var trace := _create_trace(event, EventPhase.PHASE_PRE)
+	var trace := _create_trace(event_dict, EventPhase.PHASE_PRE)
 	var parent_trace_id := _current_trace_id
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
-	var handlers: Array = _pre_handlers.get(event.get("kind", ""), [])
+	var handlers: Array = _pre_handlers.get(event_dict.get("kind", ""), [])
 	for registration in handlers:
 		if registration.has("filter") and registration["filter"] is Callable:
-			if not registration["filter"].call(event):
+			if not registration["filter"].call(event_dict):
 				continue
 
 		var handler_context := {
@@ -178,12 +178,12 @@ func process_pre_event(event: Dictionary, game_state_provider = null) -> Mutable
 
 	return mutable
 
-func process_post_event(event: Dictionary, actor_ids: Array[String], game_state_provider = null) -> void:
+func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
 
-	var trace := _create_trace(event, EventPhase.PHASE_POST)
+	var trace := _create_trace(event_dict, EventPhase.PHASE_POST)
 	var parent_trace_id := _current_trace_id
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
@@ -194,18 +194,18 @@ func process_post_event(event: Dictionary, actor_ids: Array[String], game_state_
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
 		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
-		ability_set.receive_event(event, game_state_provider)
+		ability_set.receive_event(event_dict, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
 
-func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider = null) -> void:
+func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider = null) -> void:
 	if _current_depth >= _max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
 
-	var trace := _create_trace(event, EventPhase.PHASE_POST)
+	var trace := _create_trace(event_dict, EventPhase.PHASE_POST)
 	var parent_trace_id := _current_trace_id
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
@@ -218,7 +218,7 @@ func process_post_event_to_related(event: Dictionary, actor_ids: Array[String], 
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
 		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
-		ability_set.receive_event(event, game_state_provider)
+		ability_set.receive_event(event_dict, game_state_provider)
 
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
@@ -286,10 +286,10 @@ func export_trace_log() -> String:
 
 	return "\n".join(lines)
 
-func _create_trace(event: Dictionary, phase: String) -> Dictionary:
+func _create_trace(event_dict: Dictionary, phase: String) -> Dictionary:
 	var trace := {
 		"traceId": EventPhase.create_trace_id(),
-		"eventKind": event.get("kind", ""),
+		"eventKind": event_dict.get("kind", ""),
 		"phase": phase,
 		"depth": _current_depth,
 		"parentTraceId": _current_trace_id,

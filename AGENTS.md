@@ -207,6 +207,29 @@ if ability_set != null:
 - 框架层/跨模块无共同基类时才用工具类
 - 内部仍用 `has_method`，避免到处散落
 
+## 9. 参数命名：下划线前缀约定
+
+**下划线前缀 (`_`) 表示参数在函数体内未使用**
+
+```gdscript
+# ❌ 错误：未使用参数没有下划线前缀（会触发 Lint 警告）
+func check(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> bool:
+    return true  # 警告：event_dict 和 game_state 未使用
+
+# ✅ 正确：未使用参数加下划线前缀
+func check(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> bool:
+    return true
+
+# ✅ 正确：根据实际使用情况决定
+func check(ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> bool:
+    return ctx.ability_set.has_tag(tag)
+    # ctx 使用了 → 无下划线
+    # event_dict 未使用 → 有下划线
+    # game_state 未使用 → 有下划线
+```
+
+**原因**：避免 Lint 警告，保持多态接口签名一致，符合 GDScript/Python 社区惯例。
+
 ---
 
 # 常见错误与解决方案

@@ -102,19 +102,19 @@ func cancel_all_executions() -> void:
 			instance.cancel()
 	_execution_instances = []
 
-func receive_event(event: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
+func receive_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
 	if _state == STATE_EXPIRED:
 		return
 	var triggered_components := []
 	for component in _components:
 		if not component.is_active():
 			continue
-		if component.on_event(event, context, game_state_provider):
+		if component.on_event(event_dict, context, game_state_provider):
 			triggered_components.append(_get_component_name(component))
 	if not triggered_components.is_empty():
 		for callback in _on_triggered_callbacks:
 			if callback.is_valid():
-				callback.call(event, triggered_components)
+				callback.call(event_dict, triggered_components)
 
 func add_triggered_listener(callback: Callable) -> Callable:
 	_on_triggered_callbacks.append(callback)

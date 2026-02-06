@@ -8,8 +8,8 @@ var cancel_reason := ""
 var cancelled_by := ""
 var _modifications: Array[Dictionary] = []
 
-func _init(original_event: Dictionary, phase_value: String):
-	original = original_event
+func _init(original_event_dict: Dictionary, phase_value: String):
+	original = original_event_dict
 	phase = phase_value
 
 func get_modifications() -> Array[Dictionary]:

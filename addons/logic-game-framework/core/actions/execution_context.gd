@@ -73,8 +73,8 @@ func get_original_event() -> Variant:
 
 
 ## 推送事件到收集器
-func push_event(event: Dictionary) -> Dictionary:
-	return event_collector.push(event)
+func push_event(event_dict: Dictionary) -> Dictionary:
+	return event_collector.push(event_dict)
 
 
 ## 创建执行上下文
@@ -99,10 +99,10 @@ static func create(
 ## 在原有上下文基础上追加新事件到事件链。
 ## 其他字段（game_state_provider, event_collector, ability_ref）保持不变。
 ## 注意：execution_info 不传递到回调上下文（回调不在 Timeline 执行流程中）。
-static func create_callback_context(ctx: ExecutionContext, callback_event: Dictionary) -> ExecutionContext:
+static func create_callback_context(ctx: ExecutionContext, callback_event_dict: Dictionary) -> ExecutionContext:
 	var new_chain: Array[Dictionary] = []
 	new_chain.assign(ctx.event_dict_chain)
-	new_chain.append(callback_event)
+	new_chain.append(callback_event_dict)
 	return ExecutionContext.new(
 		new_chain,
 		ctx.game_state_provider,

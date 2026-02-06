@@ -41,10 +41,10 @@ func _activate_without_checks(event_dict: Dictionary, context: AbilityLifecycleC
 	_activate_execution(event_dict, context, game_state_provider)
 	return true
 
-func _check_conditions(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
+func _check_conditions(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> bool:
 	for condition in _conditions:
-		if not condition.check(ctx, event, game_state):
-			var reason := condition.get_fail_reason(ctx, event, game_state)
+		if not condition.check(ctx, event_dict, game_state):
+			var reason := condition.get_fail_reason(ctx, event_dict, game_state)
 			if reason == "":
 				reason = condition.get_condition_type()
 			Log.debug("ActiveUseComponent", "条件不满足: %s" % reason)
@@ -55,10 +55,10 @@ func _check_conditions(ctx: AbilityLifecycleContext, event: Dictionary, game_sta
 		condition._verify_unchanged()
 	return true
 
-func _check_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> bool:
+func _check_costs(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> bool:
 	for cost in _costs:
-		if not cost.can_pay(ctx, event, game_state):
-			var reason := cost.get_fail_reason(ctx, event, game_state)
+		if not cost.can_pay(ctx, event_dict, game_state):
+			var reason := cost.get_fail_reason(ctx, event_dict, game_state)
 			if reason == "":
 				reason = cost.type
 			Log.debug("ActiveUseComponent", "消耗不足: %s" % reason)
@@ -69,9 +69,9 @@ func _check_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: V
 		cost._verify_unchanged()
 	return true
 
-func _pay_costs(ctx: AbilityLifecycleContext, event: Dictionary, game_state: Variant) -> void:
+func _pay_costs(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> void:
 	for cost in _costs:
-		cost.pay(ctx, event, game_state)
+		cost.pay(ctx, event_dict, game_state)
 		# Debug: 验证 Cost 状态未被修改（pay 不应修改 self）
 		cost._verify_unchanged()
 

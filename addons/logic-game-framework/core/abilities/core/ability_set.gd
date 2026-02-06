@@ -115,10 +115,10 @@ func tick_executions(dt: float) -> Array[String]:
 	)
 	return all_triggered
 
-func receive_event(event: Dictionary, game_state_provider: Variant) -> void:
+func receive_event(event_dict: Dictionary, game_state_provider: Variant) -> void:
 	_process_abilities(func(ability: Ability):
 		var context: AbilityLifecycleContext = _create_lifecycle_context(ability)
-		ability.receive_event(event, context, game_state_provider)
+		ability.receive_event(event_dict, context, game_state_provider)
 	)
 
 func get_abilities() -> Array[Ability]:

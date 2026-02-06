@@ -44,9 +44,9 @@ class_name EventCollector
 
 var _events: Array[Dictionary] = []
 
-func push(event: Dictionary) -> Dictionary:
-	_events.append(event)
-	return event
+func push(event_dict: Dictionary) -> Dictionary:
+	_events.append(event_dict)
+	return event_dict
 
 func collect() -> Array[Dictionary]:
 	return _events.duplicate(true)
@@ -67,9 +67,9 @@ func has_events() -> bool:
 
 func filter_by_kind(kind: String) -> Array[Dictionary]:
 	var filtered: Array[Dictionary] = []
-	for event in _events:
-		if event.get("kind", "") == kind:
-			filtered.append(event)
+	for event_dict in _events:
+		if event_dict.get("kind", "") == kind:
+			filtered.append(event_dict)
 	return filtered
 
 func merge(other: EventCollector) -> void:
