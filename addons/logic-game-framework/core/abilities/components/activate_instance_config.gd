@@ -26,10 +26,8 @@ extends RefCounted
 ## Timeline ID
 var timeline_id: String
 
-## Tag -> Actions 映射
-## key: TimelineTags 常量（如 TimelineTags.HIT）
-## value: Array[Action.BaseAction]
-var tag_actions: Dictionary[String, Array]
+## Tag → Actions 映射列表
+var tag_actions: Array[TagActionsEntry]
 
 ## 触发器列表
 var triggers: Array[TriggerConfig]
@@ -40,7 +38,7 @@ var trigger_mode: String
 
 func _init(
 	timeline_id: String = "",
-	tag_actions: Dictionary[String, Array] = {},
+	tag_actions: Array[TagActionsEntry] = [],
 	triggers: Array[TriggerConfig] = [],
 	trigger_mode: String = "any"
 ) -> void:
@@ -65,7 +63,7 @@ class ActivateInstanceConfigBuilder:
 	extends RefCounted
 	
 	var _timeline_id: String = ""
-	var _tag_actions: Dictionary[String, Array] = {}
+	var _tag_actions: Array[TagActionsEntry] = []
 	var _triggers: Array[TriggerConfig] = []
 	var _trigger_mode: String = "any"
 	
@@ -95,7 +93,7 @@ class ActivateInstanceConfigBuilder:
 	## 添加 Tag -> Actions 映射
 	## 定义时间线各阶段（如 START, EXECUTE, END）执行的动作
 	func on_tag(tag: String, actions: Array[Action.BaseAction]) -> ActivateInstanceConfigBuilder:
-		_tag_actions[tag] = actions
+		_tag_actions.append(TagActionsEntry.new(tag, actions))
 		return self
 	
 	## 构建 ActivateInstanceConfig

@@ -15,7 +15,7 @@ func _test_any_trigger() -> void:
 	var owner_actor_id := "actor-1"
 	var component_config := ActivateInstanceConfig.new(
 		"t-any",
-		{},
+		[],
 		[
 			TriggerConfig.new("hit"),
 			TriggerConfig.new("heal"),
@@ -51,7 +51,7 @@ func _test_all_trigger() -> void:
 	var owner_actor_id := "actor-2"
 	var component_config := ActivateInstanceConfig.new(
 		"t-all",
-		{},
+		[],
 		[
 			TriggerConfig.new("hit"),
 			TriggerConfig.new("heal"),

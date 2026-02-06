@@ -8,7 +8,7 @@ const STATE_CANCELLED := "cancelled"
 var id: String
 var timeline_id: String
 var _timeline = null
-var _tag_actions: Dictionary[String, Array] = {}
+var _tag_actions: Array[TagActionsEntry] = []
 var _event_dict_chain: Array[Dictionary] = []
 var _game_state_provider = null
 var _ability_info: Dictionary = {}
@@ -20,7 +20,7 @@ func _init(config: Dictionary):
 	id = IdGenerator.generate("execution")
 	timeline_id = str(config.get("timelineId", ""))
 	_timeline = TimelineRegistry.get_timeline(timeline_id)
-	_tag_actions.assign(config.get("tagActions", {}))
+	_tag_actions.assign(config.get("tagActions", []))
 	_event_dict_chain.assign(config.get("eventChain", []))
 	_game_state_provider = config.get("gameplayState", null)
 	_ability_info = config.get("abilityInfo", {})
@@ -109,24 +109,10 @@ func _execute_actions_for_tag(tag_name: String, actions: Array[Action.BaseAction
 			Log.warning("AbilityExecutionInstance", "ExecutionInstance missing action")
 
 func _resolve_actions_for_tag(tag_name: String) -> Array[Action.BaseAction]:
-	if _tag_actions.has(tag_name):
-		var actions: Array[Action.BaseAction] = []
-		actions.assign(_tag_actions[tag_name])
-		return actions
-	for pattern in _tag_actions.keys():
-		if _match_pattern(str(pattern), tag_name):
-			var actions: Array[Action.BaseAction] = []
-			actions.assign(_tag_actions[pattern])
-			return actions
+	for entry in _tag_actions:
+		if entry.matches(tag_name):
+			return entry.get_actions()
 	return []
-
-func _match_pattern(pattern: String, tag_name: String) -> bool:
-	if pattern.find("*") == -1:
-		return pattern == tag_name
-	if pattern.ends_with("*"):
-		var prefix := pattern.substr(0, pattern.length() - 1)
-		return tag_name.begins_with(prefix)
-	return false
 
 func _build_execution_context(current_tag: String) -> ExecutionContext:
 	var ability_ref := AbilityRef.create(

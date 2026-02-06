@@ -6,7 +6,7 @@ const TYPE := "ActivateInstanceComponent"
 var _triggers: Array[Dictionary] = []
 var _trigger_mode: String = "any"
 var _timeline_id: String = ""
-var _tag_actions: Dictionary[String, Array] = {}
+var _tag_actions: Array[TagActionsEntry] = []
 
 func _init(config: ActivateInstanceConfig):
 	type = TYPE
@@ -70,9 +70,8 @@ func serialize() -> Dictionary:
 
 ## Debug: 冻结所有 Action，用于检测无状态约束
 func _freeze_all_actions() -> void:
-	for tag in _tag_actions:
-		for action: Action.BaseAction in _tag_actions[tag]:
-			action._freeze()
+	for entry in _tag_actions:
+		entry.freeze_actions()
 
 static func create_event_trigger(event_kind: String, filter_callable: Variant = null) -> Dictionary:
 	var trigger := {

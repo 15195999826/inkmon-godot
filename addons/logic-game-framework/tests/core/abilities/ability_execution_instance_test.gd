@@ -32,10 +32,10 @@ func _test_trigger_tags() -> void:
 	var action := TestAction.new()
 	var instance := AbilityExecutionInstance.new({
 		"timelineId": "t-tags",
-		"tagActions": {
-			"start": [action],
-			"impact": [action],
-		},
+		"tagActions": [
+			TagActionsEntry.new("start", [action]),
+			TagActionsEntry.new("impact", [action]),
+		],
 		"eventChain": [],
 		"gameplayState": null,
 		"abilityInfo": {
@@ -70,9 +70,9 @@ func _test_wildcard() -> void:
 	var action := TestAction.new()
 	var instance := AbilityExecutionInstance.new({
 		"timelineId": "t-wild",
-		"tagActions": {
-			"hit*": [action],
-		},
+		"tagActions": [
+			TagActionsEntry.new("hit*", [action]),
+		],
 		"eventChain": [],
 		"gameplayState": null,
 		"abilityInfo": {
@@ -98,7 +98,7 @@ func _test_complete_cancel() -> void:
 
 	var instance := AbilityExecutionInstance.new({
 		"timelineId": "t-complete",
-		"tagActions": {},
+		"tagActions": [],
 		"eventChain": [],
 		"gameplayState": null,
 		"abilityInfo": {},
@@ -117,7 +117,7 @@ func _test_complete_cancel() -> void:
 
 	var cancelled := AbilityExecutionInstance.new({
 		"timelineId": "t-cancel",
-		"tagActions": {},
+		"tagActions": [],
 		"eventChain": [],
 		"gameplayState": null,
 		"abilityInfo": {},

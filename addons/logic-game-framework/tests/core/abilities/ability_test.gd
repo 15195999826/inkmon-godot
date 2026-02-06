@@ -91,7 +91,7 @@ func _test_execution_instances() -> void:
 
 	ability.activate_new_execution_instance({
 		"timelineId": "t-ability",
-		"tagActions": {},
+		"tagActions": [],
 		"eventChain": [],
 		"gameplayState": null,
 	})

@@ -40,10 +40,8 @@ extends RefCounted
 ## Timeline ID
 var timeline_id: String
 
-## Tag -> Actions 映射
-## key: TimelineTags 常量（如 TimelineTags.HIT）
-## value: Array[Action.BaseAction]
-var tag_actions: Dictionary[String, Array]
+## Tag → Actions 映射列表
+var tag_actions: Array[TagActionsEntry]
 
 ## 触发器列表（可选，默认监听 AbilityActivateEvent）
 var triggers: Array[TriggerConfig]
@@ -60,7 +58,7 @@ var costs: Array[Cost] = []
 
 func _init(
 	timeline_id: String = "",
-	tag_actions: Dictionary[String, Array] = {},
+	tag_actions: Array[TagActionsEntry] = [],
 	conditions: Array[Condition] = [],
 	costs: Array[Cost] = [],
 	triggers: Array[TriggerConfig] = [],
@@ -89,7 +87,7 @@ class ActiveUseConfigBuilder:
 	extends RefCounted
 	
 	var _timeline_id: String = ""
-	var _tag_actions: Dictionary[String, Array] = {}
+	var _tag_actions: Array[TagActionsEntry] = []
 	var _triggers: Array[TriggerConfig] = []
 	var _trigger_mode: String = "any"
 	var _conditions: Array[Condition] = []
@@ -122,7 +120,7 @@ class ActiveUseConfigBuilder:
 	## 添加 Tag -> Actions 映射
 	## 定义时间线各阶段（如 START, HIT, END）执行的动作
 	func on_tag(tag: String, actions: Array[Action.BaseAction]) -> ActiveUseConfigBuilder:
-		_tag_actions[tag] = actions
+		_tag_actions.append(TagActionsEntry.new(tag, actions))
 		return self
 	
 	# ========== 3. 条件和消耗 ==========
