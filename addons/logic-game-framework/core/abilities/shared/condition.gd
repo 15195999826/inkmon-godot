@@ -106,7 +106,7 @@ class AllConditions:
 
 	var conditions: Array[Condition] = []
 
-	func _init(conditions_value: Array):
+	func _init(conditions_value: Array[Condition]):
 		conditions.assign(conditions_value)
 
 	func get_condition_type() -> String:
@@ -143,7 +143,7 @@ class AnyCondition:
 
 	var conditions: Array[Condition] = []
 
-	func _init(conditions_value: Array):
+	func _init(conditions_value: Array[Condition]):
 		conditions.assign(conditions_value)
 
 	func get_condition_type() -> String:

@@ -8,25 +8,25 @@ class_name TowerAttributeSet
 func _init() -> void:
 	super()
 	_raw.apply_config({
-		"maxHp": { "baseValue": 300.0 },
+		"max_hp": { "baseValue": 300.0 },
 		"range": { "baseValue": 5.0 },
 	})
 
 
-var maxHp: float:
+var max_hp: float:
 	get:
-		return _raw.get_current_value("maxHp")
-var maxHp_breakdown: Dictionary:
+		return _raw.get_current_value("max_hp")
+var max_hp_breakdown: AttributeBreakdown:
 	get:
-		return _raw.get_breakdown("maxHp")
-func get_max_hp_breakdown() -> Dictionary:
-	return _raw.get_breakdown("maxHp")
-const maxHp_attribute := "maxHp"
+		return _raw.get_breakdown("max_hp")
+func get_max_hp_breakdown() -> AttributeBreakdown:
+	return _raw.get_breakdown("max_hp")
+const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
-	_raw.set_base("maxHp", value)
+	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "maxHp":
+		if event.get("attributeName", "") == "max_hp":
 			callback.call(event)
 	_raw.add_change_listener(filtered_listener)
 	return func() -> void:
@@ -35,10 +35,10 @@ func on_max_hp_changed(callback: Callable) -> Callable:
 var range_: float:
 	get:
 		return _raw.get_current_value("range")
-var range__breakdown: Dictionary:
+var range__breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("range")
-func get_range_breakdown() -> Dictionary:
+func get_range_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("range")
 const range__attribute := "range"
 func set_range_base(value: float) -> void:

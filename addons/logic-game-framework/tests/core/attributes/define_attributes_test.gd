@@ -26,7 +26,7 @@ func _test_modifiers() -> void:
 	attrs.apply_config({
 		"attack": { "baseValue": 10.0 },
 	})
-	attrs.add_modifier(AttributeModifier.create_add_base_modifier("buff", "attack", 5.0))
+	attrs.add_modifier(AttributeModifier.create_add_base("buff", "attack", 5.0))
 	TestFramework.assert_near(15.0, attrs.get_current_value("attack"))
 
 func _test_listeners() -> void:
@@ -49,7 +49,7 @@ func _test_serialize_restore() -> void:
 	attrs.apply_config({
 		"attack": { "baseValue": 10.0 },
 	})
-	attrs.add_modifier(AttributeModifier.create_add_base_modifier("buff", "attack", 5.0, "source"))
+	attrs.add_modifier(AttributeModifier.create_add_base("buff", "attack", 5.0, "source"))
 
 	var data: Dictionary = attrs.serialize()
 	var restored := RawAttributeSet.deserialize(data)

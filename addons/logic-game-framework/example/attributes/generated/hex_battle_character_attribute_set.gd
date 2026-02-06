@@ -19,10 +19,10 @@ func _init() -> void:
 var atk: float:
 	get:
 		return _raw.get_current_value("atk")
-var atk_breakdown: Dictionary:
+var atk_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("atk")
-func get_atk_breakdown() -> Dictionary:
+func get_atk_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("atk")
 const atk_attribute := "atk"
 func set_atk_base(value: float) -> void:
@@ -38,10 +38,10 @@ func on_atk_changed(callback: Callable) -> Callable:
 var def: float:
 	get:
 		return _raw.get_current_value("def")
-var def_breakdown: Dictionary:
+var def_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("def")
-func get_def_breakdown() -> Dictionary:
+func get_def_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("def")
 const def_attribute := "def"
 func set_def_base(value: float) -> void:
@@ -57,10 +57,10 @@ func on_def_changed(callback: Callable) -> Callable:
 var hp: float:
 	get:
 		return _raw.get_current_value("hp")
-var hp_breakdown: Dictionary:
+var hp_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("hp")
-func get_hp_breakdown() -> Dictionary:
+func get_hp_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("hp")
 const hp_attribute := "hp"
 func set_hp_base(value: float) -> void:
@@ -76,10 +76,10 @@ func on_hp_changed(callback: Callable) -> Callable:
 var max_hp: float:
 	get:
 		return _raw.get_current_value("max_hp")
-var max_hp_breakdown: Dictionary:
+var max_hp_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("max_hp")
-func get_max_hp_breakdown() -> Dictionary:
+func get_max_hp_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("max_hp")
 const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
@@ -95,10 +95,10 @@ func on_max_hp_changed(callback: Callable) -> Callable:
 var speed: float:
 	get:
 		return _raw.get_current_value("speed")
-var speed_breakdown: Dictionary:
+var speed_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("speed")
-func get_speed_breakdown() -> Dictionary:
+func get_speed_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("speed")
 const speed_attribute := "speed"
 func set_speed_base(value: float) -> void:

@@ -23,7 +23,7 @@ static var INSPIRE_BUFF := (
 	# 属性修改：防御力 +10
 	.component_config(
 		StatModifierConfig.builder()
-		.modifier("def", AttributeModifier.MODIFIER_TYPE_ADD_BASE, INSPIRE_DEF_BONUS)
+		.modifier("def", AttributeModifier.Type.ADD_BASE, INSPIRE_DEF_BONUS)
 		.build()
 	)
 	# 持续时间：2 秒

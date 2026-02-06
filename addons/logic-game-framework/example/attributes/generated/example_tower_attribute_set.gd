@@ -16,10 +16,10 @@ func _init() -> void:
 var max_hp: float:
 	get:
 		return _raw.get_current_value("max_hp")
-var max_hp_breakdown: Dictionary:
+var max_hp_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("max_hp")
-func get_max_hp_breakdown() -> Dictionary:
+func get_max_hp_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("max_hp")
 const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
@@ -35,10 +35,10 @@ func on_max_hp_changed(callback: Callable) -> Callable:
 var range_: float:
 	get:
 		return _raw.get_current_value("range")
-var range__breakdown: Dictionary:
+var range__breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("range")
-func get_range_breakdown() -> Dictionary:
+func get_range_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("range")
 const range__attribute := "range"
 func set_range_base(value: float) -> void:

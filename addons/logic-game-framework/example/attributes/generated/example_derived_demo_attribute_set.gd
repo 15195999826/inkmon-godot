@@ -17,10 +17,10 @@ func _init() -> void:
 var damage: float:
 	get:
 		return _raw.get_current_value("damage")
-var damage_breakdown: Dictionary:
+var damage_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("damage")
-func get_damage_breakdown() -> Dictionary:
+func get_damage_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("damage")
 const damage_attribute := "damage"
 func set_damage_base(value: float) -> void:
@@ -36,10 +36,10 @@ func on_damage_changed(callback: Callable) -> Callable:
 var max_hp: float:
 	get:
 		return _raw.get_current_value("max_hp")
-var max_hp_breakdown: Dictionary:
+var max_hp_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("max_hp")
-func get_max_hp_breakdown() -> Dictionary:
+func get_max_hp_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("max_hp")
 const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
@@ -55,10 +55,10 @@ func on_max_hp_changed(callback: Callable) -> Callable:
 var strength: float:
 	get:
 		return _raw.get_current_value("strength")
-var strength_breakdown: Dictionary:
+var strength_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("strength")
-func get_strength_breakdown() -> Dictionary:
+func get_strength_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("strength")
 const strength_attribute := "strength"
 func set_strength_base(value: float) -> void:

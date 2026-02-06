@@ -6,7 +6,9 @@ const _CHANGE_TYPE_MODIFIER := "modifier"
 const _CHANGE_TYPE_CURRENT := "current"
 
 var _base_values: Dictionary = {}
+## { String -> Array[AttributeModifier] }
 var _modifiers: Dictionary = {}
+## { String -> AttributeBreakdown }
 var _cache: Dictionary = {}
 var _dirty_set: Dictionary = {}
 var _computing_set: Dictionary = {}
@@ -15,7 +17,7 @@ var _listeners: Array[Callable] = []
 var _hooks: Dictionary = {}
 var _global_hooks: Dictionary = {}
 
-func _init(attributes: Array = []):
+func _init(attributes: Array[Dictionary] = []) -> void:
 	for attr in attributes:
 		define_attribute(str(attr.get("name", "")), float(attr.get("baseValue", 0.0)), attr.get("minValue", null), attr.get("maxValue", null))
 
@@ -23,7 +25,8 @@ func define_attribute(name: String, base_value: float, min_value: Variant = null
 	if name == "":
 		return
 	_base_values[name] = base_value
-	_modifiers[name] = []
+	var empty_mods: Array[AttributeModifier] = []
+	_modifiers[name] = empty_mods
 	_dirty_set[name] = true
 	if min_value != null or max_value != null:
 		_constraints[name] = {
@@ -75,38 +78,44 @@ func set_base(name: String, value: float) -> void:
 	_notify_change(final_event)
 
 func get_body_value(name: String) -> float:
-	return float(get_breakdown(name).get("bodyValue", 0.0))
+	return get_breakdown(name).body_value
 
 func get_current_value(name: String) -> float:
-	return float(get_breakdown(name).get("currentValue", 0.0))
+	return get_breakdown(name).current_value
 
-func get_breakdown(name: String) -> Dictionary:
+func get_breakdown(name: String) -> AttributeBreakdown:
 	if _computing_set.has(name):
 		Log.warning("AttributeSet", "Circular dependency detected for attribute: %s" % name)
 		if _cache.has(name):
-			return _cache[name]
+			return _cache[name] as AttributeBreakdown
 		var fallback_base := float(_base_values.get(name, 0.0))
-		return AttributeModifier.create_breakdown(fallback_base)
+		return AttributeBreakdown.from_base(fallback_base)
 
 	if not _dirty_set.has(name) and _cache.has(name):
-		return _cache[name]
+		return _cache[name] as AttributeBreakdown
 
 	_computing_set[name] = true
-	var breakdown := {}
 	var base_value := float(_base_values.get(name, 0.0))
-	var mods: Array = _modifiers.get(name, [])
-	breakdown = AttributeCalculator.calculate_attribute(base_value, mods)
+	var mods: Array[AttributeModifier] = _get_modifiers_typed(name)
+	var breakdown := AttributeCalculator.calculate(base_value, mods)
 
 	var constraint = _constraints.get(name, null)
 	if constraint != null:
-		var clamped_current := float(breakdown.get("currentValue", base_value))
+		var clamped_current := breakdown.current_value
 		if constraint.has("min") and constraint["min"] != null and clamped_current < float(constraint["min"]):
 			clamped_current = float(constraint["min"])
 		if constraint.has("max") and constraint["max"] != null and clamped_current > float(constraint["max"]):
 			clamped_current = float(constraint["max"])
-		if clamped_current != float(breakdown.get("currentValue", base_value)):
-			var clamped_breakdown := breakdown.duplicate(true)
-			clamped_breakdown["currentValue"] = clamped_current
+		if clamped_current != breakdown.current_value:
+			var clamped_breakdown := AttributeBreakdown.new(
+				breakdown.base,
+				breakdown.add_base_sum,
+				breakdown.mul_base_product,
+				breakdown.body_value,
+				breakdown.add_final_sum,
+				breakdown.mul_final_product,
+				clamped_current,
+			)
 			_cache[name] = clamped_breakdown
 			_dirty_set.erase(name)
 			_computing_set.erase(name)
@@ -118,38 +127,36 @@ func get_breakdown(name: String) -> Dictionary:
 	return breakdown
 
 func get_add_base_sum(name: String) -> float:
-	return float(get_breakdown(name).get("addBaseSum", 0.0))
+	return get_breakdown(name).add_base_sum
 
 func get_mul_base_product(name: String) -> float:
-	return float(get_breakdown(name).get("mulBaseProduct", 1.0))
+	return get_breakdown(name).mul_base_product
 
 func get_add_final_sum(name: String) -> float:
-	return float(get_breakdown(name).get("addFinalSum", 0.0))
+	return get_breakdown(name).add_final_sum
 
 func get_mul_final_product(name: String) -> float:
-	return float(get_breakdown(name).get("mulFinalProduct", 1.0))
+	return get_breakdown(name).mul_final_product
 
-func add_modifier(modifier: Dictionary) -> void:
-	var attr_name := str(modifier.get("attributeName", ""))
-	if not _modifiers.has(attr_name):
-		Log.warning("AttributeSet", "Attribute not found for modifier: %s" % attr_name)
+func add_modifier(modifier: AttributeModifier) -> void:
+	if not _modifiers.has(modifier.attribute_name):
+		Log.warning("AttributeSet", "Attribute not found for modifier: %s" % modifier.attribute_name)
 		return
 
-	var mods: Array = _modifiers[attr_name]
-	var modifier_id := str(modifier.get("id", ""))
+	var mods: Array[AttributeModifier] = _get_modifiers_typed(modifier.attribute_name)
 	for existing in mods:
-		if str(existing.get("id", "")) == modifier_id:
-			Log.warning("AttributeSet", "Modifier already exists: %s" % modifier_id)
+		if existing.id == modifier.id:
+			Log.warning("AttributeSet", "Modifier already exists: %s" % modifier.id)
 			return
 
-	var old_value := get_current_value(attr_name)
+	var old_value := get_current_value(modifier.attribute_name)
 	mods.append(modifier)
-	_mark_dirty(attr_name)
+	_mark_dirty(modifier.attribute_name)
 
-	var new_value := get_current_value(attr_name)
+	var new_value := get_current_value(modifier.attribute_name)
 	if old_value != new_value:
 		_notify_change({
-			"attributeName": attr_name,
+			"attributeName": modifier.attribute_name,
 			"oldValue": old_value,
 			"newValue": new_value,
 			"changeType": _CHANGE_TYPE_MODIFIER,
@@ -157,10 +164,10 @@ func add_modifier(modifier: Dictionary) -> void:
 
 func remove_modifier(modifier_id: String) -> bool:
 	for attr_name in _modifiers.keys():
-		var mods: Array = _modifiers[attr_name]
+		var mods: Array[AttributeModifier] = _get_modifiers_typed(attr_name)
 		var index := -1
 		for i in range(mods.size()):
-			if str(mods[i].get("id", "")) == modifier_id:
+			if mods[i].id == modifier_id:
 				index = i
 				break
 		if index != -1:
@@ -182,12 +189,12 @@ func remove_modifier(modifier_id: String) -> bool:
 func remove_modifiers_by_source(source: String) -> int:
 	var count := 0
 	for attr_name in _modifiers.keys():
-		var mods: Array = _modifiers[attr_name]
+		var mods: Array[AttributeModifier] = _get_modifiers_typed(attr_name)
 		var old_value := get_current_value(attr_name)
 		var original_length := mods.size()
-		var filtered := []
+		var filtered: Array[AttributeModifier] = []
 		for mod in mods:
-			if str(mod.get("source", "")) != source:
+			if mod.source != source:
 				filtered.append(mod)
 		if filtered.size() != original_length:
 			_modifiers[attr_name] = filtered
@@ -203,13 +210,14 @@ func remove_modifiers_by_source(source: String) -> int:
 				})
 	return count
 
-func get_modifiers(name: String) -> Array[Dictionary]:
-	return _modifiers.get(name, [])
+func get_modifiers(name: String) -> Array[AttributeModifier]:
+	return _get_modifiers_typed(name)
 
 func has_modifier(modifier_id: String) -> bool:
-	for mods in _modifiers.values():
+	for attr_name in _modifiers.keys():
+		var mods: Array[AttributeModifier] = _get_modifiers_typed(attr_name)
 		for mod in mods:
-			if str(mod.get("id", "")) == modifier_id:
+			if mod.id == modifier_id:
 				return true
 	return false
 
@@ -274,9 +282,13 @@ static func restore_attributes(data: Dictionary) -> RawAttributeSet:
 func serialize() -> Dictionary:
 	var result := {}
 	for name in _base_values.keys():
+		var mods: Array[AttributeModifier] = _get_modifiers_typed(name)
+		var serialized_mods: Array[Dictionary] = []
+		for mod in mods:
+			serialized_mods.append(mod.serialize())
 		result[name] = {
 			"base": float(_base_values[name]),
-			"modifiers": _modifiers.get(name, []).duplicate(true),
+			"modifiers": serialized_mods,
 		}
 	return result
 
@@ -285,7 +297,8 @@ static func deserialize(data: Dictionary) -> RawAttributeSet:
 	for name in data.keys():
 		var attr_data: Dictionary = data[name]
 		attr_set.define_attribute(str(name), float(attr_data.get("base", 0.0)))
-		for mod in attr_data.get("modifiers", []):
+		for mod_data in attr_data.get("modifiers", []):
+			var mod := AttributeModifier.deserialize(mod_data)
 			attr_set.add_modifier(mod)
 	return attr_set
 
@@ -339,3 +352,15 @@ func _invoke_post_hook(hook_name: String, event: Dictionary) -> void:
 		var global_hook = _global_hooks[hook_name]
 		if global_hook is Callable:
 			global_hook.call(event)
+
+## 内部辅助：从 _modifiers Dictionary 取出类型化数组
+func _get_modifiers_typed(name: String) -> Array[AttributeModifier]:
+	var raw_array = _modifiers.get(name, [])
+	if raw_array is Array[AttributeModifier]:
+		return raw_array
+	# 兜底：空数组情况
+	var typed: Array[AttributeModifier] = []
+	for item in raw_array:
+		if item is AttributeModifier:
+			typed.append(item)
+	return typed

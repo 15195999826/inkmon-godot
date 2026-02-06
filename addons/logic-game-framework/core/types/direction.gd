@@ -1,4 +1,3 @@
-extends RefCounted
 class_name Direction
 
 const UP := "up"

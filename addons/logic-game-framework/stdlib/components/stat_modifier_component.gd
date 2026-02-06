@@ -5,12 +5,12 @@
 extends AbilityComponent
 class_name StatModifierComponent
 
-var configs: Array
+var configs: Array[StatModifierConfig.ModifierEntry]
 var modifier_prefix: String
-var applied_modifiers: Array = []
+var applied_modifiers: Array[AttributeModifier] = []
 var current_scale: float = 1.0
 
-func _init(modifier_configs: Array):
+func _init(modifier_configs: Array[StatModifierConfig.ModifierEntry]) -> void:
 	configs = modifier_configs
 	modifier_prefix = IdGenerator.generate_id("statmod")
 	type = "StatModifierComponent"
@@ -21,19 +21,18 @@ func on_apply(context: AbilityLifecycleContext) -> void:
 	for modifier in mod_list:
 		raw.add_modifier(modifier)
 
-func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array:
-	var result := []
+func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array[AttributeModifier]:
+	var result: Array[AttributeModifier] = []
 	for i in range(configs.size()):
-		var config = configs[i]
-		var modifier = AttributeModifier._create_modifier(
+		var config := configs[i]
+		var modifier := AttributeModifier.new(
 			"%s_%d" % [modifier_prefix, i],
-			config.get("attributeName", ""),
-			config.get("modifierType", ""),
-			config.get("value", 0.0) * current_scale,
-			context.ability.id
+			config.attribute_name,
+			config.modifier_type,
+			config.value * current_scale,
+			context.ability.id,
 		)
-		if modifier:
-			result.append(modifier)
+		result.append(modifier)
 	return result
 
 func on_remove(context: AbilityLifecycleContext) -> void:
@@ -43,14 +42,13 @@ func on_remove(context: AbilityLifecycleContext) -> void:
 func _clear_modifiers_internal() -> void:
 	applied_modifiers.clear()
 
-func get_modifiers() -> Array:
+func get_modifiers() -> Array[AttributeModifier]:
 	return applied_modifiers.duplicate()
 
-func get_modifier_ids() -> Array:
-	var result := []
+func get_modifier_ids() -> Array[String]:
+	var result: Array[String] = []
 	for modifier in applied_modifiers:
-		if modifier.has("id"):
-			result.append(modifier["id"])
+		result.append(modifier.id)
 	return result
 
 func set_scale(scale: float) -> void:
@@ -59,12 +57,19 @@ func set_scale(scale: float) -> void:
 func scale_by_stacks(stacks: int) -> void:
 	set_scale(float(stacks))
 
-func get_configs() -> Array:
+func get_configs() -> Array[StatModifierConfig.ModifierEntry]:
 	return configs.duplicate()
 
 func serialize() -> Dictionary:
+	var serialized_configs: Array[Dictionary] = []
+	for config in configs:
+		serialized_configs.append({
+			"attributeName": config.attribute_name,
+			"modifierType": AttributeModifier.Type.keys()[config.modifier_type],
+			"value": config.value,
+		})
 	return {
-		"configs": configs,
+		"configs": serialized_configs,
 		"scale": current_scale,
 	}
 

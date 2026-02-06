@@ -9,17 +9,17 @@ func _init() -> void:
 	super()
 	_raw.apply_config({
 		"attack": { "baseValue": 10.0 },
-		"maxHp": { "baseValue": 100.0 },
+		"max_hp": { "baseValue": 100.0 },
 	})
 
 
 var attack: float:
 	get:
 		return _raw.get_current_value("attack")
-var attack_breakdown: Dictionary:
+var attack_breakdown: AttributeBreakdown:
 	get:
 		return _raw.get_breakdown("attack")
-func get_attack_breakdown() -> Dictionary:
+func get_attack_breakdown() -> AttributeBreakdown:
 	return _raw.get_breakdown("attack")
 const attack_attribute := "attack"
 func set_attack_base(value: float) -> void:
@@ -32,20 +32,20 @@ func on_attack_changed(callback: Callable) -> Callable:
 	return func() -> void:
 		_raw.remove_change_listener(filtered_listener)
 
-var maxHp: float:
+var max_hp: float:
 	get:
-		return _raw.get_current_value("maxHp")
-var maxHp_breakdown: Dictionary:
+		return _raw.get_current_value("max_hp")
+var max_hp_breakdown: AttributeBreakdown:
 	get:
-		return _raw.get_breakdown("maxHp")
-func get_max_hp_breakdown() -> Dictionary:
-	return _raw.get_breakdown("maxHp")
-const maxHp_attribute := "maxHp"
+		return _raw.get_breakdown("max_hp")
+func get_max_hp_breakdown() -> AttributeBreakdown:
+	return _raw.get_breakdown("max_hp")
+const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
-	_raw.set_base("maxHp", value)
+	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
 	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "maxHp":
+		if event.get("attributeName", "") == "max_hp":
 			callback.call(event)
 	_raw.add_change_listener(filtered_listener)
 	return func() -> void:

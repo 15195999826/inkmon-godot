@@ -8,14 +8,14 @@ func _init() -> void:
 
 	# 加载测试文件
 	var test_scripts = [
-		"res://addons/logic-game-framework/tests/core/attributes/AttributeSet_test.gd",
-		"res://addons/logic-game-framework/tests/core/attributes/defineAttributes_test.gd",
-		"res://addons/logic-game-framework/tests/core/events/EventProcessor_test.gd",
-		"res://addons/logic-game-framework/tests/core/events/PreEventComponent_test.gd",
-		"res://addons/logic-game-framework/tests/core/abilities/Ability_test.gd",
-		"res://addons/logic-game-framework/tests/core/abilities/AbilityExecutionInstance_test.gd",
-		"res://addons/logic-game-framework/tests/core/abilities/ActivateInstanceComponent_test.gd",
-		"res://addons/logic-game-framework/tests/core/actions/TagAction_test.gd",
+		"res://addons/logic-game-framework/tests/core/attributes/attribute_set_test.gd",
+		"res://addons/logic-game-framework/tests/core/attributes/define_attributes_test.gd",
+		"res://addons/logic-game-framework/tests/core/events/event_processor_test.gd",
+		"res://addons/logic-game-framework/tests/core/events/pre_event_component_test.gd",
+		"res://addons/logic-game-framework/tests/core/abilities/ability_test.gd",
+		"res://addons/logic-game-framework/tests/core/abilities/ability_execution_instance_test.gd",
+		"res://addons/logic-game-framework/tests/core/abilities/activate_instance_component_test.gd",
+		"res://addons/logic-game-framework/tests/core/actions/tag_action_test.gd",
 	]
 
 	for test_path in test_scripts:

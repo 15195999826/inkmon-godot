@@ -34,10 +34,10 @@ var icon: String
 var ability_tags: Array[String]
 
 ## 主动使用组件配置列表
-var active_use_components: Array
+var active_use_components: Array[ActiveUseConfig]
 
 ## 效果组件配置列表（被动触发、Buff 等）
-var components: Array
+var components: Array[RefCounted]
 
 
 func _init(
@@ -46,8 +46,8 @@ func _init(
 	description: String = "",
 	icon: String = "",
 	ability_tags: Array[String] = [],
-	active_use_components: Array = [],
-	components: Array = []
+	active_use_components: Array[ActiveUseConfig] = [],
+	components: Array[RefCounted] = []
 ) -> void:
 	self.config_id = config_id
 	self.display_name = display_name
@@ -75,8 +75,8 @@ class AbilityConfigBuilder:
 	var _description: String = ""
 	var _icon: String = ""
 	var _ability_tags: Array[String] = []
-	var _active_use_components: Array = []
-	var _components: Array = []
+	var _active_use_components: Array[ActiveUseConfig] = []
+	var _components: Array[RefCounted] = []
 	
 	## 设置配置 ID（必填）
 	## @required
@@ -110,7 +110,7 @@ class AbilityConfigBuilder:
 		return self
 	
 	## 添加效果组件配置
-	func component_config(config) -> AbilityConfigBuilder:
+	func component_config(config: RefCounted) -> AbilityConfigBuilder:
 		_components.append(config)
 		return self
 	
