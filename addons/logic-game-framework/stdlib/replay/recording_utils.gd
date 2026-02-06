@@ -68,7 +68,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var ability_id: String = ability.id
 		var ability_config_id: String = ability.config_id
 		var unsubscribe := ability.add_execution_activated_listener(
-			func(instance):
+			func(instance: AbilityExecutionInstance):
 				var instance_id: String = instance.id if "id" in instance else ""
 				var timeline_id: String = instance.timeline_id if "timeline_id" in instance else ""
 				ctx.pushEvent.call(
@@ -148,7 +148,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 ## 监听所有来源（Loose/AutoDuration/Component）的 Tag 总层数变化，
 ## 自动转换为 TagChangedEvent。
 static func record_tag_changes(tag_container: TagContainer, ctx: Dictionary) -> Callable:
-	var listener_func = func(tag: String, old_count: int, new_count: int, _container: TagContainer) -> void:
+	var listener_func := func(tag: String, old_count: int, new_count: int, _container: TagContainer) -> void:
 		ctx.pushEvent.call(
 			GameEvent.TagChanged.create(
 				ctx.actorId,
@@ -167,14 +167,14 @@ static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array[Calla
 	var unsubscribes: Array[Callable] = []
 
 	# 订阅 Actor 生成事件
-	var spawn_listener = func():
+	var spawn_listener := func():
 		ctx.pushEvent.call(
 			GameEvent.ActorSpawned.create(actor.id, actor.to_dict()).to_dict()
 		)
 	unsubscribes.append(actor.add_spawn_listener(spawn_listener))
 
 	# 订阅 Actor 销毁事件
-	var despawn_listener = func():
+	var despawn_listener := func():
 		ctx.pushEvent.call(
 			GameEvent.ActorDestroyed.create(ctx.actorId).to_dict()
 		)

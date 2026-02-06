@@ -122,8 +122,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 
 ## 处理投射物命中回调
-func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Array:
-	var events: Array = []
+func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
 	for callback in _hit_callbacks:
 		var callback_ctx := ExecutionContext.create_callback_context(ctx, hit_event)
 		var callback_result := callback.execute(callback_ctx)

@@ -7,10 +7,10 @@ const STATE_CANCELLED := "cancelled"
 
 var id: String
 var timeline_id: String
-var _timeline = null
+var _timeline: Dictionary = {}
 var _tag_actions: Array[TagActionsEntry] = []
 var _trigger_event_dict: Dictionary = {}
-var _game_state_provider = null
+var _game_state_provider: Variant = null
 var _ability_ref: AbilityRef = null
 var _elapsed: float = 0.0
 var _state: String = STATE_EXECUTING
@@ -30,7 +30,7 @@ func _init(
 	_trigger_event_dict = p_trigger_event_dict
 	_game_state_provider = p_game_state_provider
 	_ability_ref = p_ability_ref
-	if _timeline == null:
+	if _timeline.is_empty():
 		Log.warning("AbilityExecutionInstance", "Timeline not found: %s" % timeline_id)
 
 func get_elapsed() -> float:
@@ -54,7 +54,7 @@ func get_trigger_event() -> Dictionary:
 func tick(dt: float) -> Array[String]:
 	if _state != STATE_EXECUTING:
 		return []
-	if _timeline == null:
+	if _timeline.is_empty():
 		_state = STATE_COMPLETED
 		return []
 
@@ -78,7 +78,7 @@ func tick(dt: float) -> Array[String]:
 				"elapsed": _elapsed,
 			})
 
-	triggered_this_tick.sort_custom(func(a, b): return a["tagTime"] < b["tagTime"])
+	triggered_this_tick.sort_custom(func(a: Dictionary, b: Dictionary): return a["tagTime"] < b["tagTime"])
 
 	for entry in triggered_this_tick:
 		var actions: Array[Action.BaseAction] = _resolve_actions_for_tag(str(entry["tagName"]))
@@ -103,7 +103,7 @@ func cancel() -> void:
 func _execute_actions_for_tag(tag_name: String, actions: Array[Action.BaseAction]) -> void:
 	if actions.is_empty():
 		return
-	var exec_context = _build_execution_context(tag_name)
+	var exec_context := _build_execution_context(tag_name)
 	for action in actions:
 		if action != null:
 			action.execute(exec_context)

@@ -72,7 +72,7 @@ func register_pre_handler(registration: Dictionary) -> Callable:
 	_pre_handlers[event_kind].append(registration)
 
 	return func() -> void:
-		var handlers: Array = _pre_handlers.get(event_kind, [])
+		var handlers: Array[Dictionary] = _pre_handlers.get(event_kind, []) as Array[Dictionary]
 		for i in range(handlers.size()):
 			if handlers[i].get("id", "") == registration.get("id", ""):
 				handlers.remove_at(i)
@@ -80,7 +80,7 @@ func register_pre_handler(registration: Dictionary) -> Callable:
 
 func remove_handlers_by_ability_id(ability_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
-		var handlers: Array = _pre_handlers[event_kind]
+		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
 		var filtered := []
 		for handler in handlers:
 			if handler.get("abilityId", "") != ability_id:
@@ -89,7 +89,7 @@ func remove_handlers_by_ability_id(ability_id: String) -> void:
 
 func remove_handlers_by_owner_id(owner_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
-		var handlers: Array = _pre_handlers[event_kind]
+		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
 		var filtered := []
 		for handler in handlers:
 			if handler.get("ownerId", "") != owner_id:
@@ -109,7 +109,7 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
-	var handlers: Array = _pre_handlers.get(event_dict.get("kind", ""), [])
+	var handlers: Array[Dictionary] = _pre_handlers.get(event_dict.get("kind", ""), []) as Array[Dictionary]
 	for registration in handlers:
 		if registration.has("filter") and registration["filter"] is Callable:
 			if not registration["filter"].call(event_dict):
@@ -128,7 +128,7 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 
 		if registration.has("handler") and registration["handler"] is Callable:
 			var handler_call: Callable = registration["handler"]
-			var result
+			var result: Variant
 			var call_ok := true
 			result = handler_call.call(mutable, handler_context)
 			intent = result if result != null else intent

@@ -52,8 +52,8 @@ func _load_test_scripts() -> void:
 
 ## 自动发现测试
 
-func discover_tests() -> Array:
-	var test_paths: Array = []
+func discover_tests() -> Array[String]:
+	var test_paths: Array[String] = []
 	var dir: DirAccess = DirAccess.open("res://addons/logic-game-framework/tests/")
 	if not dir:
 		push_error("Failed to open tests directory")

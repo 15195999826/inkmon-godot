@@ -22,6 +22,14 @@ var set := RawAttributeSet.new()
 var attr_set := RawAttributeSet.new()
 ```
 
+### ⚠️ 遮蔽检查必须验证继承链
+
+`var type` / `var name` 等常见名称**不一定构成遮蔽**：
+- `Object` 类没有 `type` 属性
+- `name` 属性只存在于 `Node` 及其子类，`RefCounted` 子类中不会遮蔽
+
+**修改前必须检查实际继承链是否存在该属性。**
+
 ### 全局类直接使用，不要 preload
 ```gdscript
 # ❌ 错误：遮蔽全局类
