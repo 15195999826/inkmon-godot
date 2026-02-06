@@ -81,17 +81,16 @@ func configure_from_dict(config_dict: Dictionary) -> void:
 	# 尺寸
 	config.size = config_dict.get("size", 10.0)
 	
-	# 方向
-	var orientation_str: String = config_dict.get("orientation", "flat")
-	config.orientation = GridMapConfig.Orientation.FLAT if orientation_str == "flat" else GridMapConfig.Orientation.POINTY
+	# 方向（支持枚举值）
+	var orientation_val: int = config_dict.get("orientation", GridMapConfig.Orientation.FLAT) as int
+	config.orientation = orientation_val as GridMapConfig.Orientation
 	
-	# 绘制模式
-	var draw_mode_str: String = config_dict.get("draw_mode", "row_column")
-	if draw_mode_str == "radius":
-		config.draw_mode = GridMapConfig.DrawMode.RADIUS
+	# 绘制模式（支持枚举值）
+	var draw_mode_val: int = config_dict.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as int
+	config.draw_mode = draw_mode_val as GridMapConfig.DrawMode
+	if config.draw_mode == GridMapConfig.DrawMode.RADIUS:
 		config.radius = config_dict.get("radius", 4)
 	else:
-		config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
 		config.rows = config_dict.get("rows", 9)
 		config.columns = config_dict.get("columns", 9)
 	

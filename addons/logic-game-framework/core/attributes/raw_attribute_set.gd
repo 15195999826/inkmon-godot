@@ -258,11 +258,13 @@ func clear_global_hooks() -> void:
 func apply_config(config: Dictionary) -> void:
 	for name in config.keys():
 		var cfg: Dictionary = config[name]
+		var min_val: float = -INF if cfg.get("minValue") == null else float(cfg.get("minValue"))
+		var max_val: float = INF if cfg.get("maxValue") == null else float(cfg.get("maxValue"))
 		define_attribute(
 			str(name),
 			float(cfg.get("baseValue", 0.0)),
-			cfg.get("minValue", null),
-			cfg.get("maxValue", null)
+			min_val,
+			max_val
 		)
 
 func on_attribute_changed(attribute_name: String, callback: Callable) -> Callable:

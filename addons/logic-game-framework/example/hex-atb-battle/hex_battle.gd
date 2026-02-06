@@ -198,9 +198,9 @@ func _build_grid_config(map_config: Dictionary) -> Dictionary:
 
 ## 根据地图配置计算队伍放置区域
 func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
-	var draw_mode: String = grid_config.get("draw_mode", "row_column")
+	var draw_mode: int = grid_config.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as int
 	
-	if draw_mode == "radius":
+	if draw_mode == GridMapConfig.DrawMode.RADIUS:
 		# Radius 模式：左队在负 q 区域，右队在正 q 区域
 		var radius: int = grid_config.get("radius", 4)
 		var half := maxi(1, radius / 2)
