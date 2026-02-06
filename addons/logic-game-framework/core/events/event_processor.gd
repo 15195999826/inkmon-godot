@@ -81,7 +81,7 @@ func register_pre_handler(registration: Dictionary) -> Callable:
 func remove_handlers_by_ability_id(ability_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
 		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
-		var filtered := []
+		var filtered: Array[Dictionary] = []
 		for handler in handlers:
 			if handler.get("abilityId", "") != ability_id:
 				filtered.append(handler)
@@ -90,7 +90,7 @@ func remove_handlers_by_ability_id(ability_id: String) -> void:
 func remove_handlers_by_owner_id(owner_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
 		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
-		var filtered := []
+		var filtered: Array[Dictionary] = []
 		for handler in handlers:
 			if handler.get("ownerId", "") != owner_id:
 				filtered.append(handler)
@@ -158,8 +158,8 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 			trace["cancelledBy"] = intent.get("handlerId", "")
 			break
 		elif intent.get("type", "") == EventPhase.INTENT_MODIFY:
-			var modifications: Array = intent.get("modifications", [])
-			var modifications_with_source := []
+			var modifications: Array[Dictionary] = intent.get("modifications", []) as Array[Dictionary]
+			var modifications_with_source: Array[Dictionary] = []
 			for mod in modifications:
 				var mod_with_source: Dictionary = mod.duplicate(true)
 				if not mod_with_source.has("sourceId"):
@@ -243,7 +243,7 @@ func export_trace_log() -> String:
 	if _traces.is_empty():
 		return "(No traces recorded)"
 
-	var lines := []
+	var lines: Array[String] = []
 	for trace in _traces:
 		lines.append("")
 		lines.append("[Trace %s] %s (%s, depth: %s)" % [
@@ -259,7 +259,7 @@ func export_trace_log() -> String:
 			var original_values: Dictionary = trace.get("originalValues", {})
 			if not original_values.is_empty():
 				lines.append("  Original: %s" % JSON.stringify(original_values))
-			var intents: Array = trace.get("intents", [])
+			var intents: Array[Dictionary] = trace.get("intents", []) as Array[Dictionary]
 			for record in intents:
 				var intent: Dictionary = record.get("intent", {})
 				var intent_type: String = intent.get("type", "")

@@ -46,7 +46,9 @@ func _generate_from_config(config_path: String, output_dir: String) -> bool:
 		push_error("Failed to create output dir: %s" % output_dir)
 		return false
 
-	var set_names: Array = sets.keys()
+	var set_names: Array[String] = []
+	for key in sets.keys():
+		set_names.append(str(key))
 	set_names.sort()
 
 	for set_name in set_names:
@@ -88,7 +90,9 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	lines.append("\t_raw.apply_config({")
 	
 	# 只为基础属性生成 _raw 配置
-	var base_attr_names: Array = base_attrs.keys()
+	var base_attr_names: Array[String] = []
+	for key in base_attrs.keys():
+		base_attr_names.append(str(key))
 	base_attr_names.sort()
 	for attr_name in base_attr_names:
 		var attr_key := str(attr_name)
@@ -131,7 +135,9 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 		lines.append("\t\t_raw.remove_change_listener(filtered_listener)")
 	
 	# 生成派生属性的只读访问器
-	var derived_attr_names: Array = derived_attrs.keys()
+	var derived_attr_names: Array[String] = []
+	for key in derived_attrs.keys():
+		derived_attr_names.append(str(key))
 	derived_attr_names.sort()
 	if not derived_attr_names.is_empty():
 		lines.append("")

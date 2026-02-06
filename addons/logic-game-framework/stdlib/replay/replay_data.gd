@@ -13,14 +13,14 @@ class BattleRecord:
 	var meta: BattleMeta
 	var configs: Dictionary = {}
 	var map_config: Dictionary = {}  # 保持 Dictionary，兼容不同地图类型
-	var initial_actors: Array = []   # Array of ActorInitData
-	var timeline: Array = []         # Array of FrameData
+	var initial_actors: Array[ActorInitData] = []
+	var timeline: Array[FrameData] = []
 	
 	func to_dict() -> Dictionary:
-		var actors_arr: Array = []
+		var actors_arr: Array[Dictionary] = []
 		for a in initial_actors:
 			actors_arr.append(a.to_dict() if a is ActorInitData else a)
-		var timeline_arr: Array = []
+		var timeline_arr: Array[Dictionary] = []
 		for f in timeline:
 			timeline_arr.append(f.to_dict() if f is FrameData else f)
 		return {

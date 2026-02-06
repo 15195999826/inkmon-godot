@@ -62,7 +62,7 @@ func discover_tests() -> Array[String]:
 	_collect_test_files_recursive(dir, "res://addons/logic-game-framework/tests/", test_paths)
 	return test_paths
 
-func _collect_test_files_recursive(dir: DirAccess, base_path: String, paths: Array) -> void:
+func _collect_test_files_recursive(dir: DirAccess, base_path: String, paths: Array[String]) -> void:
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 
