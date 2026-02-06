@@ -6,7 +6,7 @@ var hit_distance: float
 func _init(distance: float = 50.0):
 	hit_distance = distance
 
-func detect(projectile: ProjectileActor, potential_targets: Array) -> Dictionary:
+func detect(projectile: ProjectileActor, potential_targets: Array[Actor]) -> Dictionary:
 	if not projectile.position:
 		return {"hit": false}
 

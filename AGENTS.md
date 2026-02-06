@@ -69,20 +69,52 @@ var callback := func():
 ```gdscript
 # ❌ 错误：缺少类型标注
 func get_tile(coord) -> GridTileData:
-func process_data(data):
 
 # ✅ 正确：显式标注所有参数和返回值类型
 func get_tile(coord: HexCoord) -> GridTileData:
-func process_data(data: Dictionary) -> void:
 ```
 
-### 类型不明确时使用显式标注或 `as` 转换
+void 类型可省略。
+
+### 变量类型推断规则
+
+基础类型使用自动推断（使用 `:=`）。
+方法返回值允许自动推断（使用 `:=`）。
 
 ```gdscript
-# ❌ 错误：类型推断失败
-var failures: int = framework.run()
+# ✅ 基础类型字面量：使用自动推断
+var count := 0
+var name := "test"
+var flag := true
 
-# ✅ 正确：显式转换
+# ✅ 方法返回值：允许自动推断（方法签名已定义返回类型）
+var collision := detector.detect(projectile, targets)
+var is_flying := projectile.update(dt)
+
+# ❌ 错误：方法返回值使用显式类型（冗余）
+var collision: Dictionary = detector.detect(projectile, targets)
+
+# ⚠️ 例外：load() / get() 等返回 Variant 的方法需要显式类型
+var script: GDScript = load("res://my_script.gd") as GDScript
+var value: float = dict.get("key", 0.0) as float
+```
+
+### Array 如果元素类型相同，必须类型化
+
+```gdscript
+# ❌ 错误：未类型化 Array
+var targets: Array
+var callbacks: Array = []
+
+# ✅ 正确：类型化 Array
+var targets: Array[Actor]
+var callbacks: Array[Callable] = []
+```
+
+### 尽量避免返回或使用 `Variant` 类型。如果无法避免，必须显式标注类型或使用 `as` 转换
+
+```gdscript
+# ⚠️ 当方法返回 Variant 或类型不明确时，需要显式标注 
 var failures: int = framework.run() as int
 ```
 

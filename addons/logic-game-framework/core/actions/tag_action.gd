@@ -101,8 +101,8 @@ class HasTagAction:
 	func _init(
 		target_selector: TargetSelector,
 		tag_name: String,
-		then_action_list: Array = [],
-		else_action_list: Array = []
+		then_action_list: Array[Action.BaseAction] = [],
+		else_action_list: Array[Action.BaseAction] = []
 	) -> void:
 		super._init(target_selector)
 		type = "hasTag"

@@ -18,7 +18,7 @@ func get_modifications() -> Array[Dictionary]:
 func add_modification(modification: Dictionary) -> void:
 	_modifications.append(modification)
 
-func add_modifications(modifications: Array) -> void:
+func add_modifications(modifications: Array[Dictionary]) -> void:
 	_modifications.append_array(modifications)
 
 func cancel(handler_id: String, reason: String) -> void:

@@ -105,7 +105,7 @@ func cancel_all_executions() -> void:
 func receive_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
 	if _state == STATE_EXPIRED:
 		return
-	var triggered_components := []
+	var triggered_components: Array[String] = []
 	for component in _components:
 		if not component.is_active():
 			continue

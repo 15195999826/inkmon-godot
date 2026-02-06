@@ -8,15 +8,12 @@ func register(timeline: Dictionary) -> void:
 		return
 	_timelines[timeline_id] = timeline
 
-func register_all(timelines: Array) -> void:
+func register_all(timelines: Array[Dictionary]) -> void:
 	for timeline in timelines:
 		register(timeline)
 
 func get_timeline(timeline_id: String) -> Dictionary:
 	return _timelines.get(timeline_id, {})
-
-func get(timeline_id: StringName) -> Dictionary:
-	return _timelines.get(str(timeline_id), {})
 
 func has(timeline_id: String) -> bool:
 	return _timelines.has(timeline_id)

@@ -217,12 +217,12 @@ class AbilityTriggered extends Base:
 	var ability_instance_id: String = ""
 	var ability_config_id: String = ""
 	var trigger_event_kind: String = ""
-	var triggered_components: Array = []
+	var triggered_components: Array[String] = []
 	
 	func _init() -> void:
 		kind = ABILITY_TRIGGERED_EVENT
 	
-	static func create(p_actor_id: String, p_ability_instance_id: String, p_ability_config_id: String, p_trigger_event_kind: String, p_triggered_components: Array) -> AbilityTriggered:
+	static func create(p_actor_id: String, p_ability_instance_id: String, p_ability_config_id: String, p_trigger_event_kind: String, p_triggered_components: Array[String]) -> AbilityTriggered:
 		var e := AbilityTriggered.new()
 		e.actor_id = p_actor_id
 		e.ability_instance_id = p_ability_instance_id
@@ -330,14 +330,14 @@ class TagChanged extends Base:
 
 class StageCue extends Base:
 	var source_actor_id: String = ""
-	var target_actor_ids: Array = []
+	var target_actor_ids: Array[String] = []
 	var cue_id: String = ""
 	var params: Dictionary = {}
 	
 	func _init() -> void:
 		kind = STAGE_CUE_EVENT
 	
-	static func create(p_source_actor_id: String, p_target_actor_ids: Array, p_cue_id: String, p_params: Dictionary = {}) -> StageCue:
+	static func create(p_source_actor_id: String, p_target_actor_ids: Array[String], p_cue_id: String, p_params: Dictionary = {}) -> StageCue:
 		var e := StageCue.new()
 		e.source_actor_id = p_source_actor_id
 		e.target_actor_ids = p_target_actor_ids.duplicate()

@@ -18,7 +18,7 @@ static func cancel_intent(handler_id: String, reason: String) -> Dictionary:
 		"reason": reason,
 	}
 
-static func modify_intent(handler_id: String, modifications: Array) -> Dictionary:
+static func modify_intent(handler_id: String, modifications: Array[Dictionary]) -> Dictionary:
 	return {
 		"type": INTENT_MODIFY,
 		"handlerId": handler_id,

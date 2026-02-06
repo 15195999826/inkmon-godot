@@ -47,10 +47,10 @@ class_name TagContainer
 
 var owner_id: String
 var _loose_tags: Dictionary = {}
-var _auto_duration_tags: Array = []
+var _auto_duration_tags: Array[Dictionary] = []
 var _component_tags: Dictionary = {}
 var _current_logic_time: float = 0.0
-var _callbacks: Array = []
+var _callbacks: Array[Callable] = []
 
 func _init(config: Dictionary):
 	owner_id = str(config.get("owner_id", ""))
@@ -124,7 +124,7 @@ func cleanup_expired_tags() -> void:
 				tag_old_counts[tag] = get_tag_stacks(tag)
 			removed_counts[tag] = int(removed_counts.get(tag, 0)) + 1
 
-	var filtered := []
+	var filtered: Array[Dictionary] = []
 	for entry in _auto_duration_tags:
 		if float(entry["expiresAt"]) > _current_logic_time:
 			filtered.append(entry)

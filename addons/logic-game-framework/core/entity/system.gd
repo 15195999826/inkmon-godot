@@ -44,12 +44,7 @@ func filter_actors_by_type(actors: Array[Actor], actor_type: String) -> Array[Ac
 			results.append(actor)
 	return results
 
-func filter_active_actors(actors: Array[Actor]) -> Array[Actor]:
-	var results: Array[Actor] = []
-	for actor in actors:
-		if "isActive" in actor and actor.isActive:
-			results.append(actor)
-	return results
+
 
 class NoopSystem:
 	extends System

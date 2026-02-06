@@ -50,7 +50,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var ability_id: String = ability.id
 		var ability_config_id: String = ability.config_id
 		var unsubscribe := ability.add_triggered_listener(
-			func(event: Dictionary, triggered_components: Array):
+			func(event: Dictionary, triggered_components: Array[String]):
 				ctx.pushEvent.call(
 					GameEvent.AbilityTriggered.create(
 						ctx.actorId,

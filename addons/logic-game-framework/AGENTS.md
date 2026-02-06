@@ -134,3 +134,18 @@ ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", tru
 ```
 
 详见：[Action 无状态设计决策](docs/design-decisions/action-stateless-design.md)
+
+## 3. GameStateProvider 的 Variant 设计
+
+`IGameStateProvider` 接口的 `get_game_state()` 方法**故意返回 `Variant` 类型**。
+
+### 设计原因
+
+框架层不应该限定游戏状态的具体类型。不同游戏可能使用：
+- `Dictionary` - 简单的键值对状态
+- 自定义 `RefCounted` 类 - 类型安全的状态对象
+- `Node` - 需要场景树集成的状态
+
+### 注意
+
+除 `IGameStateProvider` 外，其他函数参数使用 `Variant` 类型通常是设计失误，应该使用具体类型。
