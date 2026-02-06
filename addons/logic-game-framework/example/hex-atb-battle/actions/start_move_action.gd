@@ -33,7 +33,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
 	
 	# 转换为 HexCoord
-	var target_coord = HexCoord.from_dict(target_coord_dict)
+	var target_coord := HexCoord.from_dict(target_coord_dict)
 	
 	# 获取 HexBattle 实例
 	var battle: HexBattle = ctx.game_state_provider
@@ -42,12 +42,12 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var all_events: Array[Dictionary] = []
 	for target in targets:
 		# 获取 Actor 当前位置
-		var actor = battle.get_actor(target.id)
+		var actor := battle.get_actor(target.id)
 		if actor == null:
 			push_warning("  [StartMoveAction] %s 未找到" % target.id)
 			continue
 		
-		var from_hex = actor.hex_position  # HexCoord
+		var from_hex := actor.hex_position  # HexCoord
 		if not from_hex.is_valid():
 			push_warning("  [StartMoveAction] %s 当前位置未找到" % target.id)
 			continue
@@ -56,8 +56,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var reserved: bool = battle.grid.reserve_tile(target_coord, target.id)
 		
 		if not reserved:
-			var occupant = battle.grid.get_occupant(target_coord)
-			var reservation = battle.grid.get_reservation(target_coord)
+			var occupant := battle.grid.get_occupant(target_coord)
+			var reservation := battle.grid.get_reservation(target_coord)
 			push_error(
 				"[StartMoveAction] BUG: %s 无法预订格子 (%d, %d)\n" % [target.id, target_coord.q, target_coord.r] +
 				"  当前占用: %s\n" % (occupant.get_id() if occupant != null else "none") +

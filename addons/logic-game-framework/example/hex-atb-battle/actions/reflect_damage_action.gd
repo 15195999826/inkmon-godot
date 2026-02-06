@@ -104,10 +104,10 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 			
 			# Post 阶段处理死亡事件
-			var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
-			if alive_actor_ids.size() > 0:
+			var alive_for_death_event: Array[String] = battle.get_alive_actor_ids()
+			if alive_for_death_event.size() > 0:
 				var event_processor: EventProcessor = GameWorld.event_processor
-				event_processor.process_post_event(death_dict, alive_actor_ids, battle)
+				event_processor.process_post_event(death_dict, alive_for_death_event, battle)
 			
 			# 移除角色
 			battle.remove_actor(attacker_id)

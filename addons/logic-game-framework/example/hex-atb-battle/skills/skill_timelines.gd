@@ -119,7 +119,7 @@ static var HOLY_HEAL_TIMELINE := {
 
 
 ## 所有 Timeline
-static func get_all_timelines() -> Array:
+static func get_all_timelines() -> Array[Dictionary]:
 	return [
 		MOVE_TIMELINE,
 		SLASH_TIMELINE,

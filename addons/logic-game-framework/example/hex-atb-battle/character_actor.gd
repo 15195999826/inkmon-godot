@@ -197,8 +197,8 @@ func get_attribute_snapshot() -> Dictionary:
 
 
 ## 获取 Ability 快照（覆盖基类）
-func get_ability_snapshot() -> Array:
-	var result := []
+func get_ability_snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
 	for ability in ability_set.get_abilities():
 		result.append({
 			"instance_id": ability.id,

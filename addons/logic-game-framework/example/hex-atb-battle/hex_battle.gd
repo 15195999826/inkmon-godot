@@ -241,7 +241,7 @@ func _create_character_actor(char_class: HexBattleClassConfig.CharacterClass) ->
 
 
 func _place_team_randomly(team: Array[CharacterActor], range_config: Dictionary) -> void:
-	var available_coords: Array = []
+	var available_coords: Array[HexCoord] = []
 	
 	for q in range(range_config["q_min"], range_config["q_max"] + 1):
 		for r in range(range_config["r_min"], range_config["r_max"] + 1):
@@ -281,8 +281,7 @@ func _print_battle_info() -> void:
 	print("-".repeat(70))
 	
 	for actor in get_all_actors():
-		var pos = actor.hex_position
-		var stats: Dictionary = actor.get_stats()
+		var pos := actor.hex_position
 		var skill: Ability = actor.get_skill_ability()
 		
 		var team_label := "左方" if actor.get_team_id() == 0 else "右方"
@@ -291,7 +290,8 @@ func _print_battle_info() -> void:
 		print("  [%s] %s (%s)" % [actor.get_id(), actor.get_display_name(), team_label])
 		print("    位置: %s" % pos_str)
 		print("    属性: HP=%.0f/%.0f ATK=%.0f DEF=%.0f SPD=%.0f" % [
-			stats["hp"], stats["max_hp"], stats["atk"], stats["def"], stats["speed"]
+			actor.attribute_set.hp, actor.attribute_set.max_hp, 
+			actor.attribute_set.atk, actor.attribute_set.def, actor.attribute_set.speed
 		])
 		print("    技能: %s" % (skill.display_name if skill != null else "无"))
 		print("")
@@ -401,7 +401,7 @@ func _start_actor_action(actor: CharacterActor) -> void:
 	
 	var decision_text := ""
 	if decision["type"] == "move":
-		var coord = decision["target_coord"]
+		var coord: HexCoord = decision["target_coord"] as HexCoord
 		decision_text = "移动到 (%d, %d)" % [coord.q, coord.r]
 	else:
 		var target_id: String = decision.get("target_actor_id", "")
@@ -429,9 +429,9 @@ func _start_actor_action(actor: CharacterActor) -> void:
 
 
 func _decide_action(actor: CharacterActor) -> Dictionary:
-	var my_pos = actor.hex_position
-	var enemies: Array = []
-	var allies: Array = []
+	var my_pos := actor.hex_position
+	var enemies: Array[CharacterActor] = []
+	var allies: Array[CharacterActor] = []
 	
 	for a in get_alive_actors():
 		if a.get_team_id() != actor.get_team_id():
@@ -447,29 +447,29 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 		var is_heal := skill.has_ability_tag("ally")
 		
 		if is_heal and allies.size() > 0:
-			var target_actor = allies[randi() % allies.size()]
+			var ally_target := allies[randi() % allies.size()]
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target_actor_id": target_actor.get_id(),
+				"target_actor_id": ally_target.get_id(),
 			}
 		else:
-			var target_actor = enemies[randi() % enemies.size()]
+			var enemy_target := enemies[randi() % enemies.size()]
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target_actor_id": target_actor.get_id(),
+				"target_actor_id": enemy_target.get_id(),
 			}
 	else:
 		if my_pos.is_valid():
-			var neighbors: Array = my_pos.get_neighbors()
-			var valid_neighbors: Array = []
+			var neighbors: Array[HexCoord] = my_pos.get_neighbors()
+			var valid_neighbors: Array[HexCoord] = []
 			for n in neighbors:
 				if UGridMap.model.has_tile(n) and not UGridMap.model.is_occupied(n) and not UGridMap.model.is_reserved(n):
 					valid_neighbors.append(n)
 			
 			if valid_neighbors.size() > 0:
-				var target_coord = valid_neighbors[randi() % valid_neighbors.size()]
+				var target_coord := valid_neighbors[randi() % valid_neighbors.size()]
 				return {
 					"type": "move",
 					"ability_instance_id": actor.get_move_ability().id,
@@ -477,11 +477,11 @@ func _decide_action(actor: CharacterActor) -> Dictionary:
 				}
 		
 		if skill_ready and enemies.size() > 0:
-			var target_actor = enemies[randi() % enemies.size()]
+			var fallback_target := enemies[randi() % enemies.size()]
 			return {
 				"type": "skill",
 				"ability_instance_id": skill.id,
-				"target_actor_id": target_actor.get_id(),
+				"target_actor_id": fallback_target.get_id(),
 			}
 		
 		return { "type": "skip" }

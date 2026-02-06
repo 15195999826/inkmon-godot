@@ -27,7 +27,7 @@ class ExecutionInfo:
 	var config_id: String
 	var start_time: float
 	var end_time: float = -1.0
-	var triggered_tags: Array = []  # { tag: String, time: float, actions: Array }
+	var triggered_tags: Array[Dictionary] = []  # { tag: String, time: float, actions: Array }
 	var status: String = "executing"  # executing, completed, cancelled
 
 
@@ -52,7 +52,7 @@ var _battle_id: String
 var _battle_dir: String = ""
 
 ## 控制台日志缓冲
-var _console_buffer: Array = []
+var _console_buffer: Array[String] = []
 
 ## 执行实例追踪
 var _executions: Dictionary = {}  # execution_id -> ExecutionInfo
@@ -109,7 +109,7 @@ func _clean_old_logs() -> void:
 	if dir == null:
 		return
 	
-	var battle_dirs: Array = []
+	var battle_dirs: Array[Dictionary] = []
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 	while file_name != "":
@@ -353,7 +353,7 @@ func save() -> void:
 
 
 func _save_summary() -> void:
-	var lines: Array = [
+	var lines: Array[String] = [
 		"=== 战斗执行摘要 ===",
 		"战斗 ID: %s" % _battle_id,
 		"总时长: %.0fms" % _current_time,
@@ -375,7 +375,7 @@ func _save_summary() -> void:
 		lines.append("\n【%s】" % actor_name)
 		for info in by_actor[actor_name]:
 			var duration: String = "%.0f" % (info.end_time - info.start_time) if info.end_time >= 0 else "?"
-			var tags_arr: Array = []
+			var tags_arr: Array[String] = []
 			for t in info.triggered_tags:
 				tags_arr.append("%s@%.0f" % [t["tag"], t["time"]])
 			var tags := ", ".join(tags_arr)
@@ -397,5 +397,5 @@ func get_battle_dir() -> String:
 
 
 ## 获取控制台缓冲
-func get_console_buffer() -> Array:
+func get_console_buffer() -> Array[String]:
 	return _console_buffer.duplicate()

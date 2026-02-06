@@ -32,7 +32,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
 	
 	# 转换为 HexCoord
-	var target_coord = HexCoord.from_dict(target_coord_dict)
+	var target_coord := HexCoord.from_dict(target_coord_dict)
 	
 	# 获取 HexBattle 实例
 	var battle: HexBattle = ctx.game_state_provider
@@ -41,18 +41,18 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var all_events: Array[Dictionary] = []
 	for target in targets:
 		# 获取 Actor 当前位置
-		var actor = battle.get_actor(target.id)
+		var actor := battle.get_actor(target.id)
 		if actor == null:
 			push_warning("  [ApplyMoveAction] %s 未找到" % target.id)
 			continue
 		
-		var from_hex = actor.hex_position  # HexCoord
+		var from_hex := actor.hex_position  # HexCoord
 		if not from_hex.is_valid():
 			push_warning("  [ApplyMoveAction] %s 当前位置未找到" % target.id)
 			continue
 		
 		# 执行实际移动（move_occupant 会自动取消预订）
-		var grid = battle.grid
+		var grid := battle.grid
 		var move_success: bool = grid.move_occupant(from_hex, target_coord)
 		
 		if not move_success:
