@@ -118,6 +118,11 @@ func _resolve_actions_for_tag(tag_name: String) -> Array[Action.BaseAction]:
 			return entry.get_actions()
 	return []
 
+## 构建 Action 执行上下文
+##
+## 注意：这里将 _trigger_event_dict 包装为 [_trigger_event_dict] 作为 event_dict_chain 的起点。
+## chain 的增长由 ExecutionContext.create_callback_context() 负责（Action 产生回调事件时追加）。
+## 每次调用都会创建新的单元素数组，确保各 tag 时间点的 ExecutionContext 互相独立。
 func _build_execution_context(current_tag: String) -> ExecutionContext:
 	var exec_info := AbilityExecutionInfo.create(id, timeline_id, _elapsed, current_tag)
 	return ExecutionContext.create(
