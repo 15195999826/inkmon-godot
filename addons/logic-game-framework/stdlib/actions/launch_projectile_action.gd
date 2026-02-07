@@ -40,12 +40,9 @@ func _init(
 ## 重写 _freeze 以冻结回调 Action
 func _freeze() -> void:
 	super._freeze()
-	for callback in _hit_callbacks:
-		callback._freeze()
-	for callback in _miss_callbacks:
-		callback._freeze()
-	for callback in _pierce_callbacks:
-		callback._freeze()
+	for callbacks in [_hit_callbacks, _miss_callbacks, _pierce_callbacks]:
+		for callback in callbacks:
+			callback._freeze()
 
 
 func on_projectile_hit(action: Action.BaseAction) -> LaunchProjectileAction:
@@ -87,7 +84,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var source_actor_id: String = ctx.ability_ref.source_actor_id if ctx.ability_ref != null else "unknown"
 
-	var projectile := ProjectileActor.new(projectile_config if projectile_config else {})
+	var projectile := ProjectileActor.new(projectile_config)
 
 	var launch_params := {
 		"source_actor_id": source_actor_id,
@@ -123,33 +120,24 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 ## 处理投射物命中回调
 func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	var events: Array[Dictionary] = []
-	for callback in _hit_callbacks:
-		var callback_ctx := ExecutionContext.create_callback_context(ctx, hit_event)
-		var callback_result := callback.execute(callback_ctx)
-		callback._verify_unchanged()
-		if callback_result != null and callback_result.event_dicts:
-			events.append_array(callback_result.event_dicts)
-	return events
+	return _process_callbacks(_hit_callbacks, hit_event, ctx)
 
 
 ## 处理投射物未命中回调
 func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	var events: Array[Dictionary] = []
-	for callback in _miss_callbacks:
-		var callback_ctx := ExecutionContext.create_callback_context(ctx, miss_event)
-		var callback_result := callback.execute(callback_ctx)
-		callback._verify_unchanged()
-		if callback_result != null and callback_result.event_dicts:
-			events.append_array(callback_result.event_dicts)
-	return events
+	return _process_callbacks(_miss_callbacks, miss_event, ctx)
 
 
 ## 处理投射物穿透回调
 func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
+	return _process_callbacks(_pierce_callbacks, pierce_event, ctx)
+
+
+## 执行回调列表，收集产生的事件
+func _process_callbacks(callbacks: Array[Action.BaseAction], event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
-	for callback in _pierce_callbacks:
-		var callback_ctx := ExecutionContext.create_callback_context(ctx, pierce_event)
+	for callback in callbacks:
+		var callback_ctx := ExecutionContext.create_callback_context(ctx, event)
 		var callback_result := callback.execute(callback_ctx)
 		callback._verify_unchanged()
 		if callback_result != null and callback_result.event_dicts:

@@ -10,9 +10,9 @@ func _init():
 	pass
 
 func _ensure_initialized() -> void:
-	if not event_processor:
+	if event_processor == null:
 		event_processor = EventProcessor.create_event_processor()
-	if not event_collector:
+	if event_collector == null:
 		event_collector = EventCollector.new()
 
 func init(config: EventProcessorConfig = null) -> void:

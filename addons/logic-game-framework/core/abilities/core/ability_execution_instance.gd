@@ -134,13 +134,10 @@ func _build_execution_context(current_tag: String) -> ExecutionContext:
 	)
 
 func serialize() -> Dictionary:
-	var triggered := []
-	for tag in _triggered_tags.keys():
-		triggered.append(tag)
 	return {
 		"id": id,
 		"timelineId": timeline_id,
 		"elapsed": _elapsed,
 		"state": _state,
-		"triggeredTags": triggered,
+		"triggeredTags": _triggered_tags.keys(),
 	}

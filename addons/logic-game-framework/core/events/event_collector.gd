@@ -63,7 +63,7 @@ func get_count() -> int:
 	return _events.size()
 
 func has_events() -> bool:
-	return _events.size() > 0
+	return not _events.is_empty()
 
 func filter_by_kind(kind: String) -> Array[Dictionary]:
 	var filtered: Array[Dictionary] = []

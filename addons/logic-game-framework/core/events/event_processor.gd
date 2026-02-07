@@ -90,21 +90,19 @@ func register_pre_handler(registration: PreHandlerRegistration) -> Callable:
 
 
 func remove_handlers_by_ability_id(ability_id: String) -> void:
-	for event_kind in _pre_handlers.keys():
-		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind] as Array[PreHandlerRegistration]
-		var filtered: Array[PreHandlerRegistration] = []
-		for handler in handlers:
-			if handler.ability_id != ability_id:
-				filtered.append(handler)
-		_pre_handlers[event_kind] = filtered
+	_remove_handlers_where(func(h: PreHandlerRegistration) -> bool: return h.ability_id == ability_id)
 
 
 func remove_handlers_by_owner_id(owner_id: String) -> void:
+	_remove_handlers_where(func(h: PreHandlerRegistration) -> bool: return h.owner_id == owner_id)
+
+
+func _remove_handlers_where(should_remove: Callable) -> void:
 	for event_kind in _pre_handlers.keys():
 		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind] as Array[PreHandlerRegistration]
 		var filtered: Array[PreHandlerRegistration] = []
 		for handler in handlers:
-			if handler.owner_id != owner_id:
+			if not should_remove.call(handler):
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
@@ -224,29 +222,14 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 	return mutable
 
 func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider: Variant) -> void:
-	assert(game_state_provider != null, "game_state_provider is required")
-	if _current_depth >= _config.max_depth:
-		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
-		return
-
-	var trace := _create_trace(event_dict, EventPhase.PHASE_POST)
-	var parent_trace_id := _current_trace_id
-	_current_depth += 1
-	_current_trace_id = trace.get("traceId", "")
-
-	for actor_id in actor_ids:
-		var actor: Actor = GameWorld.get_actor(actor_id)
-		if actor == null:
-			continue
-		var ability_set := IAbilitySetOwner.get_ability_set(actor)
-		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
-		ability_set.receive_event(event_dict, game_state_provider)
-
-	_current_depth -= 1
-	_current_trace_id = parent_trace_id
-	_finalize_trace(trace)
+	_process_post_event_impl(event_dict, actor_ids, {}, game_state_provider)
 
 func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider: Variant) -> void:
+	_process_post_event_impl(event_dict, actor_ids, related_actor_ids, game_state_provider)
+
+## 内部实现：统一 Post 阶段处理逻辑
+## related_filter 为空表示不过滤（广播给所有 actor_ids），非空表示只广播给 related 中的 actor
+func _process_post_event_impl(event_dict: Dictionary, actor_ids: Array[String], related_filter: Dictionary, game_state_provider: Variant) -> void:
 	assert(game_state_provider != null, "game_state_provider is required")
 	if _current_depth >= _config.max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
@@ -257,8 +240,9 @@ func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[Stri
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
+	var filter_enabled := not related_filter.is_empty()
 	for actor_id in actor_ids:
-		if not related_actor_ids.has(actor_id):
+		if filter_enabled and not related_filter.has(actor_id):
 			continue
 		var actor: Actor = GameWorld.get_actor(actor_id)
 		if actor == null:
