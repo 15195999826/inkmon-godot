@@ -235,3 +235,94 @@ filter 签名：`func(Dictionary, AbilityLifecycleContext) -> bool`
 ## 6.全局依赖耦合（GameWorld 硬依赖）
 
 框架内多处直接引用 `GameWorld` Autoload，虽然破坏了框架的可测试性和可移植性, 但我们认为这是合理的设计权衡， 不视为缺陷
+
+
+# 🏗️ 系统架构分析
+
+## 核心模块依赖关系
+
+```mermaid
+graph TB
+    subgraph "核心层 Core"
+        World[GameWorld<br/>Autoload]
+        Entity[Entity System<br/>Actor/System]
+        Attributes[Attribute System<br/>RawAttributeSet]
+        Abilities[Ability System<br/>Ability/AbilitySet]
+        Events[Event System<br/>EventProcessor]
+        Actions[Action System<br/>BaseAction]
+        Timeline[Timeline System<br/>TimelineRegistry]
+        Tags[Tag System<br/>TagContainer]
+    end
+    
+    subgraph "标准库 Stdlib"
+        Components[Components<br/>StatModifier/Duration]
+        Systems[Systems<br/>ProjectileSystem]
+        Replay[Replay System<br/>BattleRecorder]
+    end
+    
+    subgraph "示例层 Example"
+        HexBattle[HexBattle<br/>ATB战斗]
+        Frontend[Frontend<br/>表演层]
+    end
+    
+    World --> Entity
+    World --> Events
+    Entity --> Abilities
+    Abilities --> Attributes
+    Abilities --> Tags
+    Abilities --> Actions
+    Abilities --> Timeline
+    Actions --> Events
+    Components --> Abilities
+    Systems --> Entity
+    Replay --> Events
+    HexBattle --> World
+    HexBattle --> Replay
+    Frontend --> Replay
+```
+
+## 关键数据流
+
+### 1. 技能执行流程
+```
+用户输入 → AbilityComponent.on_event()
+    ↓ 检查 Triggers/Conditions/Costs
+AbilityExecutionInstance.tick()
+    ↓ Timeline 时间点触发
+Action.execute()
+    ↓ Pre-Event 处理（减伤/免疫）
+原子操作（push事件 + 应用状态）
+    ↓ Post-Event 处理（反伤/吸血）
+EventCollector 收集（录像）
+```
+
+### 2. 属性修改流程
+```
+StatModifierComponent.on_apply()
+    ↓ 创建 AttributeModifier
+RawAttributeSet.add_modifier()
+    ↓ 标记 dirty
+Actor 访问属性
+    ↓ get_current_value()
+AttributeCalculator.calculate()
+    ↓ 四层公式计算
+返回 AttributeBreakdown
+```
+
+### 3. 事件处理流程
+```
+Action 推送事件
+    ↓
+EventProcessor.process_pre_event()
+    ↓ 遍历 Pre Handlers
+    ↓ 收集 Intent (PASS/MODIFY/CANCEL)
+    ↓ 应用修改
+MutableEvent 返回
+    ↓ Action 检查是否取消
+EventProcessor.process_post_event()
+    ↓ 广播给所有存活 Actor
+    ↓ 触发被动技能
+EventCollector.push()
+```
+
+---

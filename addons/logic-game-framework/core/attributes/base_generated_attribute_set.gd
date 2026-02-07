@@ -25,3 +25,17 @@ func add_change_listener(listener: Callable) -> Callable:
 ## 获取底层 RawAttributeSet（供高级用法）
 func get_raw() -> RawAttributeSet:
 	return _raw
+
+
+## 设置 current 值变化前的回调（用于跨属性约束，如 hp ≤ max_hp）
+## 签名: func(attr_name: String, inout_value: Dictionary) -> void
+## inout_value = { "value": float }，可直接修改 inout_value["value"] 来调整最终值
+##
+## 示例：
+##   attribute_set.set_pre_change(func(attr_name: String, inout_value: Dictionary) -> void:
+##       if attr_name == "hp":
+##           if inout_value["value"] > attribute_set.max_hp:
+##               inout_value["value"] = attribute_set.max_hp
+##   )
+func set_pre_change(callback: Callable) -> void:
+	_raw.set_pre_change(callback)

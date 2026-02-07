@@ -51,6 +51,7 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	_display_name = class_config.name
 	
 	attribute_set = HexBattleCharacterAttributeSet.new()
+	_setup_attribute_constraints()
 	var stats := class_config.stats
 	attribute_set.set_hp_base(stats["hp"])
 	attribute_set.set_max_hp_base(stats["max_hp"])
@@ -58,6 +59,18 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	attribute_set.set_def_base(stats["def"])
 	attribute_set.set_speed_base(stats["speed"])
 	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
+
+
+## 设置属性约束
+func _setup_attribute_constraints() -> void:
+	# hp 的 current 值不超过 max_hp
+	# 注意：hp base ≥ 0 已通过 minValue 配置实现
+	attribute_set.set_pre_change(func(attr_name: String, inout_value: Dictionary) -> void:
+		if attr_name == "hp":
+			var max_hp := attribute_set.max_hp
+			if inout_value["value"] > max_hp:
+				inout_value["value"] = max_hp
+	)
 
 
 ## 装备技能（在 HexBattle 初始化时调用）
