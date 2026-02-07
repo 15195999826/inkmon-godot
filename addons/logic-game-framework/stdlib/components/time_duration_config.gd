@@ -1,3 +1,5 @@
+class_name TimeDurationConfig
+extends RefCounted
 ## TimeDuration 组件配置
 ##
 ## 定义持续时间的配置数据，由 Ability._resolve_components() 解析为 TimeDurationComponent 实例。
@@ -7,8 +9,6 @@
 ## [codeblock]
 ## .component_config(TimeDurationConfig.new(2000.0))  # 持续 2 秒
 ## [/codeblock]
-class_name TimeDurationConfig
-extends RefCounted
 
 
 ## 持续时间（毫秒）

@@ -1,5 +1,5 @@
-extends RefCounted
 class_name TimelineData
+extends RefCounted
 
 ## Timeline 时间轴数据类
 ##
@@ -18,9 +18,7 @@ func _init(p_id: String, p_total_duration: float, p_tags: Dictionary = {}) -> vo
 
 ## 获取 tag 时间，未找到返回 -1.0
 func get_tag_time(tag_name: String) -> float:
-	if tags.has(tag_name):
-		return float(tags[tag_name])
-	return -1.0
+	return float(tags[tag_name]) if tags.has(tag_name) else -1.0
 
 
 ## 获取所有 tag 名称

@@ -1,5 +1,5 @@
-extends AbilityComponent
 class_name StackComponent
+extends AbilityComponent
 ## 层数管理组件（设计阶段，尚未实际使用）
 ##
 ## 管理 Ability 的层数（stacks），支持三种溢出策略：
@@ -17,7 +17,7 @@ var stacks: int
 var max_stacks: int
 var overflow_policy: StackOverflowPolicy
 
-func _init(initial_stacks: int = 1, max_stacks_val: int = 1, policy: StackOverflowPolicy = StackOverflowPolicy.CAP):
+func _init(initial_stacks: int = 1, max_stacks_val: int = 1, policy: StackOverflowPolicy = StackOverflowPolicy.CAP) -> void:
 	stacks = initial_stacks
 	max_stacks = max_stacks_val
 	overflow_policy = policy

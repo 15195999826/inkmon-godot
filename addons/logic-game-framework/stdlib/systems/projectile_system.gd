@@ -1,12 +1,12 @@
-extends System
 class_name ProjectileSystem
+extends System
 
 var collision_detector: CollisionDetector
 var event_collector: EventCollector
 var pending_removal: Dictionary = {}
 var auto_remove: bool = true
 
-func _init(detector: CollisionDetector = null, collector: EventCollector = null, auto_remove_val: bool = true):
+func _init(detector: CollisionDetector = null, collector: EventCollector = null, auto_remove_val: bool = true) -> void:
 	super(System.SystemPriority.NORMAL)
 	type = "ProjectileSystem"
 
@@ -55,7 +55,7 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
 	var valid_targets := _filter_valid_targets(projectile, potential_targets)
 
-	var target_actor_id: String = projectile.get_target_actor_id()
+	var target_actor_id := projectile.get_target_actor_id()
 	if target_actor_id != "":
 		var target_actor: Actor = null
 		for actor in potential_targets:
@@ -71,9 +71,9 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 
 	var collision := collision_detector.detect(projectile, valid_targets)
 	if collision.get("hit", false) and collision.get("target_actor_id", "") != "":
-		var hit_target_actor_id: String = collision.get("target_actor_id", "")
+		var hit_target_actor_id := collision.get("target_actor_id", "") as String
 		projectile.hit(hit_target_actor_id)
-		var collision_hit_position: Vector3 = collision.get("hitPosition", Vector3.ZERO) as Vector3
+		var collision_hit_position := collision.get("hitPosition", Vector3.ZERO) as Vector3
 		_emit_hit_event(projectile, hit_target_actor_id, collision_hit_position)
 	else:
 		projectile.miss("no_target")
@@ -82,8 +82,8 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 	_mark_for_removal(projectile)
 
 func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
-	var target_actor_id: String = collision.get("target_actor_id", "")
-	var hit_position_raw: Variant = collision.get("hitPosition", null)
+	var target_actor_id := collision.get("target_actor_id", "") as String
+	var hit_position_raw := collision.get("hitPosition", null)
 
 	if target_actor_id == "" or not (hit_position_raw is Vector3):
 		return
@@ -98,7 +98,7 @@ func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
 		_mark_for_removal(projectile)
 
 func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array[Actor]) -> Array[Actor]:
-	var source_actor_id: String = projectile.get_source_actor_id()
+	var source_actor_id := projectile.get_source_actor_id()
 
 	var valid: Array[Actor] = []
 	for target in potential_targets:
@@ -135,7 +135,7 @@ func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_p
 	if not event_collector:
 		return
 
-	var source_actor_id: String = projectile.get_source_actor_id()
+	var source_actor_id := projectile.get_source_actor_id()
 	if source_actor_id == "":
 		source_actor_id = "unknown"
 	var event := ProjectileEvents.create_projectile_hit_event(
@@ -157,7 +157,7 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 	if not event_collector:
 		return
 
-	var source_actor_id: String = projectile.get_source_actor_id()
+	var source_actor_id := projectile.get_source_actor_id()
 	if source_actor_id == "":
 		source_actor_id = "unknown"
 	var final_position := projectile.position
@@ -185,7 +185,7 @@ func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pi
 	if not event_collector:
 		return
 
-	var source_actor_id: String = projectile.get_source_actor_id()
+	var source_actor_id := projectile.get_source_actor_id()
 	if source_actor_id == "":
 		source_actor_id = "unknown"
 	var event := ProjectileEvents.create_projectile_pierce_event(

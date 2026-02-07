@@ -1,5 +1,5 @@
-extends Action.BaseAction
 class_name StageCueAction
+extends Action.BaseAction
 
 const TYPE = "stageCue"
 
@@ -25,7 +25,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		push_error("[StageCueAction] ctx.ability_ref is required")
 		return ActionResult.create_failure_result("ctx.ability_ref is required")
 
-	var source_actor_id: String = ctx.ability_ref.source_actor_id
+	var source_actor_id := ctx.ability_ref.source_actor_id
 
 	var targets := get_targets(ctx)
 	var target_actor_ids: Array[String] = []

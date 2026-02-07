@@ -1,3 +1,5 @@
+class_name StatModifierConfig
+extends RefCounted
 ## StatModifier 组件配置
 ##
 ## 定义属性修改器的配置数据，由 Ability._resolve_components() 解析为 StatModifierComponent 实例。
@@ -10,8 +12,6 @@
 ##     .modifier("atk", AttributeModifier.Type.MUL_BASE, 0.2) \
 ##     .build()
 ## [/codeblock]
-class_name StatModifierConfig
-extends RefCounted
 
 
 ## 单条修改器配置

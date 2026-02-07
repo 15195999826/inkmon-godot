@@ -1,5 +1,5 @@
-extends CollisionDetector
 class_name MobaCollisionDetector
+extends CollisionDetector
 
 func detect(projectile: ProjectileActor, _potential_targets: Array[Actor]) -> Dictionary:
 	if projectile.config.get("projectileType", "bullet") != ProjectileActor.PROJECTILE_TYPE_MOBA:

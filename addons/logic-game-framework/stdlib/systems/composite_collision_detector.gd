@@ -1,5 +1,5 @@
-extends CollisionDetector
 class_name CompositeCollisionDetector
+extends CollisionDetector
 
 var detectors: Array[CollisionDetector] = []
 

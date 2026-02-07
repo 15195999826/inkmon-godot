@@ -47,8 +47,8 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 
 	# 为单个 Ability 订阅触发事件
 	var subscribe_ability_triggered := func(ability: Ability) -> void:
-		var ability_id: String = ability.id
-		var ability_config_id: String = ability.config_id
+		var ability_id := ability.id
+		var ability_config_id := ability.config_id
 		var unsubscribe := ability.add_triggered_listener(
 			func(event: Dictionary, triggered_components: Array[String]) -> void:
 				ctx.pushEvent.call(
@@ -65,8 +65,8 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 
 	# 为单个 Ability 订阅执行实例激活事件
 	var subscribe_ability_executions := func(ability: Ability) -> void:
-		var ability_id: String = ability.id
-		var ability_config_id: String = ability.config_id
+		var ability_id := ability.id
+		var ability_config_id := ability.config_id
 		var unsubscribe := ability.add_execution_activated_listener(
 			func(instance: AbilityExecutionInstance) -> void:
 				var instance_id: String = instance.id if "id" in instance else ""
@@ -112,7 +112,7 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 				GameEvent.AbilityRemoved.create(ctx.actorId, ability.id).to_dict()
 			)
 			# 清理该 Ability 的订阅
-			var ability_id: String = ability.id
+			var ability_id := ability.id
 			if ability_trigger_unsubscribes.has(ability_id):
 				var trigger_unsub: Callable = ability_trigger_unsubscribes[ability_id]
 				if trigger_unsub.is_valid():

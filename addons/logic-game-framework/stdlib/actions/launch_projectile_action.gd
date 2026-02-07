@@ -1,5 +1,5 @@
-extends Action.BaseAction
 class_name LaunchProjectileAction
+extends Action.BaseAction
 
 const TYPE = "launchProjectile"
 
@@ -82,7 +82,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		direction_value = _direction.resolve(ctx)
 	var custom_data_value := _custom_data.resolve(ctx)
 
-	var source_actor_id: String = ctx.ability_ref.source_actor_id if ctx.ability_ref != null else "unknown"
+	var source_actor_id := ctx.ability_ref.source_actor_id if ctx.ability_ref != null else "unknown"
 
 	var projectile := ProjectileActor.new(projectile_config)
 

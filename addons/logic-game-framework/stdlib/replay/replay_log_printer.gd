@@ -32,8 +32,8 @@ static func print_record(record: Dictionary) -> void:
 
 	print("## Timeline (%d frames with events)" % timeline.size())
 	for frame_data in timeline:
-		var frame_val = frame_data.get("frame", 0)
-		var events = frame_data.get("events", [])
+		var frame_val := frame_data.get("frame", 0) as int
+		var events := frame_data.get("events", []) as Array
 		if events.is_empty():
 			continue
 		print("Frame %d (%d events):" % [frame_val, events.size()])
@@ -44,15 +44,15 @@ static func print_record(record: Dictionary) -> void:
 	print("==========================================")
 
 static func _format_timestamp(timestamp: int) -> String:
-	var datetime = Time.get_datetime_dict_from_unix_time(timestamp)
+	var datetime := Time.get_datetime_dict_from_unix_time(timestamp)
 	return "%04d-%02d-%02d %02d:%02d:%02d" % [
 		datetime.year, datetime.month, datetime.day,
 		datetime.hour, datetime.minute, datetime.second
 	]
 
-static func _print_event(event: Dictionary, frame: int) -> void:
-	var kind = str(event.get("kind", ""))
-	var indent = "    "
+static func _print_event(event: Dictionary, _frame: int) -> void:
+	var kind := str(event.get("kind", ""))
+	var indent := "    "
 
 	print("%s[%s] %s" % [indent, kind, str(event).substr(0, 100)])
 

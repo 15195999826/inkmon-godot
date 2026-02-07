@@ -1,5 +1,5 @@
-extends RefCounted
 class_name BattleRecorder
+extends RefCounted
 
 var _record: ReplayData.BattleRecord
 var _meta: ReplayData.BattleMeta
@@ -8,11 +8,11 @@ var current_frame: int = 0
 var actor_subscriptions: Dictionary = {}
 var pending_events: Array[Dictionary] = []
 
-func _init(recorder_config: Dictionary = {}):
-	var battle_id: String = recorder_config.get("battleId", "")
+func _init(recorder_config: Dictionary = {}) -> void:
+	var battle_id := recorder_config.get("battleId", "") as String
 	if battle_id.is_empty():
 		battle_id = IdGenerator.generate("battle")
-	
+
 	_meta = ReplayData.BattleMeta.new()
 	_meta.battle_id = battle_id
 	_meta.tick_interval = recorder_config.get("tickInterval", 100)
@@ -118,7 +118,7 @@ func unregister_actor(actor_id: String, reason: String = "") -> void:
 		actor_subscriptions.erase(actor_id)
 
 func _subscribe_actor(actor: Actor) -> void:
-	var actor_id: String = actor.id
+	var actor_id := actor.id
 
 	if actor_subscriptions.has(actor_id):
 		return

@@ -1,9 +1,8 @@
+class_name StatModifierComponent
+extends AbilityComponent
 ## StatModifierComponent 的工作方式是：
 ## Ability 被赋予角色时 → on_apply() → 添加属性修改器
 ## Ability 被移除时 → on_remove() → 清除属性修改器
-
-extends AbilityComponent
-class_name StatModifierComponent
 
 var configs: Array[StatModifierConfig.ModifierEntry]
 var modifier_prefix: String

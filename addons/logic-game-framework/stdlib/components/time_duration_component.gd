@@ -1,12 +1,12 @@
-extends AbilityComponent
 class_name TimeDurationComponent
+extends AbilityComponent
 
 const EXPIRE_REASON_TIME_DURATION = "time_duration"
 
 var initial_duration: float
 var remaining: float
 
-func _init(duration_ms: float):
+func _init(duration_ms: float) -> void:
 	initial_duration = duration_ms
 	remaining = duration_ms
 	type = "TimeDurationComponent"
