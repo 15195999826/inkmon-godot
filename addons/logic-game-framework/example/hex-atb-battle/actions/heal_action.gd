@@ -70,29 +70,22 @@ func on_overheal(action: Action.BaseAction) -> HexBattleHealAction:
 # ============================================================
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var source_actor_id: String = ""
-	if ctx.ability_ref != null:
-		source_actor_id = ctx.ability_ref.owner_actor_id
+	var source_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
 	var targets := get_targets(ctx)
-	
-	# 解析参数
 	var heal_amount := _heal_amount.resolve(ctx)
 	
-	# 打印日志
 	var target_ids: Array[String] = []
 	for t in targets:
 		target_ids.append(t.id)
 	var source_id_for_log := source_actor_id if source_actor_id != "" else "???"
 	print("  [HealAction] %s 对 [%s] 治疗 %.0f HP" % [source_id_for_log, ", ".join(target_ids), heal_amount])
 	
-	# 产生回放格式事件
 	var all_events: Array[Dictionary] = []
 	var battle: HexBattle = ctx.game_state_provider
-	var event_processor: EventProcessor = GameWorld.event_processor
-	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
+	var event_processor := GameWorld.event_processor
+	var alive_actor_ids := battle.get_alive_actor_ids()
 	
 	for target in targets:
-		# 计算过量治疗
 		var overheal := _calculate_overheal(target.id, heal_amount, ctx)
 		
 		var event := BattleEvents.HealEvent.create(
@@ -102,13 +95,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		)
 		var heal_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		
-		# 添加过量治疗信息
 		if overheal > 0:
 			heal_event["overheal"] = overheal
 		
 		all_events.append(heal_event)
 		
-		# ========== 实际应用治疗 ==========
 		var target_actor := battle.get_actor(target.id)
 		if target_actor != null:
 			var old_hp: float = target_actor.attribute_set.hp
@@ -116,23 +107,17 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var new_hp := minf(old_hp + heal_amount, max_hp)
 			target_actor.attribute_set.set_hp_base(new_hp)
 			
-			# 获取目标名称
 			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
-			
-			# 日志打印（与旧 _process_frame_events 格式一致）
 			print("  [治疗] %s 恢复 %.0f HP, HP: %.0f -> %.0f" % [
 				target_name, heal_amount, old_hp, new_hp
 			])
 			
-			# Logger 记录
 			if battle.logger != null:
 				battle.logger.heal_applied(source_actor_id, target.id, heal_amount)
 		
-		# ========== 处理回调 ==========
 		var callback_events := _process_callbacks(heal_event, overheal, ctx)
 		all_events.append_array(callback_events)
 		
-		# ========== Post 阶段 ==========
 		if alive_actor_ids.size() > 0:
 			event_processor.process_post_event(heal_event, alive_actor_ids, battle)
 	

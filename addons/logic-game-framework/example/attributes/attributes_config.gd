@@ -1,5 +1,5 @@
-extends Resource
 class_name LGFExampleAttributesConfig
+extends Resource
 
 const SETS := {
 	"ExampleHero": {

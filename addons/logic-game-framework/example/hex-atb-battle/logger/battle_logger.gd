@@ -82,7 +82,6 @@ func _init(battle_id: String, config: Dictionary = {}) -> void:
 
 
 func _init_log_dir() -> void:
-	# 创建日志根目录
 	var dir := DirAccess.open("user://")
 	if dir == null:
 		push_error("[BattleLogger] Cannot open user:// directory")
@@ -91,7 +90,6 @@ func _init_log_dir() -> void:
 	if not dir.dir_exists(log_dir.replace("user://", "")):
 		dir.make_dir_recursive(log_dir.replace("user://", ""))
 	
-	# 创建本次战斗目录
 	var timestamp := Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
 	_battle_dir = log_dir + "/battle_" + timestamp + "_" + _battle_id
 	
@@ -99,8 +97,6 @@ func _init_log_dir() -> void:
 	if dir != null:
 		dir.make_dir(_battle_dir.get_file())
 		dir.make_dir(_battle_dir.get_file() + "/actors")
-	
-	# 清理旧日志
 	_clean_old_logs()
 
 
@@ -121,10 +117,7 @@ func _clean_old_logs() -> void:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	
-	# 按名称排序（包含时间戳，所以按字母序即可）
-	battle_dirs.sort_custom(func(a, b): return a["name"] > b["name"])
-	
-	# 删除超出数量的旧目录
+	battle_dirs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["name"] > b["name"])
 	if battle_dirs.size() > max_battle_logs:
 		for i in range(max_battle_logs, battle_dirs.size()):
 			var old_dir: String = battle_dirs[i]["path"]
@@ -148,7 +141,6 @@ func _remove_dir_recursive(path: String) -> void:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	
-	# 删除空目录
 	var parent := DirAccess.open(path.get_base_dir())
 	if parent != null:
 		parent.remove(path.get_file())
@@ -330,16 +322,13 @@ func save() -> void:
 	if not file_enabled or _battle_dir == "":
 		return
 	
-	# 保存控制台日志
 	var console_file := FileAccess.open(_battle_dir + "/console.log", FileAccess.WRITE)
 	if console_file != null:
 		console_file.store_string("\n".join(_console_buffer))
 		console_file.close()
 	
-	# 保存执行摘要
 	_save_summary()
 	
-	# 保存角色日志
 	for key in _actor_logs:
 		var parts: PackedStringArray = key.split("|")
 		var actor_name: String = parts[1] if parts.size() > 1 else key
@@ -362,7 +351,6 @@ func _save_summary() -> void:
 		"=== 执行实例列表 ===",
 	]
 	
-	# 按角色分组
 	var by_actor: Dictionary = {}
 	for execution_id in _executions:
 		var info: ExecutionInfo = _executions[execution_id]

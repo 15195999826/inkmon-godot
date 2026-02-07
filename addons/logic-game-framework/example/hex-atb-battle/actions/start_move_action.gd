@@ -25,23 +25,16 @@ func _init(
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	
-	# 解析目标坐标 (从事件中获取的是 Dictionary)
 	var target_coord_dict := _target_coord.resolve(ctx)
-	
-	if target_coord_dict == null or target_coord_dict.is_empty():
+	if target_coord_dict.is_empty():
 		push_warning("  [StartMoveAction] 目标坐标未定义")
 		return ActionResult.create_success_result([])
 	
-	# 转换为 HexCoord
 	var target_coord := HexCoord.from_dict(target_coord_dict)
-	
-	# 获取 HexBattle 实例
 	var battle: HexBattle = ctx.game_state_provider
 	
-	# 对每个目标执行预订
 	var all_events: Array[Dictionary] = []
 	for target in targets:
-		# 获取 Actor 当前位置
 		var actor := battle.get_actor(target.id)
 		if actor == null:
 			push_warning("  [StartMoveAction] %s 未找到" % target.id)
@@ -52,8 +45,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			push_warning("  [StartMoveAction] %s 当前位置未找到" % target.id)
 			continue
 		
-		# 预订目标格子
-		var reserved: bool = battle.grid.reserve_tile(target_coord, target.id)
+		var reserved := battle.grid.reserve_tile(target_coord, target.id)
 		
 		if not reserved:
 			var occupant := battle.grid.get_occupant(target_coord)
@@ -70,7 +62,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 		])
 		
-		# 创建开始移动事件 (使用 Dictionary 以便 JSON 序列化)
 		var event := BattleEvents.MoveStartEvent.create(
 			target.id,
 			from_hex.to_dict(),

@@ -60,12 +60,12 @@ class DamageEvent extends GameEvent.Base:
 	
 	static func from_dict(d: Dictionary) -> DamageEvent:
 		var e := DamageEvent.new()
-		e.target_actor_id = d.get("target_actor_id", "")
-		e.damage = d.get("damage", 0.0)
-		e.damage_type = BattleEvents.string_to_damage_type(d.get("damage_type", "physical"))
-		e.source_actor_id = d.get("source_actor_id", "")
-		e.is_critical = d.get("is_critical", false)
-		e.is_reflected = d.get("is_reflected", false)
+		e.target_actor_id = d.get("target_actor_id", "") as String
+		e.damage = d.get("damage", 0.0) as float
+		e.damage_type = BattleEvents.string_to_damage_type(d.get("damage_type", "physical") as String)
+		e.source_actor_id = d.get("source_actor_id", "") as String
+		e.is_critical = d.get("is_critical", false) as bool
+		e.is_reflected = d.get("is_reflected", false) as bool
 		return e
 	
 	static func is_match(d: Dictionary) -> bool:
@@ -97,9 +97,9 @@ class HealEvent extends GameEvent.Base:
 	
 	static func from_dict(d: Dictionary) -> HealEvent:
 		var e := HealEvent.new()
-		e.target_actor_id = d.get("target_actor_id", "")
-		e.heal_amount = d.get("heal_amount", 0.0)
-		e.source_actor_id = d.get("source_actor_id", "")
+		e.target_actor_id = d.get("target_actor_id", "") as String
+		e.heal_amount = d.get("heal_amount", 0.0) as float
+		e.source_actor_id = d.get("source_actor_id", "") as String
 		return e
 	
 	static func is_match(d: Dictionary) -> bool:
@@ -128,9 +128,9 @@ class MoveStartEvent extends GameEvent.Base:
 	
 	static func from_dict(d: Dictionary) -> MoveStartEvent:
 		var e := MoveStartEvent.new()
-		e.actor_id = d.get("actor_id", "")
-		e.from_hex = d.get("from_hex", {})
-		e.to_hex = d.get("to_hex", {})
+		e.actor_id = d.get("actor_id", "") as String
+		e.from_hex = d.get("from_hex", {}) as Dictionary
+		e.to_hex = d.get("to_hex", {}) as Dictionary
 		return e
 	
 	static func is_match(d: Dictionary) -> bool:
@@ -159,9 +159,9 @@ class MoveCompleteEvent extends GameEvent.Base:
 	
 	static func from_dict(d: Dictionary) -> MoveCompleteEvent:
 		var e := MoveCompleteEvent.new()
-		e.actor_id = d.get("actor_id", "")
-		e.from_hex = d.get("from_hex", {})
-		e.to_hex = d.get("to_hex", {})
+		e.actor_id = d.get("actor_id", "") as String
+		e.from_hex = d.get("from_hex", {}) as Dictionary
+		e.to_hex = d.get("to_hex", {}) as Dictionary
 		return e
 	
 	static func is_match(d: Dictionary) -> bool:
@@ -191,8 +191,8 @@ class DeathEvent extends GameEvent.Base:
 	
 	static func from_dict(d: Dictionary) -> DeathEvent:
 		var e := DeathEvent.new()
-		e.actor_id = d.get("actor_id", "")
-		e.killer_actor_id = d.get("killer_actor_id", "")
+		e.actor_id = d.get("actor_id", "") as String
+		e.killer_actor_id = d.get("killer_actor_id", "") as String
 		return e
 	
 	static func is_match(d: Dictionary) -> bool:

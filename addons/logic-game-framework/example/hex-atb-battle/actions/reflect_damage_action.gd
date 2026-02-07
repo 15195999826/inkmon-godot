@@ -45,23 +45,14 @@ func _init(
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var current_event := ctx.get_current_event()
+	var attacker_id := current_event.get("source_actor_id", "") as String
 	
-	# 从触发事件获取攻击来源（使用回放格式）
-	var attacker_id: String = ""
-	if not current_event.is_empty():
-		attacker_id = current_event.get("source_actor_id", "")
-	
-	if attacker_id == "":
+	if attacker_id.is_empty():
 		print("  [ReflectDamageAction] 无攻击来源，跳过反伤")
 		return ActionResult.create_success_result([], { "skipped": true })
 	
-	var owner_actor_id: String = ""
-	if ctx.ability_ref != null:
-		owner_actor_id = ctx.ability_ref.owner_actor_id
-	
+	var owner_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
 	var battle: HexBattle = ctx.game_state_provider
-	
-	# 获取显示名称
 	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner_actor_id, battle)
 	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(attacker_id, battle)
 	var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
@@ -76,46 +67,34 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		true    # is_reflected
 	)
 	var reflect_event: Dictionary = ctx.event_collector.push(event.to_dict())
-	
-	# ========== 实际应用反伤伤害 ==========
 	var attacker_actor := battle.get_actor(attacker_id)
 	if attacker_actor != null:
 		attacker_actor.attribute_set.set_hp_base(attacker_actor.attribute_set.hp - _damage)
 		
-		# 日志打印（与旧 _process_frame_events 格式一致，标记为反伤）
 		print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f (反伤)" % [
 			attacker_name, _damage, attacker_actor.attribute_set.hp
 		])
 		
-		# Logger 记录（is_reflected = true）
 		if battle.logger != null:
 			battle.logger.damage_dealt(owner_actor_id, attacker_id, _damage, damage_type_str, true)
 		
-		# 检查死亡
 		if attacker_actor.check_death():
 			print("  [死亡] %s 已阵亡" % attacker_name)
 			
-			# Logger 记录死亡
 			if battle.logger != null:
 				battle.logger.actor_died(attacker_id, owner_actor_id)
 			
-			# 推送死亡事件
 			var death_event := BattleEvents.DeathEvent.create(attacker_id, owner_actor_id)
 			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 			
-			# Post 阶段处理死亡事件
-			var alive_for_death_event: Array[String] = battle.get_alive_actor_ids()
+			var alive_for_death_event := battle.get_alive_actor_ids()
 			if alive_for_death_event.size() > 0:
-				var event_processor: EventProcessor = GameWorld.event_processor
-				event_processor.process_post_event(death_dict, alive_for_death_event, battle)
+				GameWorld.event_processor.process_post_event(death_dict, alive_for_death_event, battle)
 			
-			# 移除角色
 			battle.remove_actor(attacker_id)
 	
-	# Post 阶段：触发其他被动（如吸血），但不会触发反伤（因为有 is_reflected 标记）
-	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
+	var alive_actor_ids := battle.get_alive_actor_ids()
 	if alive_actor_ids.size() > 0:
-		var event_processor: EventProcessor = GameWorld.event_processor
-		event_processor.process_post_event(reflect_event, alive_actor_ids, battle)
+		GameWorld.event_processor.process_post_event(reflect_event, alive_actor_ids, battle)
 	
 	return ActionResult.create_success_result([reflect_event], { "damage": _damage, "target": attacker_id })

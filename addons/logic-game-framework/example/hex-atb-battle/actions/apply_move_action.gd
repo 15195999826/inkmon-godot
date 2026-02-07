@@ -24,23 +24,16 @@ func _init(
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var targets := get_targets(ctx)
 	
-	# 解析目标坐标 (从事件中获取的是 Dictionary)
 	var target_coord_dict := _target_coord.resolve(ctx)
-	
-	if target_coord_dict == null or target_coord_dict.is_empty():
+	if target_coord_dict.is_empty():
 		push_warning("  [ApplyMoveAction] 目标坐标未定义")
 		return ActionResult.create_success_result([])
 	
-	# 转换为 HexCoord
 	var target_coord := HexCoord.from_dict(target_coord_dict)
-	
-	# 获取 HexBattle 实例
 	var battle: HexBattle = ctx.game_state_provider
 	
-	# 对每个目标执行移动
 	var all_events: Array[Dictionary] = []
 	for target in targets:
-		# 获取 Actor 当前位置
 		var actor := battle.get_actor(target.id)
 		if actor == null:
 			push_warning("  [ApplyMoveAction] %s 未找到" % target.id)
@@ -51,14 +44,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			push_warning("  [ApplyMoveAction] %s 当前位置未找到" % target.id)
 			continue
 		
-		# 执行实际移动（move_occupant 会自动取消预订）
-		var grid := battle.grid
-		var move_success: bool = grid.move_occupant(from_hex, target_coord)
+		var move_success := battle.grid.move_occupant(from_hex, target_coord)
 		
 		if not move_success:
-			var occupant: Actor = grid.get_occupant(target_coord)
-			var reservation: String = grid.get_reservation(target_coord)
-			var has_tile: bool = grid.has_tile(target_coord)
+			var grid := battle.grid
+			var occupant := grid.get_occupant(target_coord)
+			var reservation := grid.get_reservation(target_coord)
+			var has_tile := grid.has_tile(target_coord)
 			push_error(
 				"[ApplyMoveAction] BUG: %s 移动失败：从 (%d, %d) → (%d, %d)\n" % [
 					target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
@@ -70,14 +62,12 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			)
 			continue
 		
-		# 更新 Actor 位置
 		actor.hex_position = target_coord.duplicate()
 		
 		print("  [ApplyMoveAction] %s 移动完成：从 (%d, %d) → (%d, %d)" % [
 			target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 		])
 		
-		# 创建移动完成事件 (使用 Dictionary 以便 JSON 序列化)
 		var event := BattleEvents.MoveCompleteEvent.create(
 			target.id,
 			from_hex.to_dict(),

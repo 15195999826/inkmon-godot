@@ -96,17 +96,12 @@ func on_kill(action: Action.BaseAction) -> HexBattleDamageAction:
 # ============================================================
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var source_actor_id: String = ""
-	if ctx.ability_ref != null:
-		source_actor_id = ctx.ability_ref.owner_actor_id
+	var source_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
 	var targets := get_targets(ctx)
 	var battle: HexBattle = ctx.game_state_provider
-	
-	var event_processor: EventProcessor = GameWorld.event_processor
+	var event_processor := GameWorld.event_processor
 	var all_events: Array[Dictionary] = []
-	
-	# 获取存活角色 ID 列表（用于 Post 阶段广播）
-	var alive_actor_ids: Array[String] = battle.get_alive_actor_ids()
+	var alive_actor_ids := battle.get_alive_actor_ids()
 	
 	for target in targets:
 		# ========== Pre 阶段 ==========
@@ -119,21 +114,16 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		var mutable: MutableEvent = event_processor.process_pre_event(pre_event.to_dict(), battle)
 		
-		# 如果被取消（如免疫），跳过此目标
 		if mutable.cancelled:
 			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
 			print("  [DamageAction] %s 的伤害被取消" % target_name)
 			continue
 		
-		# 获取修改后的伤害值
 		var final_damage: float = mutable.get_current_value("damage")
-		
-		# TODO: 暴击判定（示例：10% 暴击率，1.5 倍伤害）
 		var is_critical := randf() < 0.1
 		if is_critical:
 			final_damage *= 1.5
 		
-		# 打印日志
 		var source_name := HexBattleGameStateUtils.get_actor_display_name(source_actor_id, battle)
 		var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
 		var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
@@ -143,7 +133,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		else:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s" % [source_name, target_name, final_damage, damage_type_str, crit_text])
 		
-		# ========== 产生最终事件（回放格式） ==========
 		var event := BattleEvents.DamageEvent.create(
 			target.id,
 			final_damage,
@@ -154,46 +143,35 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(damage_event)
 		
-		# ========== 实际应用伤害 ==========
 		var target_actor := battle.get_actor(target.id)
 		if target_actor != null:
 			target_actor.attribute_set.set_hp_base(target_actor.attribute_set.hp - final_damage)
 			
-			# 日志打印（与旧 _process_frame_events 格式一致）
 			print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f" % [
 				target_name, final_damage, target_actor.attribute_set.hp
 			])
 			
-			# Logger 记录
 			if battle.logger != null:
 				battle.logger.damage_dealt(source_actor_id, target.id, final_damage, damage_type_str, false)
 			
-			# 检查死亡
 			if target_actor.check_death():
 				print("  [死亡] %s 已阵亡" % target_name)
 				
-				# Logger 记录死亡
 				if battle.logger != null:
 					battle.logger.actor_died(target.id, source_actor_id)
 				
-				# 推送死亡事件
 				var death_event := BattleEvents.DeathEvent.create(target.id, source_actor_id)
 				var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 				all_events.append(death_dict)
 				
-				# Post 阶段处理死亡事件（可能触发死亡相关被动）
 				if alive_actor_ids.size() > 0:
 					event_processor.process_post_event(death_dict, alive_actor_ids, battle)
 				
-				# 移除角色
 				battle.remove_actor(target.id)
 		
-		# ========== 处理回调 ==========
 		var callback_events := _process_callbacks(damage_event, is_critical, ctx)
 		all_events.append_array(callback_events)
 		
-		# ========== Post 阶段 ==========
-		# 立即触发被动响应（如反伤、吸血）
 		if alive_actor_ids.size() > 0:
 			event_processor.process_post_event(damage_event, alive_actor_ids, battle)
 	

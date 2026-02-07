@@ -41,7 +41,6 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	character_class = p_character_class
 	type = "Character"
 	
-	# 生成完整 ID（如果提供了 instance_id，则使用 instance_id:local_id 格式）
 	var local_id := IdGenerator.generate(type)
 	if instance_id != "":
 		_id = "%s:%s" % [instance_id, local_id]
@@ -51,36 +50,27 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	var class_config := HexBattleClassConfig.get_class_config(character_class)
 	_display_name = class_config.name
 	
-	# 创建生成式属性集
 	attribute_set = HexBattleCharacterAttributeSet.new()
-	
-	# 应用职业属性
 	var stats := class_config.stats
 	attribute_set.set_hp_base(stats["hp"])
 	attribute_set.set_max_hp_base(stats["max_hp"])
 	attribute_set.set_atk_base(stats["atk"])
 	attribute_set.set_def_base(stats["def"])
 	attribute_set.set_speed_base(stats["speed"])
-	
-	# 创建能力集（此时 ID 已确定）
 	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
 
 
 ## 装备技能（在 HexBattle 初始化时调用）
 func equip_abilities() -> void:
-	# 装备移动 Ability
 	var move_ability := Ability.new(HexBattleSkillAbilities.MOVE_ABILITY, get_id())
 	ability_set.grant_ability(move_ability)
 	_move_ability_id = move_ability.id
 	
-	# 装备职业对应的技能
 	var skill_type := HexBattleSkillConfig.get_class_skill(character_class)
 	var skill_config := HexBattleSkillAbilities.get_skill_ability(skill_type)
 	var skill_ability := Ability.new(skill_config, get_id())
 	ability_set.grant_ability(skill_ability)
 	_skill_ability_id = skill_ability.id
-	
-	# 装备职业被动技能
 	_grant_class_passives()
 
 
@@ -139,9 +129,7 @@ func get_atb_gauge() -> float:
 
 ## 累积 ATB（按速度）
 func accumulate_atb(dt: float) -> void:
-	var speed: float = attribute_set.speed
-	# 速度 100 时，1000ms 充满
-	_atb_gauge += (speed / 1000.0) * dt
+	_atb_gauge += (attribute_set.speed / 1000.0) * dt
 
 
 ## 是否可以行动
@@ -213,19 +201,11 @@ func get_tag_snapshot() -> Dictionary:
 
 
 ## 设置录像回调（覆盖基类）
-## 订阅所有框架事件：属性变化、Ability 生命周期、触发、执行、Tag 变化
 func setup_recording(ctx: Dictionary) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
-	
-	# 录制属性变化
 	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attribute_set, ctx))
-	
-	# 录制 AbilitySet 相关事件（Ability 授予/移除、触发、执行、Tag 变化）
 	unsubscribes.append_array(RecordingUtils.record_ability_set_changes(ability_set, ctx))
-	
-	# 录制 Actor 生命周期（生成/销毁）
 	unsubscribes.append_array(RecordingUtils.record_actor_lifecycle(self, ctx))
-	
 	return unsubscribes
 
 

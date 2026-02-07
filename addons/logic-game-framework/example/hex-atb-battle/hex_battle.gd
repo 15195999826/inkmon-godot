@@ -84,7 +84,6 @@ func start(config: Dictionary = {}) -> void:
 	super.start()
 	print("\n========== HexBattle 开始 ==========\n")
 	
-	# 初始化日志和录像
 	_logging_enabled = config.get("logging", true)
 	_recording_enabled = config.get("recording", true)
 	
@@ -100,53 +99,38 @@ func start(config: Dictionary = {}) -> void:
 			"tickInterval": 100,
 		})
 	
-	# 获取地图配置（支持外部传入或使用默认值）
-	var grid_config: GridMapConfig = config.get("map_config", null) as GridMapConfig
+	var grid_config := config.get("map_config", null) as GridMapConfig
 	if grid_config == null:
 		grid_config = _build_default_grid_config()
-	
-	# 创建地图
-	UGridMap.configure(grid_config)
-	
-	# 创建左方队伍
 	left_team = [
 		_create_character_actor(HexBattleClassConfig.CharacterClass.PRIEST),
 		_create_character_actor(HexBattleClassConfig.CharacterClass.WARRIOR),
 		_create_character_actor(HexBattleClassConfig.CharacterClass.ARCHER),
 	]
-	
-	# 创建右方队伍
 	right_team = [
 		_create_character_actor(HexBattleClassConfig.CharacterClass.MAGE),
 		_create_character_actor(HexBattleClassConfig.CharacterClass.BERSERKER),
 		_create_character_actor(HexBattleClassConfig.CharacterClass.ASSASSIN),
 	]
 	
-	# 设置队伍 ID
 	for actor in left_team:
 		actor.set_team_id(0)
 	for actor in right_team:
 		actor.set_team_id(1)
 	
-	# 装备技能
 	for actor in get_all_actors():
 		actor.equip_abilities()
 	
-	# 随机放置角色（根据地图大小动态计算放置区域）
 	var placement_ranges := _calculate_placement_ranges(grid_config)
 	_place_team_randomly(left_team, placement_ranges["left"])
 	_place_team_randomly(right_team, placement_ranges["right"])
 	
-	# 给每个角色添加振奋 Buff
 	_apply_inspire_buff_to_all()
-	
-	# 注册 Timeline
 	_register_timelines()
 	
 	print("战斗开始")
 	_print_battle_info()
 	
-	# 开始录像（传递地图配置和位置格式声明）
 	if _recording_enabled and recorder != null:
 		var replay_map_config: Dictionary = {}
 		if UGridMap.model != null:
@@ -158,7 +142,6 @@ func start(config: Dictionary = {}) -> void:
 		}
 		recorder.start_recording(get_all_actors(), configs, replay_map_config)
 	
-	# 注册角色到日志
 	if _logging_enabled and logger != null:
 		for actor in get_all_actors():
 			logger.register_actor(actor.get_id(), actor.get_display_name())
@@ -320,7 +303,6 @@ func tick(dt: float) -> void:
 	
 	tick_count += 1
 	
-	# 日志记录帧
 	if _logging_enabled and logger != null:
 		logger.tick(tick_count, _logic_time)
 	
@@ -335,10 +317,7 @@ func tick(dt: float) -> void:
 			if actor.can_act():
 				_start_actor_action(actor)
 	
-	# 收集本帧事件（仅用于录像，状态已在 Action 内同步）
-	var frame_events: Array[Dictionary] = GameWorld.event_collector.flush()
-	
-	# 录像记录帧
+	var frame_events := GameWorld.event_collector.flush()
 	if _recording_enabled and recorder != null:
 		recorder.record_frame(tick_count, frame_events)
 	
@@ -359,7 +338,6 @@ func _is_actor_executing(actor: CharacterActor) -> bool:
 func _start_actor_action(actor: CharacterActor) -> void:
 	print("\n[Tick %d] %s 准备行动 (ATB: %.1f)" % [tick_count, actor.get_display_name(), actor.get_atb_gauge()])
 	
-	# 记录角色获得行动机会
 	if _logging_enabled and logger != null:
 		logger.actor_ready(actor.get_id(), actor.get_display_name(), actor.get_atb_gauge())
 	
@@ -385,8 +363,6 @@ func _start_actor_action(actor: CharacterActor) -> void:
 		decision_text = "%s -> %s" % [skill_name, target_name]
 	
 	print("  AI 决策: %s" % decision_text)
-	
-	# 记录 AI 决策
 	if _logging_enabled and logger != null:
 		logger.ai_decision(actor.get_id(), actor.get_display_name(), decision_text)
 	
@@ -506,11 +482,8 @@ func _end(result: String = "") -> void:
 	print("总帧数: %d" % tick_count)
 	print("逻辑时间: %.1f ms" % _logic_time)
 	
-	# 保存日志
 	if _logging_enabled and logger != null:
 		logger.save()
-	
-	# 停止录像并保存
 	if _recording_enabled and recorder != null:
 		_final_replay_data = recorder.stop_recording(result)
 		_save_replay(_final_replay_data)
@@ -520,11 +493,8 @@ func _save_replay(replay_data: Dictionary) -> void:
 	if replay_data.is_empty():
 		return
 	
-	# 保存到文件
 	var timestamp := Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
 	var replay_path := "user://Replays/battle_%s_%s.json" % [timestamp, id]
-	
-	# 确保目录存在
 	var dir := DirAccess.open("user://")
 	if dir != null and not dir.dir_exists("Replays"):
 		dir.make_dir("Replays")
