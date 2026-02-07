@@ -79,13 +79,7 @@ func _init() -> void:
 ##   - recording: bool - 是否启用录像 (默认 true)
 ##   - console_log: bool - 是否输出到控制台 (默认 false)
 ##   - file_log: bool - 是否输出到文件 (默认 true)
-##   - map_config: Dictionary - 地图配置，支持以下字段:
-##       - draw_mode: GridMapConfig.DrawMode (默认 ROW_COLUMN)
-##       - rows: int (默认 9)
-##       - columns: int (默认 9)
-##       - radius: int (默认 4，仅 radius 模式)
-##       - size: float (默认 10.0)
-##       - orientation: GridMapConfig.Orientation (默认 FLAT)
+##   - map_config: GridMapConfig - 地图配置（可选，不传则使用默认 9x9 ROW_COLUMN）
 func start(config: Dictionary = {}) -> void:
 	super.start()
 	print("\n========== HexBattle 开始 ==========\n")
@@ -107,11 +101,12 @@ func start(config: Dictionary = {}) -> void:
 		})
 	
 	# 获取地图配置（支持外部传入或使用默认值）
-	var map_config: Dictionary = config.get("map_config", {})
-	var grid_config := _build_grid_config(map_config)
+	var grid_config: GridMapConfig = config.get("map_config", null) as GridMapConfig
+	if grid_config == null:
+		grid_config = _build_default_grid_config()
 	
 	# 创建地图
-	UGridMap.configure_from_dict(grid_config)
+	UGridMap.configure(grid_config)
 	
 	# 创建左方队伍
 	left_team = [
@@ -169,53 +164,31 @@ func start(config: Dictionary = {}) -> void:
 			logger.register_actor(actor.get_id(), actor.get_display_name())
 
 
-## 根据外部传入的地图配置构建 UGridMap 配置
-func _build_grid_config(map_config: Dictionary) -> Dictionary:
-	var draw_mode: int = map_config.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as int
-	var hex_size: float = map_config.get("size", 10.0)
-	var orientation: int = map_config.get("orientation", GridMapConfig.Orientation.FLAT) as int
-	
-	var grid_config := {
-		"size": hex_size,
-		"orientation": orientation,
-	}
-	
-	if draw_mode == GridMapConfig.DrawMode.RADIUS:
-		# Radius 模式
-		var radius: int = map_config.get("radius", 4)
-		grid_config["draw_mode"] = GridMapConfig.DrawMode.RADIUS
-		grid_config["radius"] = radius
-	else:
-		# Row/Column 模式（默认）
-		var rows: int = map_config.get("rows", 9)
-		var columns: int = map_config.get("columns", 9)
-		grid_config["draw_mode"] = GridMapConfig.DrawMode.ROW_COLUMN
-		grid_config["rows"] = rows
-		grid_config["columns"] = columns
-	
-	return grid_config
+## 构建默认地图配置（9x9 ROW_COLUMN，FLAT 方向，size=10）
+func _build_default_grid_config() -> GridMapConfig:
+	var config := GridMapConfig.new()
+	config.grid_type = GridMapConfig.GridType.HEX
+	config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+	config.rows = 9
+	config.columns = 9
+	config.size = 10.0
+	config.orientation = GridMapConfig.Orientation.FLAT
+	return config
 
 
 ## 根据地图配置计算队伍放置区域
-func _calculate_placement_ranges(grid_config: Dictionary) -> Dictionary:
-	var draw_mode: int = grid_config.get("draw_mode", GridMapConfig.DrawMode.ROW_COLUMN) as int
-	
-	if draw_mode == GridMapConfig.DrawMode.RADIUS:
+func _calculate_placement_ranges(grid_config: GridMapConfig) -> Dictionary:
+	if grid_config.draw_mode == GridMapConfig.DrawMode.RADIUS:
 		# Radius 模式：左队在负 q 区域，右队在正 q 区域
-		var radius: int = grid_config.get("radius", 4)
-		var half := maxi(1, radius / 2)
+		var half := maxi(1, grid_config.radius / 2)
 		return {
-			"left": { "q_min": -radius, "q_max": -1, "r_min": -half, "r_max": half },
-			"right": { "q_min": 1, "q_max": radius, "r_min": -half, "r_max": half },
+			"left": { "q_min": -grid_config.radius, "q_max": -1, "r_min": -half, "r_max": half },
+			"right": { "q_min": 1, "q_max": grid_config.radius, "r_min": -half, "r_max": half },
 		}
 	else:
 		# Row/Column 模式：根据行列数计算
-		var rows: int = grid_config.get("rows", 9)
-		var columns: int = grid_config.get("columns", 9)
-		
-		# 计算中心偏移（row_column 模式的坐标范围）
-		var half_rows := rows / 2
-		var half_cols := columns / 2
+		var half_rows := grid_config.rows / 2
+		var half_cols := grid_config.columns / 2
 		
 		# 左队在左半边，右队在右半边
 		var left_q_max := -1

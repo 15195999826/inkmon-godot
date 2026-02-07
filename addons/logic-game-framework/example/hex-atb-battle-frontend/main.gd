@@ -96,27 +96,21 @@ func _update_input_visibility() -> void:
 
 
 ## 获取当前地图配置
-func _get_map_config() -> Dictionary:
-	var orientation: GridMapConfig.Orientation = GridMapConfig.Orientation.FLAT if _orientation_option.selected == 0 else GridMapConfig.Orientation.POINTY
-	var config: Dictionary
+func _get_map_config() -> GridMapConfig:
+	var config := GridMapConfig.new()
+	config.grid_type = GridMapConfig.GridType.HEX
+	config.size = _hex_size_input.value
+	config.orientation = GridMapConfig.Orientation.FLAT if _orientation_option.selected == 0 else GridMapConfig.Orientation.POINTY
 	
 	if _draw_mode_option.selected == 0:
 		# Row/Column 模式
-		config = {
-			"draw_mode": GridMapConfig.DrawMode.ROW_COLUMN,
-			"rows": int(_rows_input.value),
-			"columns": int(_columns_input.value),
-			"size": _hex_size_input.value,
-			"orientation": orientation,
-		}
+		config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		config.rows = int(_rows_input.value)
+		config.columns = int(_columns_input.value)
 	else:
 		# Radius 模式
-		config = {
-			"draw_mode": GridMapConfig.DrawMode.RADIUS,
-			"radius": int(_radius_input.value),
-			"size": _hex_size_input.value,
-			"orientation": orientation,
-		}
+		config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		config.radius = int(_radius_input.value)
 	
 	return config
 
@@ -224,7 +218,7 @@ func _on_start_battle_button_pressed() -> void:
 # ========== 逻辑层战斗 ==========
 
 ## 同步运行一场逻辑层战斗，返回录像数据
-func _run_logic_battle(map_config: Dictionary) -> Dictionary:
+func _run_logic_battle(map_config: GridMapConfig) -> Dictionary:
 	print("[Main] Running logic battle...")
 	
 	# 确保 GameWorld 已初始化

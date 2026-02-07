@@ -139,41 +139,23 @@ func _setup_hex_grid_renderer() -> void:
 
 ## 从回放数据设置六边形网格
 func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
-	var map_config: Dictionary = replay_data.get("mapConfig", {})
+	var map_config_dict: Dictionary = replay_data.get("mapConfig", {})
 	
-	if map_config.is_empty():
+	var grid_config: GridMapConfig
+	if map_config_dict.is_empty():
 		print("[BattleReplayScene] No mapConfig in replay data, using default grid")
-		# 使用默认配置
-		map_config = {
-			"draw_mode": "row_column",
-			"rows": 9,
-			"columns": 9,
-			"size": 10.0,
-			"orientation": "flat",
-		}
-	
-	print("[BattleReplayScene] Setting up hex grid: %s" % map_config)
-	
-	# 创建 GridMapConfig
-	var grid_config := GridMapConfig.new()
-	grid_config.grid_type = GridMapConfig.GridType.HEX
-	grid_config.size = float(map_config.get("size", 10.0))
-	grid_config.origin = Vector2.ZERO
-	
-	# 转换方向枚举
-	var orientation_val: int = map_config.get("orientation", 0) as int
-	grid_config.orientation = orientation_val as GridMapConfig.Orientation
-	
-	# 转换绘制模式
-	var draw_mode_val: int = map_config.get("draw_mode", 0) as int
-	grid_config.draw_mode = draw_mode_val as GridMapConfig.DrawMode
-	
-	# 设置行列或半径
-	if grid_config.draw_mode == GridMapConfig.DrawMode.ROW_COLUMN:
-		grid_config.rows = int(map_config.get("rows", 9))
-		grid_config.columns = int(map_config.get("columns", 9))
+		grid_config = GridMapConfig.new()
+		grid_config.grid_type = GridMapConfig.GridType.HEX
+		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		grid_config.rows = 9
+		grid_config.columns = 9
+		grid_config.size = 10.0
+		grid_config.orientation = GridMapConfig.Orientation.FLAT
 	else:
-		grid_config.radius = int(map_config.get("radius", 4))
+		print("[BattleReplayScene] Setting up hex grid: %s" % map_config_dict)
+		grid_config = GridMapConfig.from_dict(map_config_dict)
+		grid_config.grid_type = GridMapConfig.GridType.HEX
+		grid_config.origin = Vector2.ZERO
 	
 	# 创建 GridMapModel 并初始化
 	_hex_world = GridMapModel.new()

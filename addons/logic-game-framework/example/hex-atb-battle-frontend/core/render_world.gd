@@ -82,16 +82,14 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	_position_formats = configs.get("positionFormats", {})
 	
 	# 从 mapConfig 创建 GridLayout
-	var map_config: Dictionary = replay_data.get("mapConfig", {})
-	if not map_config.is_empty():
-		var hex_size: float = float(map_config.get("size", 10.0))
-		var orientation: int = map_config.get("orientation", 0) as int
-		
+	var map_config_dict: Dictionary = replay_data.get("mapConfig", {})
+	if not map_config_dict.is_empty():
+		var grid_config := GridMapConfig.from_dict(map_config_dict)
 		_layout = GridLayout.new(
-			GridMapConfig.GridType.HEX,
-			hex_size,
+			grid_config.grid_type,
+			grid_config.size,
 			Vector2.ZERO,
-			orientation as GridMapConfig.Orientation,
+			grid_config.orientation,
 			Vector2.ONE
 		)
 	
