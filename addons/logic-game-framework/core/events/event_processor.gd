@@ -51,48 +51,69 @@
 extends RefCounted
 class_name EventProcessor
 
-const DEFAULT_MAX_DEPTH := 10
-const DEFAULT_TRACE_LEVEL := 1
-
-var _max_depth: int
-var _trace_level: int
+var _config: EventProcessorConfig
 var _current_depth := 0
 var _traces: Array[Dictionary] = []
 var _current_trace_id := ""
+## 存储格式: { event_kind: Array[PreHandlerRegistration] }
 var _pre_handlers: Dictionary = {}
 
-func _init(config: Dictionary = {}):
-	_max_depth = int(config.get("maxDepth", DEFAULT_MAX_DEPTH))
-	_trace_level = int(config.get("traceLevel", DEFAULT_TRACE_LEVEL))
 
-func register_pre_handler(registration: Dictionary) -> Callable:
-	var event_kind := str(registration.get("eventKind", ""))
+## 初始化事件处理器
+## @param config: EventProcessorConfig 或 Dictionary（兼容旧格式）
+func _init(config: Variant = null):
+	if config is EventProcessorConfig:
+		_config = config
+	elif config is Dictionary:
+		_config = EventProcessorConfig.from_dict(config)
+	else:
+		_config = EventProcessorConfig.new()
+
+
+## 注册 Pre 阶段处理器
+## @param registration: PreHandlerRegistration 或 Dictionary（兼容旧格式）
+## @return 取消注册的 Callable
+func register_pre_handler(registration: Variant) -> Callable:
+	var reg: PreHandlerRegistration
+	if registration is PreHandlerRegistration:
+		reg = registration
+	elif registration is Dictionary:
+		reg = PreHandlerRegistration.from_dict(registration)
+	else:
+		Log.error("EventProcessor", "Invalid registration type: %s" % typeof(registration))
+		return Callable()
+	
+	var event_kind: String = reg.event_kind
 	if not _pre_handlers.has(event_kind):
-		_pre_handlers[event_kind] = []
-	_pre_handlers[event_kind].append(registration)
+		_pre_handlers[event_kind] = [] as Array[PreHandlerRegistration]
+	(_pre_handlers[event_kind] as Array[PreHandlerRegistration]).append(reg)
 
 	return func() -> void:
-		var handlers: Array[Dictionary] = _pre_handlers.get(event_kind, []) as Array[Dictionary]
+		if not _pre_handlers.has(event_kind):
+			return
+		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind]
 		for i in range(handlers.size()):
-			if handlers[i].get("id", "") == registration.get("id", ""):
+			if handlers[i].id == reg.id:
 				handlers.remove_at(i)
 				break
 
+
 func remove_handlers_by_ability_id(ability_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
-		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
-		var filtered: Array[Dictionary] = []
+		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind] as Array[PreHandlerRegistration]
+		var filtered: Array[PreHandlerRegistration] = []
 		for handler in handlers:
-			if handler.get("abilityId", "") != ability_id:
+			if handler.ability_id != ability_id:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
+
 func remove_handlers_by_owner_id(owner_id: String) -> void:
 	for event_kind in _pre_handlers.keys():
-		var handlers: Array[Dictionary] = _pre_handlers[event_kind] as Array[Dictionary]
-		var filtered: Array[Dictionary] = []
+		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind] as Array[PreHandlerRegistration]
+		var filtered: Array[PreHandlerRegistration] = []
 		for handler in handlers:
-			if handler.get("ownerId", "") != owner_id:
+			if handler.owner_id != owner_id:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
@@ -100,7 +121,7 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 	assert(game_state_provider != null, "game_state_provider is required")
 	var mutable := MutableEvent.new(event_dict, EventPhase.PHASE_PRE)
 
-	if _current_depth >= _max_depth:
+	if _current_depth >= _config.max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return mutable
 
@@ -109,67 +130,74 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
-	var handlers: Array[Dictionary] = _pre_handlers.get(event_dict.get("kind", ""), []) as Array[Dictionary]
+	var event_kind: String = event_dict.get("kind", "")
+	if not _pre_handlers.has(event_kind):
+		_current_depth -= 1
+		_current_trace_id = parent_trace_id
+		_finalize_trace(trace)
+		return mutable
+	var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind]
 	for registration in handlers:
-		if registration.has("filter") and registration["filter"] is Callable:
-			if not registration["filter"].call(event_dict):
-				continue
+		# 检查过滤条件
+		if not registration.passes_filter(event_dict):
+			continue
 
-		var handler_context := {
-			"ownerId": registration.get("ownerId", ""),
-			"abilityId": registration.get("abilityId", ""),
-			"configId": registration.get("configId", ""),
-			"gameplayState": game_state_provider,
-		}
+		# 创建处理器上下文
+		var handler_context := HandlerContext.new(
+			registration.owner_id,
+			registration.ability_id,
+			registration.config_id,
+			game_state_provider
+		)
 
 		var start_time := Time.get_ticks_msec()
-		var intent := {"type": EventPhase.INTENT_PASS}
+		var intent: Intent = Intent.pass_through()
 		var handler_error: Dictionary = {}
 
-		if registration.has("handler") and registration["handler"] is Callable:
-			var handler_call: Callable = registration["handler"]
-			var result: Variant
-			var call_ok := true
-			result = handler_call.call(mutable, handler_context)
-			intent = result if result != null else intent
-			call_ok = true
+		# 调用处理器
+		intent = registration.call_handler(mutable, handler_context)
 
 		var execution_time := Time.get_ticks_msec() - start_time
-		if _trace_level >= 2:
+		
+		# 记录追踪信息
+		if _config.trace_level >= 2:
 			trace["intents"].append({
-				"handlerId": registration.get("id", ""),
-				"handlerName": registration.get("name", registration.get("configId", "")),
-				"intent": intent,
+				"handlerId": registration.id,
+				"handlerName": registration.get_display_name(),
+				"intent": intent.to_dict(),
 				"executionTime": execution_time,
 				"error": handler_error if not handler_error.is_empty() else null,
 			})
-		elif _trace_level >= 1 and not handler_error.is_empty():
+		elif _config.trace_level >= 1 and not handler_error.is_empty():
 			trace["intents"].append({
-				"handlerId": registration.get("id", ""),
-				"handlerName": registration.get("name", registration.get("configId", "")),
-				"intent": intent,
+				"handlerId": registration.id,
+				"handlerName": registration.get_display_name(),
+				"intent": intent.to_dict(),
 				"error": handler_error,
 			})
 
-		if intent.get("type", "") == EventPhase.INTENT_CANCEL:
-			mutable.cancel(str(intent.get("handlerId", "")), str(intent.get("reason", "")))
+		# 处理意图
+		if intent.is_cancel():
+			mutable.cancel(intent.handler_id, intent.reason)
 			trace["cancelled"] = true
-			trace["cancelReason"] = intent.get("reason", "")
-			trace["cancelledBy"] = intent.get("handlerId", "")
+			trace["cancelReason"] = intent.reason
+			trace["cancelledBy"] = intent.handler_id
 			break
-		elif intent.get("type", "") == EventPhase.INTENT_MODIFY:
-			var modifications: Array[Dictionary] = intent.get("modifications", []) as Array[Dictionary]
-			var modifications_with_source: Array[Dictionary] = []
-			for mod in modifications:
-				var mod_with_source: Dictionary = mod.duplicate(true)
-				if not mod_with_source.has("sourceId"):
-					mod_with_source["sourceId"] = intent.get("handlerId", "")
-				if not mod_with_source.has("sourceName"):
-					mod_with_source["sourceName"] = registration.get("name", registration.get("configId", ""))
+		elif intent.is_modify():
+			# 为修改添加来源信息
+			var modifications_with_source: Array[Modification] = []
+			for mod in intent.modifications:
+				var mod_with_source := Modification.new(
+					mod.field,
+					mod.operation,
+					mod.value,
+					mod.source_id if mod.source_id != "" else intent.handler_id,
+					mod.source_name if mod.source_name != "" else registration.get_display_name()
+				)
 				modifications_with_source.append(mod_with_source)
 			mutable.add_modifications(modifications_with_source)
 
-	if _trace_level >= 1:
+	if _config.trace_level >= 1:
 		trace["originalValues"] = mutable.get_original_values()
 		trace["finalValues"] = mutable.get_final_values()
 
@@ -181,7 +209,7 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 
 func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider: Variant) -> void:
 	assert(game_state_provider != null, "game_state_provider is required")
-	if _current_depth >= _max_depth:
+	if _current_depth >= _config.max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
 
@@ -204,7 +232,7 @@ func process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_s
 
 func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider: Variant) -> void:
 	assert(game_state_provider != null, "game_state_provider is required")
-	if _current_depth >= _max_depth:
+	if _current_depth >= _config.max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return
 
@@ -302,12 +330,15 @@ func _create_trace(event_dict: Dictionary, phase: String) -> Dictionary:
 		"cancelled": false,
 		"startTime": Time.get_ticks_msec(),
 	}
-	if _trace_level > 0:
+	if _config.trace_level > 0:
 		_traces.append(trace)
 	return trace
 
 func _finalize_trace(trace: Dictionary) -> void:
 	trace["endTime"] = Time.get_ticks_msec()
 
-static func create_event_processor(config: Dictionary = {}) -> EventProcessor:
+
+## 创建事件处理器（工厂方法）
+## @param config: EventProcessorConfig 或 Dictionary（兼容旧格式）
+static func create_event_processor(config: Variant = null) -> EventProcessor:
 	return EventProcessor.new(config)

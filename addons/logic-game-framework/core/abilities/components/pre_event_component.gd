@@ -31,17 +31,19 @@ func on_apply(context: AbilityLifecycleContext) -> void:
 		if _filter.is_valid():
 			return _filter.call(event_dict, _lifecycle_context)
 		return true
-	_unregister = event_processor.register_pre_handler({
-		"id": "%s_pre_%s" % [ability.id, _event_kind],
-		"name": _handler_name if _handler_name != "" else (ability.display_name if ability.display_name != "" else ability.config_id),
-		"eventKind": _event_kind,
-		"ownerId": context.owner_actor_id,
-		"abilityId": ability.id,
-		"configId": ability.config_id,
-		"filter": handler_filter,
-		"handler": func(mutable: MutableEvent, _handler_context: Dictionary):
-			return _handle_pre_event(mutable, _handler_context),
-	})
+	
+	var registration := PreHandlerRegistration.new(
+		"%s_pre_%s" % [ability.id, _event_kind],  # id
+		_event_kind,  # event_kind
+		context.owner_actor_id,  # owner_id
+		ability.id,  # ability_id
+		ability.config_id,  # config_id
+		func(mutable: MutableEvent, handler_ctx: HandlerContext) -> Intent:
+			return _handle_pre_event(mutable, handler_ctx),  # handler
+		handler_filter,  # filter
+		_handler_name if _handler_name != "" else (ability.display_name if ability.display_name != "" else ability.config_id)  # handler_name
+	)
+	_unregister = event_processor.register_pre_handler(registration)
 
 func on_remove(_context: AbilityLifecycleContext) -> void:
 	if _unregister.is_valid():
@@ -49,13 +51,19 @@ func on_remove(_context: AbilityLifecycleContext) -> void:
 		_unregister = Callable()
 	_lifecycle_context = null
 
-func _handle_pre_event(mutable: MutableEvent, _handler_context: Dictionary) -> Dictionary:
+func _handle_pre_event(mutable: MutableEvent, _handler_context: HandlerContext) -> Intent:
 	if _lifecycle_context == null:
 		Log.warning("PreEventComponent", "PreEventComponent: lifecycleContext not available")
 		return EventPhase.pass_intent()
 	if not _handler.is_valid():
 		return EventPhase.pass_intent()
-	return _handler.call(mutable, _lifecycle_context)
+	var result: Variant = _handler.call(mutable, _lifecycle_context)
+	# 兼容旧格式：处理器可能返回 Dictionary
+	if result is Intent:
+		return result
+	if result is Dictionary:
+		return Intent.from_dict(result)
+	return EventPhase.pass_intent()
 
 func serialize() -> Dictionary:
 	return {

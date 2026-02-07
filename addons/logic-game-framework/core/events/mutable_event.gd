@@ -6,19 +6,19 @@ var phase: String
 var cancelled := false
 var cancel_reason := ""
 var cancelled_by := ""
-var _modifications: Array[Dictionary] = []
+var _modifications: Array[Modification] = []
 
 func _init(original_event_dict: Dictionary, phase_value: String):
 	original = original_event_dict
 	phase = phase_value
 
-func get_modifications() -> Array[Dictionary]:
+func get_modifications() -> Array[Modification]:
 	return _modifications
 
-func add_modification(modification: Dictionary) -> void:
+func add_modification(modification: Modification) -> void:
 	_modifications.append(modification)
 
-func add_modifications(modifications: Array[Dictionary]) -> void:
+func add_modifications(modifications: Array[Modification]) -> void:
 	_modifications.append_array(modifications)
 
 func cancel(handler_id: String, reason: String) -> void:
@@ -69,18 +69,21 @@ func get_field_computation_steps(field: String) -> Variant:
 
 	var steps := []
 	var value := float(original_value)
+	var sets: Array[Modification] = grouped.sets
+	var adds: Array[Modification] = grouped.adds
+	var muls: Array[Modification] = grouped.muls
 
-	if not grouped.sets.is_empty():
-		var last_set: Dictionary = grouped.sets[-1]
-		value = float(last_set.get("value", value))
+	if not sets.is_empty():
+		var last_set: Modification = sets[-1]
+		value = last_set.value
 		steps.append(_create_step(last_set, "set", value))
 
-	for mod in grouped.adds:
-		value += float(mod.get("value", 0.0))
+	for mod in adds:
+		value += mod.value
 		steps.append(_create_step(mod, "add", value))
 
-	for mod in grouped.muls:
-		value *= float(mod.get("value", 1.0))
+	for mod in muls:
+		value *= mod.value
 		steps.append(_create_step(mod, "multiply", value))
 
 	return {
@@ -115,25 +118,25 @@ func format_computation_log(field: String) -> String:
 func _get_modified_fields() -> Array[String]:
 	var fields := {}
 	for mod in _modifications:
-		fields[mod.get("field", "")] = true
+		fields[mod.field] = true
 	var result: Array[String] = []
 	result.assign(fields.keys())
 	return result
 
 func _get_grouped_field_mods(field: String) -> Dictionary:
-	var sets := []
-	var adds := []
-	var muls := []
+	var sets: Array[Modification] = []
+	var adds: Array[Modification] = []
+	var muls: Array[Modification] = []
 
 	for mod in _modifications:
-		if mod.get("field", "") != field:
+		if mod.field != field:
 			continue
-		match mod.get("operation", ""):
-			"set":
+		match mod.operation:
+			Modification.Operation.SET:
 				sets.append(mod)
-			"add":
+			Modification.Operation.ADD:
 				adds.append(mod)
-			"multiply":
+			Modification.Operation.MULTIPLY:
 				muls.append(mod)
 
 	return {
@@ -145,20 +148,23 @@ func _get_grouped_field_mods(field: String) -> Dictionary:
 
 func _compute_value(base_value: float, grouped: Dictionary) -> float:
 	var value := base_value
-	if not grouped.sets.is_empty():
-		value = float(grouped.sets[-1].get("value", value))
-	for mod in grouped.adds:
-		value += float(mod.get("value", 0.0))
-	for mod in grouped.muls:
-		value *= float(mod.get("value", 1.0))
+	var sets: Array[Modification] = grouped.sets
+	var adds: Array[Modification] = grouped.adds
+	var muls: Array[Modification] = grouped.muls
+	if not sets.is_empty():
+		value = sets[-1].value
+	for mod in adds:
+		value += mod.value
+	for mod in muls:
+		value *= mod.value
 	return value
 
-func _create_step(mod: Dictionary, operation: String, result_value: float) -> Dictionary:
+func _create_step(mod: Modification, operation: String, result_value: float) -> Dictionary:
 	return {
-		"sourceId": mod.get("sourceId", "unknown"),
-		"sourceName": mod.get("sourceName", null),
+		"sourceId": mod.source_id if mod.source_id != "" else "unknown",
+		"sourceName": mod.source_name if mod.source_name != "" else null,
 		"operation": operation,
-		"value": mod.get("value", 0.0),
+		"value": mod.value,
 		"resultValue": result_value,
 	}
 

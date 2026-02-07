@@ -6,18 +6,21 @@ func _init() -> void:
 
 func _test_pre_modify() -> void:
 	var mock_state := {}
-	var processor := EventProcessor.new({ "maxDepth": 5, "traceLevel": 2 })
-	processor.register_pre_handler({
-		"id": "h1",
-		"eventKind": "damage",
-		"ownerId": "actor-1",
-		"abilityId": "ability-1",
-		"configId": "config-1",
-		"handler": func(mutable, _context):
+	var config := EventProcessorConfig.new(5, 2)
+	var processor := EventProcessor.new(config)
+	
+	var registration := PreHandlerRegistration.new(
+		"h1",  # id
+		"damage",  # event_kind
+		"actor-1",  # owner_id
+		"ability-1",  # ability_id
+		"config-1",  # config_id
+		func(_mutable: MutableEvent, _context: HandlerContext) -> Intent:
 			return EventPhase.modify_intent("h1", [
-				{ "field": "damage", "operation": "multiply", "value": 0.5 },
+				Modification.multiply("damage", 0.5),
 			])
-	})
+	)
+	processor.register_pre_handler(registration)
 
 	var mutable := processor.process_pre_event({ "kind": "damage", "damage": 100.0 }, mock_state)
 	TestFramework.assert_near(50.0, float(mutable.get_current_value("damage")))
@@ -25,16 +28,19 @@ func _test_pre_modify() -> void:
 
 func _test_pre_cancel() -> void:
 	var mock_state := {}
-	var processor := EventProcessor.new({ "maxDepth": 5, "traceLevel": 2 })
-	processor.register_pre_handler({
-		"id": "h2",
-		"eventKind": "damage",
-		"ownerId": "actor-1",
-		"abilityId": "ability-1",
-		"configId": "config-1",
-		"handler": func(_mutable, _context):
+	var config := EventProcessorConfig.new(5, 2)
+	var processor := EventProcessor.new(config)
+	
+	var registration := PreHandlerRegistration.new(
+		"h2",  # id
+		"damage",  # event_kind
+		"actor-1",  # owner_id
+		"ability-1",  # ability_id
+		"config-1",  # config_id
+		func(_mutable: MutableEvent, _context: HandlerContext) -> Intent:
 			return EventPhase.cancel_intent("h2", "immune")
-	})
+	)
+	processor.register_pre_handler(registration)
 
 	var mutable := processor.process_pre_event({ "kind": "damage", "damage": 100.0 }, mock_state)
 	TestFramework.assert_true(mutable.cancelled)

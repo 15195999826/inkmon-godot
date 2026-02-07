@@ -45,16 +45,17 @@ func _test_registration() -> void:
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
+	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
-		func(_mutable, ctx):
+		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
-				{"field": "damage", "operation": "multiply", "value": 0.7},
+				Modification.multiply("damage", 0.7),
 			]),
-		func(event, ctx):
+		func(event: Dictionary, ctx: AbilityLifecycleContext) -> bool:
 			return event.get("targetId") == ctx.owner_actor_id
 	))
 
@@ -72,14 +73,15 @@ func _test_unregistration() -> void:
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
+	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
-		func(_mutable, ctx):
+		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
-				{"field": "damage", "operation": "multiply", "value": 0.5},
+				Modification.multiply("damage", 0.5),
 			])
 	))
 
@@ -97,15 +99,16 @@ func _test_modify_event() -> void:
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
+	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
-		func(_mutable, ctx):
+		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
-				{"field": "damage", "operation": "multiply", "value": 0.7},
-				{"field": "damage", "operation": "add", "value": -10},
+				Modification.multiply("damage", 0.7),
+				Modification.add("damage", -10.0),
 			])
 	))
 
@@ -116,19 +119,21 @@ func _test_modify_event() -> void:
 	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
 	var mutable := event_processor.process_pre_event(event, state)
 
-	# 100 * 0.7 - 10 = 60
-	TestFramework.assert_near(60, float(mutable.get_current_value("damage")))
+	# 计算顺序: SET → ADD → MULTIPLY
+	# (100 + (-10)) * 0.7 = 63
+	TestFramework.assert_near(63, float(mutable.get_current_value("damage")))
 
 func _test_cancel_event() -> void:
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new({"maxDepth": 10, "traceLevel": 2})
+	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
+	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
 		"pre_damage",
-		func(_mutable, ctx):
+		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.cancel_intent(ctx.ability.id, "immune")
 	))
 
@@ -139,6 +144,5 @@ func _test_cancel_event() -> void:
 	var event := {"kind": "pre_damage", "sourceId": "enemy-1", "targetId": "unit-1", "damage": 100}
 	var mutable := event_processor.process_pre_event(event, state)
 
-	TestFramework.assert_true(not mutable.cancelled)
-	var damage_value := mutable.get_current_value("damage")
-	TestFramework.assert_near(70, float(damage_value))
+	TestFramework.assert_true(mutable.cancelled)
+	TestFramework.assert_equal("immune", mutable.cancel_reason)
