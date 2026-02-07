@@ -117,18 +117,10 @@ func receive_event(event_dict: Dictionary, context: AbilityLifecycleContext, gam
 				callback.call(event_dict, triggered_components)
 
 func add_triggered_listener(callback: Callable) -> Callable:
-	_on_triggered_callbacks.append(callback)
-	return func() -> void:
-		var index := _on_triggered_callbacks.find(callback)
-		if index != -1:
-			_on_triggered_callbacks.remove_at(index)
+	return _add_listener(_on_triggered_callbacks, callback)
 
 func add_execution_activated_listener(callback: Callable) -> Callable:
-	_on_execution_callbacks.append(callback)
-	return func() -> void:
-		var index := _on_execution_callbacks.find(callback)
-		if index != -1:
-			_on_execution_callbacks.remove_at(index)
+	return _add_listener(_on_execution_callbacks, callback)
 
 func apply_effects(context: AbilityLifecycleContext) -> void:
 	if _state == STATE_GRANTED:
@@ -217,3 +209,10 @@ func _is_executing_instance(instance: AbilityExecutionInstance) -> bool:
 
 func _get_component_name(component: AbilityComponent) -> String:
 	return component.type if component.type != "" else component.get_class()
+
+func _add_listener(list: Array[Callable], callback: Callable) -> Callable:
+	list.append(callback)
+	return func() -> void:
+		var index := list.find(callback)
+		if index != -1:
+			list.remove_at(index)

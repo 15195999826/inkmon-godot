@@ -34,3 +34,11 @@ func _init(
 ## 创建仅有 base 值的 breakdown（无修改器）
 static func from_base(base_value: float) -> AttributeBreakdown:
 	return AttributeBreakdown.new(base_value, 0.0, 1.0, base_value, 0.0, 1.0, base_value)
+
+
+## 创建一个 current_value 被 clamp 后的副本
+func with_clamped_value(clamped: float) -> AttributeBreakdown:
+	return AttributeBreakdown.new(
+		base, add_base_sum, mul_base_product, body_value,
+		add_final_sum, mul_final_product, clamped,
+	)

@@ -101,27 +101,9 @@ func get_breakdown(name: String) -> AttributeBreakdown:
 	var mods: Array[AttributeModifier] = _get_modifiers_typed(name)
 	var breakdown := AttributeCalculator.calculate(base_value, mods)
 
-	var constraint: Variant = _constraints.get(name, null)
-	if constraint != null:
-		var clamped_current := breakdown.current_value
-		if constraint.has("min") and constraint["min"] != null and clamped_current < float(constraint["min"]):
-			clamped_current = float(constraint["min"])
-		if constraint.has("max") and constraint["max"] != null and clamped_current > float(constraint["max"]):
-			clamped_current = float(constraint["max"])
-		if clamped_current != breakdown.current_value:
-			var clamped_breakdown := AttributeBreakdown.new(
-				breakdown.base,
-				breakdown.add_base_sum,
-				breakdown.mul_base_product,
-				breakdown.body_value,
-				breakdown.add_final_sum,
-				breakdown.mul_final_product,
-				clamped_current,
-			)
-			_cache[name] = clamped_breakdown
-			_dirty_set.erase(name)
-			_computing_set.erase(name)
-			return clamped_breakdown
+	var clamped_current := _clamp_value(name, breakdown.current_value)
+	if clamped_current != breakdown.current_value:
+		breakdown = breakdown.with_clamped_value(clamped_current)
 
 	_cache[name] = breakdown
 	_dirty_set.erase(name)
@@ -233,11 +215,11 @@ func remove_all_change_listeners() -> void:
 	_listeners.clear()
 
 func set_hooks(name: String, hooks: Dictionary) -> void:
-	var existing: Dictionary = _hooks.get(name, {})
-	var merged: Dictionary = existing.duplicate(true)
-	for key in hooks.keys():
-		merged[key] = hooks[key]
-	_hooks[name] = merged
+	if not _hooks.has(name):
+		_hooks[name] = hooks.duplicate(true)
+		return
+	var existing: Dictionary = _hooks[name]
+	existing.merge(hooks, true)
 
 func get_hooks(name: String) -> Dictionary:
 	return _hooks.get(name, {})
@@ -246,14 +228,13 @@ func remove_hooks(name: String) -> void:
 	_hooks.erase(name)
 
 func set_global_hooks(hooks: Dictionary) -> void:
-	for key in hooks.keys():
-		_global_hooks[key] = hooks[key]
+	_global_hooks.merge(hooks, true)
 
 func get_global_hooks() -> Dictionary:
 	return _global_hooks.duplicate(true)
 
 func clear_global_hooks() -> void:
-	_global_hooks = {}
+	_global_hooks.clear()
 
 func apply_config(config: Dictionary) -> void:
 	for name in config.keys():
@@ -313,14 +294,7 @@ func _clamp_value(name: String, value: float) -> float:
 	if not _constraints.has(name):
 		return value
 	var constraint: Dictionary = _constraints[name]
-	var result := value
-	var min_val: float = constraint.get("min", -INF)
-	var max_val: float = constraint.get("max", INF)
-	if min_val != -INF and result < min_val:
-		result = min_val
-	if max_val != INF and result > max_val:
-		result = max_val
-	return result
+	return clampf(value, constraint.get("min", -INF), constraint.get("max", INF))
 
 func _notify_change(event: Dictionary) -> void:
 	for listener in _listeners:

@@ -160,18 +160,10 @@ func get_ability_count() -> int:
 	return _abilities.size()
 
 func on_ability_granted(callback: Callable) -> Callable:
-	_on_granted_callbacks.append(callback)
-	return func() -> void:
-		var index := _on_granted_callbacks.find(callback)
-		if index != -1:
-			_on_granted_callbacks.remove_at(index)
+	return _add_listener(_on_granted_callbacks, callback)
 
 func on_ability_revoked(callback: Callable) -> Callable:
-	_on_revoked_callbacks.append(callback)
-	return func() -> void:
-		var index := _on_revoked_callbacks.find(callback)
-		if index != -1:
-			_on_revoked_callbacks.remove_at(index)
+	return _add_listener(_on_revoked_callbacks, callback)
 
 func serialize() -> Dictionary:
 	var abilities: Array[Dictionary] = []
@@ -219,3 +211,10 @@ func _notify_revoked(ability: Ability, reason: String, expire_reason: String) ->
 
 static func create(p_owner_actor_id: String, p_attribute_set: BaseGeneratedAttributeSet = null) -> AbilitySet:
 	return AbilitySet.new(p_owner_actor_id, p_attribute_set)
+
+func _add_listener(list: Array[Callable], callback: Callable) -> Callable:
+	list.append(callback)
+	return func() -> void:
+		var index := list.find(callback)
+		if index != -1:
+			list.remove_at(index)
