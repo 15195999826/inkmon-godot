@@ -270,6 +270,9 @@ func check(ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: V
 
 **原因**：避免 Lint 警告，保持多态接口签名一致，符合 GDScript/Python 社区惯例。
 
+
+## 10. autoload 脚本继承 Node
+
 ---
 
 # 常见错误与解决方案

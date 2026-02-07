@@ -138,7 +138,7 @@ func hit(target_id: String) -> bool:
 
 	if bool(config.get("piercing", false)):
 		_pierce_count += 1
-		var max_pierce = config.get("maxPierceCount", null)
+		var max_pierce: Variant = config.get("maxPierceCount", null)
 		var max_pierce_count := INF if max_pierce == null else int(max_pierce)
 		if _pierce_count < max_pierce_count:
 			return true

@@ -36,7 +36,7 @@ func _compute_state_hash() -> int:
 		if prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			var prop_name: String = prop.name
 			if not prop_name.begins_with("_frozen"):
-				var value = get(prop_name)
+				var value: Variant = get(prop_name)
 				# 使用 str() 安全转换，引用对象会得到实例标识
 				parts.append("%s=%s" % [prop_name, str(value)])
 	return hash(",".join(parts))

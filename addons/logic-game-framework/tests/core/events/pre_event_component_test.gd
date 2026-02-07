@@ -31,7 +31,7 @@ func _init() -> void:
 	TestFramework.register_test("PreEventComponent - modifies event values", _test_modify_event)
 	TestFramework.register_test("PreEventComponent - cancels event", _test_cancel_event)
 
-func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
+func _build_context(state: Variant, event: Dictionary = {}) -> ExecutionContext:
 	var event_dict_chain: Array[Dictionary] = [event]
 	return ExecutionContext.create(
 		event_dict_chain,

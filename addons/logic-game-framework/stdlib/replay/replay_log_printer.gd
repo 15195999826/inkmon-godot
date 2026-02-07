@@ -2,9 +2,9 @@ class_name ReplayLogPrinter
 ## 纯静态工具类：录像日志打印
 
 static func print_record(record: Dictionary) -> void:
-	var meta = record.get("meta", {})
-	var timeline = record.get("timeline", [])
-	var initial_actors = record.get("initialActors", [])
+	var meta: Variant = record.get("meta", {})
+	var timeline: Variant = record.get("timeline", [])
+	var initial_actors: Variant = record.get("initialActors", [])
 
 	print("==========================================")
 	print("Battle Replay Log")

@@ -84,7 +84,7 @@ func revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, e
 	return true
 
 func revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_REASON_MANUAL) -> int:
-	var to_revoke := []
+	var to_revoke: Array[Ability] = []
 	for ability in _abilities:
 		if ability.config_id == config_id:
 			to_revoke.append(ability)
@@ -93,7 +93,7 @@ func revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_RE
 	return to_revoke.size()
 
 func revoke_abilities_by_ability_tag(tag: String, reason: String = REVOKE_REASON_MANUAL) -> int:
-	var to_revoke := []
+	var to_revoke: Array[Ability] = []
 	for ability in _abilities:
 		if ability.has_ability_tag(tag):
 			to_revoke.append(ability)
@@ -174,7 +174,7 @@ func on_ability_revoked(callback: Callable) -> Callable:
 			_on_revoked_callbacks.remove_at(index)
 
 func serialize() -> Dictionary:
-	var abilities := []
+	var abilities: Array[Dictionary] = []
 	for ability in _abilities:
 		abilities.append(ability.serialize())
 	return {

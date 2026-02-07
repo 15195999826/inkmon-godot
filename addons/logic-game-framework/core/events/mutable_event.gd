@@ -34,7 +34,7 @@ func cancel(handler_id: String, reason: String) -> void:
 	cancel_reason = reason
 
 func get_current_value(field: String) -> Variant:
-	var original_value = original.get(field, null)
+	var original_value: Variant = original.get(field, null)
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return original_value
 
@@ -66,7 +66,7 @@ func get_final_values() -> Dictionary:
 	return result
 
 func get_field_computation_steps(field: String) -> Variant:
-	var original_value = original.get(field, null)
+	var original_value: Variant = original.get(field, null)
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
 		return null
 
@@ -74,7 +74,7 @@ func get_field_computation_steps(field: String) -> Variant:
 	if grouped.is_empty:
 		return null
 
-	var steps := []
+	var steps: Array[Dictionary] = []
 	var value := float(original_value)
 	var sets: Array[Modification] = grouped.sets
 	var adds: Array[Modification] = grouped.adds
@@ -103,13 +103,13 @@ func get_field_computation_steps(field: String) -> Variant:
 func get_all_computation_steps() -> Array[Dictionary]:
 	var records: Array[Dictionary] = []
 	for field in _get_modified_fields():
-		var record = get_field_computation_steps(str(field))
+		var record: Variant = get_field_computation_steps(str(field))
 		if record:
 			records.append(record)
 	return records
 
 func format_computation_log(field: String) -> String:
-	var record = get_field_computation_steps(field)
+	var record: Variant = get_field_computation_steps(field)
 	if record == null:
 		return "%s: no modifications" % field
 

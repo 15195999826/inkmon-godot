@@ -75,7 +75,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		target_position = _target_position.resolve(ctx)
 
 	var targets := get_targets(ctx)
-	var target = targets[0] if targets.size() > 0 else null
+	var target: Variant = targets[0] if targets.size() > 0 else null
 	var target_actor_id: String = target.id if target != null else ""
 
 	# 解析其他参数
@@ -100,7 +100,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	projectile.launch(launch_params)
 
-	var launched_event = ProjectileEvents.create_projectile_launched_event(
+	var launched_event := ProjectileEvents.create_projectile_launched_event(
 		projectile.id,
 		source_actor_id,
 		start_position,
@@ -160,7 +160,7 @@ func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -
 ## 创建从 Actor 获取位置的解析器
 static func create_actor_position_resolver(actor_ref_resolver: Callable) -> Vector3Resolver:
 	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
-		var actor_ref = actor_ref_resolver.call(ctx)
+		var actor_ref: Variant = actor_ref_resolver.call(ctx)
 		if not (actor_ref is Dictionary) or not actor_ref.has("id"):
 			return Vector3.ZERO
 

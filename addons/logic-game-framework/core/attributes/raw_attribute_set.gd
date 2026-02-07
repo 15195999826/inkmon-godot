@@ -62,7 +62,7 @@ func set_base(name: String, value: float) -> void:
 		"changeType": _CHANGE_TYPE_BASE,
 	}
 
-	var hook_result = _invoke_pre_hook("preBaseChange", event)
+	var hook_result: Variant = _invoke_pre_hook("preBaseChange", event)
 	if hook_result == false:
 		return
 
@@ -101,7 +101,7 @@ func get_breakdown(name: String) -> AttributeBreakdown:
 	var mods: Array[AttributeModifier] = _get_modifiers_typed(name)
 	var breakdown := AttributeCalculator.calculate(base_value, mods)
 
-	var constraint = _constraints.get(name, null)
+	var constraint: Variant = _constraints.get(name, null)
 	if constraint != null:
 		var clamped_current := breakdown.current_value
 		if constraint.has("min") and constraint["min"] != null and clamped_current < float(constraint["min"]):
@@ -332,16 +332,16 @@ func _notify_change(event: Dictionary) -> void:
 func _invoke_pre_hook(hook_name: String, event: Dictionary) -> Variant:
 	var attr_hooks: Dictionary = _hooks.get(event.get("attributeName", ""), {})
 	if attr_hooks.has(hook_name):
-		var hook = attr_hooks[hook_name]
+		var hook: Variant = attr_hooks[hook_name]
 		if hook is Callable:
-			var result = hook.call(event)
+			var result: Variant = hook.call(event)
 			if result == false or typeof(result) in [TYPE_INT, TYPE_FLOAT]:
 				return result
 
 	if _global_hooks.has(hook_name):
-		var global_hook = _global_hooks[hook_name]
+		var global_hook: Variant = _global_hooks[hook_name]
 		if global_hook is Callable:
-			var result = global_hook.call(event)
+			var result: Variant = global_hook.call(event)
 			if result == false or typeof(result) in [TYPE_INT, TYPE_FLOAT]:
 				return result
 
@@ -350,18 +350,18 @@ func _invoke_pre_hook(hook_name: String, event: Dictionary) -> Variant:
 func _invoke_post_hook(hook_name: String, event: Dictionary) -> void:
 	var attr_hooks: Dictionary = _hooks.get(event.get("attributeName", ""), {})
 	if attr_hooks.has(hook_name):
-		var hook = attr_hooks[hook_name]
+		var hook: Variant = attr_hooks[hook_name]
 		if hook is Callable:
 			hook.call(event)
 
 	if _global_hooks.has(hook_name):
-		var global_hook = _global_hooks[hook_name]
+		var global_hook: Variant = _global_hooks[hook_name]
 		if global_hook is Callable:
 			global_hook.call(event)
 
 ## 内部辅助：从 _modifiers Dictionary 取出类型化数组
 func _get_modifiers_typed(name: String) -> Array[AttributeModifier]:
-	var raw_array = _modifiers.get(name, [])
+	var raw_array: Variant = _modifiers.get(name, [])
 	if raw_array is Array[AttributeModifier]:
 		return raw_array
 	# 兜底：空数组情况

@@ -159,13 +159,13 @@ func has_ability_tag(tag: String) -> bool:
 	return ability_tags.has(tag)
 
 func serialize() -> Dictionary:
-	var serialized_components := []
+	var serialized_components: Array[Dictionary] = []
 	for component in _components:
 		serialized_components.append({
 			"type": component.type,
 			"data": component.serialize(),
 		})
-	var serialized_instances := []
+	var serialized_instances: Array[Dictionary] = []
 	for instance in _execution_instances:
 		if instance:
 			serialized_instances.append(instance.serialize())

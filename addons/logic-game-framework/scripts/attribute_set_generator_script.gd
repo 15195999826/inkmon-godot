@@ -180,8 +180,8 @@ func _build_derived_expression(cfg: Dictionary) -> String:
 		return ""
 	
 	var op: String = cfg["op"]
-	var left = cfg["left"]
-	var right = cfg["right"]
+	var left: Variant = cfg["left"]
+	var right: Variant = cfg["right"]
 	
 	var left_expr := _operand_to_expression(left)
 	var right_expr := _operand_to_expression(right)

@@ -7,11 +7,11 @@ const PERMANENT_DURATION := -1.0
 const REMOVE_ALL_STACKS := -1
 
 static func _get_ability_set_for_target(_ctx: ExecutionContext, target: TargetSelector.TargetRef) -> AbilitySet:
-	var actor = GameWorld.get_actor(target.id)
+	var actor := GameWorld.get_actor(target.id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
 static func _get_logic_time(ctx: ExecutionContext) -> float:
-	var event = ctx.get_current_event()
+	var event: Variant = ctx.get_current_event()
 	if event != null and event.has("logicTime") and typeof(event["logicTime"]) in [TYPE_INT, TYPE_FLOAT]:
 		return float(event["logicTime"])
 	return IGameStateProvider.get_logic_time(ctx.game_state_provider)
@@ -41,11 +41,11 @@ class ApplyTagAction:
 		_duration = tag_duration
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
-		var targets = get_targets(ctx)
+		var targets := get_targets(ctx)
 		var duration_value := _duration.resolve(ctx)
 		var stacks_value := _stacks.resolve(ctx)
 		for target in targets:
-			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:
 				Log.debug("TagAction", "ApplyTagAction: 无法获取 AbilitySet")
 				continue
@@ -76,10 +76,10 @@ class RemoveTagAction:
 		_stacks = stacks_count
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
-		var targets = get_targets(ctx)
+		var targets := get_targets(ctx)
 		var stacks_value := _stacks.resolve(ctx)
 		for target in targets:
-			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:
 				Log.debug("TagAction", "RemoveTagAction: 无法获取 AbilitySet")
 				continue
@@ -120,14 +120,14 @@ class HasTagAction:
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")
-		var targets = get_targets(ctx)
+		var targets := get_targets(ctx)
 		var all_events: Array[Dictionary] = []
 		for target in targets:
-			var ability_set = TagAction._get_ability_set_for_target(ctx, target)
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
 			if ability_set == null:
 				continue
 			var has_tag := ability_set.has_tag(tag)
-			var actions = then_actions if has_tag else else_actions
+			var actions: Array[Action.BaseAction] = then_actions if has_tag else else_actions
 			for action in actions:
 				var result: ActionResult = action.execute(ctx)
 				action._verify_unchanged()

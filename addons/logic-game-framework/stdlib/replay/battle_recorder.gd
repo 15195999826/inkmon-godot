@@ -75,7 +75,7 @@ func stop_recording(result: String = "") -> Dictionary:
 	return _record.to_dict()
 
 func export_json(result: String = "", pretty: bool = true) -> String:
-	var record = stop_recording(result)
+	var record := stop_recording(result)
 	return JSON.stringify(record, "\t" if pretty else "")
 
 func get_is_recording() -> bool:
@@ -109,7 +109,7 @@ func unregister_actor(actor_id: String, reason: String = "") -> void:
 	var event := GameEvent.ActorDestroyed.create(actor_id, reason)
 	pending_events.append(event.to_dict())
 
-	var subscription = actor_subscriptions.get(actor_id)
+	var subscription: Variant = actor_subscriptions.get(actor_id)
 	if subscription:
 		for unsub in subscription.get("unsubscribes", []):
 			if unsub is Callable:
@@ -138,7 +138,7 @@ func _subscribe_actor(actor: Actor) -> void:
 				state.pending_events.append(event),
 	}
 
-	var unsubscribes: Array = actor.setup_recording(ctx)
+	var unsubscribes: Array[Callable] = actor.setup_recording(ctx)
 
 	if not unsubscribes.is_empty():
 		actor_subscriptions[actor_id] = {

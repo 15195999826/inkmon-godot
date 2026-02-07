@@ -154,7 +154,7 @@ func add_component_tags(component_id: String, tags: Dictionary) -> void:
 		merged[tag] = int(merged.get(tag, 0)) + int(tags[tag])
 	_component_tags[component_id] = merged
 
-	var tag_list := []
+	var tag_list: Array[String] = []
 	for tag in tags.keys():
 		tag_list.append("%s:%s" % [str(tag), str(tags[tag])])
 	Log.debug("TagContainer", "添加 ComponentTags: %s" % ", ".join(tag_list))
@@ -180,7 +180,7 @@ func remove_component_tags(component_id: String) -> void:
 
 	_component_tags.erase(component_id)
 
-	var tag_list := []
+	var tag_list: Array[String] = []
 	for tag in tags.keys():
 		tag_list.append("%s:%s" % [str(tag), str(tags[tag])])
 	Log.debug("TagContainer", "移除 ComponentTags: %s" % ", ".join(tag_list))
