@@ -1,5 +1,5 @@
-extends AbilityComponent
 class_name Condition
+extends AbilityComponent
 
 var _frozen_hash: int = 0
 

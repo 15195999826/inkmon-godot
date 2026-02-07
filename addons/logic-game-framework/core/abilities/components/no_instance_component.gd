@@ -1,5 +1,5 @@
-extends AbilityComponent
 class_name NoInstanceComponent
+extends AbilityComponent
 
 const TYPE := "NoInstanceComponent"
 

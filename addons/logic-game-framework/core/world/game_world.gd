@@ -42,7 +42,7 @@ func shutdown() -> void:
 
 func create_instance(factory: Callable) -> GameplayInstance:
 	var instance: GameplayInstance = factory.call()
-	if not instance or not instance.id or str(instance.id) == "":
+	if instance == null or instance.id == "":
 		Log.warning("GameWorld", "Instance factory returned invalid instance")
 		return instance
 	if _instances.has(instance.id):
@@ -63,11 +63,10 @@ func get_instances_by_type(type_value: String) -> Array[GameplayInstance]:
 	return result
 
 func destroy_instance(id_value: String) -> bool:
-	if not _instances.has(id_value):
+	var instance: GameplayInstance = _instances.get(id_value)
+	if instance == null:
 		return false
-	var instance: GameplayInstance = _instances[id_value]
-	if instance:
-		instance.end()
+	instance.end()
 	_instances.erase(id_value)
 	Log.debug("GameWorld", "Instance destroyed: %s" % id_value)
 	return true

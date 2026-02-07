@@ -1,5 +1,5 @@
-extends ActivateInstanceComponent
 class_name ActiveUseComponent
+extends ActivateInstanceComponent
 
 const COMPONENT_TYPE := "ActiveUseComponent"
 

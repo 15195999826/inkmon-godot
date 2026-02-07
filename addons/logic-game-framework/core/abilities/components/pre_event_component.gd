@@ -1,5 +1,5 @@
-extends AbilityComponent
 class_name PreEventComponent
+extends AbilityComponent
 
 const TYPE := "PreEventComponent"
 
@@ -22,11 +22,11 @@ func get_event_kind() -> String:
 
 func on_apply(context: AbilityLifecycleContext) -> void:
 	_lifecycle_context = context
-	var event_processor: EventProcessor = context.event_processor
-	if event_processor == null:
+	var proc := context.event_processor
+	if proc == null:
 		Log.warning("PreEventComponent", "PreEventComponent: EventProcessor not available, handler will not be registered")
 		return
-	var ability: Ability = context.ability
+	var ability := context.ability
 	var handler_filter := func(event_dict: Dictionary) -> bool:
 		if _filter.is_valid():
 			return _filter.call(event_dict, _lifecycle_context)
@@ -43,7 +43,7 @@ func on_apply(context: AbilityLifecycleContext) -> void:
 		handler_filter,  # filter
 		_handler_name if _handler_name != "" else (ability.display_name if ability.display_name != "" else ability.config_id)  # handler_name
 	)
-	_unregister = event_processor.register_pre_handler(registration)
+	_unregister = proc.register_pre_handler(registration)
 
 func on_remove(_context: AbilityLifecycleContext) -> void:
 	if _unregister.is_valid():

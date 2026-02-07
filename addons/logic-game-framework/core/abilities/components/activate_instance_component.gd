@@ -1,5 +1,5 @@
-extends AbilityComponent
 class_name ActivateInstanceComponent
+extends AbilityComponent
 
 const TYPE := "ActivateInstanceComponent"
 
@@ -27,10 +27,10 @@ func _check_triggers(event_dict: Dictionary, context: AbilityLifecycleContext) -
 	return AbilityComponent.match_triggers(_triggers, _trigger_mode, event_dict, context)
 
 func _activate_execution(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
-	var ability: Ability = context.ability
+	var ability := context.ability
 	if ability == null:
 		return
-	var instance: AbilityExecutionInstance = ability.activate_new_execution_instance(
+	ability.activate_new_execution_instance(
 		_timeline_id,
 		_tag_actions,
 		event_dict,

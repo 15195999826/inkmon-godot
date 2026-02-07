@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilityLifecycleContext
+extends RefCounted
 ## Ability 生命周期上下文
 ##
 ## 在 Ability 的 apply/remove/event 等生命周期方法中传递的上下文对象。

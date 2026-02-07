@@ -1,5 +1,5 @@
-extends RefCounted
 class_name Ability
+extends RefCounted
 
 const STATE_PENDING := "pending"
 const STATE_GRANTED := "granted"
@@ -106,11 +106,11 @@ func receive_event(event_dict: Dictionary, context: AbilityLifecycleContext, gam
 	if _state == STATE_EXPIRED:
 		return
 	var triggered_components: Array[String] = []
-	for component in _components:
-		if not component.is_active():
+	for comp in _components:
+		if not comp.is_active():
 			continue
-		if component.on_event(event_dict, context, game_state_provider):
-			triggered_components.append(_get_component_name(component))
+		if comp.on_event(event_dict, context, game_state_provider):
+			triggered_components.append(_get_component_name(comp))
 	if not triggered_components.is_empty():
 		for callback in _on_triggered_callbacks:
 			if callback.is_valid():

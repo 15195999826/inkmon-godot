@@ -1,5 +1,5 @@
-extends RefCounted
 class_name System
+extends RefCounted
 
 const SystemPriority = {
 	"HIGHEST": 0,

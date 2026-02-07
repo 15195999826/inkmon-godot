@@ -1,5 +1,5 @@
-extends RefCounted
 class_name GameplayInstance
+extends RefCounted
 
 var id: String
 var type: String = "instance"

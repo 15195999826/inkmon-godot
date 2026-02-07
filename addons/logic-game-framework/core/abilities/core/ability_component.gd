@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilityComponent
+extends RefCounted
 ## Ability 组件基类
 ##
 ## 所有 Ability 组件都应继承此类。

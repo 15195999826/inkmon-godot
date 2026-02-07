@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilityExecutionInstance
+extends RefCounted
 
 const STATE_EXECUTING := "executing"
 const STATE_COMPLETED := "completed"

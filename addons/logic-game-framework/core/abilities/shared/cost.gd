@@ -1,5 +1,5 @@
-extends RefCounted
 class_name Cost
+extends RefCounted
 
 var type: String = "cost"
 var _frozen_hash: int = 0

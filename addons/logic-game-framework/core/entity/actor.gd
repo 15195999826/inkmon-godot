@@ -1,5 +1,5 @@
-extends RefCounted
 class_name Actor
+extends RefCounted
 
 var _id: String = ""
 var type: String = "actor"
@@ -147,6 +147,3 @@ func get_ability_snapshot() -> Array[Dictionary]:
 ## 获取 Tag 快照（子类应覆盖）
 func get_tag_snapshot() -> Dictionary:
 	return {}
-
-
-

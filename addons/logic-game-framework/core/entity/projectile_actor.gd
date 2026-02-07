@@ -1,5 +1,5 @@
-extends Actor
 class_name ProjectileActor
+extends Actor
 
 const PROJECTILE_TYPE_BULLET := "bullet"
 const PROJECTILE_TYPE_HITSCAN := "hitscan"
@@ -30,9 +30,7 @@ var _hit_targets: Dictionary = {}
 func _init(config_value: Dictionary = {}):
 	type = "Projectile"
 	config = DEFAULT_CONFIG.duplicate(true)
-	if config_value != null:
-		for key in config_value.keys():
-			config[key] = config_value[key]
+	config.merge(config_value, true)
 
 
 ## 覆盖基类方法，返回投射物位置
@@ -124,11 +122,10 @@ func update_position(dt: float) -> void:
 	_position += movement
 
 func get_distance_to_target() -> float:
-	if not _launch_params.has("targetPosition"):
+	var target_pos: Variant = _launch_params.get("targetPosition")
+	if not target_pos is Vector3:
 		return INF
-	if not (_launch_params["targetPosition"] is Vector3):
-		return INF
-	return _position.distance_to(_launch_params["targetPosition"])
+	return _position.distance_to(target_pos)
 
 func hit(target_id: String) -> bool:
 	if _projectile_state != STATE_FLYING:

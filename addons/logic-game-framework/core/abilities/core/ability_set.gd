@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilitySet
+extends RefCounted
 
 const REVOKE_REASON_EXPIRED := "expired"
 const REVOKE_REASON_DISPELLED := "dispelled"
@@ -73,7 +73,7 @@ func revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, e
 			break
 	if index == -1:
 		return false
-	var ability: Ability = _abilities[index]
+	var ability := _abilities[index]
 	var effective_expire_reason := expire_reason if expire_reason != "" else reason
 	if not ability.is_expired():
 		ability.expire(effective_expire_reason)
