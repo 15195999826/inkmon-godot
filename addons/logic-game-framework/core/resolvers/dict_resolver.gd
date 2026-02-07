@@ -1,3 +1,5 @@
+class_name DictResolver
+extends RefCounted
 ## DictResolver - 返回 Dictionary 的参数解析器
 ##
 ## 用于 Action 参数的延迟求值，支持固定值或动态计算。
@@ -12,8 +14,6 @@
 ##   
 ##   # 在 Action 中使用
 ##   var value := params.resolve(ctx)
-class_name DictResolver
-extends RefCounted
 
 var _resolver: Callable
 

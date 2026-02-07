@@ -1,5 +1,5 @@
-extends RefCounted
 class_name ExecutionContext
+extends RefCounted
 
 ## 执行上下文
 ##
@@ -63,7 +63,7 @@ func _init(
 func get_current_event() -> Dictionary:
 	if event_dict_chain.is_empty():
 		return {}
-	return event_dict_chain[event_dict_chain.size() - 1]
+	return event_dict_chain.back()
 
 
 ## 获取原始触发事件（事件链的第一个元素）
@@ -71,7 +71,7 @@ func get_current_event() -> Dictionary:
 func get_original_event() -> Dictionary:
 	if event_dict_chain.is_empty():
 		return {}
-	return event_dict_chain[0]
+	return event_dict_chain.front()
 
 
 ## 推送事件到收集器

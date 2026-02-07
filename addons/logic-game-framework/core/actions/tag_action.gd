@@ -1,5 +1,5 @@
-extends RefCounted
 class_name TagAction
+extends RefCounted
 
 ## 永久标签的 duration 值（不会自动过期）
 const PERMANENT_DURATION := -1.0

@@ -1,5 +1,5 @@
-extends RefCounted
 class_name ActionResult
+extends RefCounted
 
 var success: bool
 var event_dicts: Array[Dictionary]

@@ -8,8 +8,8 @@
 ##       "targetSelector": TargetSelector.current_target(),
 ##       "damage": 50.0,
 ##   })
-extends RefCounted
 class_name TargetSelector
+extends RefCounted
 
 
 ## 目标引用类（简单包装 actor_id）

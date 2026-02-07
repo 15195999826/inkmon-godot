@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilityRef
+extends RefCounted
 
 ## Ability 轻量引用
 ##

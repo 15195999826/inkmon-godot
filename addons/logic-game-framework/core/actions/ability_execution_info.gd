@@ -1,5 +1,5 @@
-extends RefCounted
 class_name AbilityExecutionInfo
+extends RefCounted
 
 ## Ability 执行实例信息
 ##

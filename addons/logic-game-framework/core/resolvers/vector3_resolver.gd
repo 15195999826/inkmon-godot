@@ -1,3 +1,5 @@
+class_name Vector3Resolver
+extends RefCounted
 ## Vector3Resolver - 返回 Vector3 的参数解析器
 ##
 ## 用于 Action 参数的延迟求值，支持固定值或动态计算。
@@ -12,8 +14,6 @@
 ##   
 ##   # 在 Action 中使用
 ##   var value := position.resolve(ctx)
-class_name Vector3Resolver
-extends RefCounted
 
 var _resolver: Callable
 

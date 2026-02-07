@@ -1,5 +1,5 @@
-extends RefCounted
 class_name Action
+extends RefCounted
 
 
 class BaseAction:
