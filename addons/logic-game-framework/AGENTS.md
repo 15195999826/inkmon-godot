@@ -150,7 +150,21 @@ ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", tru
 
 除 `IGameStateProvider` 外，其他函数参数使用 `Variant` 类型通常是设计失误，应该使用具体类型。
 
-## 4. PreEventConfig handler 规范
+## 4. Resolvers - 参数解析器
+
+类型安全的延迟求值参数，用于 Action 等共享对象。通过 `Resolvers` 工厂创建，`resolve(ctx: ExecutionContext)` 取值。
+
+| Resolver | 返回类型 | 固定值 | 动态值 |
+|----------|---------|--------|--------|
+| `FloatResolver` | `float` | `Resolvers.float_val(v)` | `Resolvers.float_fn(fn)` |
+| `IntResolver` | `int` | `Resolvers.int_val(v)` | `Resolvers.int_fn(fn)` |
+| `StringResolver` | `String` | `Resolvers.str_val(v)` | `Resolvers.str_fn(fn)` |
+| `DictResolver` | `Dictionary` | `Resolvers.dict_val(v)` | `Resolvers.dict_fn(fn)` |
+| `Vector3Resolver` | `Vector3` | `Resolvers.vec3_val(v)` | `Resolvers.vec3_fn(fn)` |
+
+`ParamResolver.resolve_param(resolver: Variant, ctx)` 接受 `Variant` 是**合理设计** — 需同时处理所有 Resolver 类型和原始 `Callable`，GDScript 无泛型/union type。新代码优先用类型化 Resolver。
+
+## 5. PreEventConfig handler 规范
 
 ### 签名约定
 

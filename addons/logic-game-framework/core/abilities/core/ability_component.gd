@@ -59,3 +59,29 @@ func on_remove(_context: AbilityLifecycleContext) -> void:
 ## 序列化组件状态（可选覆盖）
 func serialize() -> Dictionary:
 	return {}
+
+
+## 检查事件是否匹配触发器列表
+## triggers: 触发器字典数组，每个包含 "eventKind" 和可选 "filter"
+## trigger_mode: "any"（任一匹配）或 "all"（全部匹配）
+static func match_triggers(triggers: Array[Dictionary], trigger_mode: String, event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
+	if triggers.is_empty():
+		return false
+	if trigger_mode == "any":
+		for trigger in triggers:
+			if match_single_trigger(trigger, event_dict, context):
+				return true
+		return false
+	for trigger in triggers:
+		if not match_single_trigger(trigger, event_dict, context):
+			return false
+	return true
+
+
+## 匹配单个触发器：检查 eventKind 和可选 filter
+static func match_single_trigger(trigger: Dictionary, event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
+	if event_dict.get("kind", "") != str(trigger.get("eventKind", "")):
+		return false
+	if trigger.has("filter") and trigger["filter"] is Callable:
+		return trigger["filter"].call(event_dict, context)
+	return true

@@ -38,7 +38,7 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 		_process_hitscan(projectile, potential_targets)
 		return
 
-	var still_flying = projectile.update(dt)
+	var still_flying := projectile.update(dt)
 
 	if not still_flying:
 		if projectile.get_projectile_state() == ProjectileActor.STATE_MISSED:
@@ -46,14 +46,14 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 		_mark_for_removal(projectile)
 		return
 
-	var valid_targets = _filter_valid_targets(projectile, potential_targets)
-	var collision = collision_detector.detect(projectile, valid_targets)
+	var valid_targets := _filter_valid_targets(projectile, potential_targets)
+	var collision := collision_detector.detect(projectile, valid_targets)
 
 	if collision.get("hit", false) and collision.get("target"):
 		_process_hit(projectile, collision)
 
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
-	var valid_targets = _filter_valid_targets(projectile, potential_targets)
+	var valid_targets := _filter_valid_targets(projectile, potential_targets)
 
 	var target_actor_id: String = projectile.get_target_actor_id()
 	if target_actor_id != "":
@@ -69,7 +69,7 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 			_mark_for_removal(projectile)
 			return
 
-	var collision = collision_detector.detect(projectile, valid_targets)
+	var collision := collision_detector.detect(projectile, valid_targets)
 	if collision.get("hit", false) and collision.get("target_actor_id"):
 		var hit_target_actor_id: String = collision.get("target_actor_id")
 		projectile.hit(hit_target_actor_id)
@@ -87,7 +87,7 @@ func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
 	if target_actor_id == "" or not hit_position:
 		return
 
-	var continue_flying = projectile.hit(target_actor_id)
+	var continue_flying := projectile.hit(target_actor_id)
 
 	if continue_flying:
 		_emit_pierce_event(projectile, target_actor_id, hit_position)
@@ -118,9 +118,9 @@ func _mark_for_removal(projectile: ProjectileActor) -> void:
 
 func _process_pending_removal(actors: Array[Actor]) -> void:
 	# Remove marked projectiles from actors array
-	var i = 0
+	var i := 0
 	while i < actors.size():
-		var actor = actors[i]
+		var actor := actors[i]
 		if actor is ProjectileActor and pending_removal.has(actor.id):
 			actors.remove_at(i)
 		else:
@@ -134,7 +134,7 @@ func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_p
 	var source_actor_id: String = projectile.get_source_actor_id()
 	if source_actor_id == "":
 		source_actor_id = "unknown"
-	var event = ProjectileEvents.create_projectile_hit_event(
+	var event := ProjectileEvents.create_projectile_hit_event(
 		projectile.id,
 		source_actor_id,
 		target_actor_id,
@@ -158,7 +158,7 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 		source_actor_id = "unknown"
 	var final_position := projectile.position
 
-	var event = ProjectileEvents.create_projectile_miss_event(
+	var event := ProjectileEvents.create_projectile_miss_event(
 		projectile.id,
 		source_actor_id,
 		reason,
@@ -169,7 +169,7 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 
 	event_collector.push(event)
 
-	var despawn_event = ProjectileEvents.create_projectile_despawn_event(
+	var despawn_event := ProjectileEvents.create_projectile_despawn_event(
 		projectile.id,
 		source_actor_id,
 		"miss"
@@ -184,7 +184,7 @@ func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pi
 	var source_actor_id: String = projectile.get_source_actor_id()
 	if source_actor_id == "":
 		source_actor_id = "unknown"
-	var event = ProjectileEvents.create_projectile_pierce_event(
+	var event := ProjectileEvents.create_projectile_pierce_event(
 		projectile.id,
 		source_actor_id,
 		target_actor_id,

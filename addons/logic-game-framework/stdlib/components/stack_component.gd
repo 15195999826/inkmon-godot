@@ -1,5 +1,11 @@
 extends AbilityComponent
 class_name StackComponent
+## 层数管理组件（设计阶段，尚未实际使用）
+##
+## 管理 Ability 的层数（stacks），支持三种溢出策略：
+## - CAP: 达到上限后不再增加
+## - REFRESH: 达到上限后不再增加，同时重置同 Ability 上 TimeDurationComponent 的剩余时间（TODO: 刷新逻辑未实现）
+## - REJECT: 达到上限后拒绝添加
 
 enum StackOverflowPolicy {
 	CAP,
@@ -34,6 +40,8 @@ func add_stacks(count: int) -> int:
 		StackOverflowPolicy.CAP:
 			stacks = mini(new_value, max_stacks)
 		StackOverflowPolicy.REFRESH:
+			# TODO: REFRESH 应在叠加层数的同时重置 TimeDurationComponent 的 remaining
+			# 当前行为与 CAP 相同，待实际使用时补充刷新逻辑
 			stacks = mini(new_value, max_stacks)
 		StackOverflowPolicy.REJECT:
 			if new_value <= max_stacks:

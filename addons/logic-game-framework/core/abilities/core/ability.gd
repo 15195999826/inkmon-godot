@@ -145,6 +145,8 @@ func remove_effects() -> void:
 	for component in _components:
 		component.on_remove(_lifecycle_context)
 	_lifecycle_context = null
+	_on_triggered_callbacks.clear()
+	_on_execution_callbacks.clear()
 
 func expire(reason: String) -> void:
 	if _state == STATE_EXPIRED:

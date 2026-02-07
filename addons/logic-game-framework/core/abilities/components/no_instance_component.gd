@@ -33,24 +33,7 @@ func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_sta
 	return false
 
 func _check_triggers(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
-	if _triggers.is_empty():
-		return false
-	if _trigger_mode == "any":
-		for trigger in _triggers:
-			if _match_trigger(trigger, event_dict, context):
-				return true
-		return false
-	for trigger in _triggers:
-		if not _match_trigger(trigger, event_dict, context):
-			return false
-	return true
-
-func _match_trigger(trigger: Dictionary, event_dict: Dictionary, context: AbilityLifecycleContext) -> bool:
-	if event_dict.get("kind", "") != str(trigger.get("eventKind", "")):
-		return false
-	if trigger.has("filter") and trigger["filter"] is Callable:
-		return trigger["filter"].call(event_dict, context)
-	return true
+	return AbilityComponent.match_triggers(_triggers, _trigger_mode, event_dict, context)
 
 func _execute_actions(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void:
 	var exec_context := _build_execution_context(event_dict, context, game_state_provider)
