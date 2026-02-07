@@ -1,5 +1,5 @@
-extends RefCounted
 class_name BaseGeneratedAttributeSet
+extends RefCounted
 ## 生成的 AttributeSet 基类
 ##
 ## 所有由 AttributeSetGeneratorScript 生成的类都继承此基类。
