@@ -179,8 +179,8 @@ static func create_fixed_position_resolver(position: Vector3) -> Vector3Resolver
 ## 从事件中获取源位置的解析器
 static func source_position_resolver() -> Vector3Resolver:
 	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
-		var event = ctx.get_current_event()
-		if event and event.has("sourcePosition"):
+		var event := ctx.get_current_event()
+		if event.has("sourcePosition"):
 			return event.sourcePosition
 		return Vector3.ZERO
 	)
@@ -189,8 +189,8 @@ static func source_position_resolver() -> Vector3Resolver:
 ## 从事件中获取目标位置的解析器
 static func target_position_resolver() -> Vector3Resolver:
 	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
-		var event = ctx.get_current_event()
-		if event and event.has("targetPosition"):
+		var event := ctx.get_current_event()
+		if event.has("targetPosition"):
 			return event.targetPosition
 		return Vector3.ZERO
 	)

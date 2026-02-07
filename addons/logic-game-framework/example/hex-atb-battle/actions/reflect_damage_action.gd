@@ -44,11 +44,11 @@ func _init(
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var current_event: Dictionary = ctx.get_current_event()
+	var current_event := ctx.get_current_event()
 	
 	# 从触发事件获取攻击来源（使用回放格式）
 	var attacker_id: String = ""
-	if current_event is Dictionary:
+	if not current_event.is_empty():
 		attacker_id = current_event.get("source_actor_id", "")
 	
 	if attacker_id == "":

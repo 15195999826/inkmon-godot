@@ -32,18 +32,17 @@ func select(_ctx: ExecutionContext) -> Array[TargetRef]:
 ## 从当前事件获取目标（event.target_actor_id 或 event.target_actor_ids）
 class CurrentTarget extends TargetSelector:
 	func select(ctx: ExecutionContext) -> Array[TargetRef]:
-		var event: Dictionary = ctx.get_current_event()
-		if event == null:
+		var event := ctx.get_current_event()
+		if event.is_empty():
 			return []
-		if event is Dictionary:
-			if event.has("target_actor_ids") and event["target_actor_ids"] is Array:
-				var result: Array[TargetRef] = []
-				for t in event["target_actor_ids"]:
-					if t is String:
-						result.append(TargetRef.new(t))
-				return result
-			if event.has("target_actor_id") and event["target_actor_id"] is String:
-				return [TargetRef.new(event["target_actor_id"])]
+		if event.has("target_actor_ids") and event["target_actor_ids"] is Array:
+			var result: Array[TargetRef] = []
+			for t in event["target_actor_ids"]:
+				if t is String:
+					result.append(TargetRef.new(t))
+			return result
+		if event.has("target_actor_id") and event["target_actor_id"] is String:
+			return [TargetRef.new(event["target_actor_id"])]
 		return []
 
 

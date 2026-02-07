@@ -21,9 +21,9 @@ class_name ExecutionContext
 ##
 ## 转换为强类型事件：
 ## [code]
-## var dict := ctx.get_current_event()
-## if BattleEvents.DamageEvent.is_match(dict):
-##     var event := BattleEvents.DamageEvent.from_dict(dict)
+## var event_dict := ctx.get_current_event()
+## if BattleEvents.DamageEvent.is_match(event_dict):
+##     var event := BattleEvents.DamageEvent.from_dict(event_dict)
 ##     print(event.damage)  # 类型安全访问
 ## [/code]
 
@@ -59,16 +59,18 @@ func _init(
 
 
 ## 获取当前触发事件（事件链的最后一个元素）
-func get_current_event() -> Variant:
+## 无事件时返回空字典，调用方通过 .has() / .is_empty() 判断。
+func get_current_event() -> Dictionary:
 	if event_dict_chain.is_empty():
-		return null
+		return {}
 	return event_dict_chain[event_dict_chain.size() - 1]
 
 
 ## 获取原始触发事件（事件链的第一个元素）
-func get_original_event() -> Variant:
+## 无事件时返回空字典，调用方通过 .has() / .is_empty() 判断。
+func get_original_event() -> Dictionary:
 	if event_dict_chain.is_empty():
-		return null
+		return {}
 	return event_dict_chain[0]
 
 

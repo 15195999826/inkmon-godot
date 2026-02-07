@@ -271,7 +271,27 @@ func check(ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: V
 **原因**：避免 Lint 警告，保持多态接口签名一致，符合 GDScript/Python 社区惯例。
 
 
-## 10. autoload 脚本继承 Node
+## 10. 值类型避免 Variant：用空值代替 null
+
+GDScript 的值类型（`Dictionary`、`Array`）没有 nullable 语法。当函数可能"无结果"时，**返回空值而非 `null`**，避免被迫使用 `-> Variant`。
+
+```gdscript
+# ❌ 错误：为了返回 null 被迫用 Variant
+func get_current_event() -> Variant:
+    if event_chain.is_empty():
+        return null
+    return event_chain.back()
+
+# ✅ 正确：返回空字典，保持类型安全
+func get_current_event() -> Dictionary:
+    if event_chain.is_empty():
+        return {}
+    return event_chain.back()
+```
+
+**适用范围**：`Dictionary`、`Array` 等值类型。引用类型（`RefCounted`、`Node` 等）仍正常返回 `null`。
+
+## 11. autoload 脚本继承 Node
 
 ---
 

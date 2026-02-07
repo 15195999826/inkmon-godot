@@ -35,10 +35,8 @@ static func get_current_target_selector() -> TargetSelector:
 ## 从事件中获取目标坐标的解析器
 static func _get_target_coord_from_event() -> DictResolver:
 	return Resolvers.dict_fn(func(ctx: ExecutionContext) -> Dictionary:
-		var evt: Dictionary = ctx.get_current_event()
-		if evt is Dictionary:
-			return evt.get("target_coord", {}) as Dictionary
-		return {}
+		var evt := ctx.get_current_event()
+		return evt.get("target_coord", {}) as Dictionary
 	)
 
 
