@@ -172,22 +172,6 @@ func _on_draw_mode_option_item_selected(_index: int) -> void:
 	_update_input_visibility()
 
 
-func _on_rows_input_value_changed(_value: float) -> void:
-	pass  # 配置变更时不需要立即响应
-
-
-func _on_columns_input_value_changed(_value: float) -> void:
-	pass
-
-
-func _on_radius_input_value_changed(_value: float) -> void:
-	pass
-
-
-func _on_hex_size_input_value_changed(_value: float) -> void:
-	pass
-
-
 ## 开始战斗按钮回调
 func _on_start_battle_button_pressed() -> void:
 	_update_status("Running battle simulation...")

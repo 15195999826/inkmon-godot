@@ -31,7 +31,6 @@ signal death_animation_finished(actor_id: String)
 var _mesh_instance: MeshInstance3D
 var _hp_bar: ProgressBar
 var _name_label: Label3D
-var _hp_bar_container: SubViewport
 
 
 # ========== 状态 ==========
@@ -57,7 +56,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# 平滑插值到目标位置 (修复 M6)
+	# 平滑插值到目标位置
 	position = position.lerp(_target_position, delta * 15.0)
 
 
@@ -208,7 +207,7 @@ func _update_tint_color(tint_color: Color) -> void:
 
 ## 播放死亡动画
 func _play_death_animation() -> void:
-	# 防止重复创建 Tween (修复 C3)
+	# 防止重复创建 Tween
 	if _death_tween and _death_tween.is_running():
 		return
 	
@@ -224,6 +223,6 @@ func _on_death_animation_finished() -> void:
 
 
 func _exit_tree() -> void:
-	# 清理死亡动画 Tween (修复 C3)
+	# 清理死亡动画 Tween
 	if _death_tween:
 		_death_tween.kill()

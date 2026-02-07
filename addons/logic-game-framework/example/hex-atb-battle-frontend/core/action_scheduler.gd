@@ -136,14 +136,6 @@ func cancel_all() -> void:
 	_active.clear()
 
 
-## 获取当前活跃动作（带类型）
-func get_active_actions_typed() -> Array[ActiveAction]:
-	var actions: Array[ActiveAction] = []
-	for id: String in _active.keys():
-		actions.append(_active[id] as ActiveAction)
-	return actions
-
-
 ## 获取当前动作数量
 func get_action_count() -> int:
 	return _active.size()

@@ -9,8 +9,6 @@ class_name FrontendBattleReplayScene
 extends Node3D
 
 
-
-
 # ========== 导出属性 ==========
 
 ## 单位视图场景（可选，如果不设置则使用默认）
@@ -76,7 +74,7 @@ func _setup_scene_structure() -> void:
 
 
 func _exit_tree() -> void:
-	# 断开 Director 信号连接 (修复 C1: 内存泄漏)
+	# 断开 Director 信号连接
 	if _director:
 		_director.actor_state_changed.disconnect(_on_actor_state_changed)
 		_director.floating_text_created.disconnect(_on_floating_text_created)
@@ -183,7 +181,7 @@ func load_replay(replay_data: Dictionary) -> void:
 	_director.load_replay(replay_data)
 	_setup_hex_grid_from_replay(replay_data)
 	_spawn_units(replay_data)
-	_clear_effects()  # 清理旧特效 (修复 M4)
+	_clear_effects()
 
 
 ## 播放
@@ -205,7 +203,7 @@ func toggle() -> void:
 func reset() -> void:
 	_director.reset()
 	_reset_unit_views()
-	_clear_effects()  # 清理特效 (修复 M4)
+	_clear_effects()
 
 
 ## 设置播放速度
@@ -223,11 +221,11 @@ func get_director() -> FrontendBattleDirector:
 ## 生成单位
 func _spawn_units(replay_data: Dictionary) -> void:
 	# 清除现有单位
-	for child in _units_root.get_children():
+	for child: Node in _units_root.get_children():
 		child.queue_free()
 	_unit_views.clear()
 	
-	var initial_actors: Array[Dictionary] = replay_data.get("initialActors", [])
+	var initial_actors: Array = replay_data.get("initialActors", [])
 	print("[BattleReplayScene] Spawning %d units" % initial_actors.size())
 	
 	for actor_data in initial_actors:
@@ -294,7 +292,7 @@ func _reset_unit_views() -> void:
 	var state := _director.get_render_state()
 	var actors: Dictionary = state.get("actors", {})
 	
-	for actor_id in actors.keys():
+	for actor_id: String in actors.keys():
 		var actor_state: Dictionary = actors[actor_id]
 		if _unit_views.has(actor_id):
 			var unit_view: FrontendUnitView = _unit_views[actor_id]
@@ -303,15 +301,15 @@ func _reset_unit_views() -> void:
 			unit_view.scale = Vector3.ONE
 
 
-## 清理所有特效节点 (修复 M4)
+## 清理所有特效节点
 func _clear_effects() -> void:
-	for child in _effects_root.get_children():
+	for child: Node in _effects_root.get_children():
 		child.queue_free()
 
 
-## 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
+## 更新所有单位位置（移动动画期间单位位置平滑更新）
 func _update_all_unit_positions() -> void:
-	for actor_id in _unit_views.keys():
+	for actor_id: String in _unit_views.keys():
 		var unit_view: FrontendUnitView = _unit_views[actor_id]
 		var world_pos := _director.get_actor_world_position(actor_id)
 		unit_view.set_world_position(world_pos)
@@ -356,13 +354,11 @@ func _on_playback_ended() -> void:
 
 
 func _process(_delta: float) -> void:
-	# 更新所有单位位置（修复 C2: 移动动画期间单位位置平滑更新）
 	_update_all_unit_positions()
 	
 	# 震屏效果（通过 LomoCameraRig 的位置偏移实现）
 	var shake_offset := _director.get_screen_shake_offset()
 	if shake_offset != Vector2.ZERO:
-		# 临时偏移相机位置
 		var base_pos := _camera_rig.global_position
 		_camera_rig.global_position = base_pos + Vector3(shake_offset.x * 0.1, 0, shake_offset.y * 0.1)
 

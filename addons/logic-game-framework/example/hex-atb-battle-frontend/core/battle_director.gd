@@ -103,7 +103,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	# 断开 RenderWorld 信号连接 (修复 C1: 内存泄漏)
+	# 断开 RenderWorld 信号连接
 	if _world:
 		_world.actor_state_changed.disconnect(_on_actor_state_changed)
 		_world.floating_text_created.disconnect(_on_floating_text_created)
@@ -130,11 +130,10 @@ func load_replay(replay_data: Dictionary) -> void:
 	
 	# 构建帧数据 Map
 	_frame_data_map.clear()
-	var timeline: Array[Dictionary] = replay_data.get("timeline", [])
-	for frame_data in timeline:
-		var frame_dict := frame_data as Dictionary
-		var frame_num: int = frame_dict.get("frame", 0)
-		_frame_data_map[frame_num] = frame_dict
+	var timeline: Array = replay_data.get("timeline", [])
+	for frame_data: Dictionary in timeline:
+		var frame_num: int = frame_data.get("frame", 0)
+		_frame_data_map[frame_num] = frame_data
 	
 	# 获取总帧数
 	var meta: Dictionary = replay_data.get("meta", {})
@@ -156,7 +155,7 @@ func load_replay(replay_data: Dictionary) -> void:
 
 ## 开始播放
 func play() -> void:
-	# 自动重置已结束的回放 (修复 C5)
+	# 自动重置已结束的回放
 	if _is_ended():
 		reset()
 	
@@ -269,21 +268,20 @@ func _tick(delta_ms: float) -> void:
 		# 查找该帧的事件
 		if _frame_data_map.has(next_frame):
 			var frame_data: Dictionary = _frame_data_map[next_frame]
-			var events: Array[Dictionary] = frame_data.get("events", [])
+			var events: Array = frame_data.get("events", [])
 			
 			if events.size() > 0:
 				Log.debug("BattleDirector", "帧 %d: %d 个事件" % [next_frame, events.size()])
 			
 			# 翻译事件为动作
 			var context := _world.as_context()
-			for event in events:
-				var event_dict: Dictionary = event as Dictionary
-				var actions := _registry.translate(event_dict, context)
+			for event: Dictionary in events:
+				var actions := _registry.translate(event, context)
 				_scheduler.enqueue(actions)
 		
 		frame_changed.emit(_current_frame, _total_frames)
 	
-	# 推进内部世界时间 (修复 C4: 暂停时特效失效)
+	# 推进内部世界时间
 	_world.advance_time(int(delta_ms))
 	
 	# 调度器 tick（即使逻辑帧结束，也要继续推进动画）
@@ -297,7 +295,7 @@ func _tick(delta_ms: float) -> void:
 		_world.apply_actions(result.completed_this_tick)
 		_world.cleanup(_world.get_world_time())
 	
-	# 批量触发状态变化信号 (修复 M1)
+	# 批量触发状态变化信号
 	_world.flush_dirty_actors()
 	
 	# 检查是否所有动画都已完成
@@ -318,13 +316,11 @@ func _analyze_event_coverage() -> void:
 	var all_event_kinds: Dictionary = {}  # kind -> count
 	
 	# 收集所有事件类型及其出现次数
-	var timeline: Array[Dictionary] = _replay_data.get("timeline", [])
-	for frame_data in timeline:
-		var frame_dict := frame_data as Dictionary
-		var events: Array[Dictionary] = frame_dict.get("events", [])
-		for event in events:
-			var event_dict := event as Dictionary
-			var kind: String = event_dict.get("kind", "unknown")
+	var timeline: Array = _replay_data.get("timeline", [])
+	for frame_data: Dictionary in timeline:
+		var events: Array = frame_data.get("events", [])
+		for event: Dictionary in events:
+			var kind: String = event.get("kind", "unknown")
 			all_event_kinds[kind] = all_event_kinds.get(kind, 0) + 1
 	
 	if all_event_kinds.is_empty():
@@ -349,7 +345,7 @@ func _analyze_event_coverage() -> void:
 	
 	if covered.size() > 0:
 		print("  ✓ 已覆盖 (%d 种):" % covered.size())
-		for item in covered:
+		for item: String in covered:
 			print("    - %s" % item)
 	
 	if uncovered.size() > 0:

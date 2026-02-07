@@ -9,8 +9,6 @@ class_name FrontendRenderWorld
 extends RefCounted
 
 
-
-
 # ========== 信号 ==========
 
 ## 角色状态变化信号
@@ -206,8 +204,7 @@ func _apply_update_hp_action(action: FrontendUpdateHPAction, progress: float) ->
 		return
 	
 	# 线性插值 HP
-	var interpolated_hp := action.get_interpolated_hp(progress)
-	actor["visual_hp"] = interpolated_hp
+	actor["visual_hp"] = action.get_interpolated_hp(progress)
 	
 	# 动画完成时确保精确值
 	if progress >= 1.0:
@@ -217,7 +214,6 @@ func _apply_update_hp_action(action: FrontendUpdateHPAction, progress: float) ->
 			action.actor_id, action.from_hp, action.to_hp, actor["is_alive"]
 		])
 	
-	# 标记为脏，不立即触发信号 (修复 M1)
 	_dirty_actors[action.actor_id] = true
 
 
@@ -255,7 +251,6 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 				var actor: Dictionary = _actors.get(action.actor_id, {})
 				if not actor.is_empty():
 					actor["flash_progress"] = action.get_flash_intensity(progress)
-					# 标记为脏，不立即触发信号 (修复 M1)
 					_dirty_actors[action.actor_id] = true
 		
 		FrontendProceduralVFXAction.EffectType.SHAKE:
@@ -270,26 +265,22 @@ func _apply_procedural_vfx_action(action: FrontendProceduralVFXAction, action_id
 				var actor: Dictionary = _actors.get(action.actor_id, {})
 				if not actor.is_empty():
 					actor["tint_color"] = action.tint_color if progress < 1.0 else Color.WHITE
-					# 标记为脏，不立即触发信号 (修复 M1)
 					_dirty_actors[action.actor_id] = true
 	
-	# 添加到程序化特效列表
-	var exists := false
+	# 添加到程序化特效列表（避免重复）
 	for effect in _procedural_effects:
 		if effect.get("id") == action_id:
-			exists = true
-			break
+			return
 	
-	if not exists:
-		_procedural_effects.append({
-			"id": action_id,
-			"effect": action.effect,
-			"actor_id": action.actor_id,
-			"start_time": _world_time_ms,
-			"duration": action.duration,
-			"intensity": action.intensity,
-			"color": action.tint_color,
-		})
+	_procedural_effects.append({
+		"id": action_id,
+		"effect": action.effect,
+		"actor_id": action.actor_id,
+		"start_time": _world_time_ms,
+		"duration": action.duration,
+		"intensity": action.intensity,
+		"color": action.tint_color,
+	})
 
 
 ## 应用死亡动作
@@ -315,51 +306,35 @@ func _apply_death_action(action: FrontendDeathAction, progress: float) -> void:
 ## 清理过期效果
 func cleanup(now_ms: int) -> void:
 	# 清理过期飘字
-	var valid_texts: Array[Dictionary] = []
-	for text in _floating_texts:
-		var start_time: int = text.get("start_time", 0)
-		var duration: float = text.get("duration", 0.0)
-		if now_ms - start_time < duration:
-			valid_texts.append(text)
-	_floating_texts = valid_texts
+	_floating_texts = _floating_texts.filter(func(text: Dictionary) -> bool:
+		return now_ms - text.get("start_time", 0) < text.get("duration", 0.0)
+	)
 	
 	# 清理过期程序化特效
-	var valid_effects: Array[Dictionary] = []
-	for effect in _procedural_effects:
-		var start_time: int = effect.get("start_time", 0)
-		var duration: float = effect.get("duration", 0.0)
-		if now_ms - start_time < duration:
-			valid_effects.append(effect)
-	_procedural_effects = valid_effects
+	_procedural_effects = _procedural_effects.filter(func(effect: Dictionary) -> bool:
+		return now_ms - effect.get("start_time", 0) < effect.get("duration", 0.0)
+	)
 	
 	# 清理震屏
-	var has_active_shake := false
-	for effect in _procedural_effects:
-		if effect.get("effect") == FrontendProceduralVFXAction.EffectType.SHAKE:
-			has_active_shake = true
-			break
+	var has_active_shake := _procedural_effects.any(func(e: Dictionary) -> bool:
+		return e.get("effect") == FrontendProceduralVFXAction.EffectType.SHAKE
+	)
 	if not has_active_shake:
 		_screen_shake.clear()
 	
 	# 清理 Actor 的临时效果
-	for actor_id in _actors.keys():
+	for actor_id: String in _actors.keys():
 		var actor: Dictionary = _actors[actor_id]
 		
-		# 检查是否有活跃的 hitFlash
-		var has_active_flash := false
-		for effect in _procedural_effects:
-			if effect.get("effect") == FrontendProceduralVFXAction.EffectType.HIT_FLASH and effect.get("actor_id") == actor_id:
-				has_active_flash = true
-				break
+		var has_active_flash := _procedural_effects.any(func(e: Dictionary) -> bool:
+			return e.get("effect") == FrontendProceduralVFXAction.EffectType.HIT_FLASH and e.get("actor_id") == actor_id
+		)
 		if not has_active_flash:
 			actor["flash_progress"] = 0.0
 		
-		# 检查是否有活跃的 colorTint
-		var has_active_tint := false
-		for effect in _procedural_effects:
-			if effect.get("effect") == FrontendProceduralVFXAction.EffectType.COLOR_TINT and effect.get("actor_id") == actor_id:
-				has_active_tint = true
-				break
+		var has_active_tint := _procedural_effects.any(func(e: Dictionary) -> bool:
+			return e.get("effect") == FrontendProceduralVFXAction.EffectType.COLOR_TINT and e.get("actor_id") == actor_id
+		)
 		if not has_active_tint:
 			actor["tint_color"] = Color.WHITE
 
@@ -429,9 +404,9 @@ func get_world_time() -> int:
 	return _world_time_ms
 
 
-## 批量触发脏标记的 Actor 状态变化信号 (修复 M1)
+## 批量触发脏标记的 Actor 状态变化信号
 func flush_dirty_actors() -> void:
-	for actor_id in _dirty_actors.keys():
+	for actor_id: String in _dirty_actors.keys():
 		if _actors.has(actor_id):
 			actor_state_changed.emit(actor_id, _actors[actor_id])
 	_dirty_actors.clear()
