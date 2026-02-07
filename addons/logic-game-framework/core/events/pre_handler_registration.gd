@@ -91,24 +91,7 @@ func call_handler(mutable: MutableEvent, ctx: HandlerContext) -> Intent:
 	var result: Variant = handler.call(mutable, ctx)
 	if result is Intent:
 		return result
-	# 兼容旧格式：处理器返回 Dictionary
-	if result is Dictionary:
-		return Intent.from_dict(result)
 	return Intent.pass_through()
-
-
-## 从 Dictionary 创建（兼容旧格式）
-static func from_dict(d: Dictionary) -> PreHandlerRegistration:
-	return PreHandlerRegistration.new(
-		d.get("id", ""),
-		d.get("eventKind", d.get("event_kind", "")),
-		d.get("ownerId", d.get("owner_id", "")),
-		d.get("abilityId", d.get("ability_id", "")),
-		d.get("configId", d.get("config_id", "")),
-		d.get("handler", Callable()),
-		d.get("filter", Callable()),
-		d.get("name", d.get("handler_name", ""))
-	)
 
 
 ## 转换为 Dictionary（用于日志/调试）

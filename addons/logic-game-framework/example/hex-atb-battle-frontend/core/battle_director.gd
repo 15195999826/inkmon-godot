@@ -130,7 +130,7 @@ func load_replay(replay_data: Dictionary) -> void:
 	
 	# 构建帧数据 Map
 	_frame_data_map.clear()
-	var timeline: Array = replay_data.get("timeline", [])
+	var timeline: Array[Dictionary] = replay_data.get("timeline", [])
 	for frame_data in timeline:
 		var frame_dict := frame_data as Dictionary
 		var frame_num: int = frame_dict.get("frame", 0)
@@ -269,7 +269,7 @@ func _tick(delta_ms: float) -> void:
 		# 查找该帧的事件
 		if _frame_data_map.has(next_frame):
 			var frame_data: Dictionary = _frame_data_map[next_frame]
-			var events: Array = frame_data.get("events", [])
+			var events: Array[Dictionary] = frame_data.get("events", [])
 			
 			if events.size() > 0:
 				Log.debug("BattleDirector", "帧 %d: %d 个事件" % [next_frame, events.size()])
@@ -318,10 +318,10 @@ func _analyze_event_coverage() -> void:
 	var all_event_kinds: Dictionary = {}  # kind -> count
 	
 	# 收集所有事件类型及其出现次数
-	var timeline: Array = _replay_data.get("timeline", [])
+	var timeline: Array[Dictionary] = _replay_data.get("timeline", [])
 	for frame_data in timeline:
 		var frame_dict := frame_data as Dictionary
-		var events: Array = frame_dict.get("events", [])
+		var events: Array[Dictionary] = frame_dict.get("events", [])
 		for event in events:
 			var event_dict := event as Dictionary
 			var kind: String = event_dict.get("kind", "unknown")

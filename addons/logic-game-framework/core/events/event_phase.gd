@@ -30,15 +30,6 @@ static func modify_intent(handler_id: String, modifications: Array[Modification]
 	return Intent.modify(handler_id, modifications)
 
 
-## 创建 MODIFY 意图（从 Dictionary 数组，兼容旧代码）
-## @deprecated 请使用 modify_intent(handler_id, Array[Modification]) 代替
-static func modify_intent_from_dicts(handler_id: String, modifications: Array[Dictionary]) -> Intent:
-	var typed_mods: Array[Modification] = []
-	for mod_dict in modifications:
-		typed_mods.append(Modification.from_dict(mod_dict))
-	return Intent.modify(handler_id, typed_mods)
-
-
 # ========== 工具方法 ==========
 
 

@@ -245,7 +245,7 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		child.queue_free()
 	_unit_views.clear()
 	
-	var initial_actors: Array = replay_data.get("initialActors", [])
+	var initial_actors: Array[Dictionary] = replay_data.get("initialActors", [])
 	print("[BattleReplayScene] Spawning %d units" % initial_actors.size())
 	
 	for actor_data in initial_actors:
@@ -277,7 +277,7 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		
 		# 设置位置
 		var actor_type: String = actor_dict.get("type", "")
-		var position_arr: Array = actor_dict.get("position", [])
+		var position_arr: Array[float] = actor_dict.get("position", [])
 		var world_pos := _extract_world_position(position_arr, actor_type)
 		unit_view.set_world_position(world_pos)
 

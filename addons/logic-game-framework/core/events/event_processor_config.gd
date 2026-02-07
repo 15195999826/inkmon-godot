@@ -37,14 +37,6 @@ func _init(p_max_depth: int = DEFAULT_MAX_DEPTH, p_trace_level: int = DEFAULT_TR
 	trace_level = p_trace_level
 
 
-## 从 Dictionary 创建（兼容旧格式）
-static func from_dict(d: Dictionary) -> EventProcessorConfig:
-	return EventProcessorConfig.new(
-		int(d.get("maxDepth", d.get("max_depth", DEFAULT_MAX_DEPTH))),
-		int(d.get("traceLevel", d.get("trace_level", DEFAULT_TRACE_LEVEL)))
-	)
-
-
 ## 转换为 Dictionary
 func to_dict() -> Dictionary:
 	return {

@@ -204,7 +204,7 @@ func execution_start(
 
 
 ## 记录 Tag 触发
-func tag_triggered(execution_id: String, tag_name: String, tag_time: float, actions: Array) -> void:
+func tag_triggered(execution_id: String, tag_name: String, tag_time: float, actions: Array[String]) -> void:
 	var info: ExecutionInfo = _executions.get(execution_id)
 	if info == null:
 		return

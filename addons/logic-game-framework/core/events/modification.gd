@@ -98,18 +98,6 @@ func to_dict() -> Dictionary:
 	}
 
 
-## 从 Dictionary 创建（兼容旧格式）
-static func from_dict(d: Dictionary) -> Modification:
-	var op := _string_to_operation(d.get("operation", "add"))
-	return Modification.new(
-		d.get("field", ""),
-		op,
-		float(d.get("value", 0.0)),
-		d.get("sourceId", d.get("source_id", "")),
-		d.get("sourceName", d.get("source_name", ""))
-	)
-
-
 ## 获取操作符号（用于日志显示）
 func get_operation_sign() -> String:
 	match operation:
@@ -136,15 +124,3 @@ static func _operation_to_string(op: Operation) -> String:
 			return "multiply"
 		_:
 			return "unknown"
-
-
-static func _string_to_operation(s: String) -> Operation:
-	match s:
-		"set":
-			return Operation.SET
-		"add":
-			return Operation.ADD
-		"multiply":
-			return Operation.MULTIPLY
-		_:
-			return Operation.ADD

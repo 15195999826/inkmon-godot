@@ -149,3 +149,71 @@ ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", tru
 ### 注意
 
 除 `IGameStateProvider` 外，其他函数参数使用 `Variant` 类型通常是设计失误，应该使用具体类型。
+
+## 4. PreEventConfig handler 规范
+
+### 签名约定
+
+handler **必须**满足签名：`func(MutableEvent, AbilityLifecycleContext) -> Intent`
+
+**返回值必须是 Intent，不可省略 return。** GDScript 的 Callable 无法在编译期约束返回类型，框架在运行时通过 assert 校验。如果返回了非 Intent（包括忘写 return 导致的 `null`），Debug 构建会立即断言失败。
+
+### Intent 返回值选项
+
+| 返回值 | 含义 | 使用场景 |
+|--------|------|----------|
+| `EventPhase.pass_intent()` | 放行，不做任何修改 | 条件不满足时跳过 |
+| `EventPhase.modify_intent(id, [Modification])` | 修改事件字段 | 减伤、增伤、改变伤害类型 |
+| `EventPhase.cancel_intent(id, reason)` | 取消事件 | 免疫、格挡、无敌 |
+
+### 正确示例
+
+```gdscript
+# ✅ 正确：显式返回 Intent
+PreEventConfig.new(
+    "pre_damage",
+    func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
+        return EventPhase.modify_intent(ctx.ability.id, [
+            Modification.multiply("damage", 0.7),
+        ]),
+    func(event: Dictionary, ctx: AbilityLifecycleContext) -> bool:
+        return event.get("target_actor_id") == ctx.owner_actor_id,
+    "减伤30%"
+)
+
+# ✅ 正确：条件判断后每个分支都返回 Intent
+PreEventConfig.new(
+    "pre_damage",
+    func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
+        if some_condition:
+            return EventPhase.cancel_intent(ctx.ability.id, "immune")
+        return EventPhase.pass_intent()
+)
+```
+
+### 错误示例
+
+```gdscript
+# ❌ 错误：忘记 return，GDScript 默认返回 null → 运行时 assert 失败
+PreEventConfig.new(
+    "pre_damage",
+    func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
+        EventPhase.modify_intent(ctx.ability.id, [
+            Modification.multiply("damage", 0.7),
+        ])
+        # 缺少 return！
+)
+
+# ❌ 错误：返回了非 Intent 类型
+PreEventConfig.new(
+    "pre_damage",
+    func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
+        return true  # bool 不是 Intent
+)
+```
+
+### filter（可选）
+
+filter 签名：`func(Dictionary, AbilityLifecycleContext) -> bool`
+
+用于在 handler 调用前过滤事件。返回 `true` 表示该事件应被此 handler 处理。不传 filter 则处理所有匹配 event_kind 的事件。

@@ -1,3 +1,10 @@
+## MutableEvent - 可修改事件
+##
+## 封装事件的原始数据和修改操作。
+## 修改按类型分组后按固定顺序计算：SET → ADD → MULTIPLY
+## - 多个 SET 只取最后一个
+## - 所有 ADD 累加
+## - 所有 MULTIPLY 依次相乘
 extends RefCounted
 class_name MutableEvent
 

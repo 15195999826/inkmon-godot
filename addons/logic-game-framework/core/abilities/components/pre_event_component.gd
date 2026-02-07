@@ -51,6 +51,9 @@ func on_remove(_context: AbilityLifecycleContext) -> void:
 		_unregister = Callable()
 	_lifecycle_context = null
 
+## 调用用户 handler 并校验返回类型。
+## GDScript Callable 无法在编译期约束返回类型，因此在运行时通过 assert 校验。
+## handler 签名约定见 PreEventConfig。
 func _handle_pre_event(mutable: MutableEvent, _handler_context: HandlerContext) -> Intent:
 	if _lifecycle_context == null:
 		Log.warning("PreEventComponent", "PreEventComponent: lifecycleContext not available")
@@ -58,12 +61,10 @@ func _handle_pre_event(mutable: MutableEvent, _handler_context: HandlerContext) 
 	if not _handler.is_valid():
 		return EventPhase.pass_intent()
 	var result: Variant = _handler.call(mutable, _lifecycle_context)
-	# 兼容旧格式：处理器可能返回 Dictionary
-	if result is Intent:
-		return result
-	if result is Dictionary:
-		return Intent.from_dict(result)
-	return EventPhase.pass_intent()
+	assert(result is Intent,
+		"PreEventComponent handler '%s' must return Intent, got: %s" % [_handler_name, type_string(typeof(result))])
+	return result as Intent
+
 
 func serialize() -> Dictionary:
 	return {

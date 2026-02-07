@@ -46,16 +46,6 @@ func _init(
 	game_state = p_game_state
 
 
-## 从 Dictionary 创建（兼容旧格式）
-static func from_dict(d: Dictionary) -> HandlerContext:
-	return HandlerContext.new(
-		d.get("ownerId", d.get("owner_id", "")),
-		d.get("abilityId", d.get("ability_id", "")),
-		d.get("configId", d.get("config_id", "")),
-		d.get("gameplayState", d.get("game_state", null))
-	)
-
-
 ## 转换为 Dictionary（用于日志/调试）
 func to_dict() -> Dictionary:
 	return {

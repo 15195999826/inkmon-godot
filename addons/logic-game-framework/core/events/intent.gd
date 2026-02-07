@@ -103,7 +103,7 @@ func is_modify() -> bool:
 # ========== 序列化 ==========
 
 
-## 转换为 Dictionary（用于日志/调试/兼容）
+## 转换为 Dictionary（用于日志/调试）
 func to_dict() -> Dictionary:
 	var d := {
 		"type": _type_to_string(type),
@@ -120,23 +120,6 @@ func to_dict() -> Dictionary:
 	return d
 
 
-## 从 Dictionary 创建（兼容旧格式）
-static func from_dict(d: Dictionary) -> Intent:
-	var type_str: String = d.get("type", "pass")
-	var t := _string_to_type(type_str)
-	var handler_id_value: String = d.get("handlerId", d.get("handler_id", ""))
-	var reason_value: String = d.get("reason", "")
-	var mods: Array[Modification] = []
-	
-	if t == Type.MODIFY:
-		var raw_mods: Array = d.get("modifications", [])
-		for raw_mod in raw_mods:
-			if raw_mod is Dictionary:
-				mods.append(Modification.from_dict(raw_mod))
-	
-	return Intent.new(t, handler_id_value, reason_value, mods)
-
-
 # ========== 内部方法 ==========
 
 
@@ -150,15 +133,3 @@ static func _type_to_string(t: Type) -> String:
 			return "modify"
 		_:
 			return "unknown"
-
-
-static func _string_to_type(s: String) -> Type:
-	match s:
-		"pass":
-			return Type.PASS
-		"cancel":
-			return Type.CANCEL
-		"modify":
-			return Type.MODIFY
-		_:
-			return Type.PASS

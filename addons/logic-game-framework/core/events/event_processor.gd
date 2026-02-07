@@ -2,6 +2,10 @@
 ##
 ## 统一处理 Pre/Post 双阶段事件，支持深度优先递归和追踪。
 ##
+## 伪单例"模式 —— EventProcessor 实例存放在 GameWorld (Autoload) 中，通过 GameWorld.event_processor 全局访问
+## EventProcessor 有状态（_current_depth, _traces, _pre_handlers），这些状态应该跟随 GameWorld 的生命周期，而不是独立存在
+## GameWorld.init(EventProcessorConfig.new(20, 3))  # 可以重置
+##
 ## ========== 核心职责 ==========
 ##
 ## 1. **Pre 阶段处理**：收集所有处理器的意图，应用修改，判断是否取消
@@ -60,40 +64,27 @@ var _pre_handlers: Dictionary = {}
 
 
 ## 初始化事件处理器
-## @param config: EventProcessorConfig 或 Dictionary（兼容旧格式）
-func _init(config: Variant = null):
-	if config is EventProcessorConfig:
+func _init(config: EventProcessorConfig = null):
+	if config != null:
 		_config = config
-	elif config is Dictionary:
-		_config = EventProcessorConfig.from_dict(config)
 	else:
 		_config = EventProcessorConfig.new()
 
 
 ## 注册 Pre 阶段处理器
-## @param registration: PreHandlerRegistration 或 Dictionary（兼容旧格式）
 ## @return 取消注册的 Callable
-func register_pre_handler(registration: Variant) -> Callable:
-	var reg: PreHandlerRegistration
-	if registration is PreHandlerRegistration:
-		reg = registration
-	elif registration is Dictionary:
-		reg = PreHandlerRegistration.from_dict(registration)
-	else:
-		Log.error("EventProcessor", "Invalid registration type: %s" % typeof(registration))
-		return Callable()
-	
-	var event_kind: String = reg.event_kind
+func register_pre_handler(registration: PreHandlerRegistration) -> Callable:
+	var event_kind: String = registration.event_kind
 	if not _pre_handlers.has(event_kind):
 		_pre_handlers[event_kind] = [] as Array[PreHandlerRegistration]
-	(_pre_handlers[event_kind] as Array[PreHandlerRegistration]).append(reg)
+	(_pre_handlers[event_kind] as Array[PreHandlerRegistration]).append(registration)
 
 	return func() -> void:
 		if not _pre_handlers.has(event_kind):
 			return
 		var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind]
 		for i in range(handlers.size()):
-			if handlers[i].id == reg.id:
+			if handlers[i].id == registration.id:
 				handlers.remove_at(i)
 				break
 
@@ -117,32 +108,52 @@ func remove_handlers_by_owner_id(owner_id: String) -> void:
 				filtered.append(handler)
 		_pre_handlers[event_kind] = filtered
 
+## Pre 阶段处理：收集所有处理器的意图（修改/取消/放行），返回 MutableEvent。
+##
+## Handler 注册链路：
+##   PreEventConfig → PreEventComponent.on_apply() → register_pre_handler() → _pre_handlers
+##   PreEventComponent 在技能激活时将 handler 注册到 EventProcessor，
+##   在技能移除时通过返回的 Callable 自动取消注册。
+##   registration.call_handler(mutable, handler_context) 调用具体的 handler。
+##
+## 流程：
+## 1. 创建 MutableEvent 包装原始事件数据
+## 2. 按 event_kind 查找已注册的 PreHandlerRegistration 列表
+## 3. 依次调用每个处理器，获取 Intent（意图）：
+##    - pass_through → 跳过，继续下一个处理器
+##    - cancel       → 标记事件取消，立即停止遍历
+##    - modify       → 将修改（Modification）追加到 MutableEvent
+## 4. 返回 MutableEvent，调用方通过 mutable.cancelled / mutable.get_current_value() 读取结果
 func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> MutableEvent:
 	assert(game_state_provider != null, "game_state_provider is required")
 	var mutable := MutableEvent.new(event_dict, EventPhase.PHASE_PRE)
 
+	# ── 递归保护 ──
 	if _current_depth >= _config.max_depth:
 		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
 		return mutable
 
+	# ── 追踪上下文：保存父级 trace_id，进入新的深度层 ──
 	var trace := _create_trace(event_dict, EventPhase.PHASE_PRE)
 	var parent_trace_id := _current_trace_id
 	_current_depth += 1
 	_current_trace_id = trace.get("traceId", "")
 
+	# ── 查找处理器：按 event_kind 匹配已注册的 handler ──
 	var event_kind: String = event_dict.get("kind", "")
 	if not _pre_handlers.has(event_kind):
 		_current_depth -= 1
 		_current_trace_id = parent_trace_id
 		_finalize_trace(trace)
 		return mutable
+
+	# ── 遍历处理器：依次调用，收集意图 ──
 	var handlers: Array[PreHandlerRegistration] = _pre_handlers[event_kind]
 	for registration in handlers:
-		# 检查过滤条件
+		# 过滤：handler 可指定只处理特定条件的事件（如只处理对自己的伤害）
 		if not registration.passes_filter(event_dict):
 			continue
 
-		# 创建处理器上下文
 		var handler_context := HandlerContext.new(
 			registration.owner_id,
 			registration.ability_id,
@@ -152,55 +163,60 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 
 		var start_time := Time.get_ticks_msec()
 		var intent: Intent = Intent.pass_through()
-		var handler_error: Dictionary = {}
 
-		# 调用处理器
+		# 调用处理器，返回 Intent（pass_through / cancel / modify）
 		intent = registration.call_handler(mutable, handler_context)
 
 		var execution_time := Time.get_ticks_msec() - start_time
 		
-		# 记录追踪信息
 		if _config.trace_level >= 2:
 			trace["intents"].append({
 				"handlerId": registration.id,
 				"handlerName": registration.get_display_name(),
 				"intent": intent.to_dict(),
 				"executionTime": execution_time,
-				"error": handler_error if not handler_error.is_empty() else null,
-			})
-		elif _config.trace_level >= 1 and not handler_error.is_empty():
-			trace["intents"].append({
-				"handlerId": registration.id,
-				"handlerName": registration.get_display_name(),
-				"intent": intent.to_dict(),
-				"error": handler_error,
 			})
 
-		# 处理意图
+		# ── 处理意图 ──
 		if intent.is_cancel():
+			# cancel：标记事件取消，停止后续处理器
 			mutable.cancel(intent.handler_id, intent.reason)
 			trace["cancelled"] = true
 			trace["cancelReason"] = intent.reason
 			trace["cancelledBy"] = intent.handler_id
 			break
 		elif intent.is_modify():
-			# 为修改添加来源信息
-			var modifications_with_source: Array[Modification] = []
+			# modify：将修改追加到 MutableEvent，继续下一个处理器
+			# 补充来源信息（source_id / source_name），方便追踪修改来源
+			var needs_source_fill := false
 			for mod in intent.modifications:
-				var mod_with_source := Modification.new(
-					mod.field,
-					mod.operation,
-					mod.value,
-					mod.source_id if mod.source_id != "" else intent.handler_id,
-					mod.source_name if mod.source_name != "" else registration.get_display_name()
-				)
-				modifications_with_source.append(mod_with_source)
-			mutable.add_modifications(modifications_with_source)
+				if mod.source_id == "" or mod.source_name == "":
+					needs_source_fill = true
+					break
+			
+			if needs_source_fill:
+				var modifications_with_source: Array[Modification] = []
+				for mod in intent.modifications:
+					if mod.source_id != "" and mod.source_name != "":
+						modifications_with_source.append(mod)
+					else:
+						modifications_with_source.append(Modification.new(
+							mod.field,
+							mod.operation,
+							mod.value,
+							mod.source_id if mod.source_id != "" else intent.handler_id,
+							mod.source_name if mod.source_name != "" else registration.get_display_name()
+						))
+				mutable.add_modifications(modifications_with_source)
+			else:
+				mutable.add_modifications(intent.modifications)
 
+	# ── 记录修改前后的值（用于 trace 日志）──
 	if _config.trace_level >= 1:
 		trace["originalValues"] = mutable.get_original_values()
 		trace["finalValues"] = mutable.get_final_values()
 
+	# ── 恢复追踪上下文 ──
 	_current_depth -= 1
 	_current_trace_id = parent_trace_id
 	_finalize_trace(trace)
@@ -339,6 +355,5 @@ func _finalize_trace(trace: Dictionary) -> void:
 
 
 ## 创建事件处理器（工厂方法）
-## @param config: EventProcessorConfig 或 Dictionary（兼容旧格式）
-static func create_event_processor(config: Variant = null) -> EventProcessor:
+static func create_event_processor(config: EventProcessorConfig = null) -> EventProcessor:
 	return EventProcessor.new(config)

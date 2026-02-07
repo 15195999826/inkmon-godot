@@ -41,12 +41,23 @@ func _build_context(state, event: Dictionary = {}) -> ExecutionContext:
 		null   # execution_info
 	)
 
+## 创建测试用 EventProcessor 并设置到 GameWorld，返回旧的 processor 用于恢复
+func _setup_event_processor() -> EventProcessor:
+	var old_processor := GameWorld.event_processor
+	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
+	GameWorld.event_processor = event_processor
+	return old_processor
+
+## 恢复 GameWorld.event_processor 到测试前状态
+func _teardown_event_processor(old_processor: EventProcessor) -> void:
+	GameWorld.event_processor = old_processor
+
 func _test_registration() -> void:
+	var old_processor := _setup_event_processor()
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
-	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
+	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
@@ -68,13 +79,14 @@ func _test_registration() -> void:
 
 	TestFramework.assert_true(not mutable.cancelled)
 	TestFramework.assert_near(70, float(mutable.get_current_value("damage")))
+	_teardown_event_processor(old_processor)
 
 func _test_unregistration() -> void:
+	var old_processor := _setup_event_processor()
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
-	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
+	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
@@ -94,13 +106,14 @@ func _test_unregistration() -> void:
 	var mutable := event_processor.process_pre_event(event, state)
 
 	TestFramework.assert_near(100, float(mutable.get_current_value("damage")))
+	_teardown_event_processor(old_processor)
 
 func _test_modify_event() -> void:
+	var old_processor := _setup_event_processor()
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
-	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
+	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
@@ -122,13 +135,14 @@ func _test_modify_event() -> void:
 	# 计算顺序: SET → ADD → MULTIPLY
 	# (100 + (-10)) * 0.7 = 63
 	TestFramework.assert_near(63, float(mutable.get_current_value("damage")))
+	_teardown_event_processor(old_processor)
 
 func _test_cancel_event() -> void:
+	var old_processor := _setup_event_processor()
 	var owner_actor_id := "unit-1"
 	var ability_set := AbilitySet.create(owner_actor_id, null)
 
-	var event_processor := EventProcessor.new(EventProcessorConfig.new(10, 2))
-	GameWorld.event_processor = event_processor  # 设置全局 EventProcessor
+	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
 	var component := PreEventComponent.new(PreEventConfig.new(
@@ -146,3 +160,4 @@ func _test_cancel_event() -> void:
 
 	TestFramework.assert_true(mutable.cancelled)
 	TestFramework.assert_equal("immune", mutable.cancel_reason)
+	_teardown_event_processor(old_processor)
