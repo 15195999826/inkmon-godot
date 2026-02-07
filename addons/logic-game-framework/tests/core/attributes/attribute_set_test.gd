@@ -17,6 +17,7 @@ func _init() -> void:
 	TestFramework.register_test("RawAttributeSet - should clamp value to max constraint", _test_max_constraint)
 	TestFramework.register_test("RawAttributeSet - pre_change callback clamps hp to max_hp", _test_pre_change_callback_clamps_hp_to_max_hp)
 	TestFramework.register_test("RawAttributeSet - pre_change callback not called when not set", _test_pre_change_callback_not_called_when_not_set)
+	TestFramework.register_test("RawAttributeSet - dynamic circular dependency converges", _test_dynamic_circular_dependency_converges)
 
 func _test_get_base() -> void:
 	var attribute_set := RawAttributeSet.new([
@@ -244,3 +245,75 @@ func _test_pre_change_callback_not_called_when_not_set() -> void:
 	# 不设置 pre_change，hp 可以超过 max_hp
 	attr_set.add_modifier(AttributeModifier.create_add_base("heal", "hp", 50, "buff"))
 	TestFramework.assert_near(130, attr_set.get_current_value("hp"))
+
+
+func _test_dynamic_circular_dependency_converges() -> void:
+	# 测试动态属性循环依赖的收敛机制
+	# 技能 A：atk += max_hp * 0.01
+	# 技能 B：max_hp += atk * 0.1
+	# 初始：max_hp = 100, atk = 50
+
+	var attr_set := RawAttributeSet.new([
+		{"name": "max_hp", "baseValue": 100},
+		{"name": "atk", "baseValue": 50},
+	])
+
+	var atk_modifier_id := "dyn_atk"
+	var max_hp_modifier_id := "dyn_max_hp"
+
+	# 模拟 DynamicStatModifierComponent 的行为
+	# 技能 A：监听 max_hp，更新 atk modifier
+	var update_atk_modifier := func() -> void:
+		attr_set.remove_modifier(atk_modifier_id)
+		var max_hp_value := attr_set.get_current_value("max_hp")
+		var atk_bonus := max_hp_value * 0.01
+		attr_set.add_modifier(AttributeModifier.create_add_base(atk_modifier_id, "atk", atk_bonus, "skill_a"))
+
+	# 技能 B：监听 atk，更新 max_hp modifier
+	var update_max_hp_modifier := func() -> void:
+		attr_set.remove_modifier(max_hp_modifier_id)
+		var atk_value := attr_set.get_current_value("atk")
+		var max_hp_bonus := atk_value * 0.1
+		attr_set.add_modifier(AttributeModifier.create_add_base(max_hp_modifier_id, "max_hp", max_hp_bonus, "skill_b"))
+
+	# 设置监听器
+	attr_set.on_attribute_changed("max_hp", func(_event: Dictionary) -> void:
+		update_atk_modifier.call()
+		# 强制读取 atk 推动收敛
+		var _force: float = attr_set.get_current_value("atk")
+	)
+
+	attr_set.on_attribute_changed("atk", func(_event: Dictionary) -> void:
+		update_max_hp_modifier.call()
+		# 强制读取 max_hp 推动收敛
+		var _force: float = attr_set.get_current_value("max_hp")
+	)
+
+	# 初始化 modifier
+	update_atk_modifier.call()
+	update_max_hp_modifier.call()
+
+	# 初始状态验证
+	# max_hp = 100 + (50 * 0.1) = 105
+	# atk = 50 + (105 * 0.01) = 51.05
+	# 但由于收敛，实际值会略有不同
+	var initial_max_hp := attr_set.get_current_value("max_hp")
+	var initial_atk := attr_set.get_current_value("atk")
+	TestFramework.assert_true(initial_max_hp > 100, "max_hp should be > 100 after dynamic modifier")
+	TestFramework.assert_true(initial_atk > 50, "atk should be > 50 after dynamic modifier")
+
+	# 触发变化：增加 max_hp 基础值
+	attr_set.set_base("max_hp", 120)
+
+	# 验证收敛后的值
+	var final_max_hp := attr_set.get_current_value("max_hp")
+	var final_atk := attr_set.get_current_value("atk")
+
+	# 收敛后：
+	# max_hp ≈ 120 + (atk * 0.1)
+	# atk ≈ 50 + (max_hp * 0.01)
+	# 解方程：max_hp ≈ 125.13, atk ≈ 51.25
+	TestFramework.assert_true(final_max_hp > 120, "max_hp should be > 120 after convergence")
+	TestFramework.assert_true(final_max_hp < 130, "max_hp should be < 130 (sanity check)")
+	TestFramework.assert_true(final_atk > 51, "atk should be > 51 after convergence")
+	TestFramework.assert_true(final_atk < 52, "atk should be < 52 (sanity check)")

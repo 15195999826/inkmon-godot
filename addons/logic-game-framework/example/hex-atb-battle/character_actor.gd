@@ -94,6 +94,16 @@ func _grant_class_passives() -> void:
 		var thorn_passive := Ability.new(HexBattlePassiveAbilities.THORN_PASSIVE, get_id())
 		ability_set.grant_ability(thorn_passive)
 
+	# 法师：生命力 + 活力（互相依赖的被动，用于验证收敛机制）
+	# 生命力：atk += max_hp * 0.01
+	# 活力：max_hp += atk * 0.1
+	if character_class == HexBattleClassConfig.CharacterClass.MAGE:
+		var vitality_passive := Ability.new(HexBattlePassiveAbilities.VITALITY_PASSIVE, get_id())
+		var vigor_passive := Ability.new(HexBattlePassiveAbilities.VIGOR_PASSIVE, get_id())
+		ability_set.grant_ability(vitality_passive)
+		ability_set.grant_ability(vigor_passive)
+		Log.debug("CharacterActor", "[收敛验证] 法师装备了互相依赖的被动：生命力 + 活力")
+
 
 # ========== 队伍 ==========
 

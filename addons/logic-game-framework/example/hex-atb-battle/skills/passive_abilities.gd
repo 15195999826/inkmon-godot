@@ -2,6 +2,7 @@
 ##
 ## 使用 NoInstanceComponent 实现被动触发效果。
 ## 被动技能监听游戏事件，满足条件时自动执行 Action 链。
+
 class_name HexBattlePassiveAbilities
 
 
@@ -45,6 +46,50 @@ static func _thorn_filter() -> Callable:
 		return is_target and has_source and not_self_damage and not is_reflected
 
 
+## 生命力被动 - max_hp 越高，atk 越高
+##
+## 效果：atk += max_hp * 0.01
+## 与 VIGOR_PASSIVE 形成循环依赖，用于验证收敛机制
+static var VITALITY_PASSIVE: AbilityConfig = (
+	AbilityConfig.builder()
+	.config_id("passive_vitality")
+	.display_name("生命力")
+	.description("max_hp 越高，atk 越高（atk += max_hp * 0.01）")
+	.ability_tags(["passive", "buff", "dynamic"])
+	.component(DynamicStatModifierComponent.new(
+		DynamicStatModifierConfig.new(
+			"max_hp",                          # 源属性
+			"atk",                             # 目标属性
+			AttributeModifier.Type.ADD_BASE,  # 修改器类型
+			0.01                               # 系数
+		)
+	))
+	.build()
+)
+
+
+## 活力被动 - atk 越高，max_hp 越高
+##
+## 效果：max_hp += atk * 0.1
+## 与 VITALITY_PASSIVE 形成循环依赖，用于验证收敛机制
+static var VIGOR_PASSIVE: AbilityConfig = (
+	AbilityConfig.builder()
+	.config_id("passive_vigor")
+	.display_name("活力")
+	.description("atk 越高，max_hp 越高（max_hp += atk * 0.1）")
+	.ability_tags(["passive", "buff", "dynamic"])
+	.component(DynamicStatModifierComponent.new(
+		DynamicStatModifierConfig.new(
+			"atk",                             # 源属性
+			"max_hp",                          # 目标属性
+			AttributeModifier.Type.ADD_BASE,  # 修改器类型
+			0.1                                # 系数
+		)
+	))
+	.build()
+)
+
+
 # ========== 导出 ==========
 
 ## 所有被动技能
@@ -52,5 +97,9 @@ static func get_passive_ability(passive_type: String) -> AbilityConfig:
 	match passive_type:
 		"Thorn":
 			return THORN_PASSIVE
+		"Vitality":
+			return VITALITY_PASSIVE
+		"Vigor":
+			return VIGOR_PASSIVE
 		_:
 			return null

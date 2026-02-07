@@ -5,6 +5,10 @@ const _CHANGE_TYPE_BASE := "base"
 const _CHANGE_TYPE_MODIFIER := "modifier"
 const _CHANGE_TYPE_CURRENT := "current"
 
+## 属性变化阈值：变化量小于此值时，视为"无变化"，不更新缓存、不触发通知
+## 用于解决动态属性互相依赖时的收敛问题（如 atk += max_hp * 0.01, max_hp += atk * 0.1）
+const CHANGE_THRESHOLD := 0.01
+
 var _base_values: Dictionary = {}
 ## { String -> Array[AttributeModifier] } 按属性名索引
 var _modifiers: Dictionary = {}
@@ -21,6 +25,13 @@ var _global_hooks: Dictionary = {}
 ## current 值变化前的回调，签名: func(attr_name: String, inout_value: Dictionary) -> void
 ## inout_value = { "value": float }，可直接修改 inout_value["value"] 来调整最终值
 var _pre_change_callback: Callable = Callable()
+## 通知队列：防止 listener 执行期间的递归通知导致栈溢出
+## 当 _notifying 为 true 时，新的通知会被排队，等当前通知处理完毕后再处理
+## 存储待通知的属性名（String）
+var _notification_queue: Array[String] = []
+var _notifying: bool = false
+## 记录每个属性在当前通知批次开始时的值，用于阈值判断
+var _batch_start_values: Dictionary = {}
 
 func _init(attributes: Array[Dictionary] = []) -> void:
 	for attr in attributes:
@@ -162,6 +173,9 @@ func get_breakdown(attr_name: String) -> AttributeBreakdown:
 	if not _dirty_set.has(attr_name) and _cache.has(attr_name):
 		return _cache[attr_name] as AttributeBreakdown
 
+	# 记录旧缓存值（用于阈值判断）
+	var old_cached: AttributeBreakdown = _cache.get(attr_name) as AttributeBreakdown
+
 	_computing_set[attr_name] = true
 	var base_value := float(_base_values.get(attr_name, 0.0))
 	var mods := _get_modifiers_typed(attr_name)
@@ -180,9 +194,21 @@ func get_breakdown(attr_name: String) -> AttributeBreakdown:
 		if callback_value != breakdown.current_value:
 			breakdown = breakdown.with_clamped_value(callback_value)
 
+	_computing_set.erase(attr_name)
+
+	# 3. 阈值截断：变化量小于 CHANGE_THRESHOLD 时，视为"无变化"
+	#    - 不更新缓存（保持旧值）
+	#    - 不触发 listener（截断循环链）
+	#    - 清除 dirty（下次直接返回旧缓存）
+	#    用于解决动态属性互相依赖时的收敛问题
+	if old_cached != null:
+		var delta := absf(breakdown.current_value - old_cached.current_value)
+		if delta < CHANGE_THRESHOLD:
+			_dirty_set.erase(attr_name)
+			return old_cached
+
 	_cache[attr_name] = breakdown
 	_dirty_set.erase(attr_name)
-	_computing_set.erase(attr_name)
 	return breakdown
 
 
@@ -219,7 +245,8 @@ func add_modifier(modifier: AttributeModifier) -> void:
 	_mark_dirty(modifier.attribute_name)
 
 	var new_value := get_current_value(modifier.attribute_name)
-	if old_value != new_value:
+	var delta := absf(new_value - old_value)
+	if delta >= CHANGE_THRESHOLD:
 		_notify_change({
 			"attributeName": modifier.attribute_name,
 			"oldValue": old_value,
@@ -244,7 +271,8 @@ func remove_modifier(modifier_id: String) -> bool:
 			_mark_dirty(attr_name)
 
 			var new_value := get_current_value(attr_name)
-			if old_value != new_value:
+			var delta := absf(new_value - old_value)
+			if delta >= CHANGE_THRESHOLD:
 				_notify_change({
 					"attributeName": attr_name,
 					"oldValue": old_value,
@@ -286,7 +314,8 @@ func remove_modifiers_by_source(source: String) -> int:
 		_mark_dirty(attr_name)
 
 		var new_value := get_current_value(attr_name)
-		if old_value != new_value:
+		var delta := absf(new_value - old_value)
+		if delta >= CHANGE_THRESHOLD:
 			_notify_change({
 				"attributeName": attr_name,
 				"oldValue": old_value,
@@ -433,6 +462,69 @@ func _clamp_value(attr_name: String, value: float) -> float:
 
 
 func _notify_change(event: Dictionary) -> void:
+	var attr_name: String = event.get("attributeName", "")
+	
+	# 如果正在通知中，记录此属性需要通知（去重：同一属性只记录一次）
+	if _notifying:
+		# 只记录属性名，不记录具体事件（最终会用最新值）
+		if not _batch_start_values.has(attr_name):
+			# 首次记录此属性，保存批次开始时的值
+			_batch_start_values[attr_name] = event.get("oldValue", 0.0)
+		_notification_queue.append(attr_name)
+		return
+	
+	# 开始通知批次
+	_notifying = true
+	_batch_start_values.clear()
+	_batch_start_values[attr_name] = event.get("oldValue", 0.0)
+	
+	# 处理当前事件
+	_dispatch_event(event)
+	
+	# 处理队列中的属性（listener 可能触发新的变化）
+	# 使用迭代次数限制防止无限循环
+	var max_iterations := 100
+	var iteration := 0
+	while not _notification_queue.is_empty() and iteration < max_iterations:
+		iteration += 1
+		
+		# 收集当前队列中所有待处理的属性（去重）
+		var pending_attrs: Dictionary = {}
+		while not _notification_queue.is_empty():
+			var queued_attr: String = _notification_queue.pop_front()
+			pending_attrs[queued_attr] = true
+		
+		# 处理每个属性
+		for pending_attr in pending_attrs.keys():
+			# 阈值检查：比较批次开始时的值和当前值
+			if _batch_start_values.has(pending_attr):
+				var batch_start_value: float = _batch_start_values[pending_attr]
+				var current_value := get_current_value(pending_attr)
+				var delta := absf(current_value - batch_start_value)
+				if delta < CHANGE_THRESHOLD:
+					# 变化量太小，跳过此通知
+					continue
+				
+				# 构造事件并分发
+				var queued_event := {
+					"attributeName": pending_attr,
+					"oldValue": batch_start_value,
+					"newValue": current_value,
+					"changeType": _CHANGE_TYPE_MODIFIER,
+				}
+				_dispatch_event(queued_event)
+				
+				# 更新批次开始值为当前值（下一轮迭代的基准）
+				_batch_start_values[pending_attr] = current_value
+	
+	if iteration >= max_iterations:
+		Log.warning("AttributeSet", "[收敛失败] 属性变化通知超过 %d 次迭代，可能存在无法收敛的循环依赖" % max_iterations)
+	
+	_notifying = false
+	_batch_start_values.clear()
+
+
+func _dispatch_event(event: Dictionary) -> void:
 	for listener in _listeners:
 		if listener.is_valid():
 			listener.call(event)
