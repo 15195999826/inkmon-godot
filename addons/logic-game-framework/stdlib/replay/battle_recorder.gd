@@ -145,5 +145,3 @@ func _subscribe_actor(actor: Actor) -> void:
 			"actorId": actor_id,
 			"unsubscribes": unsubscribes,
 		}
-
-

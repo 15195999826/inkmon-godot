@@ -214,8 +214,8 @@ func get_tag_snapshot() -> Dictionary:
 
 ## 设置录像回调（覆盖基类）
 ## 订阅所有框架事件：属性变化、Ability 生命周期、触发、执行、Tag 变化
-func setup_recording(ctx: Dictionary) -> Array:
-	var unsubscribes := []
+func setup_recording(ctx: Dictionary) -> Array[Callable]:
+	var unsubscribes: Array[Callable] = []
 	
 	# 录制属性变化
 	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attribute_set, ctx))
