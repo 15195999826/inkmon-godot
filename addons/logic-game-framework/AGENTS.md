@@ -231,3 +231,7 @@ PreEventConfig.new(
 filter 签名：`func(Dictionary, AbilityLifecycleContext) -> bool`
 
 用于在 handler 调用前过滤事件。返回 `true` 表示该事件应被此 handler 处理。不传 filter 则处理所有匹配 event_kind 的事件。
+
+## 6.全局依赖耦合（GameWorld 硬依赖）
+
+框架内多处直接引用 `GameWorld` Autoload，虽然破坏了框架的可测试性和可移植性, 但我们认为这是合理的设计权衡， 不视为缺陷

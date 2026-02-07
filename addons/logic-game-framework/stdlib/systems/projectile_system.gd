@@ -49,7 +49,7 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 	var valid_targets := _filter_valid_targets(projectile, potential_targets)
 	var collision := collision_detector.detect(projectile, valid_targets)
 
-	if collision.get("hit", false) and collision.get("target"):
+	if collision.get("hit", false) and collision.get("target_actor_id", "") != "":
 		_process_hit(projectile, collision)
 
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
@@ -63,17 +63,18 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 				target_actor = actor
 				break
 		if target_actor:
-			var hit_position: Vector3 = projectile.position if projectile.position else target_actor.position
+			var hit_position := projectile.position
 			projectile.hit(target_actor_id)
 			_emit_hit_event(projectile, target_actor_id, hit_position)
 			_mark_for_removal(projectile)
 			return
 
 	var collision := collision_detector.detect(projectile, valid_targets)
-	if collision.get("hit", false) and collision.get("target_actor_id"):
-		var hit_target_actor_id: String = collision.get("target_actor_id")
+	if collision.get("hit", false) and collision.get("target_actor_id", "") != "":
+		var hit_target_actor_id: String = collision.get("target_actor_id", "")
 		projectile.hit(hit_target_actor_id)
-		_emit_hit_event(projectile, hit_target_actor_id, collision.get("hitPosition"))
+		var collision_hit_position: Vector3 = collision.get("hitPosition", Vector3.ZERO) as Vector3
+		_emit_hit_event(projectile, hit_target_actor_id, collision_hit_position)
 	else:
 		projectile.miss("no_target")
 		_emit_miss_event(projectile, "no_target")
@@ -82,11 +83,12 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 
 func _process_hit(projectile: ProjectileActor, collision: Dictionary) -> void:
 	var target_actor_id: String = collision.get("target_actor_id", "")
-	var hit_position: Vector3 = collision.get("hitPosition")
+	var hit_position_raw: Variant = collision.get("hitPosition", null)
 
-	if target_actor_id == "" or not hit_position:
+	if target_actor_id == "" or not (hit_position_raw is Vector3):
 		return
 
+	var hit_position := hit_position_raw as Vector3
 	var continue_flying := projectile.hit(target_actor_id)
 
 	if continue_flying:
@@ -117,14 +119,16 @@ func _mark_for_removal(projectile: ProjectileActor) -> void:
 	pending_removal[projectile.id] = true
 
 func _process_pending_removal(actors: Array[Actor]) -> void:
-	# Remove marked projectiles from actors array
-	var i := 0
-	while i < actors.size():
-		var actor := actors[i]
+	if pending_removal.is_empty():
+		return
+	var remaining: Array[Actor] = []
+	for actor in actors:
 		if actor is ProjectileActor and pending_removal.has(actor.id):
-			actors.remove_at(i)
-		else:
-			i += 1
+			continue
+		remaining.append(actor)
+	actors.clear()
+	for actor in remaining:
+		actors.append(actor)
 	pending_removal.clear()
 
 func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_position: Vector3) -> void:
