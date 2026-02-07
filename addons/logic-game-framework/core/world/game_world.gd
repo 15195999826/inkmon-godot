@@ -11,7 +11,7 @@ func _init():
 
 func _ensure_initialized() -> void:
 	if event_processor == null:
-		event_processor = EventProcessor.create_event_processor()
+		event_processor = EventProcessor.new()
 	if event_collector == null:
 		event_collector = EventCollector.new()
 
@@ -20,7 +20,7 @@ func init(config: EventProcessorConfig = null) -> void:
 	if _initialized:
 		Log.warning("GameWorld", "GameWorld already initialized, reinitializing...")
 		shutdown()
-		event_processor = EventProcessor.create_event_processor(config)
+		event_processor = EventProcessor.new(config)
 		event_collector = EventCollector.new()
 		initialize()
 

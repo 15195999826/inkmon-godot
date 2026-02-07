@@ -71,16 +71,20 @@ static func create_projectile_pierce_event(projectile_id: String, source_actor_i
 	return payload
 
 static func is_projectile_launched_event(event: Dictionary) -> bool:
-	return event.get("kind", "") == PROJECTILE_LAUNCHED_EVENT
+	return _is_kind(event, PROJECTILE_LAUNCHED_EVENT)
 
 static func is_projectile_hit_event(event: Dictionary) -> bool:
-	return event.get("kind", "") == PROJECTILE_HIT_EVENT
+	return _is_kind(event, PROJECTILE_HIT_EVENT)
 
 static func is_projectile_miss_event(event: Dictionary) -> bool:
-	return event.get("kind", "") == PROJECTILE_MISS_EVENT
+	return _is_kind(event, PROJECTILE_MISS_EVENT)
 
 static func is_projectile_despawn_event(event: Dictionary) -> bool:
-	return event.get("kind", "") == PROJECTILE_DESPAWN_EVENT
+	return _is_kind(event, PROJECTILE_DESPAWN_EVENT)
 
 static func is_projectile_pierce_event(event: Dictionary) -> bool:
-	return event.get("kind", "") == PROJECTILE_PIERCE_EVENT
+	return _is_kind(event, PROJECTILE_PIERCE_EVENT)
+
+
+static func _is_kind(event: Dictionary, kind: String) -> bool:
+	return event.get("kind", "") == kind

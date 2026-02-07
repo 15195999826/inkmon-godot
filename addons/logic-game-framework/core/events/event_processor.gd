@@ -65,10 +65,7 @@ var _pre_handlers: Dictionary = {}
 
 ## 初始化事件处理器
 func _init(config: EventProcessorConfig = null):
-	if config != null:
-		_config = config
-	else:
-		_config = EventProcessorConfig.new()
+	_config = config if config != null else EventProcessorConfig.new()
 
 
 ## 注册 Pre 阶段处理器
@@ -160,10 +157,9 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 		)
 
 		var start_time := Time.get_ticks_msec()
-		var intent: Intent = Intent.pass_through()
 
 		# 调用处理器，返回 Intent（pass_through / cancel / modify）
-		intent = registration.call_handler(mutable, handler_context)
+		var intent := registration.call_handler(mutable, handler_context)
 
 		var execution_time := Time.get_ticks_msec() - start_time
 		
@@ -186,28 +182,19 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 		elif intent.is_modify():
 			# modify：将修改追加到 MutableEvent，继续下一个处理器
 			# 补充来源信息（source_id / source_name），方便追踪修改来源
-			var needs_source_fill := false
+			var modifications_with_source: Array[Modification] = []
 			for mod in intent.modifications:
-				if mod.source_id == "" or mod.source_name == "":
-					needs_source_fill = true
-					break
-			
-			if needs_source_fill:
-				var modifications_with_source: Array[Modification] = []
-				for mod in intent.modifications:
-					if mod.source_id != "" and mod.source_name != "":
-						modifications_with_source.append(mod)
-					else:
-						modifications_with_source.append(Modification.new(
-							mod.field,
-							mod.operation,
-							mod.value,
-							mod.source_id if mod.source_id != "" else intent.handler_id,
-							mod.source_name if mod.source_name != "" else registration.get_display_name()
-						))
-				mutable.add_modifications(modifications_with_source)
-			else:
-				mutable.add_modifications(intent.modifications)
+				if mod.source_id != "" and mod.source_name != "":
+					modifications_with_source.append(mod)
+				else:
+					modifications_with_source.append(Modification.new(
+						mod.field,
+						mod.operation,
+						mod.value,
+						mod.source_id if mod.source_id != "" else intent.handler_id,
+						mod.source_name if mod.source_name != "" else registration.get_display_name()
+					))
+			mutable.add_modifications(modifications_with_source)
 
 	# ── 记录修改前后的值（用于 trace 日志）──
 	if _config.trace_level >= 1:
@@ -291,11 +278,10 @@ func export_trace_log() -> String:
 			for record in intents:
 				var intent: Dictionary = record.get("intent", {})
 				var intent_type: String = intent.get("type", "")
-				var error_suffix := ""
-				if record.get("error", null) != null:
-					error_suffix = " ERROR"
+				var has_error: bool = record.get("error", null) != null
+				var error_suffix := " ERROR" if has_error else ""
 				lines.append("  [%s] -> %s%s" % [record.get("handlerName", record.get("handlerId", "")), intent_type, error_suffix])
-				if record.get("error", null) != null:
+				if has_error:
 					lines.append("    Error: %s" % record["error"].get("message", ""))
 				elif intent_type == EventPhase.INTENT_CANCEL:
 					lines.append("    Reason: %s" % intent.get("reason", ""))
@@ -336,8 +322,3 @@ func _create_trace(event_dict: Dictionary, phase: String) -> Dictionary:
 
 func _finalize_trace(trace: Dictionary) -> void:
 	trace["endTime"] = Time.get_ticks_msec()
-
-
-## 创建事件处理器（工厂方法）
-static func create_event_processor(config: EventProcessorConfig = null) -> EventProcessor:
-	return EventProcessor.new(config)

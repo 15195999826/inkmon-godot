@@ -65,40 +65,43 @@ func tick(dt: float) -> Array[String]:
 	var tags: Dictionary = _timeline.tags
 	for tag_name in tags.keys():
 		var tag_time := float(tags[tag_name])
-		var should_trigger := false
-		if tag_time == 0.0:
-			should_trigger = (previous_elapsed == 0.0 and _elapsed >= 0.0 and not _triggered_tags.has(tag_name))
-		else:
-			should_trigger = (previous_elapsed < tag_time and _elapsed >= tag_time and not _triggered_tags.has(tag_name))
-		if should_trigger:
-			_triggered_tags[tag_name] = true
-			triggered_this_tick.append({
-				"tagName": tag_name,
-				"tagTime": tag_time,
-				"elapsed": _elapsed,
-			})
+		if _triggered_tags.has(tag_name):
+			continue
+		if not _should_trigger(previous_elapsed, tag_time):
+			continue
+		_triggered_tags[tag_name] = true
+		triggered_this_tick.append({
+			"tagName": tag_name,
+			"tagTime": tag_time,
+			"elapsed": _elapsed,
+		})
 
 	triggered_this_tick.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["tagTime"] < b["tagTime"])
 
+	var triggered_tags: Array[String] = []
 	for entry in triggered_this_tick:
-		var actions: Array[Action.BaseAction] = _resolve_actions_for_tag(str(entry["tagName"]))
-		Log.debug("AbilityExecutionInstance", "触发 %s" % str(entry["tagName"]))
-		_execute_actions_for_tag(str(entry["tagName"]), actions)
+		var tag_name: String = entry["tagName"]
+		var actions := _resolve_actions_for_tag(tag_name)
+		Log.debug("AbilityExecutionInstance", "触发 %s" % tag_name)
+		_execute_actions_for_tag(tag_name, actions)
+		triggered_tags.append(tag_name)
 
-	var total_duration := _timeline.total_duration
-	if _elapsed >= total_duration:
+	if _elapsed >= _timeline.total_duration:
 		_state = STATE_COMPLETED
 		Log.debug("AbilityExecutionInstance", "执行完成")
 
-	var triggered_tags: Array[String] = []
-	for entry in triggered_this_tick:
-		triggered_tags.append(entry["tagName"])
 	return triggered_tags
 
 func cancel() -> void:
 	if _state == STATE_EXECUTING:
 		_state = STATE_CANCELLED
 		Log.debug("AbilityExecutionInstance", "执行取消")
+
+## 判断 tag 是否应在当前 tick 触发
+func _should_trigger(previous_elapsed: float, tag_time: float) -> bool:
+	if tag_time == 0.0:
+		return previous_elapsed == 0.0 and _elapsed >= 0.0
+	return previous_elapsed < tag_time and _elapsed >= tag_time
 
 func _execute_actions_for_tag(tag_name: String, actions: Array[Action.BaseAction]) -> void:
 	if actions.is_empty():

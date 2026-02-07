@@ -74,13 +74,13 @@ func revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, e
 	if index == -1:
 		return false
 	var ability: Ability = _abilities[index]
+	var effective_expire_reason := expire_reason if expire_reason != "" else reason
 	if not ability.is_expired():
-		var reason_value := expire_reason if expire_reason != "" else reason
-		ability.expire(reason_value)
+		ability.expire(effective_expire_reason)
 	_abilities.remove_at(index)
-	var reason_text := expire_reason if expire_reason != "" else (ability.get_expire_reason() if ability.get_expire_reason() != "" else reason)
-	Log.debug("AbilitySet", "失去能力 (%s)" % reason_text)
-	_notify_revoked(ability, reason, expire_reason if expire_reason != "" else ability.get_expire_reason())
+	var final_expire_reason := ability.get_expire_reason() if ability.get_expire_reason() != "" else effective_expire_reason
+	Log.debug("AbilitySet", "失去能力 (%s)" % final_expire_reason)
+	_notify_revoked(ability, reason, final_expire_reason)
 	return true
 
 func revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_REASON_MANUAL) -> int:

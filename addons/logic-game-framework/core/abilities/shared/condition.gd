@@ -100,12 +100,10 @@ class AllConditions:
 
 	func check(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
-			if not condition.check(ctx, event_dict, game_state):
-				# Debug: 验证子 Condition 状态未被修改
-				condition._verify_unchanged()
-				return false
-			# Debug: 验证子 Condition 状态未被修改
+			var passed := condition.check(ctx, event_dict, game_state)
 			condition._verify_unchanged()
+			if not passed:
+				return false
 		return true
 
 	func get_fail_reason(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> String:
@@ -137,12 +135,10 @@ class AnyCondition:
 
 	func check(ctx: AbilityLifecycleContext, event_dict: Dictionary, game_state: Variant) -> bool:
 		for condition in conditions:
-			if condition.check(ctx, event_dict, game_state):
-				# Debug: 验证子 Condition 状态未被修改
-				condition._verify_unchanged()
-				return true
-			# Debug: 验证子 Condition 状态未被修改
+			var passed := condition.check(ctx, event_dict, game_state)
 			condition._verify_unchanged()
+			if passed:
+				return true
 		return false
 
 	func get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> String:

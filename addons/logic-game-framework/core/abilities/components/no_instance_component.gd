@@ -11,12 +11,7 @@ func _init(config: NoInstanceConfig):
 	type = TYPE
 	_trigger_mode = config.trigger_mode
 	_actions.assign(config.actions)
-	# 转换 TriggerConfig 为内部格式
-	for trigger in config.triggers:
-		var trigger_dict := { "eventKind": trigger.event_kind }
-		if trigger.filter.is_valid():
-			trigger_dict["filter"] = trigger.filter
-		_triggers.append(trigger_dict)
+	_triggers = AbilityComponent.convert_triggers(config.triggers)
 	# Debug: 冻结所有 Action
 	_freeze_all_actions()
 

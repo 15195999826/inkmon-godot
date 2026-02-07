@@ -35,9 +35,6 @@ func on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_sta
 	if not _check_costs(context, event_dict, game_state_provider):
 		return false
 	_pay_costs(context, event_dict, game_state_provider)
-	return _activate_without_checks(event_dict, context, game_state_provider)
-
-func _activate_without_checks(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool:
 	_activate_execution(event_dict, context, game_state_provider)
 	return true
 

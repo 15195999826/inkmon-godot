@@ -13,12 +13,7 @@ func _init(config: ActivateInstanceConfig):
 	_timeline_id = config.timeline_id
 	_tag_actions = config.tag_actions
 	_trigger_mode = config.trigger_mode
-	# 转换 TriggerConfig 为内部格式
-	for trigger in config.triggers:
-		var trigger_dict := { "eventKind": trigger.event_kind }
-		if trigger.filter.is_valid():
-			trigger_dict["filter"] = trigger.filter
-		_triggers.append(trigger_dict)
+	_triggers = AbilityComponent.convert_triggers(config.triggers)
 	# Debug: 冻结所有 Action，检测无状态约束
 	_freeze_all_actions()
 

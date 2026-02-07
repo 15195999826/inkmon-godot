@@ -39,7 +39,7 @@ func get_current_value(field: String) -> Variant:
 		return original_value
 
 	var grouped := _get_grouped_field_mods(field)
-	if grouped.is_empty:
+	if grouped.sets.is_empty() and grouped.adds.is_empty() and grouped.muls.is_empty():
 		return original_value
 
 	return _compute_value(float(original_value), grouped)
@@ -71,7 +71,7 @@ func get_field_computation_steps(field: String) -> Variant:
 		return null
 
 	var grouped := _get_grouped_field_mods(field)
-	if grouped.is_empty:
+	if grouped.sets.is_empty() and grouped.adds.is_empty() and grouped.muls.is_empty():
 		return null
 
 	var steps: Array[Dictionary] = []
@@ -150,7 +150,6 @@ func _get_grouped_field_mods(field: String) -> Dictionary:
 		"sets": sets,
 		"adds": adds,
 		"muls": muls,
-		"is_empty": sets.is_empty() and adds.is_empty() and muls.is_empty(),
 	}
 
 func _compute_value(base_value: float, grouped: Dictionary) -> float:

@@ -34,9 +34,9 @@ static func modify_intent(handler_id: String, modifications: Array[Modification]
 
 
 static func create_trace_id() -> String:
-	return "t-%s-%s" % [str(Time.get_ticks_msec(), 36), _random_suffix()]
+	return "t-%s-%s" % [String.num_int64(Time.get_ticks_msec(), 36), _random_suffix()]
 
 
 static func _random_suffix() -> String:
 	var value := randi()
-	return str(value, 36).pad_zeros(4)
+	return String.num_int64(value, 36).right(4)
