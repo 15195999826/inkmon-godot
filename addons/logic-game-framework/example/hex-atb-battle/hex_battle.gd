@@ -102,6 +102,7 @@ func start(config: Dictionary = {}) -> void:
 	var grid_config := config.get("map_config", null) as GridMapConfig
 	if grid_config == null:
 		grid_config = _build_default_grid_config()
+	UGridMap.configure(grid_config)
 	left_team = [
 		_create_character_actor(HexBattleClassConfig.CharacterClass.PRIEST),
 		_create_character_actor(HexBattleClassConfig.CharacterClass.WARRIOR),
