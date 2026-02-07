@@ -81,13 +81,7 @@ func _log(level: LogLevel, module: String, message: String, with_stack: bool) ->
 		log_msg += "[%d] " % Engine.get_process_frames()
 
 	# 添加级别标识
-	var level_prefix := ""
-	match level:
-		LogLevel.DEBUG:   level_prefix = "[DEBUG]"
-		LogLevel.INFO:    level_prefix = "[INFO]"
-		LogLevel.WARNING: level_prefix = "[WARN]"
-		LogLevel.ERROR:   level_prefix = "[ERROR]"
-
+	var level_prefix := _get_level_prefix(level)
 	log_msg += level_prefix
 	log_msg += "[%s] %s" % [module, message]
 
@@ -127,3 +121,13 @@ func set_debug_mode() -> void:
 	set_level(LogLevel.DEBUG)
 	show_timestamp = true
 	print("[Logger] 调试模式已启用 (显示所有日志)")
+
+
+## 获取日志级别前缀
+func _get_level_prefix(level: LogLevel) -> String:
+	match level:
+		LogLevel.DEBUG:   return "[DEBUG]"
+		LogLevel.INFO:    return "[INFO]"
+		LogLevel.WARNING: return "[WARN]"
+		LogLevel.ERROR:   return "[ERROR]"
+	return ""

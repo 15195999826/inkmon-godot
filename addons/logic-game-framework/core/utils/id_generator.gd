@@ -12,7 +12,7 @@ static func reset_id_counter() -> void:
 
 var _prefix: String
 
-func _init(prefix: String = ""):
+func _init(prefix: String = "") -> void:
 	_prefix = prefix
 
 func generate_with_prefix() -> String:

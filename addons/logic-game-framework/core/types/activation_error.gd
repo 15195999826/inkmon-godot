@@ -4,7 +4,7 @@ class_name ActivationError
 var code: String
 var message: String
 
-func _init(code_value: String, message_value: String):
+func _init(code_value: String, message_value: String) -> void:
 	code = code_value
 	message = message_value
 
