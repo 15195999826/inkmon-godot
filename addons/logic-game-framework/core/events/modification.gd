@@ -24,8 +24,8 @@
 ## # 直接设置为 0（免疫）
 ## var mod3 := Modification.set_value("damage", 0.0, "immune", "免疫")
 ## ```
-extends RefCounted
 class_name Modification
+extends RefCounted
 
 
 ## 操作类型枚举

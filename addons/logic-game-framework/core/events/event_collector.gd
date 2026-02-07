@@ -39,8 +39,8 @@
 ## if recorder != null:
 ##     recorder.record_frame(tick_count, frame_events)
 ## ```
-extends RefCounted
 class_name EventCollector
+extends RefCounted
 
 var _events: Array[Dictionary] = []
 

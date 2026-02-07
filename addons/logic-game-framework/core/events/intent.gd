@@ -27,8 +27,8 @@
 ##     # 不处理
 ##     return Intent.pass_through()
 ## ```
-extends RefCounted
 class_name Intent
+extends RefCounted
 
 
 ## 意图类型枚举

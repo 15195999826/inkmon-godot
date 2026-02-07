@@ -52,8 +52,8 @@
 ## print(event_processor.export_trace_log())
 ## ```
 
-extends RefCounted
 class_name EventProcessor
+extends RefCounted
 
 var _config: EventProcessorConfig
 var _current_depth := 0

@@ -1,5 +1,5 @@
-extends RefCounted
 class_name GameEvent
+extends RefCounted
 
 const ABILITY_ACTIVATE_EVENT := "abilityActivate"
 const ACTOR_SPAWNED_EVENT := "actorSpawned"

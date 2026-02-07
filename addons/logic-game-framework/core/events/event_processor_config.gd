@@ -17,8 +17,8 @@
 ## var config := EventProcessorConfig.new(10, 2)
 ## var processor := EventProcessor.new(config)
 ## ```
-extends RefCounted
 class_name EventProcessorConfig
+extends RefCounted
 
 
 const DEFAULT_MAX_DEPTH := 10

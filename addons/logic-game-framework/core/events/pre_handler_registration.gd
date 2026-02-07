@@ -19,8 +19,8 @@
 ## )
 ## var unregister := event_processor.register_pre_handler(registration)
 ## ```
-extends RefCounted
 class_name PreHandlerRegistration
+extends RefCounted
 
 
 ## 处理器唯一标识

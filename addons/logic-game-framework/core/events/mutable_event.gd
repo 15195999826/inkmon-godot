@@ -5,8 +5,8 @@
 ## - 多个 SET 只取最后一个
 ## - 所有 ADD 累加
 ## - 所有 MULTIPLY 依次相乘
-extends RefCounted
 class_name MutableEvent
+extends RefCounted
 
 var original: Dictionary
 var phase: String
@@ -65,14 +65,14 @@ func get_final_values() -> Dictionary:
 		result[field] = get_current_value(field)
 	return result
 
-func get_field_computation_steps(field: String) -> Variant:
+func get_field_computation_steps(field: String) -> Dictionary:
 	var original_value: Variant = original.get(field, null)
 	if typeof(original_value) not in [TYPE_INT, TYPE_FLOAT]:
-		return null
+		return {}
 
 	var grouped := _get_grouped_field_mods(field)
 	if grouped.sets.is_empty() and grouped.adds.is_empty() and grouped.muls.is_empty():
-		return null
+		return {}
 
 	var steps: Array[Dictionary] = []
 	var value := float(original_value)
@@ -103,17 +103,17 @@ func get_field_computation_steps(field: String) -> Variant:
 func get_all_computation_steps() -> Array[Dictionary]:
 	var records: Array[Dictionary] = []
 	for field in _get_modified_fields():
-		var record: Variant = get_field_computation_steps(str(field))
-		if record:
+		var record := get_field_computation_steps(field)
+		if not record.is_empty():
 			records.append(record)
 	return records
 
 func format_computation_log(field: String) -> String:
-	var record: Variant = get_field_computation_steps(field)
-	if record == null:
+	var record := get_field_computation_steps(field)
+	if record.is_empty():
 		return "%s: no modifications" % field
 
-	var lines := ["%s: %s \t \t%s" % [field, str(record["originalValue"]), str(record["finalValue"])]]
+	var lines: Array[String] = ["%s: %s \t \t%s" % [field, str(record["originalValue"]), str(record["finalValue"])]]
 
 	for step in record["steps"]:
 		var source: String = str(step.get("sourceName", "")) if step.get("sourceName") else str(step.get("sourceId", "unknown"))

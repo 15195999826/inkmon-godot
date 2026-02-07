@@ -17,8 +17,8 @@
 ##     var battle: HexBattle = ctx.game_state
 ##     # ...
 ## ```
-extends RefCounted
 class_name HandlerContext
+extends RefCounted
 
 
 ## 处理器所属的 Actor ID
