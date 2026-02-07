@@ -1,5 +1,5 @@
-extends Node
 class_name RunTests
+extends Node
 ## 测试运行器
 ##
 ## 使用方法（必须通过场景运行，不能直接运行脚本）：
@@ -45,10 +45,10 @@ func _ready() -> void:
 func _load_test_scripts() -> void:
 	for test_path in TEST_PATHS:
 		var script: GDScript = load(test_path) as GDScript
-		if not script:
+		if script == null:
 			push_error("Failed to load test script: %s" % test_path)
 			continue
-		script.new()
+		var _test_instance: Node = script.new()
 
 ## 自动发现测试
 

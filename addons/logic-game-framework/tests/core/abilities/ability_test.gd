@@ -7,7 +7,7 @@ class TestComponent:
 	var removed := false
 	var event_hit := false
 
-	func _init():
+	func _init() -> void:
 		type = "TestComponent"
 
 	func on_apply(_context: AbilityLifecycleContext) -> void:
@@ -67,10 +67,10 @@ func _test_triggered_listener() -> void:
 	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
-	var result := { "event": {}, "components": [] }
-	ability.add_triggered_listener(func(event_dict: Dictionary, components: Array) -> void:
+	var result := { "event": {}, "components": [] as Array[String] }
+	ability.add_triggered_listener(func(event_dict: Dictionary, triggered_components: Array) -> void:
 		result["event"] = event_dict
-		result["components"] = components
+		result["components"] = triggered_components
 	)
 
 	ability.receive_event({ "kind": "hit" }, context, null)

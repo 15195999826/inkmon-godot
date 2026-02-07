@@ -15,7 +15,7 @@ class CountingSystem:
 
 	var ticks := 0
 
-	func _init():
+	func _init() -> void:
 		super._init(System.SystemPriority.NORMAL)
 		type = "counting"
 
@@ -25,7 +25,7 @@ class CountingSystem:
 class DummyActor:
 	extends Actor
 
-	func _init():
+	func _init() -> void:
 		type = "dummy_actor"
 
 func _init() -> void:

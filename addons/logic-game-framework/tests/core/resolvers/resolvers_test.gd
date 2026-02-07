@@ -52,8 +52,8 @@ func _test_float_val() -> void:
 
 
 func _test_float_fn() -> void:
-	var resolver := Resolvers.float_fn(func(ctx: ExecutionContext) -> float:
-		var event := ctx.get_current_event()
+	var resolver := Resolvers.float_fn(func(exec_ctx: ExecutionContext) -> float:
+		var event := exec_ctx.get_current_event()
 		return event.get("power", 0.0) as float
 	)
 	var ctx := _create_mock_context({ "power": 100.0 })
@@ -77,8 +77,8 @@ func _test_int_val() -> void:
 
 
 func _test_int_fn() -> void:
-	var resolver := Resolvers.int_fn(func(ctx: ExecutionContext) -> int:
-		var event := ctx.get_current_event()
+	var resolver := Resolvers.int_fn(func(exec_ctx: ExecutionContext) -> int:
+		var event := exec_ctx.get_current_event()
 		return event.get("stacks", 0) as int
 	)
 	var ctx := _create_mock_context({ "stacks": 3 })
@@ -102,8 +102,8 @@ func _test_str_val() -> void:
 
 
 func _test_str_fn() -> void:
-	var resolver := Resolvers.str_fn(func(ctx: ExecutionContext) -> String:
-		var event := ctx.get_current_event()
+	var resolver := Resolvers.str_fn(func(exec_ctx: ExecutionContext) -> String:
+		var event := exec_ctx.get_current_event()
 		return event.get("cue_id", "") as String
 	)
 	var ctx := _create_mock_context({ "cue_id": "skill_fireball" })
@@ -128,8 +128,8 @@ func _test_dict_val() -> void:
 
 
 func _test_dict_fn() -> void:
-	var resolver := Resolvers.dict_fn(func(ctx: ExecutionContext) -> Dictionary:
-		var event := ctx.get_current_event()
+	var resolver := Resolvers.dict_fn(func(exec_ctx: ExecutionContext) -> Dictionary:
+		var event := exec_ctx.get_current_event()
 		return event.get("params", {}) as Dictionary
 	)
 	var ctx := _create_mock_context({ "params": { "element": "fire" } })
@@ -155,10 +155,9 @@ func _test_vec3_val() -> void:
 
 
 func _test_vec3_fn() -> void:
-	var resolver := Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
-		var event := ctx.get_current_event()
-		var pos: Vector3 = event.get("position", Vector3.ZERO) as Vector3
-		return pos
+	var resolver := Resolvers.vec3_fn(func(exec_ctx: ExecutionContext) -> Vector3:
+		var event := exec_ctx.get_current_event()
+		return event.get("position", Vector3.ZERO) as Vector3
 	)
 	var ctx := _create_mock_context({ "position": Vector3(50, 75, 10) })
 	

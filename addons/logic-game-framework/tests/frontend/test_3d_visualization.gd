@@ -89,7 +89,7 @@ func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
 func _on_floating_text_created(data: Dictionary) -> void:
 	var actor_id := data.get("actor_id", "unknown")
 	var text := data.get("text", "")
-	var color := data.get("color", Color.WHITE)
+	# color is available but unused in this test output
 	print("  [Signal] Floating text created: %s -> '%s'" % [actor_id, text])
 
 

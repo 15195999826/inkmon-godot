@@ -1,6 +1,6 @@
 @tool
-extends EditorScript
 class_name AttributeSetGeneratorScript
+extends EditorScript
 
 const CONFIG_PATH := "res://logic-game-framework-config/attributes/attributes_config.gd"
 const OUTPUT_DIR := "res://logic-game-framework-config/attributes/generated"
@@ -47,16 +47,16 @@ func _generate_from_config(config_path: String, output_dir: String) -> bool:
 		return false
 
 	var set_names: Array[String] = []
-	for key in sets.keys():
-		set_names.append(str(key))
+	for key: String in sets.keys():
+		set_names.append(key)
 	set_names.sort()
 
 	for set_name in set_names:
-		var attr_defs = sets[set_name]
+		var attr_defs: Variant = sets[set_name]
 		if typeof(attr_defs) != TYPE_DICTIONARY:
-			push_error("Attribute set %s must be Dictionary" % str(set_name))
+			push_error("Attribute set %s must be Dictionary" % set_name)
 			continue
-		_generate_set(str(set_name), attr_defs, output_dir)
+		_generate_set(set_name, attr_defs as Dictionary, output_dir)
 
 	print("Generated %d sets from %s" % [set_names.size(), config_path])
 	return true
@@ -70,7 +70,7 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	# 分离基础属性和派生属性
 	var base_attrs: Dictionary = {}
 	var derived_attrs: Dictionary = {}
-	for attr_name in attr_defs.keys():
+	for attr_name: String in attr_defs.keys():
 		var cfg: Dictionary = attr_defs[attr_name]
 		if cfg.has("derived"):
 			derived_attrs[attr_name] = cfg
@@ -91,11 +91,11 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	
 	# 只为基础属性生成 _raw 配置
 	var base_attr_names: Array[String] = []
-	for key in base_attrs.keys():
-		base_attr_names.append(str(key))
+	for key: String in base_attrs.keys():
+		base_attr_names.append(key)
 	base_attr_names.sort()
 	for attr_name in base_attr_names:
-		var attr_key := str(attr_name)
+		var attr_key := attr_name
 		var cfg: Dictionary = base_attrs[attr_name]
 		var line := "\t\t\"%s\": { \"baseValue\": %s" % [attr_key, _value_to_string(cfg.get("baseValue", 0.0))]
 		if cfg.has("minValue") and cfg["minValue"] != null:
@@ -110,7 +110,7 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	
 	# 生成基础属性的访问器
 	for attr_name in base_attr_names:
-		var attr_key := str(attr_name)
+		var attr_key := attr_name
 		var safe_key: String = _escape_identifier(attr_key)
 		var snake_case_key: String = _to_snake_case(attr_key)
 		lines.append("")
@@ -136,15 +136,15 @@ func _generate_set(set_name: String, attr_defs: Dictionary, output_dir: String) 
 	
 	# 生成派生属性的只读访问器
 	var derived_attr_names: Array[String] = []
-	for key in derived_attrs.keys():
-		derived_attr_names.append(str(key))
+	for key: String in derived_attrs.keys():
+		derived_attr_names.append(key)
 	derived_attr_names.sort()
 	if not derived_attr_names.is_empty():
 		lines.append("")
 		lines.append("# ========== Derived Attributes (read-only) ==========")
 	
 	for attr_name in derived_attr_names:
-		var attr_key := str(attr_name)
+		var attr_key := attr_name
 		var safe_key: String = _escape_identifier(attr_key)
 		var snake_case_key: String = _to_snake_case(attr_key)
 		var cfg: Dictionary = derived_attrs[attr_name]
@@ -219,8 +219,8 @@ func _operand_to_expression(operand: Variant) -> String:
 ## 将派生配置转换为注释字符串
 func _derived_config_to_comment(cfg: Dictionary) -> String:
 	var op: String = cfg.get("op", "?")
-	var left = cfg.get("left", "?")
-	var right = cfg.get("right", "?")
+	var left: Variant = cfg.get("left", "?")
+	var right: Variant = cfg.get("right", "?")
 	
 	var op_symbol := "?"
 	match op:

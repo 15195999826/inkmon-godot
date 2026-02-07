@@ -5,8 +5,8 @@ class MockActor:
 
 	var _ability_set: AbilitySet
 
-	func _init(set_value: AbilitySet):
-		_ability_set = set_value
+	func _init(ability_set_value: AbilitySet) -> void:
+		_ability_set = ability_set_value
 
 	func get_ability_set() -> AbilitySet:
 		return _ability_set
@@ -18,9 +18,9 @@ class MockState:
 	var _actor: MockActor
 	var event_processor: EventProcessor
 
-	func _init(as_value: AbilitySet, ep_value: EventProcessor):
-		_actor = MockActor.new(as_value)
-		event_processor = ep_value
+	func _init(ability_set_value: AbilitySet, event_processor_value: EventProcessor) -> void:
+		_actor = MockActor.new(ability_set_value)
+		event_processor = event_processor_value
 
 	func get_actor(_actor_id: String) -> MockActor:
 		return _actor

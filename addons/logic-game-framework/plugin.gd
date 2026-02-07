@@ -46,15 +46,15 @@ func _on_menu_id_pressed(id: int) -> void:
 		_run_headless_test()
 
 func _run_attribute_set_generator() -> void:
-	var script := load(GENERATOR_SCRIPT)
+	var script: GDScript = load(GENERATOR_SCRIPT) as GDScript
 	if script == null:
 		push_error("Generator script not found: %s" % GENERATOR_SCRIPT)
 		return
-	var instance: Object = script.new()
-	if instance == null or not instance.has_method("_run"):
+	var generator_instance: EditorScript = script.new()
+	if generator_instance == null or not generator_instance.has_method("_run"):
 		push_error("Generator script does not implement _run(): %s" % GENERATOR_SCRIPT)
 		return
-	instance._run()
+	generator_instance._run()
 
 
 func _run_headless_test() -> void:
@@ -101,7 +101,7 @@ func _remove_autoload_if_matches(name: String, path: String) -> void:
 func _check_dependencies() -> bool:
 	var missing: Array[String] = []
 	
-	for dep in DEPENDENCIES:
+	for dep: String in DEPENDENCIES:
 		if not EditorInterface.is_plugin_enabled(dep):
 			missing.append(dep)
 	

@@ -1,5 +1,5 @@
-extends Node
 class_name TestFramework
+extends Node
 
 ## 轻量级测试框架（兼容 AutoLoad）
 
@@ -94,7 +94,7 @@ func run() -> int:
 	print("运行测试套件")
 	print("=".repeat(60) + "\n")
 
-	for suite_name in _suites:
+	for suite_name: String in _suites:
 		_run_suite(suite_name)
 
 	# 打印总结
@@ -113,13 +113,13 @@ func _run_suite(suite_name: String) -> void:
 
 	_current_suite_name = suite_name
 	_before_each_callbacks.clear()
-	for cb in before_each_list:
-		_before_each_callbacks.append(cb)
+	for callback: Callable in before_each_list:
+		_before_each_callbacks.append(callback)
 	_after_each_callbacks.clear()
-	for cb in after_each_list:
-		_after_each_callbacks.append(cb)
+	for callback: Callable in after_each_list:
+		_after_each_callbacks.append(callback)
 
-	for test_data in tests:
+	for test_data: Dictionary in tests:
 		_run_test(suite_name, test_data)
 
 	print("")
@@ -132,15 +132,15 @@ func _run_test(suite_name: String, test_data: Dictionary) -> void:
 	_assertion_count = 0
 
 	# 运行 before_each
-	for callback in _before_each_callbacks:
-		callback.call()
+	for before_callback in _before_each_callbacks:
+		before_callback.call()
 
 	# 运行测试
 	test_fn.call()
 
 	# 运行 after_each
-	for callback in _after_each_callbacks:
-		callback.call()
+	for after_callback in _after_each_callbacks:
+		after_callback.call()
 
 	_test_count += 1
 
@@ -164,7 +164,7 @@ func _print_summary() -> void:
 
 	if _fail_count > 0:
 		print("\n失败的测试:")
-		for failure in _failures:
+		for failure: Dictionary in _failures:
 			print("  - %s / %s: %s" % [failure.suite, failure.test, failure.message])
 
 	print("=".repeat(60) + "\n")

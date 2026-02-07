@@ -153,9 +153,9 @@ func _test_base_change_notification() -> void:
 		{"name": "atk", "baseValue": 50},
 		{"name": "def", "baseValue": 30},
 	])
-	var changes := []
+	var changes: Array[Dictionary] = []
 
-	var listener := func(event):
+	var listener := func(event: Dictionary) -> void:
 		if event.get("attributeName") == "hp":
 			changes.append(event)
 
@@ -173,9 +173,9 @@ func _test_remove_listener() -> void:
 		{"name": "atk", "baseValue": 50},
 		{"name": "def", "baseValue": 30},
 	])
-	var changes := []
+	var changes: Array[Dictionary] = []
 
-	var listener := func(event):
+	var listener := func(event: Dictionary) -> void:
 		if event.get("attributeName") == "hp":
 			changes.append(event)
 
