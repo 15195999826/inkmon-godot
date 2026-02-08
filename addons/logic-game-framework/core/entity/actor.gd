@@ -130,7 +130,7 @@ func get_position_snapshot() -> Array[float]:
 
 ## 设置录像回调（BattleRecorder 调用）
 ## 子类可覆盖此方法以订阅事件并返回取消订阅的回调数组
-func setup_recording(_ctx: Dictionary) -> Array[Callable]:
+func setup_recording(_ctx: RecordingContext) -> Array[Callable]:
 	return []
 
 

@@ -224,7 +224,7 @@ func get_tag_snapshot() -> Dictionary:
 
 
 ## 设置录像回调（覆盖基类）
-func setup_recording(ctx: Dictionary) -> Array[Callable]:
+func setup_recording(ctx: RecordingContext) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
 	unsubscribes.append_array(RecordingUtils.record_attribute_changes(attribute_set, ctx))
 	unsubscribes.append_array(RecordingUtils.record_ability_set_changes(ability_set, ctx))

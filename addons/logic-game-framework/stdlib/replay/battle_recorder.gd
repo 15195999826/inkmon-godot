@@ -1,11 +1,21 @@
 class_name BattleRecorder
 extends RefCounted
+## 战斗录像器
+##
+## 录像事件有两个来源：
+## 1. 主动事件（frame_events）：每帧 tick 中由 EventCollector.flush() 收集，如伤害、治疗等
+## 2. 被动事件（pending_events）：由 RecordingContext 监听回调在 tick 过程中异步触发，
+##    如属性变化、Tag 变化、Ability 获得/移除等
+##
+## record_frame() 调用时，将两种来源合并写入当前帧的 timeline。
+## pending_events 作为帧间缓冲区，在合并后清空。
 
 var _record: ReplayData.BattleRecord
 var _meta: ReplayData.BattleMeta
 var is_recording: bool = false
 var current_frame: int = 0
 var actor_subscriptions: Dictionary = {}
+## 帧间事件缓冲区：存放监听回调异步产生的事件，在 record_frame() 时合并并清空
 var pending_events: Array[Dictionary] = []
 
 func _init(recorder_config: Dictionary = {}) -> void:
@@ -123,20 +133,7 @@ func _subscribe_actor(actor: Actor) -> void:
 	if actor_subscriptions.has(actor_id):
 		return
 
-	var state := {
-		"current_frame": current_frame,
-		"tick_interval": _meta.tick_interval,
-		"pending_events": pending_events,
-		"is_recording": is_recording,
-	}
-
-	var ctx := {
-		"actorId": actor_id,
-		"getLogicTime": func() -> int: return state.current_frame * state.tick_interval,
-		"pushEvent": func(event: Dictionary) -> void:
-			if state.is_recording:
-				state.pending_events.append(event),
-	}
+	var ctx := RecordingContext.new(actor_id, self)
 
 	var unsubscribes: Array[Callable] = actor.setup_recording(ctx)
 

@@ -5,18 +5,18 @@ class_name RecordingUtils
 ##
 ## 监听所有属性的变化，自动转换为 AttributeChangedEvent。
 ## @param generated_attr_set 生成的 AttributeSet 类（继承 BaseGeneratedAttributeSet）
-## @param ctx 录像上下文，包含 pushEvent 和 actorId
+## @param ctx 录像上下文
 ## @return 取消订阅函数数组
 static func record_attribute_changes(
 	generated_attr_set: BaseGeneratedAttributeSet,
-	ctx: Dictionary
+	ctx: RecordingContext
 ) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
 
 	var listener_func := func(event: Dictionary) -> void:
-		ctx.pushEvent.call(
+		ctx.push_event(
 			GameEvent.AttributeChanged.create(
-				ctx.actorId,
+				ctx.actor_id,
 				event.attributeName,
 				event.oldValue,
 				event.newValue
@@ -37,7 +37,7 @@ static func record_attribute_changes(
 ## - abilityTriggered: Ability 收到事件且有 Component 被触发时
 ## - executionActivated: Ability 创建新的 ExecutionInstance 时（用于表演层获取 timelineId）
 ## - tagChanged: Tag 层数变化时
-static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary) -> Array[Callable]:
+static func record_ability_set_changes(ability_set: AbilitySet, ctx: RecordingContext) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
 
 	# 存储每个 Ability 的触发事件订阅取消函数
@@ -51,9 +51,9 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 		var ability_config_id := ability.config_id
 		var unsubscribe := ability.add_triggered_listener(
 			func(event: Dictionary, triggered_components: Array[String]) -> void:
-				ctx.pushEvent.call(
+				ctx.push_event(
 					GameEvent.AbilityTriggered.create(
-						ctx.actorId,
+						ctx.actor_id,
 						ability_id,
 						ability_config_id,
 						event.get("kind", "unknown"),
@@ -71,9 +71,9 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 			func(instance: AbilityExecutionInstance) -> void:
 				var instance_id: String = instance.id if "id" in instance else ""
 				var timeline_id: String = instance.timeline_id if "timeline_id" in instance else ""
-				ctx.pushEvent.call(
+				ctx.push_event(
 					GameEvent.ExecutionActivated.create(
-						ctx.actorId,
+						ctx.actor_id,
 						ability_id,
 						ability_config_id,
 						instance_id,
@@ -92,8 +92,8 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 	var granted_unsub := ability_set.on_ability_granted(
 		func(ability: Ability, _ability_set: AbilitySet) -> void:
 			# 记录 Ability 获得事件
-			ctx.pushEvent.call(
-				GameEvent.AbilityGranted.create(ctx.actorId, {
+			ctx.push_event(
+				GameEvent.AbilityGranted.create(ctx.actor_id, {
 					"instanceId": ability.id,
 					"configId": ability.config_id,
 				}).to_dict()
@@ -108,8 +108,8 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 	var revoked_unsub := ability_set.on_ability_revoked(
 		func(ability: Ability, _reason: String, _ability_set: AbilitySet, _expire_reason: String) -> void:
 			# 记录 Ability 移除事件
-			ctx.pushEvent.call(
-				GameEvent.AbilityRemoved.create(ctx.actorId, ability.id).to_dict()
+			ctx.push_event(
+				GameEvent.AbilityRemoved.create(ctx.actor_id, ability.id).to_dict()
 			)
 			# 清理该 Ability 的订阅
 			var ability_id := ability.id
@@ -147,11 +147,11 @@ static func record_ability_set_changes(ability_set: AbilitySet, ctx: Dictionary)
 ##
 ## 监听所有来源（Loose/AutoDuration/Component）的 Tag 总层数变化，
 ## 自动转换为 TagChangedEvent。
-static func record_tag_changes(tag_container: TagContainer, ctx: Dictionary) -> Callable:
+static func record_tag_changes(tag_container: TagContainer, ctx: RecordingContext) -> Callable:
 	var listener_func := func(tag: String, old_count: int, new_count: int, _container: TagContainer) -> void:
-		ctx.pushEvent.call(
+		ctx.push_event(
 			GameEvent.TagChanged.create(
-				ctx.actorId,
+				ctx.actor_id,
 				tag,
 				old_count,
 				new_count
@@ -163,20 +163,20 @@ static func record_tag_changes(tag_container: TagContainer, ctx: Dictionary) -> 
 ## 订阅 Actor 生命周期事件
 ##
 ## 监听 Actor 的生成和销毁，自动转换为对应事件。
-static func record_actor_lifecycle(actor: Actor, ctx: Dictionary) -> Array[Callable]:
+static func record_actor_lifecycle(actor: Actor, ctx: RecordingContext) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
 
 	# 订阅 Actor 生成事件
 	var spawn_listener := func() -> void:
-		ctx.pushEvent.call(
+		ctx.push_event(
 			GameEvent.ActorSpawned.create(actor.id, actor.to_dict()).to_dict()
 		)
 	unsubscribes.append(actor.add_spawn_listener(spawn_listener))
 
 	# 订阅 Actor 销毁事件
 	var despawn_listener := func() -> void:
-		ctx.pushEvent.call(
-			GameEvent.ActorDestroyed.create(ctx.actorId).to_dict()
+		ctx.push_event(
+			GameEvent.ActorDestroyed.create(ctx.actor_id).to_dict()
 		)
 	unsubscribes.append(actor.add_despawn_listener(despawn_listener))
 
