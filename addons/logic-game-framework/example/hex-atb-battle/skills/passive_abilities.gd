@@ -37,13 +37,12 @@ static func _thorn_filter() -> Callable:
 		var owner_id := ctx.owner_actor_id
 		if owner_id.is_empty():
 			return false
-		var target_id := event_dict.get("target_actor_id", "") as String
-		var source_id := event_dict.get("source_actor_id", "") as String
-		var is_reflected := event_dict.get("is_reflected", false) as bool
-		var is_target := target_id == owner_id
-		var has_source := not source_id.is_empty()
-		var not_self_damage := source_id != owner_id
-		return is_target and has_source and not_self_damage and not is_reflected
+		# 使用强类型事件
+		var damage_event := BattleEvents.DamageEvent.from_dict(event_dict)
+		var is_target := damage_event.target_actor_id == owner_id
+		var has_source := not damage_event.source_actor_id.is_empty()
+		var not_self_damage := damage_event.source_actor_id != owner_id
+		return is_target and has_source and not_self_damage and not damage_event.is_reflected
 
 
 ## 生命力被动 - max_hp 越高，atk 越高

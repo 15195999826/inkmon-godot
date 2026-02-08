@@ -25,7 +25,7 @@ func _init(recorder_config: Dictionary = {}) -> void:
 
 	_meta = ReplayData.BattleMeta.new()
 	_meta.battle_id = battle_id
-	_meta.tick_interval = recorder_config.get("tickInterval", 100)
+	_meta.tick_interval = recorder_config.get("tickInterval", 100) as int
 
 func start_recording(actors: Array, configs_value: Dictionary = {}, map_config_value: Dictionary = {}) -> void:
 	if is_recording:
@@ -119,8 +119,8 @@ func unregister_actor(actor_id: String, reason: String = "") -> void:
 	var event := GameEvent.ActorDestroyed.create(actor_id, reason)
 	pending_events.append(event.to_dict())
 
-	var subscription: Variant = actor_subscriptions.get(actor_id)
-	if subscription:
+	var subscription: Dictionary = actor_subscriptions.get(actor_id, {}) as Dictionary
+	if not subscription.is_empty():
 		for unsub in subscription.get("unsubscribes", []):
 			if unsub is Callable:
 				unsub.call()

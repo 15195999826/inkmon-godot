@@ -104,9 +104,9 @@ func run() -> int:
 
 func _run_suite(suite_name: String) -> void:
 	var suite: Dictionary = _suites[suite_name]
-	var tests: Array = suite["tests"]
-	var before_each_list: Array = suite["beforeEach"]
-	var after_each_list: Array = suite["afterEach"]
+	var tests: Array[Dictionary] = suite["tests"] as Array[Dictionary]
+	var before_each_list: Array[Callable] = suite["beforeEach"] as Array[Callable]
+	var after_each_list: Array[Callable] = suite["afterEach"] as Array[Callable]
 
 	print("📦 %s" % suite_name)
 	print("-".repeat(60))

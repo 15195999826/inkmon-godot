@@ -62,7 +62,7 @@ var _world: FrontendRenderWorld
 # ========== 状态 ==========
 
 ## 回放数据
-var _replay_data: Dictionary = {}
+var _replay_data: ReplayData.BattleRecord
 
 ## 帧数据 Map（frame -> events）
 var _frame_data_map: Dictionary = {}
@@ -125,22 +125,19 @@ func _process(delta: float) -> void:
 # ========== 公共方法 ==========
 
 ## 加载回放数据
-func load_replay(replay_data: Dictionary) -> void:
-	_replay_data = replay_data
+func load_replay(record: ReplayData.BattleRecord) -> void:
+	_replay_data = record
 	
 	# 构建帧数据 Map
 	_frame_data_map.clear()
-	var timeline: Array = replay_data.get("timeline", [])
-	for frame_data: Dictionary in timeline:
-		var frame_num: int = frame_data.get("frame", 0)
-		_frame_data_map[frame_num] = frame_data
+	for frame_data: ReplayData.FrameData in record.timeline:
+		_frame_data_map[frame_data.frame] = frame_data
 	
 	# 获取总帧数
-	var meta: Dictionary = replay_data.get("meta", {})
-	_total_frames = meta.get("totalFrames", 0) as int
+	_total_frames = record.meta.total_frames
 	
 	# 初始化渲染世界
-	_world.initialize_from_replay(replay_data)
+	_world.initialize_from_replay(record)
 	
 	# 分析事件覆盖情况（只在加载时打印一次）
 	_analyze_event_coverage()
@@ -267,8 +264,8 @@ func _tick(delta_ms: float) -> void:
 		
 		# 查找该帧的事件
 		if _frame_data_map.has(next_frame):
-			var frame_data: Dictionary = _frame_data_map[next_frame]
-			var events: Array = frame_data.get("events", [])
+			var frame_data: ReplayData.FrameData = _frame_data_map[next_frame]
+			var events: Array[Dictionary] = frame_data.events
 			
 			if events.size() > 0:
 				Log.debug("BattleDirector", "帧 %d: %d 个事件" % [next_frame, events.size()])
@@ -316,10 +313,8 @@ func _analyze_event_coverage() -> void:
 	var all_event_kinds: Dictionary = {}  # kind -> count
 	
 	# 收集所有事件类型及其出现次数
-	var timeline: Array = _replay_data.get("timeline", [])
-	for frame_data: Dictionary in timeline:
-		var events: Array = frame_data.get("events", [])
-		for event: Dictionary in events:
+	for frame_data: ReplayData.FrameData in _replay_data.timeline:
+		for event: Dictionary in frame_data.events:
 			var kind: String = event.get("kind", "unknown")
 			all_event_kinds[kind] = all_event_kinds.get(kind, 0) + 1
 	

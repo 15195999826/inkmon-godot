@@ -45,7 +45,9 @@ static func _ability_activate_filter(event_dict: Dictionary, ctx: AbilityLifecyc
 	var ability: Ability = ctx.ability
 	if ability == null:
 		return false
-	return event_dict.get("abilityInstanceId", "") == ability.id
+	# 使用强类型事件
+	var event := GameEvent.AbilityActivate.from_dict(event_dict)
+	return event.ability_instance_id == ability.id
 
 
 # ========== 移动 Ability ==========

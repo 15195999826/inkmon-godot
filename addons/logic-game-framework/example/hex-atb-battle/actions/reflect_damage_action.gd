@@ -44,8 +44,10 @@ func _init(
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var current_event := ctx.get_current_event()
-	var attacker_id := current_event.get("source_actor_id", "") as String
+	var current_event_dict := ctx.get_current_event()
+	# 使用强类型事件
+	var current_event := BattleEvents.DamageEvent.from_dict(current_event_dict)
+	var attacker_id := current_event.source_actor_id
 	
 	if attacker_id.is_empty():
 		print("  [ReflectDamageAction] 无攻击来源，跳过反伤")

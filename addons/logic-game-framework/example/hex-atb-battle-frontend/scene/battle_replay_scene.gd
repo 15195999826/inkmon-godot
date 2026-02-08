@@ -136,11 +136,9 @@ func _setup_hex_grid_renderer() -> void:
 
 
 ## 从回放数据设置六边形网格
-func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
-	var map_config_dict: Dictionary = replay_data.get("mapConfig", {})
-	
+func _setup_hex_grid_from_replay(record: ReplayData.BattleRecord) -> void:
 	var grid_config: GridMapConfig
-	if map_config_dict.is_empty():
+	if record.map_config.is_empty():
 		print("[BattleReplayScene] No mapConfig in replay data, using default grid")
 		grid_config = GridMapConfig.new()
 		grid_config.grid_type = GridMapConfig.GridType.HEX
@@ -150,8 +148,8 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 		grid_config.size = 10.0
 		grid_config.orientation = GridMapConfig.Orientation.FLAT
 	else:
-		print("[BattleReplayScene] Setting up hex grid: %s" % map_config_dict)
-		grid_config = GridMapConfig.from_dict(map_config_dict)
+		print("[BattleReplayScene] Setting up hex grid: %s" % record.map_config)
+		grid_config = GridMapConfig.from_dict(record.map_config)
 		grid_config.grid_type = GridMapConfig.GridType.HEX
 		grid_config.origin = Vector2.ZERO
 	
@@ -167,20 +165,19 @@ func _setup_hex_grid_from_replay(replay_data: Dictionary) -> void:
 # ========== 公共方法 ==========
 
 ## 加载并播放回放
-func load_and_play(replay_data: Dictionary) -> void:
-	load_replay(replay_data)
+func load_and_play(record: ReplayData.BattleRecord) -> void:
+	load_replay(record)
 	_director.play()
 
 
 ## 加载回放（不自动播放）
-func load_replay(replay_data: Dictionary) -> void:
+func load_replay(record: ReplayData.BattleRecord) -> void:
 	# 读取 positionFormats 配置
-	var configs: Dictionary = replay_data.get("configs", {})
-	_position_formats = configs.get("positionFormats", {})
+	_position_formats = record.configs.get("positionFormats", {})
 	
-	_director.load_replay(replay_data)
-	_setup_hex_grid_from_replay(replay_data)
-	_spawn_units(replay_data)
+	_director.load_replay(record)
+	_setup_hex_grid_from_replay(record)
+	_spawn_units(record)
 	_clear_effects()
 
 
@@ -219,20 +216,16 @@ func get_director() -> FrontendBattleDirector:
 # ========== 内部方法 ==========
 
 ## 生成单位
-func _spawn_units(replay_data: Dictionary) -> void:
+func _spawn_units(record: ReplayData.BattleRecord) -> void:
 	# 清除现有单位
 	for child: Node in _units_root.get_children():
 		child.queue_free()
 	_unit_views.clear()
 	
-	var initial_actors: Array = replay_data.get("initialActors", [])
-	print("[BattleReplayScene] Spawning %d units" % initial_actors.size())
+	print("[BattleReplayScene] Spawning %d units" % record.initial_actors.size())
 	
-	for actor_data in initial_actors:
-		var actor_dict := actor_data as Dictionary
-		var actor_id: String = actor_dict.get("id", "")
-		
-		if actor_id.is_empty():
+	for actor_init: ReplayData.ActorInitData in record.initial_actors:
+		if actor_init.id.is_empty():
 			continue
 		
 		# 创建单位视图
@@ -242,28 +235,25 @@ func _spawn_units(replay_data: Dictionary) -> void:
 		else:
 			unit_view = FrontendUnitView.new()
 		
-		unit_view.name = actor_id  # 设置节点名称 (修复 M2)
+		unit_view.name = actor_init.id  # 设置节点名称 (修复 M2)
 		_units_root.add_child(unit_view)
-		_unit_views[actor_id] = unit_view
+		_unit_views[actor_init.id] = unit_view
 		
 		# 初始化单位
-		var display_name: String = actor_dict.get("displayName", "")
-		var team: int = actor_dict.get("team", 0) as int
-		var attributes: Dictionary = actor_dict.get("attributes", {})
-		var max_hp: float = attributes.get("maxHp", attributes.get("max_hp", 100.0)) as float
-		var current_hp: float = attributes.get("hp", 100.0) as float
+		var max_hp: float = actor_init.attributes.get("maxHp", actor_init.attributes.get("max_hp", 100.0)) as float
+		var current_hp: float = actor_init.attributes.get("hp", 100.0) as float
 		
-		unit_view.initialize(actor_id, display_name, team, max_hp, current_hp)
+		unit_view.initialize(actor_init.id, actor_init.display_name, actor_init.team, max_hp, current_hp)
 		
 		# 设置位置
-		var actor_type: String = actor_dict.get("type", "")
-		var position_arr: Array[float] = actor_dict.get("position", [])
-		var world_pos := _extract_world_position(position_arr, actor_type)
+		var position_arr: Array = actor_init.position  # 元素可能是 int/float
+		var world_pos := _extract_world_position(position_arr, actor_init.type)
 		unit_view.set_world_position(world_pos)
 
 
 ## 从位置数组提取世界坐标
 ## 根据 positionFormats 配置解释 position 数组的含义
+## position_arr 元素可能是 int/float，保持无类型
 func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3:
 	if position_arr.is_empty():
 		return Vector3.ZERO

@@ -14,8 +14,10 @@ static var ABILITY_ACTIVATE := TriggerConfig.new(
 		var owner_id: String = ctx.owner_actor_id
 		if ability_ref == null or owner_id == "":
 			return false
-		return event_dict.get("abilityInstanceId", "") == ability_ref.id \
-			and event_dict.get("sourceId", "") == owner_id
+		# 使用强类型事件
+		var event := GameEvent.AbilityActivate.from_dict(event_dict)
+		return event.ability_instance_id == ability_ref.id \
+			and event.source_id == owner_id
 )
 
 

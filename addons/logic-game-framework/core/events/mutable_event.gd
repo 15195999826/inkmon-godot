@@ -115,7 +115,7 @@ func format_computation_log(field: String) -> String:
 
 	var lines: Array[String] = ["%s: %s \t \t%s" % [field, str(record["originalValue"]), str(record["finalValue"])]]
 
-	for step in record["steps"]:
+	for step: Dictionary in record["steps"]:
 		var source: String = str(step.get("sourceName", "")) if step.get("sourceName") else str(step.get("sourceId", "unknown"))
 		var op_sign := _get_operation_sign(step)
 		lines.append("  [%s] %s%s -> %s" % [source, op_sign, str(step.get("value", "")), str(step.get("resultValue", ""))])
@@ -175,9 +175,9 @@ func _create_step(mod: Modification, operation: String, result_value: float) -> 
 	}
 
 func _get_operation_sign(step: Dictionary) -> String:
-	match step.get("operation", ""):
+	match step.get("operation", "") as String:
 		"add":
-			return "+" if float(step.get("value", 0.0)) >= 0 else ""
+			return "+" if (step.get("value", 0.0) as float) >= 0 else ""
 		"multiply":
 			return "x"
 		_:

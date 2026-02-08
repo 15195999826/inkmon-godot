@@ -308,7 +308,7 @@ func export_trace_log() -> String:
 
 		var duration := 0
 		if trace.has("endTime") and trace.get("endTime", null) != null:
-			duration = int(trace.get("endTime", 0)) - int(trace.get("startTime", 0))
+			duration = (trace.get("endTime", 0) as int) - (trace.get("startTime", 0) as int)
 		lines.append("  Duration: %sms" % duration)
 
 	return "\n".join(lines)
@@ -343,7 +343,7 @@ func _get_event_chain_summary() -> String:
 	var start_idx := max(0, _traces.size() - 10)
 	for i in range(start_idx, _traces.size()):
 		var trace: Dictionary = _traces[i]
-		var indent := "  " + "  ".repeat(int(trace.get("depth", 0)))
+		var indent := "  " + "  ".repeat(trace.get("depth", 0) as int)
 		var event_kind: String = trace.get("eventKind", "unknown")
 		var phase: String = trace.get("phase", "")
 		var trace_id: String = trace.get("traceId", "")

@@ -1,44 +1,36 @@
 class_name ReplayLogPrinter
 ## 纯静态工具类：录像日志打印
 
-static func print_record(record: Dictionary) -> void:
-	var meta: Variant = record.get("meta", {})
-	var timeline: Variant = record.get("timeline", [])
-	var initial_actors: Variant = record.get("initialActors", [])
-
+static func print_record(record: ReplayData.BattleRecord) -> void:
 	print("==========================================")
 	print("Battle Replay Log")
 	print("==========================================")
 	print("")
 	print("## Meta Information")
-	print("Battle ID: %s" % meta.get("battleId", ""))
-	print("Recorded At: %s" % _format_timestamp(meta.get("recordedAt", 0)))
-	print("Tick Interval: %sms" % meta.get("tickInterval", 100))
-	print("Total Frames: %d" % meta.get("totalFrames", 0))
-	print("Result: %s" % meta.get("result", "unknown"))
+	print("Battle ID: %s" % record.meta.battle_id)
+	print("Recorded At: %s" % _format_timestamp(record.meta.recorded_at))
+	print("Tick Interval: %sms" % record.meta.tick_interval)
+	print("Total Frames: %d" % record.meta.total_frames)
+	print("Result: %s" % record.meta.result)
 	print("")
 
-	print("## Initial Actors (%d)" % initial_actors.size())
-	for actor_data in initial_actors:
-		print("  - %s (%s)" % [actor_data.get("displayName", ""), actor_data.get("id", "")])
-		print("    Team: %s" % actor_data.get("team", "none"))
-		if actor_data.has("position"):
-			var pos = actor_data.position
-			if pos.has("world"):
-				print("    Position: (%.1f, %.1f, %.1f)" % [pos.world.x, pos.world.y, pos.world.z])
-		if actor_data.get("tags", {}).size() > 0:
-			print("    Tags: %s" % str(actor_data.tags.keys()))
+	print("## Initial Actors (%d)" % record.initial_actors.size())
+	for actor_init: ReplayData.ActorInitData in record.initial_actors:
+		print("  - %s (%s)" % [actor_init.display_name, actor_init.id])
+		print("    Team: %s" % actor_init.team)
+		if not actor_init.position.is_empty():
+			print("    Position: %s" % str(actor_init.position))
+		if not actor_init.tags.is_empty():
+			print("    Tags: %s" % str(actor_init.tags.keys()))
 	print("")
 
-	print("## Timeline (%d frames with events)" % timeline.size())
-	for frame_data in timeline:
-		var frame_val := frame_data.get("frame", 0) as int
-		var events := frame_data.get("events", []) as Array
-		if events.is_empty():
+	print("## Timeline (%d frames with events)" % record.timeline.size())
+	for frame_data: ReplayData.FrameData in record.timeline:
+		if frame_data.events.is_empty():
 			continue
-		print("Frame %d (%d events):" % [frame_val, events.size()])
-		for event in events:
-			_print_event(event, frame_val)
+		print("Frame %d (%d events):" % [frame_data.frame, frame_data.events.size()])
+		for event: Dictionary in frame_data.events:
+			_print_event(event, frame_data.frame)
 
 	print("==========================================")
 	print("==========================================")
@@ -51,34 +43,40 @@ static func _format_timestamp(timestamp: int) -> String:
 	]
 
 static func _print_event(event: Dictionary, _frame: int) -> void:
-	var kind := str(event.get("kind", ""))
+	var kind := event.get("kind", "") as String
 	var indent := "    "
 
 	print("%s[%s] %s" % [indent, kind, str(event).substr(0, 100)])
 
 	match kind:
-		"actorSpawned":
-			print("%s  Actor: %s (%s)" % [indent, event.get("displayName", ""), event.get("actorId", "")])
-		"actorDestroyed":
-			print("%s  Actor: %s, Reason: %s" % [indent, event.get("actorId", ""), event.get("reason", "")])
+		GameEvent.ACTOR_SPAWNED_EVENT:
+			var e := GameEvent.ActorSpawned.from_dict(event)
+			print("%s  Actor: %s (%s)" % [indent, e.actor_data.get("displayName", ""), e.actor_id])
+		GameEvent.ACTOR_DESTROYED_EVENT:
+			var e := GameEvent.ActorDestroyed.from_dict(event)
+			print("%s  Actor: %s, Reason: %s" % [indent, e.actor_id, e.reason])
 		"damage":
-			print("%s  Source: %s -> Target: %s, Damage: %s" % [
-				indent, event.get("sourceId", ""), event.get("targetId", ""), event.get("damage", 0)
+			var e := BattleEvents.DamageEvent.from_dict(event)
+			print("%s  Source: %s -> Target: %s, Damage: %.0f" % [
+				indent, e.source_actor_id, e.target_actor_id, e.damage
 			])
 		"heal":
-			print("%s  Target: %s, Heal: %s" % [indent, event.get("targetId", ""), event.get("heal", 0)])
-		"abilityGranted":
-			print("%s  Actor: %s, Ability: %s" % [indent, event.get("ownerId", ""), event.get("abilityId", "")])
-		"abilityRemoved":
-			print("%s  Actor: %s, Ability: %s, Reason: %s" % [
-				indent, event.get("ownerId", ""), event.get("abilityId", ""), event.get("reason", "")
+			var e := BattleEvents.HealEvent.from_dict(event)
+			print("%s  Target: %s, Heal: %.0f" % [indent, e.target_actor_id, e.heal_amount])
+		GameEvent.ABILITY_GRANTED_EVENT:
+			var e := GameEvent.AbilityGranted.from_dict(event)
+			print("%s  Actor: %s, Ability: %s" % [indent, e.actor_id, e.ability.get("id", "")])
+		GameEvent.ABILITY_REMOVED_EVENT:
+			var e := GameEvent.AbilityRemoved.from_dict(event)
+			print("%s  Actor: %s, Ability: %s" % [indent, e.actor_id, e.ability_instance_id])
+		GameEvent.TAG_CHANGED_EVENT:
+			var e := GameEvent.TagChanged.from_dict(event)
+			print("%s  Actor: %s, Tag: %s, Stacks: %d -> %d" % [
+				indent, e.actor_id, e.tag, e.old_count, e.new_count
 			])
-		"tagChanged":
-			print("%s  Actor: %s, Tag: %s, Stacks: %d" % [
-				indent, event.get("actorId", ""), event.get("tagName", ""), event.get("stacks", 0)
-			])
-		"stageCue":
-			print("%s  Source: %s, Cue: %s" % [indent, event.get("sourceActorId", ""), event.get("cueId", "")])
+		GameEvent.STAGE_CUE_EVENT:
+			var e := GameEvent.StageCue.from_dict(event)
+			print("%s  Source: %s, Cue: %s" % [indent, e.source_actor_id, e.cue_id])
 		_:
 			for key in event.keys():
 				if key != "kind" and key != "timestamp":

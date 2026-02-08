@@ -7,7 +7,8 @@ const PROJECTILE_MISS_EVENT := "projectileMiss"
 const PROJECTILE_DESPAWN_EVENT := "projectileDespawn"
 const PROJECTILE_PIERCE_EVENT := "projectilePierce"
 
-static func create_projectile_launched_event(projectile_id: String, source_actor_id: String, start_position: Vector3, projectile_type: String, speed: float, target_actor_id: String = "", target_position: Variant = null) -> Dictionary:
+## target_position: Vector3.ZERO 表示无目标位置
+static func create_projectile_launched_event(projectile_id: String, source_actor_id: String, start_position: Vector3, projectile_type: String, speed: float, target_actor_id: String = "", target_position: Vector3 = Vector3.ZERO) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_LAUNCHED_EVENT,
 		"projectileId": projectile_id,
@@ -18,7 +19,7 @@ static func create_projectile_launched_event(projectile_id: String, source_actor
 	}
 	if target_actor_id != "":
 		payload["target_actor_id"] = target_actor_id
-	if target_position != null and target_position is Vector3 and target_position != Vector3.ZERO:
+	if target_position != Vector3.ZERO:
 		payload["targetPosition"] = target_position
 	return payload
 
@@ -57,7 +58,8 @@ static func create_projectile_despawn_event(projectile_id: String, source_actor_
 		"reason": reason,
 	}
 
-static func create_projectile_pierce_event(projectile_id: String, source_actor_id: String, target_actor_id: String, pierce_position: Vector3, pierce_count: int, damage: Variant = null) -> Dictionary:
+## damage: -1.0 表示无伤害数据
+static func create_projectile_pierce_event(projectile_id: String, source_actor_id: String, target_actor_id: String, pierce_position: Vector3, pierce_count: int, damage: float = -1.0) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_PIERCE_EVENT,
 		"projectileId": projectile_id,
@@ -66,7 +68,7 @@ static func create_projectile_pierce_event(projectile_id: String, source_actor_i
 		"piercePosition": pierce_position,
 		"pierceCount": pierce_count,
 	}
-	if damage != null:
+	if damage >= 0.0:
 		payload["damage"] = damage
 	return payload
 

@@ -47,10 +47,10 @@ func get_launch_params() -> Dictionary:
 	return _launch_params
 
 func get_source_actor_id() -> String:
-	return _launch_params.get("source_actor_id", "")
+	return _launch_params.get("source_actor_id", "") as String
 
 func get_target_actor_id() -> String:
-	return _launch_params.get("target_actor_id", "")
+	return _launch_params.get("target_actor_id", "") as String
 
 func get_fly_time() -> float:
 	return _fly_time
@@ -80,7 +80,7 @@ func launch(params: Dictionary) -> void:
 	_pierce_count = 0
 	_hit_targets.clear()
 
-	if str(config.get("projectileType", PROJECTILE_TYPE_BULLET)) == PROJECTILE_TYPE_HITSCAN:
+	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) == PROJECTILE_TYPE_HITSCAN:
 		if params.has("targetPosition") and params["targetPosition"] is Vector3:
 			_position = params["targetPosition"]
 
@@ -88,11 +88,11 @@ func update(dt: float) -> bool:
 	if _projectile_state != STATE_FLYING:
 		return false
 
-	if str(config.get("projectileType", PROJECTILE_TYPE_BULLET)) == PROJECTILE_TYPE_HITSCAN:
+	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) == PROJECTILE_TYPE_HITSCAN:
 		return false
 
 	_fly_time += dt
-	if _fly_time >= float(config.get("maxLifetime", 0.0)):
+	if _fly_time >= (config.get("maxLifetime", 0.0) as float):
 		miss("timeout")
 		return false
 
@@ -104,7 +104,7 @@ func update_position(dt: float) -> void:
 		return
 
 	var dt_seconds := dt / 1000.0
-	var move_distance := float(config.get("speed", 0.0)) * dt_seconds
+	var move_distance := (config.get("speed", 0.0) as float) * dt_seconds
 	_fly_distance += move_distance
 
 	var movement := Vector3.ZERO
@@ -133,7 +133,7 @@ func hit(target_id: String) -> bool:
 
 	_hit_targets[target_id] = true
 
-	if bool(config.get("piercing", false)):
+	if config.get("piercing", false) as bool:
 		_pierce_count += 1
 		var max_pierce: Variant = config.get("maxPierceCount", null)
 		var max_pierce_count := INF if max_pierce == null else int(max_pierce)
@@ -156,9 +156,9 @@ func has_hit_target(target_id: String) -> bool:
 	return _hit_targets.has(target_id)
 
 func should_moba_hit() -> bool:
-	if str(config.get("projectileType", PROJECTILE_TYPE_BULLET)) != PROJECTILE_TYPE_MOBA:
+	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) != PROJECTILE_TYPE_MOBA:
 		return false
-	var hit_distance := float(config.get("hitDistance", 50.0))
+	var hit_distance := config.get("hitDistance", 50.0) as float
 	return get_distance_to_target() <= hit_distance
 
 func serialize() -> Dictionary:

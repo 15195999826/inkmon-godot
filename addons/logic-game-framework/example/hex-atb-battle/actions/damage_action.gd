@@ -214,7 +214,8 @@ func _process_callbacks(damage_event: Dictionary, is_critical: bool, ctx: Execut
 
 
 func _check_target_killed(damage_event: Dictionary, ctx: ExecutionContext) -> bool:
-	var target_id: String = damage_event.get("target_actor_id", "")
-	if target_id.is_empty():
+	# 使用强类型事件
+	var event := BattleEvents.DamageEvent.from_dict(damage_event)
+	if event.target_actor_id.is_empty():
 		return false
-	return HexBattleGameStateUtils.is_actor_dead(target_id, ctx.game_state_provider)
+	return HexBattleGameStateUtils.is_actor_dead(event.target_actor_id, ctx.game_state_provider)

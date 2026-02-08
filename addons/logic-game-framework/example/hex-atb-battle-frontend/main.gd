@@ -186,11 +186,12 @@ func _on_start_battle_button_pressed() -> void:
 	
 	# 加载并播放录像
 	if not replay_data.is_empty():
+		var record := ReplayData.BattleRecord.from_dict(replay_data)
 		print("[Main] Loading replay from logic battle")
-		print("  - Total frames: %d" % replay_data.get("meta", {}).get("totalFrames", 0))
-		print("  - Actors: %d" % replay_data.get("initialActors", []).size())
-		_replay_scene.load_replay(replay_data)
-		_update_status("Battle loaded - %d frames" % replay_data.get("meta", {}).get("totalFrames", 0))
+		print("  - Total frames: %d" % record.meta.total_frames)
+		print("  - Actors: %d" % record.initial_actors.size())
+		_replay_scene.load_replay(record)
+		_update_status("Battle loaded - %d frames" % record.meta.total_frames)
 	else:
 		print("[Main] Logic battle produced no replay data, using demo data")
 		_load_demo_replay()
@@ -236,14 +237,14 @@ func _run_logic_battle(map_config: GridMapConfig) -> Dictionary:
 
 func _load_demo_replay() -> void:
 	# 创建演示用的回放数据
-	var demo_replay := _create_demo_replay()
+	var demo_record := _create_demo_replay()
 	print("[Main] Using demo replay data")
-	_replay_scene.load_replay(demo_replay)
+	_replay_scene.load_replay(demo_record)
 
 
-func _create_demo_replay() -> Dictionary:
+func _create_demo_replay() -> ReplayData.BattleRecord:
 	# 创建一个简单的演示回放
-	return {
+	return ReplayData.BattleRecord.from_dict({
 		"version": "2.0",
 		"meta": {
 			"battleId": "demo_battle",
@@ -352,7 +353,7 @@ func _create_demo_replay() -> Dictionary:
 				],
 			},
 		],
-	}
+	})
 
 
 # ========== 信号处理 ==========

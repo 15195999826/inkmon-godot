@@ -439,7 +439,7 @@ func _clamp_value(attr_name: String, value: float) -> float:
 	if not _constraints.has(attr_name):
 		return value
 	var constraint: Dictionary = _constraints[attr_name]
-	return clampf(value, constraint.get("min", -INF), constraint.get("max", INF))
+	return clampf(value, constraint.get("min", -INF) as float, constraint.get("max", INF) as float)
 
 
 func _dispatch_event(event: Dictionary) -> void:

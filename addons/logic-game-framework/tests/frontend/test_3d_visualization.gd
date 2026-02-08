@@ -97,9 +97,9 @@ func _on_actor_died(actor_id: String) -> void:
 	print("  [Signal] Actor died: %s" % actor_id)
 
 
-func _create_demo_replay() -> Dictionary:
+func _create_demo_replay() -> ReplayData.BattleRecord:
 	# 创建一个简单的演示回放
-	return {
+	return ReplayData.BattleRecord.from_dict({
 		"version": "2.0",
 		"meta": {
 			"battleId": "demo_battle",
@@ -208,4 +208,4 @@ func _create_demo_replay() -> Dictionary:
 				],
 			},
 		],
-	}
+	})

@@ -194,7 +194,7 @@ func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pi
 		target_actor_id,
 		pierce_position,
 		projectile.get_pierce_count(),
-		projectile.config.get("damage")
+		projectile.config.get("damage", -1.0) as float
 	)
 
 	event_collector.push(event)

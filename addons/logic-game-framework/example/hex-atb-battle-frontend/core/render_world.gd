@@ -68,7 +68,7 @@ func _init(
 # ========== 初始化 ==========
 
 ## 从回放数据初始化角色状态
-func initialize_from_replay(replay_data: Dictionary) -> void:
+func initialize_from_replay(record: ReplayData.BattleRecord) -> void:
 	_actors.clear()
 	_interpolated_positions.clear()
 	_floating_texts.clear()
@@ -76,13 +76,11 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 	_screen_shake.clear()
 	
 	# 从 configs 读取 positionFormats
-	var configs: Dictionary = replay_data.get("configs", {})
-	_position_formats = configs.get("positionFormats", {})
+	_position_formats = record.configs.get("positionFormats", {})
 	
 	# 从 mapConfig 创建 GridLayout
-	var map_config_dict: Dictionary = replay_data.get("mapConfig", {})
-	if not map_config_dict.is_empty():
-		var grid_config := GridMapConfig.from_dict(map_config_dict)
+	if not record.map_config.is_empty():
+		var grid_config := GridMapConfig.from_dict(record.map_config)
 		_layout = GridLayout.new(
 			grid_config.grid_type,
 			grid_config.size,
@@ -91,10 +89,8 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 			Vector2.ONE
 		)
 	
-	var initial_actors: Array = replay_data.get("initialActors", [])
-	for actor_data in initial_actors:
-		var actor_dict := actor_data as Dictionary
-		_initialize_actor(actor_dict)
+	for actor_init: ReplayData.ActorInitData in record.initial_actors:
+		_initialize_actor_from_init_data(actor_init)
 	
 	# 初始化完成后触发状态同步 (修复 M3)
 	for actor_id in _actors.keys():
@@ -102,31 +98,27 @@ func initialize_from_replay(replay_data: Dictionary) -> void:
 
 
 ## 初始化单个角色
-func _initialize_actor(actor_data: Dictionary) -> void:
-	var actor_id: String = actor_data.get("id", "")
-	if actor_id.is_empty():
+func _initialize_actor_from_init_data(actor_init: ReplayData.ActorInitData) -> void:
+	if actor_init.id.is_empty():
 		return
 	
-	var actor_type: String = actor_data.get("type", "")
-	var position_arr: Array = actor_data.get("position", [])
-	var hex_pos = _extract_hex_position(position_arr, actor_type)  # HexCoord
+	var position_arr: Array = actor_init.position  # 元素可能是 int/float，保持无类型
+	var hex_pos = _extract_hex_position(position_arr, actor_init.type)  # HexCoord
 	
-	var attributes: Dictionary = actor_data.get("attributes", {})
-	
-	_actors[actor_id] = {
-		"id": actor_id,
-		"type": actor_type,
-		"display_name": actor_data.get("displayName", ""),
-		"team": actor_data.get("team", 0),
+	_actors[actor_init.id] = {
+		"id": actor_init.id,
+		"type": actor_init.type,
+		"display_name": actor_init.display_name,
+		"team": actor_init.team,
 		"position": hex_pos.to_dict(),  # 存储为 Dictionary 以便序列化
-		"visual_hp": attributes.get("hp", 100.0),
-		"max_hp": attributes.get("maxHp", attributes.get("max_hp", 100.0)),
+		"visual_hp": actor_init.attributes.get("hp", 100.0),
+		"max_hp": actor_init.attributes.get("maxHp", actor_init.attributes.get("max_hp", 100.0)),
 		"is_alive": true,
 		"flash_progress": 0.0,
 		"tint_color": Color.WHITE,
 	}
 	
-	_interpolated_positions[actor_id] = Vector2(hex_pos.q, hex_pos.r)
+	_interpolated_positions[actor_init.id] = Vector2(hex_pos.q, hex_pos.r)
 
 
 ## 从位置数组提取六边形坐标
@@ -389,9 +381,9 @@ func get_screen_shake_offset() -> Vector2:
 # ========== 重置 ==========
 
 ## 重置到初始状态
-func reset_to(replay_data: Dictionary) -> void:
+func reset_to(record: ReplayData.BattleRecord) -> void:
 	_world_time_ms = 0
-	initialize_from_replay(replay_data)
+	initialize_from_replay(record)
 
 
 ## 推进内部世界时间
