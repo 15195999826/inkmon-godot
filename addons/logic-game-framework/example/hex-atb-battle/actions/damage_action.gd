@@ -105,7 +105,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	
 	for target in targets:
 		# ========== Pre 阶段 ==========
-		var pre_event := GameEvent.PreDamageEvent.create(
+		var pre_event := HexBattlePreEvents.PreDamageEvent.create(
 			source_actor_id,
 			target.id,
 			_damage,

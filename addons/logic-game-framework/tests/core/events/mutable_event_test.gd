@@ -10,8 +10,8 @@ func _test_modifications() -> void:
 		"damage": 100.0,
 	}
 	var mutable := MutableEvent.new(event, EventPhase.PHASE_PRE)
-	mutable.add_modification({ "field": "damage", "operation": "multiply", "value": 0.7 })
-	mutable.add_modification({ "field": "damage", "operation": "add", "value": -10.0 })
+	mutable.add_modification(Modification.multiply("damage", 0.7))
+	mutable.add_modification(Modification.add("damage", -10.0))
 	# 应用顺序：set -> add -> multiply
 	# 计算：100 - 10 (add) = 90, 90 * 0.7 (multiply) = 63
 	TestFramework.assert_near(63.0, float(mutable.get_current_value("damage")))
@@ -25,8 +25,8 @@ func _test_steps() -> void:
 		"damage": 50.0,
 	}
 	var mutable := MutableEvent.new(event, EventPhase.PHASE_PRE)
-	mutable.add_modification({ "field": "damage", "operation": "set", "value": 60.0, "sourceId": "buff" })
-	mutable.add_modification({ "field": "damage", "operation": "add", "value": 10.0, "sourceId": "bonus" })
+	mutable.add_modification(Modification.set_value("damage", 60.0, "buff"))
+	mutable.add_modification(Modification.add("damage", 10.0, "bonus"))
 	var record := mutable.get_field_computation_steps("damage")
 	TestFramework.assert_true(record != null)
 	TestFramework.assert_near(70.0, float(record["finalValue"]))

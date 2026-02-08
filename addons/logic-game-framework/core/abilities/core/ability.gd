@@ -193,6 +193,8 @@ func _resolve_components(active_use_configs: Array, component_configs: Array) ->
 			result.append(NoInstanceComponent.new(cfg))
 		elif cfg is PreEventConfig:
 			result.append(PreEventComponent.new(cfg))
+		elif cfg is DynamicStatModifierComponentConfig:
+			result.append(DynamicStatModifierComponent.new(cfg.modifier_config))
 		elif cfg is StatModifierConfig:
 			result.append(StatModifierComponent.new(cfg.modifier_configs))
 		elif cfg is TimeDurationConfig:

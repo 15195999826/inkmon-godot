@@ -56,10 +56,10 @@ static var VITALITY_PASSIVE: AbilityConfig = (
 	.display_name("生命力")
 	.description("max_hp 越高，atk 越高（atk += max_hp * 0.01）")
 	.ability_tags(["passive", "buff", "dynamic"])
-	.component(DynamicStatModifierComponent.new(
+	.component_config(DynamicStatModifierComponentConfig.new(
 		DynamicStatModifierConfig.new(
-			"max_hp",                          # 源属性
-			"atk",                             # 目标属性
+			HexBattleCharacterAttributeSet.max_hp_attribute,                          # 源属性
+			HexBattleCharacterAttributeSet.atk_attribute,                             # 目标属性
 			AttributeModifier.Type.ADD_BASE,  # 修改器类型
 			0.01                               # 系数
 		)
@@ -78,10 +78,10 @@ static var VIGOR_PASSIVE: AbilityConfig = (
 	.display_name("活力")
 	.description("atk 越高，max_hp 越高（max_hp += atk * 0.1）")
 	.ability_tags(["passive", "buff", "dynamic"])
-	.component(DynamicStatModifierComponent.new(
+	.component_config(DynamicStatModifierComponentConfig.new(
 		DynamicStatModifierConfig.new(
-			"atk",                             # 源属性
-			"max_hp",                          # 目标属性
+			HexBattleCharacterAttributeSet.atk_attribute,                             # 源属性
+			HexBattleCharacterAttributeSet.max_hp_attribute,                          # 目标属性
 			AttributeModifier.Type.ADD_BASE,  # 修改器类型
 			0.1                                # 系数
 		)
