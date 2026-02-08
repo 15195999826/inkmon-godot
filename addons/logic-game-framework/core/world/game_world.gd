@@ -125,13 +125,7 @@ func _matches_instance_type(instance: GameplayInstance, type_value: String) -> b
 func get_actor(actor_id: String) -> Actor:
 	var parsed: Dictionary = ActorId.parse(actor_id)
 	if parsed.instance_id.is_empty():
-		# 兼容旧格式：遍历所有实例查找
-		for instance in _instances.values():
-			var actor: Actor = instance.get_actor(actor_id)
-			if actor != null:
-				return actor
 		return null
-	# 新格式：直接定位到实例
 	var instance := get_instance_by_id(parsed.instance_id)
 	if instance == null:
 		return null
