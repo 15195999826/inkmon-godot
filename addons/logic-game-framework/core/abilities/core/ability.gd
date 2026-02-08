@@ -14,6 +14,9 @@ var description: String = ""
 var icon: String = ""
 var ability_tags: Array[String] = []
 
+## 自定义元数据（从 AbilityConfig 复制）
+var metadata: Dictionary = {}
+
 var _state: String = STATE_PENDING
 var _expire_reason: String = ""
 var _components: Array[AbilityComponent] = []
@@ -31,6 +34,7 @@ func _init(config: AbilityConfig, owner_actor_id_value: String, source_actor_id_
 	description = config.description
 	icon = config.icon
 	ability_tags = config.ability_tags
+	metadata = config.metadata
 
 	_components = _resolve_components(config.active_use_components, config.components)
 
@@ -150,6 +154,11 @@ func expire(reason: String) -> void:
 func has_ability_tag(tag: String) -> bool:
 	return ability_tags.has(tag)
 
+
+## 获取 int 类型的元数据
+func get_meta_int(key: String, default: int = 0) -> int:
+	return metadata.get(key, default) as int
+
 func serialize() -> Dictionary:
 	var serialized_components: Array[Dictionary] = []
 	for component in _components:
@@ -169,6 +178,7 @@ func serialize() -> Dictionary:
 		"state": _state,
 		"displayName": display_name,
 		"abilityTags": ability_tags,
+		"metadata": metadata,
 		"components": serialized_components,
 		"executionInstances": serialized_instances,
 	}

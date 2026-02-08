@@ -296,6 +296,8 @@ func _tick(delta_ms: float) -> void:
 	_world.flush_dirty_actors()
 	
 	# 检查是否所有动画都已完成
+	# NOTE: 逻辑帧播完后不会立即结束，会继续 tick 动画调度器直到所有表演动作完成。
+	# 因此无需额外填充帧数 —— _scheduler.get_action_count() == 0 确保所有动画播放完毕。
 	if _current_frame >= _total_frames and _scheduler.get_action_count() == 0:
 		_is_playing = false
 		playback_state_changed.emit(false)

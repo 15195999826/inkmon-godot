@@ -87,6 +87,7 @@ static var SLASH_ABILITY := (
 	.display_name("横扫斩")
 	.description("近战攻击，对敌人造成物理伤害（暴击时额外伤害）")
 	.ability_tags(["skill", "active", "melee", "enemy"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 1)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SLASH)
@@ -122,6 +123,7 @@ static var PRECISE_SHOT_ABILITY := (
 	.display_name("精准射击")
 	.description("远程攻击，发射箭矢精准命中敌人")
 	.ability_tags(["skill", "active", "ranged", "enemy", "projectile"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 4)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.PRECISE_SHOT)
@@ -149,6 +151,7 @@ static var FIREBALL_ABILITY := (
 	.display_name("火球术")
 	.description("远程魔法攻击，造成高额伤害")
 	.ability_tags(["skill", "active", "ranged", "magic", "enemy"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 5)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL)
@@ -176,6 +179,7 @@ static var CRUSHING_BLOW_ABILITY := (
 	.display_name("毁灭重击")
 	.description("近战重击，造成毁灭性伤害")
 	.ability_tags(["skill", "active", "melee", "enemy"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 1)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.CRUSHING_BLOW)
@@ -203,6 +207,7 @@ static var SWIFT_STRIKE_ABILITY := (
 	.display_name("疾风连刺")
 	.description("快速近战攻击，三连击")
 	.ability_tags(["skill", "active", "melee", "enemy"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 1)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SWIFT_STRIKE)
@@ -241,6 +246,7 @@ static var HOLY_HEAL_ABILITY := (
 	.display_name("圣光治愈")
 	.description("治疗友方单位，恢复生命值")
 	.ability_tags(["skill", "active", "heal", "ally"])
+	.meta(HexBattleSkillMetaKeys.RANGE, 3)
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.HOLY_HEAL)

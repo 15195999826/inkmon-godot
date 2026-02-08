@@ -222,9 +222,9 @@ func _run_logic_battle(map_config: GridMapConfig) -> Dictionary:
 		return b
 	) as HexBattle
 	
-	# 同步运行战斗（每帧 100ms，最多 100 帧）
+	# 同步运行战斗（每帧 100ms，上限与逻辑层一致）
 	var dt := 100.0
-	for i in range(100):
+	for i in range(HexBattle.MAX_TICKS):
 		GameWorld.tick_all(dt)
 		if not GameWorld.has_running_instances():
 			break

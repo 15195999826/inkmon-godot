@@ -28,7 +28,8 @@ extends GameplayInstance
 
 # ========== 常量 ==========
 
-const MAX_TICKS := 100
+## 安全上限，防止死循环。正常战斗由 _check_battle_end() 判定某方全灭结束。
+const MAX_TICKS := 10000
 
 
 # ========== 属性 ==========
@@ -323,7 +324,7 @@ func tick(dt: float) -> void:
 		recorder.record_frame(tick_count, frame_events)
 	
 	if tick_count >= MAX_TICKS:
-		print("\n战斗结束（达到最大回合数）")
+		print("\n战斗结束（达到安全上限 %d 帧，可能存在死循环）" % MAX_TICKS)
 		_end("timeout")
 	elif _check_battle_end():
 		pass  # _check_battle_end 内部会调用 _end
@@ -378,63 +379,97 @@ func _start_actor_action(actor: CharacterActor) -> void:
 	actor.reset_atb()
 
 
+## 判断 actor 能否对 target 使用 skill
+## 检查：目标存活、阵营匹配（enemy/ally tag）、施法距离
+func can_use_skill_on(actor: CharacterActor, skill: Ability, target: CharacterActor) -> bool:
+	# 目标必须存活
+	if target.is_dead():
+		return false
+	
+	# 阵营检查
+	var same_team := actor.get_team_id() == target.get_team_id()
+	if skill.has_ability_tag("enemy") and same_team:
+		return false
+	if skill.has_ability_tag("ally") and not same_team:
+		return false
+	
+	# ally 技能不能对自己使用
+	if skill.has_ability_tag("ally") and actor.get_id() == target.get_id():
+		return false
+	
+	# 距离检查
+	var skill_range := skill.get_meta_int(HexBattleSkillMetaKeys.RANGE, 1)
+	var distance := actor.hex_position.distance_to(target.hex_position)
+	if distance > skill_range:
+		return false
+	
+	return true
+
+
 func _decide_action(actor: CharacterActor) -> Dictionary:
 	var my_pos := actor.hex_position
-	var enemies: Array[CharacterActor] = []
-	var allies: Array[CharacterActor] = []
+	var skill := actor.get_skill_ability()
+	var skill_ready := not actor.ability_set.is_on_cooldown(skill.config_id)
 	
+	# 收集敌方存活单位
+	var enemies: Array[CharacterActor] = []
 	for a in get_alive_actors():
 		if a.get_team_id() != actor.get_team_id():
 			enemies.append(a)
-		elif a.get_id() != actor.get_id():
-			allies.append(a)
 	
-	var skill := actor.get_skill_ability()
-	var skill_ready := not actor.ability_set.is_on_cooldown(skill.config_id)
-	var use_skill := skill_ready and randf() > 0.1
+	# 1. 技能优先：如果技能就绪，寻找有效目标
+	if skill_ready:
+		var valid_targets: Array[CharacterActor] = []
+		for target in get_alive_actors():
+			if can_use_skill_on(actor, skill, target):
+				valid_targets.append(target)
+		
+		if valid_targets.size() > 0:
+			# 选择最近的有效目标
+			var best_target: CharacterActor = valid_targets[0]
+			var best_dist := my_pos.distance_to(best_target.hex_position)
+			for i in range(1, valid_targets.size()):
+				var dist := my_pos.distance_to(valid_targets[i].hex_position)
+				if dist < best_dist:
+					best_dist = dist
+					best_target = valid_targets[i]
+			return {
+				"type": "skill",
+				"ability_instance_id": skill.id,
+				"target_actor_id": best_target.get_id(),
+			}
 	
-	if use_skill and enemies.size() > 0:
-		var is_heal := skill.has_ability_tag("ally")
+	# 2. 无法使用技能 → 向最近的敌人移动
+	if my_pos.is_valid() and enemies.size() > 0:
+		# 找到最近的敌人
+		var nearest_enemy: CharacterActor = enemies[0]
+		var nearest_dist := my_pos.distance_to(nearest_enemy.hex_position)
+		for i in range(1, enemies.size()):
+			var dist := my_pos.distance_to(enemies[i].hex_position)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest_enemy = enemies[i]
 		
-		if is_heal and allies.size() > 0:
-			var ally_target := allies[randi() % allies.size()]
-			return {
-				"type": "skill",
-				"ability_instance_id": skill.id,
-				"target_actor_id": ally_target.get_id(),
-			}
-		else:
-			var enemy_target := enemies[randi() % enemies.size()]
-			return {
-				"type": "skill",
-				"ability_instance_id": skill.id,
-				"target_actor_id": enemy_target.get_id(),
-			}
-	else:
-		if my_pos.is_valid():
-			var neighbors: Array[HexCoord] = my_pos.get_neighbors()
-			var valid_neighbors: Array[HexCoord] = []
-			for n in neighbors:
-				if UGridMap.model.has_tile(n) and not UGridMap.model.is_occupied(n) and not UGridMap.model.is_reserved(n):
-					valid_neighbors.append(n)
-			
-			if valid_neighbors.size() > 0:
-				var target_coord := valid_neighbors[randi() % valid_neighbors.size()]
-				return {
-					"type": "move",
-					"ability_instance_id": actor.get_move_ability().id,
-					"target_coord": target_coord,
-				}
+		# 从邻居格子中选出能让距离最小的
+		var neighbors: Array[HexCoord] = my_pos.get_neighbors()
+		var best_coord: HexCoord = null
+		var best_move_dist := nearest_dist  # 当前距离作为基准
+		for n in neighbors:
+			if UGridMap.model.has_tile(n) and not UGridMap.model.is_occupied(n) and not UGridMap.model.is_reserved(n):
+				var move_dist := n.distance_to(nearest_enemy.hex_position)
+				if move_dist < best_move_dist:
+					best_move_dist = move_dist
+					best_coord = n
 		
-		if skill_ready and enemies.size() > 0:
-			var fallback_target := enemies[randi() % enemies.size()]
+		if best_coord != null:
 			return {
-				"type": "skill",
-				"ability_instance_id": skill.id,
-				"target_actor_id": fallback_target.get_id(),
+				"type": "move",
+				"ability_instance_id": actor.get_move_ability().id,
+				"target_coord": best_coord,
 			}
-		
-		return { "type": "skip" }
+	
+	# 3. 无法移动也无法使用技能 → 跳过
+	return { "type": "skip" }
 
 
 func _create_action_use_event(ability_instance_id: String, source_id: String, target_actor_id: String, target_coord: HexCoord) -> Dictionary:

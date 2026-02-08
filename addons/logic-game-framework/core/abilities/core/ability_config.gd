@@ -39,6 +39,9 @@ var active_use_components: Array[ActiveUseConfig]
 ## 效果组件配置列表（被动触发、Buff 等）
 var components: Array[RefCounted]
 
+## 自定义元数据（游戏层可自由附加，如施法距离、伤害类型等）
+var metadata: Dictionary = {}
+
 
 func _init(
 	config_id: String = "",
@@ -47,7 +50,8 @@ func _init(
 	icon: String = "",
 	ability_tags: Array[String] = [],
 	active_use_components: Array[ActiveUseConfig] = [],
-	components: Array[RefCounted] = []
+	components: Array[RefCounted] = [],
+	metadata: Dictionary = {}
 ) -> void:
 	self.config_id = config_id
 	self.display_name = display_name
@@ -56,6 +60,7 @@ func _init(
 	self.ability_tags = ability_tags
 	self.active_use_components = active_use_components
 	self.components = components
+	self.metadata = metadata
 
 
 ## 创建 Builder
@@ -77,6 +82,7 @@ class AbilityConfigBuilder:
 	var _ability_tags: Array[String] = []
 	var _active_use_components: Array[ActiveUseConfig] = []
 	var _components: Array[RefCounted] = []
+	var _metadata: Dictionary = {}
 	
 	## 设置配置 ID（必填）
 	## @required
@@ -114,6 +120,11 @@ class AbilityConfigBuilder:
 		_components.append(config)
 		return self
 	
+	## 添加元数据键值对
+	func meta(key: String, value: Variant) -> AbilityConfigBuilder:
+		_metadata[key] = value
+		return self
+	
 	## 构建 AbilityConfig
 	## 验证必填字段，缺失时触发断言错误
 	func build() -> AbilityConfig:
@@ -125,5 +136,6 @@ class AbilityConfigBuilder:
 			_icon,
 			_ability_tags,
 			_active_use_components,
-			_components
+			_components,
+			_metadata
 		)
