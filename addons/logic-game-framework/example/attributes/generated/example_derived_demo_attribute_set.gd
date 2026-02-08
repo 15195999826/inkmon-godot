@@ -5,8 +5,8 @@ extends BaseGeneratedAttributeSet
 class_name ExampleDerivedDemoAttributeSet
 
 
-func _init() -> void:
-	super()
+func _init(p_actor_id: String = "") -> void:
+	super(p_actor_id)
 	_raw.apply_config({
 		"damage": { "baseValue": 0.0, "minValue": 0.0 },
 		"max_hp": { "baseValue": 100.0, "minValue": 1.0 },
@@ -26,12 +26,17 @@ const damage_attribute := "damage"
 func set_damage_base(value: float) -> void:
 	_raw.set_base("damage", value)
 func on_damage_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "damage":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "damage":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var max_hp: float:
 	get:
@@ -45,12 +50,17 @@ const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
 	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "max_hp":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "max_hp":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var strength: float:
 	get:
@@ -64,12 +74,17 @@ const strength_attribute := "strength"
 func set_strength_base(value: float) -> void:
 	_raw.set_base("strength", value)
 func on_strength_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "strength":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "strength":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 # ========== Derived Attributes (read-only) ==========
 

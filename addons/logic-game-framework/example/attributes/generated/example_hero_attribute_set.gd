@@ -5,8 +5,8 @@ extends BaseGeneratedAttributeSet
 class_name ExampleHeroAttributeSet
 
 
-func _init() -> void:
-	super()
+func _init(p_actor_id: String = "") -> void:
+	super(p_actor_id)
 	_raw.apply_config({
 		"attack": { "baseValue": 12.0 },
 		"max_hp": { "baseValue": 120.0 },
@@ -25,12 +25,17 @@ const attack_attribute := "attack"
 func set_attack_base(value: float) -> void:
 	_raw.set_base("attack", value)
 func on_attack_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "attack":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "attack":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var max_hp: float:
 	get:
@@ -44,9 +49,14 @@ const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
 	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "max_hp":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "max_hp":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)

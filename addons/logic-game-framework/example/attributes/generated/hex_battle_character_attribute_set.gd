@@ -5,8 +5,8 @@ extends BaseGeneratedAttributeSet
 class_name HexBattleCharacterAttributeSet
 
 
-func _init() -> void:
-	super()
+func _init(p_actor_id: String = "") -> void:
+	super(p_actor_id)
 	_raw.apply_config({
 		"atk": { "baseValue": 50.0 },
 		"def": { "baseValue": 30.0 },
@@ -28,12 +28,17 @@ const atk_attribute := "atk"
 func set_atk_base(value: float) -> void:
 	_raw.set_base("atk", value)
 func on_atk_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "atk":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "atk":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var def: float:
 	get:
@@ -47,12 +52,17 @@ const def_attribute := "def"
 func set_def_base(value: float) -> void:
 	_raw.set_base("def", value)
 func on_def_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "def":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "def":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var hp: float:
 	get:
@@ -66,12 +76,17 @@ const hp_attribute := "hp"
 func set_hp_base(value: float) -> void:
 	_raw.set_base("hp", value)
 func on_hp_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "hp":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "hp":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var max_hp: float:
 	get:
@@ -85,12 +100,17 @@ const max_hp_attribute := "max_hp"
 func set_max_hp_base(value: float) -> void:
 	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "max_hp":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "max_hp":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)
 
 var speed: float:
 	get:
@@ -104,9 +124,14 @@ const speed_attribute := "speed"
 func set_speed_base(value: float) -> void:
 	_raw.set_base("speed", value)
 func on_speed_changed(callback: Callable) -> Callable:
-	var filtered_listener := func(event: Dictionary) -> void:
-		if event.get("attributeName", "") == "speed":
-			callback.call(event)
-	_raw.add_change_listener(filtered_listener)
+	var wrapper := func(raw_event: Dictionary) -> void:
+		if raw_event.get("attributeName", "") == "speed":
+			callback.call(GameEvent.AttributeChanged.create(
+				actor_id,
+				raw_event.get("attributeName", ""),
+				raw_event.get("oldValue", 0.0),
+				raw_event.get("newValue", 0.0),
+			))
+	_raw.add_change_listener(wrapper)
 	return func() -> void:
-		_raw.remove_change_listener(filtered_listener)
+		_raw.remove_change_listener(wrapper)

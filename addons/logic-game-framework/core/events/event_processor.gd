@@ -125,7 +125,12 @@ func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> 
 
 	# ── 递归保护 ──
 	if _current_depth >= _config.max_depth:
-		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
+		var error_msg := "Event recursion depth exceeded: %s\nCurrent event: %s\nEvent call chain:\n%s" % [
+			_current_depth,
+			event_dict.get("kind", "unknown"),
+			_get_event_chain_summary()
+		]
+		Log.error("EventProcessor", error_msg)
 		return mutable
 
 	# ── 追踪上下文：保存父级 trace_id，进入新的深度层 ──
@@ -219,7 +224,12 @@ func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[Stri
 func _process_post_event_impl(event_dict: Dictionary, actor_ids: Array[String], related_filter: Dictionary, game_state_provider: Variant) -> void:
 	assert(game_state_provider != null, "game_state_provider is required")
 	if _current_depth >= _config.max_depth:
-		Log.error("EventProcessor", "Event recursion depth exceeded: %s" % str(_current_depth))
+		var error_msg := "Event recursion depth exceeded: %s\nCurrent event: %s\nEvent call chain:\n%s" % [
+			_current_depth,
+			event_dict.get("kind", "unknown"),
+			_get_event_chain_summary()
+		]
+		Log.error("EventProcessor", error_msg)
 		return
 
 	var trace := _create_trace(event_dict, EventPhase.PHASE_POST)
@@ -322,3 +332,21 @@ func _create_trace(event_dict: Dictionary, phase: String) -> Dictionary:
 
 func _finalize_trace(trace: Dictionary) -> void:
 	trace["endTime"] = Time.get_ticks_msec()
+
+## 获取事件调用链摘要（用于错误信息）
+func _get_event_chain_summary() -> String:
+	if _traces.is_empty():
+		return "  (no trace available)"
+	
+	var lines: Array[String] = []
+	# 只显示最近的事件链（最多 10 个）
+	var start_idx := max(0, _traces.size() - 10)
+	for i in range(start_idx, _traces.size()):
+		var trace: Dictionary = _traces[i]
+		var indent := "  " + "  ".repeat(int(trace.get("depth", 0)))
+		var event_kind: String = trace.get("eventKind", "unknown")
+		var phase: String = trace.get("phase", "")
+		var trace_id: String = trace.get("traceId", "")
+		lines.append("%s[%d] %s (%s) - trace_id: %s" % [indent, i, event_kind, phase, trace_id])
+	
+	return "\n".join(lines)

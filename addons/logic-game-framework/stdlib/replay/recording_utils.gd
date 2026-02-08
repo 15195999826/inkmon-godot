@@ -3,7 +3,8 @@ class_name RecordingUtils
 
 ## 订阅 AttributeSet 的属性变化
 ##
-## 监听所有属性的变化，自动转换为 AttributeChangedEvent。
+## 监听所有属性的变化，BaseGeneratedAttributeSet 已将原始 Dictionary 包装为
+## GameEvent.AttributeChanged，此处直接序列化推入录像流。
 ## @param generated_attr_set 生成的 AttributeSet 类（继承 BaseGeneratedAttributeSet）
 ## @param ctx 录像上下文
 ## @return 取消订阅函数数组
@@ -13,15 +14,8 @@ static func record_attribute_changes(
 ) -> Array[Callable]:
 	var unsubscribes: Array[Callable] = []
 
-	var listener_func := func(event: Dictionary) -> void:
-		ctx.push_event(
-			GameEvent.AttributeChanged.create(
-				ctx.actor_id,
-				event.attributeName,
-				event.oldValue,
-				event.newValue
-			).to_dict()
-		)
+	var listener_func := func(event: GameEvent.AttributeChanged) -> void:
+		ctx.push_event(event.to_dict())
 
 	unsubscribes.append(generated_attr_set.add_change_listener(listener_func))
 	return unsubscribes

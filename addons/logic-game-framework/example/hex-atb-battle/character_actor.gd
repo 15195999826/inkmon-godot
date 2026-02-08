@@ -50,7 +50,7 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: 
 	var class_config := HexBattleClassConfig.get_class_config(character_class)
 	_display_name = class_config.name
 	
-	attribute_set = HexBattleCharacterAttributeSet.new()
+	attribute_set = HexBattleCharacterAttributeSet.new(get_id())
 	_setup_attribute_constraints()
 	var stats := class_config.stats
 	attribute_set.set_hp_base(stats["hp"])
