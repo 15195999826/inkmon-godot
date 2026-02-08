@@ -1,13 +1,71 @@
 class_name RawAttributeSet
 extends RefCounted
+## 属性集合：管理属性的基础值、修改器、缓存和变化通知。
+##
+## 【属性变化规范】
+##
+## 所有属性修改必须通过以下 5 个入口方法之一：
+##   - set_base(attr_name, value)
+##   - add_modifier(modifier)
+##   - remove_modifier(modifier_id)
+##   - remove_modifiers_by_source(source)
+##   - update_modifier(modifier_id, new_value)
+##
+## 每个入口方法内部统一处理所有 modifier（含动态依赖的自动求解），
+## 外部无感知，仅会收到最终结果通知：哪些属性发生了变化以及变化后的值。
+## 在入口方法返回后，任何时刻调用 get_breakdown() 对相同状态都返回相同数据。
+## 绝对不允许通过其它方式修改属性值。
+##
+## 【动态依赖：两轮快照迭代机制】
+##
+## 当属性之间存在动态依赖时（如被动技能让 atk 随 max_hp 变化），
+## 通过 register_dynamic_dep() 声明式注册依赖关系，而非 Listener 回调。
+##
+## 动态依赖的求解在每个入口方法内部自动完成（两轮快照迭代），
+## 保证以下语义：
+##   - 精确可逆：add_modifier 再 remove_modifier 同一个 modifier，属性值严格回到原状态
+##   - 路径无关：不管操作顺序如何，同一组 base + modifier 产出同一组最终值
+##   - 无需外部 Listener 参与动态依赖计算
+##
+## 两轮快照求解算法（_solve_dynamic_deps）：
+##   第 1 轮：所有动态 modifier 置零 → 计算纯静态快照 → 基于快照算出动态值 → 写入
+##   第 2 轮：基于第 1 轮结果重新计算动态值 → 写入最终值
+##   统一两轮，无条件，无需动态判断轮数。无交叉依赖时两轮结果与一轮严格相等。
+##
+## 【示例：穿戴装备 + 被动技能（动态依赖）】
+##
+## 前置条件：
+##   初始属性：max_hp = 100, atk = 20
+##   装备（静态 modifier）：max_hp +20 (ADD_BASE), atk +20 (ADD_BASE)
+##   被动技能（动态依赖，通过 register_dynamic_dep 注册）：
+##     技能 a：max_hp += atk × 0.1  (ADD_BASE)
+##     技能 b：atk += max_hp × 0.01 (ADD_BASE)
+##     技能 c：max_hp += atk × 0.2  (ADD_BASE)
+##     技能 d：atk += max_hp × 0.02 (ADD_BASE)
+##
+## 穿戴装备后（两轮快照求解）：
+##
+##   第 1 轮：动态 modifier 清零 → 纯静态值：max_hp = 120, atk = 40
+##     技能 a: 40 × 0.1 = 4.0  → max_hp 动态 modifier = 4.0
+##     技能 b: 120 × 0.01 = 1.2 → atk 动态 modifier = 1.2
+##     技能 c: 40 × 0.2 = 8.0  → max_hp 动态 modifier = 8.0
+##     技能 d: 120 × 0.02 = 2.4 → atk 动态 modifier = 2.4
+##     写入后：max_hp = 132.0, atk = 43.6
+##
+##   第 2 轮：基于第 1 轮结果重新计算
+##     技能 a: 43.6 × 0.1 = 4.36  → max_hp 动态 modifier = 4.36
+##     技能 b: 132.0 × 0.01 = 1.32 → atk 动态 modifier = 1.32
+##     技能 c: 43.6 × 0.2 = 8.72  → max_hp 动态 modifier = 8.72
+##     技能 d: 132.0 × 0.02 = 2.64 → atk 动态 modifier = 2.64
+##     最终：max_hp = 133.08, atk = 43.96
+##
+## 可逆性验证：
+##   获得 atk +10 buff 后：max_hp = 136.08, atk = 54.05
+##   移除同一 buff 后：max_hp = 133.08, atk = 43.96（严格等于 buff 前 ✅）
 
 const _CHANGE_TYPE_BASE := "base"
 const _CHANGE_TYPE_MODIFIER := "modifier"
 const _CHANGE_TYPE_CURRENT := "current"
-
-## 属性变化阈值：变化量小于此值时，视为"无变化"，不更新缓存、不触发通知
-## 用于解决动态属性互相依赖时的收敛问题（如 atk += max_hp * 0.01, max_hp += atk * 0.1）
-const CHANGE_THRESHOLD := 0.01
 
 var _base_values: Dictionary = {}
 ## { String -> Array[AttributeModifier] } 按属性名索引
@@ -20,18 +78,13 @@ var _dirty_set: Dictionary = {}
 var _computing_set: Dictionary = {}
 var _constraints: Dictionary = {}
 var _listeners: Array[Callable] = []
-var _hooks: Dictionary = {}
-var _global_hooks: Dictionary = {}
 ## current 值变化前的回调，签名: func(attr_name: String, inout_value: Dictionary) -> void
 ## inout_value = { "value": float }，可直接修改 inout_value["value"] 来调整最终值
 var _pre_change_callback: Callable = Callable()
-## 通知队列：防止 listener 执行期间的递归通知导致栈溢出
-## 当 _notifying 为 true 时，新的通知会被排队，等当前通知处理完毕后再处理
-## 存储待通知的属性名（String）
-var _notification_queue: Array[String] = []
-var _notifying: bool = false
-## 记录每个属性在当前通知批次开始时的值，用于阈值判断
-var _batch_start_values: Dictionary = {}
+## 动态依赖注册表
+## 每项: { modifier_id: String, source_attribute: String, target_attribute: String,
+##         modifier_type: AttributeModifier.Type, coefficient: float }
+var _dynamic_deps: Array[Dictionary] = []
 
 func _init(attributes: Array[Dictionary] = []) -> void:
 	for attr in attributes:
@@ -70,29 +123,15 @@ func set_base(attr_name: String, value: float) -> void:
 	if old_value == clamped_value:
 		return
 
-	var event := {
-		"attributeName": attr_name,
-		"oldValue": old_value,
-		"newValue": clamped_value,
-		"changeType": _CHANGE_TYPE_BASE,
-	}
+	# 记录所有属性 before 值
+	var before := _snapshot_all_values()
 
-	var hook_result: Variant = _invoke_pre_hook("preBaseChange", event)
-	if hook_result == false:
-		return
-
-	var final_value := clamped_value
-	if typeof(hook_result) in [TYPE_INT, TYPE_FLOAT]:
-		final_value = _clamp_value(attr_name, float(hook_result))
-
-	_base_values[attr_name] = final_value
+	_base_values[attr_name] = clamped_value
 	_mark_dirty(attr_name)
 
-	var final_event := event.duplicate(true)
-	final_event["newValue"] = final_value
-
-	_invoke_post_hook("postBaseChange", final_event)
-	_notify_change(final_event)
+	# 求解动态依赖 + 批量通知
+	_solve_dynamic_deps()
+	_notify_changes(before, _CHANGE_TYPE_BASE)
 
 
 func get_body_value(attr_name: String) -> float:
@@ -105,59 +144,15 @@ func get_current_value(attr_name: String) -> float:
 
 ## 获取属性的完整计算结果（含循环依赖检测）
 ##
-## 【循环依赖检测说明】
-##
 ## _computing_set 记录当前正在计算的属性。如果在计算 A 的过程中又要计算 A，说明形成了循环。
 ##
-## 【场景 1：动态修改器 —— 血量越高攻击力越高 & 攻击力越高血量越高】
+## 动态属性依赖通过 register_dynamic_dep + 两轮快照求解器处理，不会触发循环。
+## 此处的循环检测用于防御 pre_change_callback 等外部回调导致的意外循环。
 ##
-## 假设你想实现两个技能：
-##   - 技能 A：攻击力 +10% 当前血量
-##   - 技能 B：血量 +10% 当前攻击力
+## 示例：pre_change_callback 中 hp ≤ max_hp 约束，计算 hp 时读取 max_hp，
+## 若 max_hp 的计算又回到 hp → 触发循环检测。
 ##
-## 如果用 Listener 实现动态更新修改器：
-##   attr_set.add_change_listener(func(event):
-##       if event.attributeName == "hp":
-##           # hp 变了，重新计算 atk 的修改器值
-##           var new_atk_bonus = attr_set.get_current_value("hp") * 0.1
-##           update_atk_modifier(new_atk_bonus)
-##       if event.attributeName == "atk":
-##           # atk 变了，重新计算 hp 的修改器值
-##           var new_hp_bonus = attr_set.get_current_value("atk") * 0.1  # ← 可能触发循环
-##           update_hp_modifier(new_hp_bonus)
-##   )
-##
-## 执行流程（hp 变化时）：
-##   1. hp 变化 → 触发 Listener
-##   2. Listener 更新 atk 修改器 → atk 变化 → 触发 Listener
-##   3. Listener 内调用 get_current_value("hp") → 此时 hp 可能正在计算中 → 循环！
-##
-## 【场景 2：约束检查 —— hp 不超过 max_hp】
-##
-## 用 Hook 实现 hp 上限约束：
-##   attr_set.set_global_hooks({
-##       "preBaseChange": func(event):
-##           if event.attributeName == "hp":
-##               var max_hp = attr_set.get_current_value("max_hp")
-##               return min(event.newValue, max_hp)
-##           if event.attributeName == "max_hp":
-##               var hp = attr_set.get_current_value("hp")  # ← 如果 hp 正在计算，触发循环
-##               # ... 某些逻辑
-##           return null
-##   })
-##
-## 【触发循环后的处理】
-##
-## 假设 hp: base=100, 有 +20 的修改器，正常计算结果应为 120
-##
-## 情况 A - 有缓存（hp 之前被计算过，缓存值为 120）：
-##   → 返回缓存值 120
-##   → 日志：[循环依赖] 属性 'hp' ... 已返回缓存值以中断循环
-##
-## 情况 B - 无缓存（hp 首次计算就遇到循环）：
-##   → 返回 AttributeBreakdown.from_base(100)，即只有基础值，忽略 +20 修改器
-##   → 日志：[循环依赖] 属性 'hp' ... 无缓存可用，已返回基础值 100.00 以中断循环
-##   → 这意味着：本次计算得到的是不完整的值（少了修改器的加成）
+## 循环触发后：有缓存返回缓存值，无缓存返回 base 值（并输出警告日志）。
 func get_breakdown(attr_name: String) -> AttributeBreakdown:
 	if _computing_set.has(attr_name):
 		var computing_chain := ", ".join(_computing_set.keys())
@@ -172,9 +167,6 @@ func get_breakdown(attr_name: String) -> AttributeBreakdown:
 
 	if not _dirty_set.has(attr_name) and _cache.has(attr_name):
 		return _cache[attr_name] as AttributeBreakdown
-
-	# 记录旧缓存值（用于阈值判断）
-	var old_cached: AttributeBreakdown = _cache.get(attr_name) as AttributeBreakdown
 
 	_computing_set[attr_name] = true
 	var base_value := float(_base_values.get(attr_name, 0.0))
@@ -195,17 +187,6 @@ func get_breakdown(attr_name: String) -> AttributeBreakdown:
 			breakdown = breakdown.with_clamped_value(callback_value)
 
 	_computing_set.erase(attr_name)
-
-	# 3. 阈值截断：变化量小于 CHANGE_THRESHOLD 时，视为"无变化"
-	#    - 不更新缓存（保持旧值）
-	#    - 不触发 listener（截断循环链）
-	#    - 清除 dirty（下次直接返回旧缓存）
-	#    用于解决动态属性互相依赖时的收敛问题
-	if old_cached != null:
-		var delta := absf(breakdown.current_value - old_cached.current_value)
-		if delta < CHANGE_THRESHOLD:
-			_dirty_set.erase(attr_name)
-			return old_cached
 
 	_cache[attr_name] = breakdown
 	_dirty_set.erase(attr_name)
@@ -239,20 +220,13 @@ func add_modifier(modifier: AttributeModifier) -> void:
 			Log.warning("AttributeSet", "Modifier already exists: %s" % modifier.id)
 			return
 
-	var old_value := get_current_value(modifier.attribute_name)
+	var before := _snapshot_all_values()
 	mods.append(modifier)
 	_add_to_source_index(modifier)
 	_mark_dirty(modifier.attribute_name)
 
-	var new_value := get_current_value(modifier.attribute_name)
-	var delta := absf(new_value - old_value)
-	if delta >= CHANGE_THRESHOLD:
-		_notify_change({
-			"attributeName": modifier.attribute_name,
-			"oldValue": old_value,
-			"newValue": new_value,
-			"changeType": _CHANGE_TYPE_MODIFIER,
-		})
+	_solve_dynamic_deps()
+	_notify_changes(before, _CHANGE_TYPE_MODIFIER)
 
 
 func remove_modifier(modifier_id: String) -> bool:
@@ -264,21 +238,14 @@ func remove_modifier(modifier_id: String) -> bool:
 				index = i
 				break
 		if index != -1:
-			var old_value := get_current_value(attr_name)
+			var before := _snapshot_all_values()
 			var removed_mod := mods[index]
 			mods.remove_at(index)
 			_remove_from_source_index(removed_mod)
 			_mark_dirty(attr_name)
 
-			var new_value := get_current_value(attr_name)
-			var delta := absf(new_value - old_value)
-			if delta >= CHANGE_THRESHOLD:
-				_notify_change({
-					"attributeName": attr_name,
-					"oldValue": old_value,
-					"newValue": new_value,
-					"changeType": _CHANGE_TYPE_MODIFIER,
-				})
+			_solve_dynamic_deps()
+			_notify_changes(before, _CHANGE_TYPE_MODIFIER)
 			return true
 	return false
 
@@ -299,13 +266,11 @@ func remove_modifiers_by_source(source: String) -> int:
 		affected_attrs[mod.attribute_name].append(mod)
 
 	var count := source_mods.size()
+	var before := _snapshot_all_values()
 
 	# 从各属性的修改器列表中移除
 	for attr_name in affected_attrs.keys():
-		var old_value := get_current_value(attr_name)
 		var mods := _get_modifiers_typed(attr_name)
-		var to_remove: Array = affected_attrs[attr_name]
-
 		var filtered: Array[AttributeModifier] = []
 		for mod in mods:
 			if mod.source != source:
@@ -313,19 +278,31 @@ func remove_modifiers_by_source(source: String) -> int:
 		_modifiers[attr_name] = filtered
 		_mark_dirty(attr_name)
 
-		var new_value := get_current_value(attr_name)
-		var delta := absf(new_value - old_value)
-		if delta >= CHANGE_THRESHOLD:
-			_notify_change({
-				"attributeName": attr_name,
-				"oldValue": old_value,
-				"newValue": new_value,
-				"changeType": _CHANGE_TYPE_MODIFIER,
-			})
-
 	# 清空 source 索引
 	_source_index.erase(source)
+
+	# 求解动态依赖 + 批量通知
+	_solve_dynamic_deps()
+	_notify_changes(before, _CHANGE_TYPE_MODIFIER)
+
 	return count
+
+
+## 原子更新修改器的值（不触发 remove+add 两次通知，只触发一次）
+## 用于外部需要更新 modifier 值的场景。
+## 返回 true 表示找到并更新了修改器，false 表示未找到。
+func update_modifier(modifier_id: String, new_value: float) -> bool:
+	for attr_name in _modifiers.keys():
+		var mods := _get_modifiers_typed(attr_name)
+		for mod in mods:
+			if mod.id == modifier_id:
+				var before := _snapshot_all_values()
+				mod.value = new_value
+				_mark_dirty(attr_name)
+				_solve_dynamic_deps()
+				_notify_changes(before, _CHANGE_TYPE_MODIFIER)
+				return true
+	return false
 
 
 func get_modifiers(attr_name: String) -> Array[AttributeModifier]:
@@ -351,33 +328,6 @@ func remove_change_listener(listener: Callable) -> void:
 
 func remove_all_change_listeners() -> void:
 	_listeners.clear()
-
-func set_hooks(attr_name: String, hooks: Dictionary) -> void:
-	if not _hooks.has(attr_name):
-		_hooks[attr_name] = hooks.duplicate(true)
-		return
-	var existing: Dictionary = _hooks[attr_name]
-	existing.merge(hooks, true)
-
-
-func get_hooks(attr_name: String) -> Dictionary:
-	return _hooks.get(attr_name, {})
-
-
-func remove_hooks(attr_name: String) -> void:
-	_hooks.erase(attr_name)
-
-
-func set_global_hooks(hooks: Dictionary) -> void:
-	_global_hooks.merge(hooks, true)
-
-
-func get_global_hooks() -> Dictionary:
-	return _global_hooks.duplicate(true)
-
-
-func clear_global_hooks() -> void:
-	_global_hooks.clear()
 
 
 ## 设置 current 值变化前的回调
@@ -413,6 +363,37 @@ func on_attribute_changed(attr_name: String, callback: Callable) -> Callable:
 	add_change_listener(filtered_listener)
 	return func() -> void:
 		remove_change_listener(filtered_listener)
+
+
+## 注册动态依赖：source_attribute 变化时，自动重算 modifier_id 的值
+## modifier_value = get_current_value(source_attribute) * coefficient
+## 注册前必须已通过 add_modifier 添加对应的 modifier
+func register_dynamic_dep(
+	modifier_id: String,
+	source_attribute: String,
+	target_attribute: String,
+	modifier_type: AttributeModifier.Type,
+	coefficient: float,
+) -> void:
+	# 防止重复注册
+	for dep in _dynamic_deps:
+		if dep["modifier_id"] == modifier_id:
+			return
+	_dynamic_deps.append({
+		"modifier_id": modifier_id,
+		"source_attribute": source_attribute,
+		"target_attribute": target_attribute,
+		"modifier_type": modifier_type,
+		"coefficient": coefficient,
+	})
+
+
+## 取消注册动态依赖
+func unregister_dynamic_dep(modifier_id: String) -> void:
+	for i in range(_dynamic_deps.size() - 1, -1, -1):
+		if _dynamic_deps[i]["modifier_id"] == modifier_id:
+			_dynamic_deps.remove_at(i)
+			return
 
 
 static func from_config(config: Dictionary) -> RawAttributeSet:
@@ -461,69 +442,6 @@ func _clamp_value(attr_name: String, value: float) -> float:
 	return clampf(value, constraint.get("min", -INF), constraint.get("max", INF))
 
 
-func _notify_change(event: Dictionary) -> void:
-	var attr_name: String = event.get("attributeName", "")
-	
-	# 如果正在通知中，记录此属性需要通知（去重：同一属性只记录一次）
-	if _notifying:
-		# 只记录属性名，不记录具体事件（最终会用最新值）
-		if not _batch_start_values.has(attr_name):
-			# 首次记录此属性，保存批次开始时的值
-			_batch_start_values[attr_name] = event.get("oldValue", 0.0)
-		_notification_queue.append(attr_name)
-		return
-	
-	# 开始通知批次
-	_notifying = true
-	_batch_start_values.clear()
-	_batch_start_values[attr_name] = event.get("oldValue", 0.0)
-	
-	# 处理当前事件
-	_dispatch_event(event)
-	
-	# 处理队列中的属性（listener 可能触发新的变化）
-	# 使用迭代次数限制防止无限循环
-	var max_iterations := 100
-	var iteration := 0
-	while not _notification_queue.is_empty() and iteration < max_iterations:
-		iteration += 1
-		
-		# 收集当前队列中所有待处理的属性（去重）
-		var pending_attrs: Dictionary = {}
-		while not _notification_queue.is_empty():
-			var queued_attr: String = _notification_queue.pop_front()
-			pending_attrs[queued_attr] = true
-		
-		# 处理每个属性
-		for pending_attr in pending_attrs.keys():
-			# 阈值检查：比较批次开始时的值和当前值
-			if _batch_start_values.has(pending_attr):
-				var batch_start_value: float = _batch_start_values[pending_attr]
-				var current_value := get_current_value(pending_attr)
-				var delta := absf(current_value - batch_start_value)
-				if delta < CHANGE_THRESHOLD:
-					# 变化量太小，跳过此通知
-					continue
-				
-				# 构造事件并分发
-				var queued_event := {
-					"attributeName": pending_attr,
-					"oldValue": batch_start_value,
-					"newValue": current_value,
-					"changeType": _CHANGE_TYPE_MODIFIER,
-				}
-				_dispatch_event(queued_event)
-				
-				# 更新批次开始值为当前值（下一轮迭代的基准）
-				_batch_start_values[pending_attr] = current_value
-	
-	if iteration >= max_iterations:
-		Log.warning("AttributeSet", "[收敛失败] 属性变化通知超过 %d 次迭代，可能存在无法收敛的循环依赖" % max_iterations)
-	
-	_notifying = false
-	_batch_start_values.clear()
-
-
 func _dispatch_event(event: Dictionary) -> void:
 	for listener in _listeners:
 		if listener.is_valid():
@@ -531,37 +449,6 @@ func _dispatch_event(event: Dictionary) -> void:
 		else:
 			Log.error("AttributeSet", "Error in attribute change listener")
 
-
-func _invoke_pre_hook(hook_name: String, event: Dictionary) -> Variant:
-	var attr_hooks: Dictionary = _hooks.get(event.get("attributeName", ""), {})
-	if attr_hooks.has(hook_name):
-		var hook: Variant = attr_hooks[hook_name]
-		if hook is Callable:
-			var result: Variant = hook.call(event)
-			if result == false or typeof(result) in [TYPE_INT, TYPE_FLOAT]:
-				return result
-
-	if _global_hooks.has(hook_name):
-		var global_hook: Variant = _global_hooks[hook_name]
-		if global_hook is Callable:
-			var result: Variant = global_hook.call(event)
-			if result == false or typeof(result) in [TYPE_INT, TYPE_FLOAT]:
-				return result
-
-	return null
-
-
-func _invoke_post_hook(hook_name: String, event: Dictionary) -> void:
-	var attr_hooks: Dictionary = _hooks.get(event.get("attributeName", ""), {})
-	if attr_hooks.has(hook_name):
-		var hook: Variant = attr_hooks[hook_name]
-		if hook is Callable:
-			hook.call(event)
-
-	if _global_hooks.has(hook_name):
-		var global_hook: Variant = _global_hooks[hook_name]
-		if global_hook is Callable:
-			global_hook.call(event)
 
 ## 内部辅助：从 _modifiers Dictionary 取出类型化数组
 func _get_modifiers_typed(attr_name: String) -> Array[AttributeModifier]:
@@ -609,3 +496,113 @@ func _remove_from_source_index(modifier: AttributeModifier) -> void:
 	source_mods.erase(modifier)
 	if source_mods.is_empty():
 		_source_index.erase(modifier.source)
+
+
+## 两轮快照求解器：重算所有动态依赖的 modifier 值
+##
+## 流程：
+##   第一轮：所有动态 modifier 视为 0 → 计算快照值 → 基于快照算出第一轮动态值
+##   第二轮：将第一轮动态值写入 → 计算第二轮快照值 → 基于第二轮快照算出最终动态值
+##
+## 两轮让互相依赖的动态 modifier 能"看到彼此一次"，精度损失约 0.08%。
+## 无交叉依赖时，第二轮结果与第一轮完全相同（严格相等，非近似）。
+## 可逆性：同一组 {base + 静态 modifier} → 同一最终值，路径无关。
+func _solve_dynamic_deps() -> void:
+	if _dynamic_deps.is_empty():
+		return
+
+	# 收集所有动态 modifier 的引用，用于静默写入
+	var dep_modifiers: Array[Dictionary] = []  # { dep, modifier_ref }
+	for dep in _dynamic_deps:
+		var mod_ref := _find_modifier_by_id(dep["modifier_id"] as String)
+		if mod_ref == null:
+			continue
+		dep_modifiers.append({ "dep": dep, "mod": mod_ref })
+
+	if dep_modifiers.is_empty():
+		return
+
+	# === 第一轮 ===
+	# 1a. 所有动态 modifier 值清零
+	for item in dep_modifiers:
+		var mod: AttributeModifier = item["mod"]
+		mod.value = 0.0
+
+	# 1b. 标记所有涉及的属性为脏
+	_mark_all_dynamic_dirty(dep_modifiers)
+
+	# 1c. 基于快照（动态=0）计算第一轮动态值
+	var round1_values: Array[float] = []
+	for item in dep_modifiers:
+		var dep: Dictionary = item["dep"]
+		var source_value := _compute_current_value(dep["source_attribute"] as String)
+		round1_values.append(source_value * (dep["coefficient"] as float))
+
+	# 1d. 将第一轮动态值写入
+	for i in range(dep_modifiers.size()):
+		var mod: AttributeModifier = dep_modifiers[i]["mod"]
+		mod.value = round1_values[i]
+
+	# === 第二轮 ===
+	# 2a. 标记脏
+	_mark_all_dynamic_dirty(dep_modifiers)
+
+	# 2b. 基于第一轮结果计算第二轮动态值
+	for item in dep_modifiers:
+		var dep: Dictionary = item["dep"]
+		var mod: AttributeModifier = item["mod"]
+		var source_value := _compute_current_value(dep["source_attribute"] as String)
+		mod.value = source_value * (dep["coefficient"] as float)
+
+	# 2c. 最终标记脏，确保后续 get_breakdown 重算
+	_mark_all_dynamic_dirty(dep_modifiers)
+
+
+## 内部辅助：计算属性的 currentValue（不触发通知，不走 pre_change 回调）
+func _compute_current_value(attr_name: String) -> float:
+	var base_value := float(_base_values.get(attr_name, 0.0))
+	var mods := _get_modifiers_typed(attr_name)
+	var breakdown := AttributeCalculator.calculate(base_value, mods)
+	var clamped := _clamp_value(attr_name, breakdown.current_value)
+	return clamped
+
+
+## 内部辅助：标记所有动态依赖涉及的属性为脏
+func _mark_all_dynamic_dirty(dep_modifiers: Array[Dictionary]) -> void:
+	for item in dep_modifiers:
+		var dep: Dictionary = item["dep"]
+		_mark_dirty(dep["target_attribute"] as String)
+		_mark_dirty(dep["source_attribute"] as String)
+
+
+## 内部辅助：按 ID 查找 modifier 引用（返回 null 表示未找到）
+func _find_modifier_by_id(modifier_id: String) -> AttributeModifier:
+	for attr_name in _modifiers.keys():
+		var mods := _get_modifiers_typed(attr_name)
+		for mod in mods:
+			if mod.id == modifier_id:
+				return mod
+	return null
+
+
+## 内部辅助：记录所有属性的当前值快照（用于 before/after 对比）
+func _snapshot_all_values() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for attr_name in _base_values.keys():
+		snapshot[attr_name] = get_current_value(attr_name)
+	return snapshot
+
+
+## 内部辅助：对比 before/after 快照，批量通知变化的属性
+## change_type: 通知事件中的 changeType 字段
+func _notify_changes(before: Dictionary, change_type: String) -> void:
+	for attr_name in before.keys():
+		var old_value: float = before[attr_name]
+		var new_value := get_current_value(attr_name)
+		if new_value != old_value:
+			_dispatch_event({
+				"attributeName": attr_name,
+				"oldValue": old_value,
+				"newValue": new_value,
+				"changeType": change_type,
+			})

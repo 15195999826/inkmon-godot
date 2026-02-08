@@ -18,6 +18,7 @@ func _init() -> void:
 	TestFramework.register_test("RawAttributeSet - pre_change callback clamps hp to max_hp", _test_pre_change_callback_clamps_hp_to_max_hp)
 	TestFramework.register_test("RawAttributeSet - pre_change callback not called when not set", _test_pre_change_callback_not_called_when_not_set)
 	TestFramework.register_test("RawAttributeSet - dynamic circular dependency converges", _test_dynamic_circular_dependency_converges)
+	TestFramework.register_test("RawAttributeSet - dynamic dependency is reversible", _test_dynamic_dependency_reversible)
 
 func _test_get_base() -> void:
 	var attribute_set := RawAttributeSet.new([
@@ -248,72 +249,106 @@ func _test_pre_change_callback_not_called_when_not_set() -> void:
 
 
 func _test_dynamic_circular_dependency_converges() -> void:
-	# 测试动态属性循环依赖的收敛机制
-	# 技能 A：atk += max_hp * 0.01
-	# 技能 B：max_hp += atk * 0.1
-	# 初始：max_hp = 100, atk = 50
+	# 测试两轮快照求解：动态依赖通过 register_dynamic_dep 声明式注册
+	# 被动 a：max_hp += atk × 0.1  (ADD_BASE)
+	# 被动 b：atk += max_hp × 0.01 (ADD_BASE)
+	# 被动 c：max_hp += atk × 0.2  (ADD_BASE)
+	# 被动 d：atk += max_hp × 0.02 (ADD_BASE)
+	# 初始：max_hp = 100, atk = 20
+	# 装备：max_hp +20, atk +20
 
 	var attr_set := RawAttributeSet.new([
 		{"name": "max_hp", "baseValue": 100},
-		{"name": "atk", "baseValue": 50},
+		{"name": "atk", "baseValue": 20},
 	])
 
-	var atk_modifier_id := "dyn_atk"
-	var max_hp_modifier_id := "dyn_max_hp"
+	# 添加动态依赖的 modifier（初始值 0，求解器会自动计算）
+	var mod_a := AttributeModifier.create_add_base("dyn_a", "max_hp", 0.0, "skill_a")
+	var mod_b := AttributeModifier.create_add_base("dyn_b", "atk", 0.0, "skill_b")
+	var mod_c := AttributeModifier.create_add_base("dyn_c", "max_hp", 0.0, "skill_c")
+	var mod_d := AttributeModifier.create_add_base("dyn_d", "atk", 0.0, "skill_d")
 
-	# 模拟 DynamicStatModifierComponent 的行为
-	# 技能 A：监听 max_hp，更新 atk modifier
-	var update_atk_modifier := func() -> void:
-		attr_set.remove_modifier(atk_modifier_id)
-		var max_hp_value := attr_set.get_current_value("max_hp")
-		var atk_bonus := max_hp_value * 0.01
-		attr_set.add_modifier(AttributeModifier.create_add_base(atk_modifier_id, "atk", atk_bonus, "skill_a"))
+	attr_set.add_modifier(mod_a)
+	attr_set.add_modifier(mod_b)
+	attr_set.add_modifier(mod_c)
+	attr_set.add_modifier(mod_d)
 
-	# 技能 B：监听 atk，更新 max_hp modifier
-	var update_max_hp_modifier := func() -> void:
-		attr_set.remove_modifier(max_hp_modifier_id)
-		var atk_value := attr_set.get_current_value("atk")
-		var max_hp_bonus := atk_value * 0.1
-		attr_set.add_modifier(AttributeModifier.create_add_base(max_hp_modifier_id, "max_hp", max_hp_bonus, "skill_b"))
+	# 注册动态依赖
+	attr_set.register_dynamic_dep("dyn_a", "atk", "max_hp", AttributeModifier.Type.ADD_BASE, 0.1)
+	attr_set.register_dynamic_dep("dyn_b", "max_hp", "atk", AttributeModifier.Type.ADD_BASE, 0.01)
+	attr_set.register_dynamic_dep("dyn_c", "atk", "max_hp", AttributeModifier.Type.ADD_BASE, 0.2)
+	attr_set.register_dynamic_dep("dyn_d", "max_hp", "atk", AttributeModifier.Type.ADD_BASE, 0.02)
 
-	# 设置监听器
-	attr_set.on_attribute_changed("max_hp", func(_event: Dictionary) -> void:
-		update_atk_modifier.call()
-		# 强制读取 atk 推动收敛
-		var _force: float = attr_set.get_current_value("atk")
-	)
+	# 无装备时，纯动态依赖：base max_hp=100, atk=20
+	# 第 1 轮：静态值 max_hp=100, atk=20
+	#   a: 20*0.1=2, b: 100*0.01=1, c: 20*0.2=4, d: 100*0.02=2
+	#   → max_hp=106, atk=23
+	# 第 2 轮：
+	#   a: 23*0.1=2.3, b: 106*0.01=1.06, c: 23*0.2=4.6, d: 106*0.02=2.12
+	#   → max_hp=106.9, atk=23.18
+	TestFramework.assert_near(attr_set.get_current_value("max_hp"), 106.9, 0.01)
+	TestFramework.assert_near(attr_set.get_current_value("atk"), 23.18, 0.01)
 
-	attr_set.on_attribute_changed("atk", func(_event: Dictionary) -> void:
-		update_max_hp_modifier.call()
-		# 强制读取 max_hp 推动收敛
-		var _force: float = attr_set.get_current_value("max_hp")
-	)
+	# 穿戴装备：max_hp +20, atk +20
+	attr_set.add_modifier(AttributeModifier.create_add_base("equip_hp", "max_hp", 20, "equipment"))
+	attr_set.add_modifier(AttributeModifier.create_add_base("equip_atk", "atk", 20, "equipment"))
 
-	# 初始化 modifier
-	update_atk_modifier.call()
-	update_max_hp_modifier.call()
+	# 两轮快照求解结果（见类头注释）：max_hp ≈ 133.08, atk ≈ 43.96
+	TestFramework.assert_near(attr_set.get_current_value("max_hp"), 133.08, 0.01)
+	TestFramework.assert_near(attr_set.get_current_value("atk"), 43.96, 0.01)
 
-	# 初始状态验证
-	# max_hp = 100 + (50 * 0.1) = 105
-	# atk = 50 + (105 * 0.01) = 51.05
-	# 但由于收敛，实际值会略有不同
-	var initial_max_hp := attr_set.get_current_value("max_hp")
-	var initial_atk := attr_set.get_current_value("atk")
-	TestFramework.assert_true(initial_max_hp > 100, "max_hp should be > 100 after dynamic modifier")
-	TestFramework.assert_true(initial_atk > 50, "atk should be > 50 after dynamic modifier")
+	# get_breakdown 一致性：再次调用应得到相同值
+	TestFramework.assert_near(attr_set.get_current_value("max_hp"), 133.08, 0.01)
+	TestFramework.assert_near(attr_set.get_current_value("atk"), 43.96, 0.01)
 
-	# 触发变化：增加 max_hp 基础值
-	attr_set.set_base("max_hp", 120)
 
-	# 验证收敛后的值
-	var final_max_hp := attr_set.get_current_value("max_hp")
-	var final_atk := attr_set.get_current_value("atk")
+func _test_dynamic_dependency_reversible() -> void:
+	# 测试可逆性：add buff → remove buff = 原状态
+	# 使用与 _test_dynamic_circular_dependency_converges 相同的配置
 
-	# 收敛后：
-	# max_hp ≈ 120 + (atk * 0.1)
-	# atk ≈ 50 + (max_hp * 0.01)
-	# 解方程：max_hp ≈ 125.13, atk ≈ 51.25
-	TestFramework.assert_true(final_max_hp > 120, "max_hp should be > 120 after convergence")
-	TestFramework.assert_true(final_max_hp < 130, "max_hp should be < 130 (sanity check)")
-	TestFramework.assert_true(final_atk > 51, "atk should be > 51 after convergence")
-	TestFramework.assert_true(final_atk < 52, "atk should be < 52 (sanity check)")
+	var attr_set := RawAttributeSet.new([
+		{"name": "max_hp", "baseValue": 100},
+		{"name": "atk", "baseValue": 20},
+	])
+
+	# 动态依赖 modifier
+	var mod_a := AttributeModifier.create_add_base("dyn_a", "max_hp", 0.0, "skill_a")
+	var mod_b := AttributeModifier.create_add_base("dyn_b", "atk", 0.0, "skill_b")
+	var mod_c := AttributeModifier.create_add_base("dyn_c", "max_hp", 0.0, "skill_c")
+	var mod_d := AttributeModifier.create_add_base("dyn_d", "atk", 0.0, "skill_d")
+
+	attr_set.add_modifier(mod_a)
+	attr_set.add_modifier(mod_b)
+	attr_set.add_modifier(mod_c)
+	attr_set.add_modifier(mod_d)
+
+	attr_set.register_dynamic_dep("dyn_a", "atk", "max_hp", AttributeModifier.Type.ADD_BASE, 0.1)
+	attr_set.register_dynamic_dep("dyn_b", "max_hp", "atk", AttributeModifier.Type.ADD_BASE, 0.01)
+	attr_set.register_dynamic_dep("dyn_c", "atk", "max_hp", AttributeModifier.Type.ADD_BASE, 0.2)
+	attr_set.register_dynamic_dep("dyn_d", "max_hp", "atk", AttributeModifier.Type.ADD_BASE, 0.02)
+
+	# 装备
+	attr_set.add_modifier(AttributeModifier.create_add_base("equip_hp", "max_hp", 20, "equipment"))
+	attr_set.add_modifier(AttributeModifier.create_add_base("equip_atk", "atk", 20, "equipment"))
+
+	# 记录 buff 前状态
+	var before_max_hp := attr_set.get_current_value("max_hp")
+	var before_atk := attr_set.get_current_value("atk")
+
+	# 添加 atk +10 buff
+	attr_set.add_modifier(AttributeModifier.create_add_base("buff_atk", "atk", 10, "temp_buff"))
+
+	# buff 后应该变化
+	var buffed_max_hp := attr_set.get_current_value("max_hp")
+	var buffed_atk := attr_set.get_current_value("atk")
+	TestFramework.assert_true(buffed_atk > before_atk, "atk should increase with buff")
+	TestFramework.assert_true(buffed_max_hp > before_max_hp, "max_hp should increase due to dynamic dep on atk")
+
+	# 移除 buff
+	attr_set.remove_modifier("buff_atk")
+
+	# 可逆性：移除后 == buff 前（严格相等）
+	var after_max_hp := attr_set.get_current_value("max_hp")
+	var after_atk := attr_set.get_current_value("atk")
+	TestFramework.assert_near(after_max_hp, before_max_hp, 0.0001, "max_hp should be exactly restored after removing buff")
+	TestFramework.assert_near(after_atk, before_atk, 0.0001, "atk should be exactly restored after removing buff")
