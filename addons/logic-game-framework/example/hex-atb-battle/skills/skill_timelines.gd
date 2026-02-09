@@ -12,6 +12,7 @@ class TIMELINE_ID:
 	const SLASH := "skill_slash"
 	const PRECISE_SHOT := "skill_precise_shot"
 	const FIREBALL := "skill_fireball"
+	const FIREBALL_HIT := "skill_fireball_hit"  # 投射物命中响应
 	const CRUSHING_BLOW := "skill_crushing_blow"
 	const SWIFT_STRIKE := "skill_swift_strike"
 	const HOLY_HEAL := "skill_holy_heal"
@@ -61,17 +62,29 @@ static var PRECISE_SHOT_TIMELINE := TimelineData.new(
 )
 
 
-## 火球术 Timeline
-## - 远程魔法，0ms 发送动画提示，0.2s 施法，0.4s 发射火球，0.8s 时命中
+## 火球术 Timeline（发射阶段）
+## - 远程魔法，0ms 发送动画提示，0.2s 施法，0.4s 发射火球
+## - 注意：伤害由投射物命中事件触发，不在此 Timeline 中
 static var FIREBALL_TIMELINE := TimelineData.new(
 	TIMELINE_ID.FIREBALL,
-	1200.0,
+	600.0,  # 发射后 Timeline 结束，投射物继续飞行
 	{
 		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
 		TimelineTags.CAST: 200.0,    # 施法动作
 		TimelineTags.LAUNCH: 400.0,  # 400ms 时发射火球
-		TimelineTags.HIT: 800.0,     # 800ms 时命中（如果是瞬时伤害的话）
-		TimelineTags.END: 1200.0,
+		TimelineTags.END: 600.0,
+	}
+)
+
+
+## 火球术命中 Timeline（投射物命中响应）
+## - 投射物命中后立即触发伤害
+static var FIREBALL_HIT_TIMELINE := TimelineData.new(
+	TIMELINE_ID.FIREBALL_HIT,
+	100.0,  # 快速执行
+	{
+		TimelineTags.HIT: 0.0,   # 立即造成伤害
+		TimelineTags.END: 100.0,
 	}
 )
 
@@ -125,6 +138,7 @@ static func get_all_timelines() -> Array[TimelineData]:
 		SLASH_TIMELINE,
 		PRECISE_SHOT_TIMELINE,
 		FIREBALL_TIMELINE,
+		FIREBALL_HIT_TIMELINE,
 		CRUSHING_BLOW_TIMELINE,
 		SWIFT_STRIKE_TIMELINE,
 		HOLY_HEAL_TIMELINE,

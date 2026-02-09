@@ -50,6 +50,62 @@ static func _ability_activate_filter(event_dict: Dictionary, ctx: AbilityLifecyc
 	return event.ability_instance_id == ability.id
 
 
+## 触发器过滤函数：匹配投射物命中事件（source_actor_id 匹配 Ability owner）
+static func _projectile_hit_filter(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
+	var owner_id: String = ctx.owner_actor_id
+	if owner_id == "":
+		return false
+	var source_actor_id: String = event_dict.get("source_actor_id", "")
+	return source_actor_id == owner_id
+
+
+# ========== 投射物位置解析器 ==========
+
+## 从 Ability Owner 获取位置（hex 坐标转 Vector3）
+static func _get_owner_position_resolver() -> Vector3Resolver:
+	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
+		var owner_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
+		if owner_id == "":
+			return Vector3.ZERO
+		var actor := GameWorld.get_actor(owner_id)
+		if actor == null or not (actor is CharacterActor):
+			return Vector3.ZERO
+		var char_actor := actor as CharacterActor
+		if not char_actor.hex_position.is_valid():
+			return Vector3.ZERO
+		# hex 坐标转 Vector3（使用 q, r 作为 x, y）
+		return Vector3(char_actor.hex_position.q, char_actor.hex_position.r, 0)
+	)
+
+
+## 从当前事件目标获取位置（hex 坐标转 Vector3）
+static func _get_target_position_resolver() -> Vector3Resolver:
+	return Resolvers.vec3_fn(func(ctx: ExecutionContext) -> Vector3:
+		var event := ctx.get_current_event()
+		var target_actor_id: String = event.get("target_actor_id", "")
+		if target_actor_id == "":
+			return Vector3.ZERO
+		var actor := GameWorld.get_actor(target_actor_id)
+		if actor == null or not (actor is CharacterActor):
+			return Vector3.ZERO
+		var char_actor := actor as CharacterActor
+		if not char_actor.hex_position.is_valid():
+			return Vector3.ZERO
+		return Vector3(char_actor.hex_position.q, char_actor.hex_position.r, 0)
+	)
+
+
+## 从投射物命中事件获取目标 Actor 的选择器
+static func _get_projectile_hit_target_selector() -> TargetSelector:
+	return TargetSelector.custom(func(ctx: ExecutionContext) -> Array[ActorRef]:
+		var event := ctx.get_current_event()
+		var target_actor_id: String = event.get("target_actor_id", "")
+		if target_actor_id == "":
+			return []
+		return [{ "id": target_actor_id }]
+	)
+
+
 # ========== 移动 Ability ==========
 
 ## 移动 - 移动到相邻格子（两阶段）
@@ -144,14 +200,22 @@ static var PRECISE_SHOT_ABILITY := (
 )
 
 
-## 火球术 - 远程魔法攻击
+## 火球术 - 远程魔法攻击（使用投射物）
+## 
+## 执行流程：
+## 1. ABILITY_ACTIVATE_EVENT 触发 → 进入 Timeline
+## 2. START tag: 发送动画提示
+## 3. LAUNCH tag: 发射火球投射物（MOBA 追踪型）
+## 4. 投射物飞行中...
+## 5. projectileHit 事件触发 → 造成伤害
 static var FIREBALL_ABILITY := (
 	AbilityConfig.builder()
 	.config_id("skill_fireball")
 	.display_name("火球术")
-	.description("远程魔法攻击，造成高额伤害")
-	.ability_tags(["skill", "active", "ranged", "magic", "enemy"])
+	.description("远程魔法攻击，发射追踪火球")
+	.ability_tags(["skill", "active", "ranged", "magic", "enemy", "projectile"])
 	.meta(HexBattleSkillMetaKeys.RANGE, 5)
+	# 主动使用组件：发射投射物
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL)
@@ -159,13 +223,34 @@ static var FIREBALL_ABILITY := (
 			TargetSelector.current_target(),
 			Resolvers.str_val("magic_fireball")
 		)])
-		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
+		.on_tag(TimelineTags.LAUNCH, [LaunchProjectileAction.new(
 			TargetSelector.current_target(),
-			80.0,
-			BattleEvents.DamageType.MAGICAL
+			# 投射物配置
+			Resolvers.dict_val({
+				"projectileType": ProjectileActor.PROJECTILE_TYPE_MOBA,
+				"speed": 200.0,  # 单位/秒
+				"maxLifetime": 5000.0,  # 最大飞行时间 5 秒
+				"hitDistance": 30.0,  # MOBA 类型的命中距离
+				"damage": 80.0,
+				"damageType": "magical",
+			}),
+			_get_owner_position_resolver(),  # 起始位置
+			_get_target_position_resolver(),  # 目标位置
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
 		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["fireball"]))
+		.build()
+	)
+	# 投射物命中响应组件：造成伤害
+	.component_config(
+		ActivateInstanceConfig.builder()
+		.trigger(TriggerConfig.new(ProjectileEvents.PROJECTILE_HIT_EVENT, _projectile_hit_filter))
+		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL_HIT)
+		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
+			_get_projectile_hit_target_selector(),
+			80.0,
+			BattleEvents.DamageType.MAGICAL
+		)])
 		.build()
 	)
 	.build()

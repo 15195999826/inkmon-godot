@@ -57,6 +57,9 @@ var logger: HexBattleLogger
 ## 战斗录像器
 var recorder: BattleRecorder
 
+## 投射物系统
+var projectile_system: ProjectileSystem
+
 ## 最终录像数据（战斗结束后可访问）
 var _final_replay_data: Dictionary = {}
 
@@ -99,6 +102,12 @@ func start(config: Dictionary = {}) -> void:
 			"battleId": id,
 			"tickInterval": 100,
 		})
+	
+	# 初始化投射物系统
+	# 使用 MOBA 类型的碰撞检测器（追踪型投射物）
+	var collision_detector := MobaCollisionDetector.new(30.0)  # 30 单位命中距离
+	projectile_system = ProjectileSystem.new(collision_detector, GameWorld.event_collector, false)  # auto_remove=false，手动管理
+	add_system(projectile_system)
 	
 	var grid_config := config.get("map_config", null) as GridMapConfig
 	if grid_config == null:
@@ -308,6 +317,9 @@ func tick(dt: float) -> void:
 	if _logging_enabled and logger != null:
 		logger.tick(tick_count, _logic_time)
 	
+	# 处理投射物命中事件（在 base_tick 中 ProjectileSystem 已经更新）
+	_process_projectile_events()
+	
 	for actor in get_alive_actors():
 		actor.ability_set.tick(dt, _logic_time)
 		
@@ -335,6 +347,31 @@ func _is_actor_executing(actor: CharacterActor) -> bool:
 		if ability.get_executing_instances().size() > 0:
 			return true
 	return false
+
+
+## 处理投射物事件（命中/未命中）
+## 将投射物事件广播给所有存活 Actor 的 Ability 系统
+func _process_projectile_events() -> void:
+	# 使用 collect() 获取事件副本（不清空，flush 在帧结束时调用）
+	var events := GameWorld.event_collector.collect()
+	var alive_actor_ids := get_alive_actor_ids()
+	
+	for event in events:
+		var kind: String = event.get("kind", "")
+		if kind == ProjectileEvents.PROJECTILE_HIT_EVENT:
+			# 投射物命中：广播给所有存活 Actor
+			print("  [投射物] 命中事件: %s -> %s" % [
+				event.get("source_actor_id", "unknown"),
+				event.get("target_actor_id", "unknown")
+			])
+			GameWorld.event_processor.process_post_event(event, alive_actor_ids, self)
+		elif kind == ProjectileEvents.PROJECTILE_MISS_EVENT:
+			# 投射物未命中：也广播（可能有被动响应）
+			print("  [投射物] 未命中事件: %s (原因: %s)" % [
+				event.get("source_actor_id", "unknown"),
+				event.get("reason", "unknown")
+			])
+			GameWorld.event_processor.process_post_event(event, alive_actor_ids, self)
 
 
 func _start_actor_action(actor: CharacterActor) -> void:
