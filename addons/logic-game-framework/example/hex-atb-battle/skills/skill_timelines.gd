@@ -11,6 +11,7 @@ class TIMELINE_ID:
 	const MOVE := "action_move"
 	const SLASH := "skill_slash"
 	const PRECISE_SHOT := "skill_precise_shot"
+	const PRECISE_SHOT_HIT := "skill_precise_shot_hit"  # 投射物命中响应
 	const FIREBALL := "skill_fireball"
 	const FIREBALL_HIT := "skill_fireball_hit"  # 投射物命中响应
 	const CRUSHING_BLOW := "skill_crushing_blow"
@@ -48,16 +49,28 @@ static var SLASH_TIMELINE := TimelineData.new(
 )
 
 
-## 精准射击 Timeline
-## - 远程攻击，0ms 发送动画提示，0.3s 发射箭矢，0.5s 时命中
+## 精准射击 Timeline（发射阶段）
+## - 远程攻击，0ms 发送动画提示，0.3s 发射箭矢
+## - 注意：伤害由投射物命中事件触发，不在此 Timeline 中
 static var PRECISE_SHOT_TIMELINE := TimelineData.new(
 	TIMELINE_ID.PRECISE_SHOT,
-	800.0,
+	500.0,  # 发射后 Timeline 结束，投射物继续飞行
 	{
 		TimelineTags.START: 0.0,     # 0ms 发送 stageCue 给表演层
 		TimelineTags.LAUNCH: 300.0,  # 300ms 时发射箭矢
-		TimelineTags.HIT: 500.0,     # 500ms 时命中（如果是瞬时伤害的话）
-		TimelineTags.END: 800.0,
+		TimelineTags.END: 500.0,
+	}
+)
+
+
+## 精准射击命中 Timeline（投射物命中响应）
+## - 投射物命中后立即触发伤害
+static var PRECISE_SHOT_HIT_TIMELINE := TimelineData.new(
+	TIMELINE_ID.PRECISE_SHOT_HIT,
+	100.0,  # 快速执行
+	{
+		TimelineTags.HIT: 0.0,   # 立即造成伤害
+		TimelineTags.END: 100.0,
 	}
 )
 
@@ -137,6 +150,7 @@ static func get_all_timelines() -> Array[TimelineData]:
 		MOVE_TIMELINE,
 		SLASH_TIMELINE,
 		PRECISE_SHOT_TIMELINE,
+		PRECISE_SHOT_HIT_TIMELINE,
 		FIREBALL_TIMELINE,
 		FIREBALL_HIT_TIMELINE,
 		CRUSHING_BLOW_TIMELINE,

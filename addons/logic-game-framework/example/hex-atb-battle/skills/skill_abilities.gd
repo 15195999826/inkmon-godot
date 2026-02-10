@@ -148,7 +148,14 @@ static var SLASH_ABILITY := (
 )
 
 
-## 精准射击 - 远程物理攻击（发射箭矢）
+## 精准射击 - 远程物理攻击（使用投射物）
+##
+## 执行流程：
+## 1. ABILITY_ACTIVATE_EVENT 触发 → 进入 Timeline
+## 2. START tag: 发送动画提示
+## 3. LAUNCH tag: 发射箭矢投射物（MOBA 追踪型）
+## 4. 投射物飞行中...
+## 5. projectileHit 事件触发 → 造成伤害
 static var PRECISE_SHOT_ABILITY := (
 	AbilityConfig.builder()
 	.config_id("skill_precise_shot")
@@ -156,6 +163,7 @@ static var PRECISE_SHOT_ABILITY := (
 	.description("远程攻击，发射箭矢精准命中敌人")
 	.ability_tags(["skill", "active", "ranged", "enemy", "projectile"])
 	.meta(HexBattleSkillMetaKeys.RANGE, 4)
+	# 主动使用组件：发射投射物
 	.active_use(
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.PRECISE_SHOT)
@@ -163,13 +171,35 @@ static var PRECISE_SHOT_ABILITY := (
 			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("ranged_arrow")
 		)])
+		.on_tag(TimelineTags.LAUNCH, [LaunchProjectileAction.new(
+			HexBattleTargetSelectors.current_target(),
+			# 投射物配置
+			Resolvers.dict_val({
+				ProjectileActor.CFG_PROJECTILE_TYPE: ProjectileActor.PROJECTILE_TYPE_MOBA,
+				ProjectileActor.CFG_VISUAL_TYPE: "arrow",  # 视觉类型：箭矢
+				ProjectileActor.CFG_SPEED: 250.0,  # 箭矢比火球快
+				ProjectileActor.CFG_MAX_LIFETIME: 5000.0,
+				ProjectileActor.CFG_HIT_DISTANCE: 30.0,
+				ProjectileActor.CFG_DAMAGE: 45.0,
+				ProjectileActor.CFG_DAMAGE_TYPE: "physical",
+			}),
+			_get_owner_position_resolver(),
+			_get_target_position_resolver(),
+		)])
+		.condition(HexBattleCooldownSystem.CooldownCondition.new())
+		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["precise_shot"]))
+		.build()
+	)
+	# 投射物命中响应组件：造成伤害
+	.component_config(
+		ActivateInstanceConfig.builder()
+		.trigger(TriggerConfig.new(ProjectileEvents.PROJECTILE_HIT_EVENT, _projectile_hit_filter))
+		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.PRECISE_SHOT_HIT)
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
 			HexBattleTargetSelectors.current_target(),
 			45.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
-		.condition(HexBattleCooldownSystem.CooldownCondition.new())
-		.cost(HexBattleCooldownSystem.TimedCooldownCost.new(SKILL_COOLDOWNS["precise_shot"]))
 		.build()
 	)
 	.build()
@@ -203,12 +233,13 @@ static var FIREBALL_ABILITY := (
 			HexBattleTargetSelectors.current_target(),
 			# 投射物配置
 			Resolvers.dict_val({
-			ProjectileActor.CFG_PROJECTILE_TYPE: ProjectileActor.PROJECTILE_TYPE_MOBA,
-			ProjectileActor.CFG_SPEED: 200.0,  # 单位/秒
-			ProjectileActor.CFG_MAX_LIFETIME: 5000.0,  # 最大飞行时间 5 秒
-			ProjectileActor.CFG_HIT_DISTANCE: 30.0,  # MOBA 类型的命中距离
-			ProjectileActor.CFG_DAMAGE: 80.0,
-			ProjectileActor.CFG_DAMAGE_TYPE: "magical",
+				ProjectileActor.CFG_PROJECTILE_TYPE: ProjectileActor.PROJECTILE_TYPE_MOBA,
+				ProjectileActor.CFG_VISUAL_TYPE: "fireball",  # 视觉类型：火球
+				ProjectileActor.CFG_SPEED: 200.0,  # 单位/秒
+				ProjectileActor.CFG_MAX_LIFETIME: 5000.0,  # 最大飞行时间 5 秒
+				ProjectileActor.CFG_HIT_DISTANCE: 30.0,  # MOBA 类型的命中距离
+				ProjectileActor.CFG_DAMAGE: 80.0,
+				ProjectileActor.CFG_DAMAGE_TYPE: "magical",
 			}),
 			_get_owner_position_resolver(),  # 起始位置
 			_get_target_position_resolver(),  # 目标位置

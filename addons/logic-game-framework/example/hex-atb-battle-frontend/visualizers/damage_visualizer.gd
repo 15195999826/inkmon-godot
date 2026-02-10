@@ -1,6 +1,7 @@
 ## DamageVisualizer - 伤害事件转换器
 ##
-## 将 damage 事件翻译为飘字和血条更新动作
+## 将 damage 事件翻译为飘字、受击闪白和血条更新动作
+## 注意：攻击特效由 StageCueVisualizer 处理，不在此处
 class_name FrontendDamageVisualizer
 extends FrontendBaseVisualizer
 

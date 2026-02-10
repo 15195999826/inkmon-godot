@@ -20,6 +20,24 @@ signal floating_text_created(data: Dictionary)
 ## 角色死亡信号
 signal actor_died(actor_id: String)
 
+## 攻击特效创建信号
+signal attack_vfx_created(data: Dictionary)
+
+## 攻击特效更新信号
+signal attack_vfx_updated(vfx_id: String, progress: float, scale_factor: float, alpha: float)
+
+## 攻击特效移除信号
+signal attack_vfx_removed(vfx_id: String)
+
+## 投射物创建信号
+signal projectile_created(data: Dictionary)
+
+## 投射物更新信号
+signal projectile_updated(projectile_id: String, position: Vector3, direction: Vector3)
+
+## 投射物移除信号
+signal projectile_removed(projectile_id: String)
+
 
 # ========== 内部状态 ==========
 
@@ -34,6 +52,12 @@ var _floating_texts: Array[Dictionary] = []
 
 ## 活跃的程序化特效
 var _procedural_effects: Array[Dictionary] = []
+
+## 活跃的攻击特效
+var _attack_vfx: Dictionary = {}  # vfx_id -> Dictionary
+
+## 活跃的投射物
+var _projectiles: Dictionary = {}  # projectile_id -> Dictionary
 
 ## 震屏状态
 var _screen_shake: Dictionary = {}
@@ -173,6 +197,10 @@ func _apply_action(active_action: FrontendActionScheduler.ActiveAction) -> void:
 			_apply_procedural_vfx_action(action, active_action.id, progress)
 		FrontendVisualAction.ActionType.DEATH:
 			_apply_death_action(action, progress)
+		FrontendVisualAction.ActionType.ATTACK_VFX:
+			_apply_attack_vfx_action(action, active_action.id, progress)
+		FrontendVisualAction.ActionType.PROJECTILE:
+			_apply_projectile_action(action, active_action.id, progress)
 
 
 ## 应用移动动作
@@ -291,6 +319,70 @@ func _apply_death_action(action: FrontendDeathAction, progress: float) -> void:
 		actor_died.emit(action.actor_id)
 	
 	actor_state_changed.emit(action.actor_id, actor)
+
+
+## 应用攻击特效动作
+func _apply_attack_vfx_action(action: FrontendAttackVFXAction, action_id: String, progress: float) -> void:
+	# 首次创建
+	if not _attack_vfx.has(action_id):
+		var vfx_data := {
+			"id": action_id,
+			"source_actor_id": action.source_actor_id,
+			"target_actor_id": action.target_actor_id,
+			"source_position": action.source_position,
+			"target_position": action.target_position,
+			"vfx_type": action.vfx_type,
+			"vfx_color": action.vfx_color,
+			"is_critical": action.is_critical,
+			"direction": action.get_direction(),
+			"distance": action.get_distance(),
+			"start_time": _world_time_ms,
+			"duration": action.duration,
+		}
+		_attack_vfx[action_id] = vfx_data
+		attack_vfx_created.emit(vfx_data)
+	
+	# 更新进度
+	var scale_factor := action.get_vfx_scale(progress)
+	var alpha := action.get_vfx_alpha(progress)
+	attack_vfx_updated.emit(action_id, progress, scale_factor, alpha)
+	
+	# 完成时移除
+	if progress >= 1.0:
+		_attack_vfx.erase(action_id)
+		attack_vfx_removed.emit(action_id)
+
+
+## 应用投射物动作
+func _apply_projectile_action(action: FrontendProjectileAction, action_id: String, progress: float) -> void:
+	# 首次创建
+	if not _projectiles.has(action_id):
+		var projectile_data := {
+			"id": action_id,
+			"projectile_id": action.projectile_id,
+			"source_actor_id": action.source_actor_id,
+			"target_actor_id": action.target_actor_id,
+			"start_position": action.start_position,
+			"target_position": action.target_position,
+			"projectile_type": action.projectile_type,
+			"projectile_color": action.projectile_color,
+			"projectile_size": action.projectile_size,
+			"direction": action.get_direction(),
+			"start_time": _world_time_ms,
+			"duration": action.duration,
+		}
+		_projectiles[action_id] = projectile_data
+		projectile_created.emit(projectile_data)
+	
+	# 更新位置
+	var current_position := action.get_current_position(progress)
+	var direction := action.get_direction()
+	projectile_updated.emit(action_id, current_position, direction)
+	
+	# 完成时移除
+	if progress >= 1.0:
+		_projectiles.erase(action_id)
+		projectile_removed.emit(action_id)
 
 
 # ========== 清理 ==========

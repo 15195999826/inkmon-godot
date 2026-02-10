@@ -113,6 +113,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		target_actor_id,
 		target_position
 	)
+	
+	# 添加视觉类型（用于表演层区分箭矢/火球等）
+	var visual_type: String = projectile.config.get(ProjectileActor.CFG_VISUAL_TYPE, "")
+	if visual_type != "":
+		launched_event["visualType"] = visual_type
 
 	ctx.event_collector.push(launched_event)
 

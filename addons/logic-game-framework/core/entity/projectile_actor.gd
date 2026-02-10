@@ -13,6 +13,7 @@ const STATE_DESPAWNED := "despawned"
 
 ## Config key 常量
 const CFG_PROJECTILE_TYPE := "projectileType"
+const CFG_VISUAL_TYPE := "visualType"  ## 表演层视觉类型（arrow, fireball, energy 等）
 const CFG_SPEED := "speed"  ## 单位/秒
 const CFG_MAX_LIFETIME := "maxLifetime"  ## 毫秒
 const CFG_PIERCING := "piercing"

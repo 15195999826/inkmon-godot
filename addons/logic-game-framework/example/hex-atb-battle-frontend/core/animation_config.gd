@@ -53,6 +53,24 @@ var skill_basic_attack_duration: float = 1000.0
 var skill_basic_attack_hit_frame: float = 500.0
 
 
+# ========== 攻击特效配置 ==========
+
+## 攻击特效持续时间（毫秒）
+var attack_vfx_duration: float = 300.0
+
+
+# ========== 投射物配置 ==========
+
+## 投射物默认大小
+var projectile_size: float = 0.15
+
+## 投射物命中特效时长（毫秒）
+var projectile_hit_vfx_duration: float = 200.0
+
+## 投射物默认速度（单位/秒）
+var projectile_default_speed: float = 20.0
+
+
 # ========== 工厂方法 ==========
 
 ## 创建默认配置

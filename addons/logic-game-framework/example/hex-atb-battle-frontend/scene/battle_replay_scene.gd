@@ -27,6 +27,12 @@ var _hex_grid_renderer: GridMapRenderer3D
 ## 单位视图 Map（actor_id -> UnitView）
 var _unit_views: Dictionary = {}
 
+## 攻击特效视图 Map（vfx_id -> AttackVFXView）
+var _attack_vfx_views: Dictionary = {}
+
+## 投射物视图 Map（projectile_id -> ProjectileView）
+var _projectile_views: Dictionary = {}
+
 ## 六边形网格世界模型（用于渲染）
 var _hex_world: GridMapModel
 
@@ -56,6 +62,12 @@ func _setup_scene_structure() -> void:
 	_director.actor_died.connect(_on_actor_died)
 	_director.frame_changed.connect(_on_frame_changed)
 	_director.playback_ended.connect(_on_playback_ended)
+	_director.attack_vfx_created.connect(_on_attack_vfx_created)
+	_director.attack_vfx_updated.connect(_on_attack_vfx_updated)
+	_director.attack_vfx_removed.connect(_on_attack_vfx_removed)
+	_director.projectile_created.connect(_on_projectile_created)
+	_director.projectile_updated.connect(_on_projectile_updated)
+	_director.projectile_removed.connect(_on_projectile_removed)
 	
 	# 创建单位根节点
 	_units_root = Node3D.new()
@@ -81,6 +93,12 @@ func _exit_tree() -> void:
 		_director.actor_died.disconnect(_on_actor_died)
 		_director.frame_changed.disconnect(_on_frame_changed)
 		_director.playback_ended.disconnect(_on_playback_ended)
+		_director.attack_vfx_created.disconnect(_on_attack_vfx_created)
+		_director.attack_vfx_updated.disconnect(_on_attack_vfx_updated)
+		_director.attack_vfx_removed.disconnect(_on_attack_vfx_removed)
+		_director.projectile_created.disconnect(_on_projectile_created)
+		_director.projectile_updated.disconnect(_on_projectile_updated)
+		_director.projectile_removed.disconnect(_on_projectile_removed)
 
 
 ## 设置相机（使用 LomoCameraRig）
@@ -341,6 +359,80 @@ func _on_frame_changed(_current_frame: int, _total_frames: int) -> void:
 
 func _on_playback_ended() -> void:
 	print("[BattleReplayScene] Playback ended")
+
+
+# ========== 攻击特效信号处理 ==========
+
+func _on_attack_vfx_created(data: Dictionary) -> void:
+	var vfx_id: String = data.get("id", "")
+	if vfx_id.is_empty():
+		return
+	
+	var vfx_view := FrontendAttackVFXView.new()
+	vfx_view.name = "AttackVFX_" + vfx_id
+	_effects_root.add_child(vfx_view)
+	_attack_vfx_views[vfx_id] = vfx_view
+	
+	# 初始化特效
+	var vfx_type: int = data.get("vfx_type", 0)
+	var vfx_color: Color = data.get("vfx_color", Color.WHITE)
+	var direction: Vector3 = data.get("direction", Vector3.FORWARD)
+	var distance: float = data.get("distance", 1.0)
+	var is_critical: bool = data.get("is_critical", false)
+	var source_position: Vector3 = data.get("source_position", Vector3.ZERO)
+	
+	vfx_view.global_position = source_position
+	vfx_view.initialize(vfx_id, vfx_type, vfx_color, direction, distance, is_critical)
+
+
+func _on_attack_vfx_updated(vfx_id: String, _progress: float, scale_factor: float, alpha: float) -> void:
+	if _attack_vfx_views.has(vfx_id):
+		var vfx_view: FrontendAttackVFXView = _attack_vfx_views[vfx_id]
+		vfx_view.update_progress(_progress, scale_factor, alpha)
+
+
+func _on_attack_vfx_removed(vfx_id: String) -> void:
+	if _attack_vfx_views.has(vfx_id):
+		var vfx_view: FrontendAttackVFXView = _attack_vfx_views[vfx_id]
+		vfx_view.cleanup()
+		_attack_vfx_views.erase(vfx_id)
+
+
+# ========== 投射物信号处理 ==========
+
+func _on_projectile_created(data: Dictionary) -> void:
+	var projectile_id: String = data.get("id", "")
+	if projectile_id.is_empty():
+		return
+	
+	var projectile_view := FrontendProjectileView.new()
+	projectile_view.name = "Projectile_" + projectile_id
+	_effects_root.add_child(projectile_view)
+	_projectile_views[projectile_id] = projectile_view
+	
+	# 初始化投射物
+	var projectile_type: int = data.get("projectile_type", 0)
+	var projectile_color: Color = data.get("projectile_color", Color(0.3, 0.7, 1.0))
+	var projectile_size: float = data.get("projectile_size", 0.5)
+	var direction: Vector3 = data.get("direction", Vector3.FORWARD)
+	var start_position: Vector3 = data.get("start_position", Vector3.ZERO)
+	
+	projectile_view.global_position = start_position
+	projectile_view.initialize(projectile_id, projectile_type, projectile_color, projectile_size, direction)
+
+
+func _on_projectile_updated(projectile_id: String, pos: Vector3, dir: Vector3) -> void:
+	if _projectile_views.has(projectile_id):
+		var projectile_view: FrontendProjectileView = _projectile_views[projectile_id]
+		projectile_view.update_position(pos)
+		projectile_view.set_direction(dir)
+
+
+func _on_projectile_removed(projectile_id: String) -> void:
+	if _projectile_views.has(projectile_id):
+		var projectile_view: FrontendProjectileView = _projectile_views[projectile_id]
+		projectile_view.cleanup()
+		_projectile_views.erase(projectile_id)
 
 
 func _process(_delta: float) -> void:

@@ -31,6 +31,24 @@ signal floating_text_created(data: Dictionary)
 ## 角色死亡（转发自 RenderWorld）
 signal actor_died(actor_id: String)
 
+## 攻击特效创建（转发自 RenderWorld）
+signal attack_vfx_created(data: Dictionary)
+
+## 攻击特效更新（转发自 RenderWorld）
+signal attack_vfx_updated(vfx_id: String, progress: float, scale_factor: float, alpha: float)
+
+## 攻击特效移除（转发自 RenderWorld）
+signal attack_vfx_removed(vfx_id: String)
+
+## 投射物创建（转发自 RenderWorld）
+signal projectile_created(data: Dictionary)
+
+## 投射物更新（转发自 RenderWorld）
+signal projectile_updated(projectile_id: String, position: Vector3, direction: Vector3)
+
+## 投射物移除（转发自 RenderWorld）
+signal projectile_removed(projectile_id: String)
+
 
 # ========== 常量 ==========
 
@@ -97,6 +115,12 @@ func _ready() -> void:
 	_world.actor_state_changed.connect(_on_actor_state_changed)
 	_world.floating_text_created.connect(_on_floating_text_created)
 	_world.actor_died.connect(_on_actor_died)
+	_world.attack_vfx_created.connect(_on_attack_vfx_created)
+	_world.attack_vfx_updated.connect(_on_attack_vfx_updated)
+	_world.attack_vfx_removed.connect(_on_attack_vfx_removed)
+	_world.projectile_created.connect(_on_projectile_created)
+	_world.projectile_updated.connect(_on_projectile_updated)
+	_world.projectile_removed.connect(_on_projectile_removed)
 	
 	if auto_play and not _replay_data.is_empty():
 		play()
@@ -108,6 +132,12 @@ func _exit_tree() -> void:
 		_world.actor_state_changed.disconnect(_on_actor_state_changed)
 		_world.floating_text_created.disconnect(_on_floating_text_created)
 		_world.actor_died.disconnect(_on_actor_died)
+		_world.attack_vfx_created.disconnect(_on_attack_vfx_created)
+		_world.attack_vfx_updated.disconnect(_on_attack_vfx_updated)
+		_world.attack_vfx_removed.disconnect(_on_attack_vfx_removed)
+		_world.projectile_created.disconnect(_on_projectile_created)
+		_world.projectile_updated.disconnect(_on_projectile_updated)
+		_world.projectile_removed.disconnect(_on_projectile_removed)
 	
 	# 清空 RefCounted 引用，打破循环引用
 	_world = null
@@ -361,3 +391,27 @@ func _on_floating_text_created(data: Dictionary) -> void:
 
 func _on_actor_died(actor_id: String) -> void:
 	actor_died.emit(actor_id)
+
+
+func _on_attack_vfx_created(data: Dictionary) -> void:
+	attack_vfx_created.emit(data)
+
+
+func _on_attack_vfx_updated(vfx_id: String, progress: float, scale_factor: float, alpha: float) -> void:
+	attack_vfx_updated.emit(vfx_id, progress, scale_factor, alpha)
+
+
+func _on_attack_vfx_removed(vfx_id: String) -> void:
+	attack_vfx_removed.emit(vfx_id)
+
+
+func _on_projectile_created(data: Dictionary) -> void:
+	projectile_created.emit(data)
+
+
+func _on_projectile_updated(projectile_id: String, pos: Vector3, dir: Vector3) -> void:
+	projectile_updated.emit(projectile_id, pos, dir)
+
+
+func _on_projectile_removed(projectile_id: String) -> void:
+	projectile_removed.emit(projectile_id)

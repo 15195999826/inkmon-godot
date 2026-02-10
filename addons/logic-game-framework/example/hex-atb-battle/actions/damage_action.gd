@@ -138,7 +138,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			final_damage,
 			_damage_type,
 			source_actor_id,
-			is_critical
+			is_critical,
+			false  # is_reflected
 		)
 		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(damage_event)
