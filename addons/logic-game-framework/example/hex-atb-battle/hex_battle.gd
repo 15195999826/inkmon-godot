@@ -105,7 +105,7 @@ func start(config: Dictionary = {}) -> void:
 	
 	# 初始化投射物系统
 	# 使用 MOBA 类型的碰撞检测器（追踪型投射物）
-	var collision_detector := MobaCollisionDetector.new(30.0)  # 30 单位命中距离
+	var collision_detector := MobaCollisionDetector.new()  # 命中距离由投射物 config.hitDistance 控制
 	projectile_system = ProjectileSystem.new(collision_detector, GameWorld.event_collector, false)  # auto_remove=false，手动管理
 	add_system(projectile_system)
 	
@@ -220,7 +220,7 @@ func _place_team_randomly(team: Array[CharacterActor], range_config: Dictionary)
 	
 	for i in range(mini(team.size(), available_coords.size())):
 		var coord: HexCoord = available_coords[i]
-		UGridMap.model.place_occupant(coord, team[i].to_ref())
+		UGridMap.model.place_occupant(coord, team[i])
 		team[i].hex_position = coord.duplicate()
 
 

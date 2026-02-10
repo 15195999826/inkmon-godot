@@ -63,9 +63,6 @@ func add_despawn_listener(callback: Callable) -> Callable:
 		if index != -1:
 			_on_despawn_callbacks.remove_at(index)
 
-func to_ref() -> TargetSelector.TargetRef:
-	return TargetSelector.TargetRef.new(get_id())
-
 func serialize_base() -> Dictionary:
 	return {
 		"id": get_id(),

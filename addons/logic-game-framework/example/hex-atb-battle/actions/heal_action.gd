@@ -76,7 +76,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	
 	var target_ids: Array[String] = []
 	for t in targets:
-		target_ids.append(t.id)
+		target_ids.append(t)
 	var source_id_for_log := source_actor_id if source_actor_id != "" else "???"
 	print("  [HealAction] %s 对 [%s] 治疗 %.0f HP" % [source_id_for_log, ", ".join(target_ids), heal_amount])
 	
@@ -85,11 +85,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var event_processor := GameWorld.event_processor
 	var alive_actor_ids := battle.get_alive_actor_ids()
 	
-	for target in targets:
-		var overheal := _calculate_overheal(target.id, heal_amount, ctx)
+	for target_id in targets:
+		var overheal := _calculate_overheal(target_id, heal_amount, ctx)
 		
 		var event := BattleEvents.HealEvent.create(
-			target.id,
+			target_id,
 			heal_amount,
 			source_actor_id
 		)
@@ -100,20 +100,20 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		
 		all_events.append(heal_event)
 		
-		var target_actor := battle.get_actor(target.id)
+		var target_actor := battle.get_actor(target_id)
 		if target_actor != null:
 			var old_hp: float = target_actor.attribute_set.hp
 			var max_hp: float = target_actor.attribute_set.max_hp
 			var new_hp := minf(old_hp + heal_amount, max_hp)
 			target_actor.attribute_set.set_hp_base(new_hp)
 			
-			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target_id, battle)
 			print("  [治疗] %s 恢复 %.0f HP, HP: %.0f -> %.0f" % [
 				target_name, heal_amount, old_hp, new_hp
 			])
 			
 			if battle.logger != null:
-				battle.logger.heal_applied(source_actor_id, target.id, heal_amount)
+				battle.logger.heal_applied(source_actor_id, target_id, heal_amount)
 		
 		var callback_events := _process_callbacks(heal_event, overheal, ctx)
 		all_events.append_array(callback_events)

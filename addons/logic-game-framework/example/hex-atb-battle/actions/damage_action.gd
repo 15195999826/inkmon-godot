@@ -103,11 +103,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var all_events: Array[Dictionary] = []
 	var alive_actor_ids := battle.get_alive_actor_ids()
 	
-	for target in targets:
+	for target_id in targets:
 		# ========== Pre 阶段 ==========
 		var pre_event := HexBattlePreEvents.PreDamageEvent.create(
 			source_actor_id,
-			target.id,
+			target_id,
 			_damage,
 			BattleEvents._damage_type_to_string(_damage_type)
 		)
@@ -115,7 +115,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var mutable: MutableEvent = event_processor.process_pre_event(pre_event.to_dict(), battle)
 		
 		if mutable.cancelled:
-			var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
+			var target_name := HexBattleGameStateUtils.get_actor_display_name(target_id, battle)
 			print("  [DamageAction] %s 的伤害被取消" % target_name)
 			continue
 		
@@ -125,7 +125,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			final_damage *= 1.5
 		
 		var source_name := HexBattleGameStateUtils.get_actor_display_name(source_actor_id, battle)
-		var target_name := HexBattleGameStateUtils.get_actor_display_name(target.id, battle)
+		var target_name := HexBattleGameStateUtils.get_actor_display_name(target_id, battle)
 		var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 		var crit_text := " (暴击!)" if is_critical else ""
 		if final_damage != _damage:
@@ -134,7 +134,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s" % [source_name, target_name, final_damage, damage_type_str, crit_text])
 		
 		var event := BattleEvents.DamageEvent.create(
-			target.id,
+			target_id,
 			final_damage,
 			_damage_type,
 			source_actor_id,
@@ -143,7 +143,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(damage_event)
 		
-		var target_actor := battle.get_actor(target.id)
+		var target_actor := battle.get_actor(target_id)
 		if target_actor != null:
 			target_actor.attribute_set.set_hp_base(target_actor.attribute_set.hp - final_damage)
 			
@@ -152,22 +152,22 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			])
 			
 			if battle.logger != null:
-				battle.logger.damage_dealt(source_actor_id, target.id, final_damage, damage_type_str, false)
+				battle.logger.damage_dealt(source_actor_id, target_id, final_damage, damage_type_str, false)
 			
 			if target_actor.check_death():
 				print("  [死亡] %s 已阵亡" % target_name)
 				
 				if battle.logger != null:
-					battle.logger.actor_died(target.id, source_actor_id)
+					battle.logger.actor_died(target_id, source_actor_id)
 				
-				var death_event := BattleEvents.DeathEvent.create(target.id, source_actor_id)
+				var death_event := BattleEvents.DeathEvent.create(target_id, source_actor_id)
 				var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
 				all_events.append(death_dict)
 				
 				if alive_actor_ids.size() > 0:
 					event_processor.process_post_event(death_dict, alive_actor_ids, battle)
 				
-				battle.remove_actor(target.id)
+				battle.remove_actor(target_id)
 		
 		var callback_events := _process_callbacks(damage_event, is_critical, ctx)
 		all_events.append_array(callback_events)

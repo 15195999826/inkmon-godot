@@ -97,12 +97,12 @@ static func _get_target_position_resolver() -> Vector3Resolver:
 
 ## 从投射物命中事件获取目标 Actor 的选择器
 static func _get_projectile_hit_target_selector() -> TargetSelector:
-	return TargetSelector.custom(func(ctx: ExecutionContext) -> Array[ActorRef]:
+	return TargetSelector.custom(func(ctx: ExecutionContext) -> Array[String]:
 		var event := ctx.get_current_event()
 		var target_actor_id: String = event.get("target_actor_id", "")
 		if target_actor_id == "":
 			return []
-		return [{ "id": target_actor_id }]
+		return [target_actor_id]
 	)
 
 

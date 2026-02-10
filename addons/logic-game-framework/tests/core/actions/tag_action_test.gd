@@ -53,15 +53,14 @@ func _build_context(event: Dictionary = {}) -> ExecutionContext:
 
 func _test_apply_loose() -> void:
 	_setup_test_instance()
-	var actor_ref_for_test: TargetSelector.TargetRef  # 先声明
 	var ability_set := AbilitySet.create("temp", null)
 	var actor := _create_test_actor(ability_set)
-	actor_ref_for_test = actor.to_ref()
-	ability_set.owner_actor_id = actor.get_id()  # 更新 owner_actor_id
+	var actor_id := actor.get_id()
+	ability_set.owner_actor_id = actor_id
 	var ctx := _build_context({"kind": "apply"})
 
 	var action := TagAction.ApplyTagAction.new(
-		TargetSelector.fixed([actor_ref_for_test]),
+		TargetSelector.fixed([actor_id]),
 		"combo",
 		Resolvers.int_val(2)  # stacks
 	)
@@ -73,15 +72,14 @@ func _test_apply_loose() -> void:
 
 func _test_apply_auto_duration() -> void:
 	_setup_test_instance()
-	var actor_ref_for_test: TargetSelector.TargetRef
 	var ability_set := AbilitySet.create("temp", null)
 	var actor := _create_test_actor(ability_set)
-	actor_ref_for_test = actor.to_ref()
-	ability_set.owner_actor_id = actor.get_id()
+	var actor_id := actor.get_id()
+	ability_set.owner_actor_id = actor_id
 	var ctx := _build_context({"kind": "apply", "logicTime": 1.0})
 
 	var action := TagAction.ApplyTagAction.new(
-		TargetSelector.fixed([actor_ref_for_test]),
+		TargetSelector.fixed([actor_id]),
 		"window",
 		Resolvers.int_val(1),    # stacks
 		Resolvers.float_val(5.0)   # duration
@@ -96,16 +94,15 @@ func _test_apply_auto_duration() -> void:
 
 func _test_remove_tag() -> void:
 	_setup_test_instance()
-	var actor_ref_for_test: TargetSelector.TargetRef
 	var ability_set := AbilitySet.create("temp", null)
 	var actor := _create_test_actor(ability_set)
-	actor_ref_for_test = actor.to_ref()
-	ability_set.owner_actor_id = actor.get_id()
+	var actor_id := actor.get_id()
+	ability_set.owner_actor_id = actor_id
 	ability_set.add_loose_tag("charge", 3)
 	var ctx := _build_context({"kind": "remove"})
 
 	var action := TagAction.RemoveTagAction.new(
-		TargetSelector.fixed([actor_ref_for_test]),
+		TargetSelector.fixed([actor_id]),
 		"charge",
 		Resolvers.int_val(1)  # stacks to remove
 	)
@@ -117,15 +114,14 @@ func _test_remove_tag() -> void:
 
 func _test_has_tag_action() -> void:
 	_setup_test_instance()
-	var actor_ref_for_test: TargetSelector.TargetRef
 	var ability_set := AbilitySet.create("temp", null)
 	var actor := _create_test_actor(ability_set)
-	actor_ref_for_test = actor.to_ref()
-	ability_set.owner_actor_id = actor.get_id()
+	var actor_id := actor.get_id()
+	ability_set.owner_actor_id = actor_id
 	ability_set.add_loose_tag("ready", 1)
 	var ctx := _build_context({"kind": "check"})
 
-	var selector := TargetSelector.fixed([actor_ref_for_test])
+	var selector := TargetSelector.fixed([actor_id])
 	var then_action := Action.NoopAction.new(selector)
 	var else_action := Action.NoopAction.new(selector)
 	var action := TagAction.HasTagAction.new(

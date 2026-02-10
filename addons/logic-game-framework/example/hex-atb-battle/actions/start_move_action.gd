@@ -34,24 +34,24 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: HexBattle = ctx.game_state_provider
 	
 	var all_events: Array[Dictionary] = []
-	for target in targets:
-		var actor := battle.get_actor(target.id)
+	for target_id in targets:
+		var actor := battle.get_actor(target_id)
 		if actor == null:
-			push_warning("  [StartMoveAction] %s 未找到" % target.id)
+			push_warning("  [StartMoveAction] %s 未找到" % target_id)
 			continue
 		
 		var from_hex := actor.hex_position  # HexCoord
 		if not from_hex.is_valid():
-			push_warning("  [StartMoveAction] %s 当前位置未找到" % target.id)
+			push_warning("  [StartMoveAction] %s 当前位置未找到" % target_id)
 			continue
 		
-		var reserved := battle.grid.reserve_tile(target_coord, target.id)
+		var reserved := battle.grid.reserve_tile(target_coord, target_id)
 		
 		if not reserved:
 			var occupant := battle.grid.get_occupant(target_coord)
 			var reservation := battle.grid.get_reservation(target_coord)
 			push_error(
-				"[StartMoveAction] BUG: %s 无法预订格子 (%d, %d)\n" % [target.id, target_coord.q, target_coord.r] +
+				"[StartMoveAction] BUG: %s 无法预订格子 (%d, %d)\n" % [target_id, target_coord.q, target_coord.r] +
 				"  当前占用: %s\n" % (occupant.get_id() if occupant != null else "none") +
 				"  当前预订: %s\n" % (reservation if reservation != "" else "none") +
 				"  这不应该发生！AI 决策应该过滤了不可用格子。"
@@ -59,11 +59,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			continue
 		
 		print("  [StartMoveAction] %s 开始移动：从 (%d, %d) → (%d, %d)" % [
-			target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
+			target_id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 		])
 		
 		var event := BattleEvents.MoveStartEvent.create(
-			target.id,
+			target_id,
 			from_hex.to_dict(),
 			target_coord.to_dict()
 		)

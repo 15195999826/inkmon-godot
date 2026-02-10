@@ -6,8 +6,8 @@ const PERMANENT_DURATION := -1.0
 ## 移除全部层数的 stacks 值
 const REMOVE_ALL_STACKS := -1
 
-static func _get_ability_set_for_target(_ctx: ExecutionContext, target: TargetSelector.TargetRef) -> AbilitySet:
-	var actor := GameWorld.get_actor(target.id)
+static func _get_ability_set_for_target(_ctx: ExecutionContext, target_id: String) -> AbilitySet:
+	var actor := GameWorld.get_actor(target_id)
 	return IAbilitySetOwner.get_ability_set(actor)
 
 static func _get_logic_time(ctx: ExecutionContext) -> float:
@@ -44,8 +44,8 @@ class ApplyTagAction:
 		var targets := get_targets(ctx)
 		var duration_value := _duration.resolve(ctx)
 		var stacks_value := _stacks.resolve(ctx)
-		for target in targets:
-			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
+		for target_id in targets:
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target_id)
 			if ability_set == null:
 				Log.debug("TagAction", "ApplyTagAction: 无法获取 AbilitySet")
 				continue
@@ -78,8 +78,8 @@ class RemoveTagAction:
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		var targets := get_targets(ctx)
 		var stacks_value := _stacks.resolve(ctx)
-		for target in targets:
-			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
+		for target_id in targets:
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target_id)
 			if ability_set == null:
 				Log.debug("TagAction", "RemoveTagAction: 无法获取 AbilitySet")
 				continue
@@ -122,8 +122,8 @@ class HasTagAction:
 		Log.debug("TagAction", "HasTagAction 多目标行为可能非预期")
 		var targets := get_targets(ctx)
 		var all_events: Array[Dictionary] = []
-		for target in targets:
-			var ability_set := TagAction._get_ability_set_for_target(ctx, target)
+		for target_id in targets:
+			var ability_set := TagAction._get_ability_set_for_target(ctx, target_id)
 			if ability_set == null:
 				continue
 			var has_tag := ability_set.has_tag(tag)

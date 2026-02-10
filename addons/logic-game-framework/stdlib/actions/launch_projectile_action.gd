@@ -73,7 +73,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var targets := get_targets(ctx)
 	var target: Variant = targets[0] if targets.size() > 0 else null
-	var target_actor_id: String = target.id if target != null else ""
+	var target_actor_id: String = target if target != null else ""
 
 	# 解析其他参数
 	var projectile_config := _projectile_config.resolve(ctx)

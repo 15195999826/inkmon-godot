@@ -33,15 +33,15 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: HexBattle = ctx.game_state_provider
 	
 	var all_events: Array[Dictionary] = []
-	for target in targets:
-		var actor := battle.get_actor(target.id)
+	for target_id in targets:
+		var actor := battle.get_actor(target_id)
 		if actor == null:
-			push_warning("  [ApplyMoveAction] %s 未找到" % target.id)
+			push_warning("  [ApplyMoveAction] %s 未找到" % target_id)
 			continue
 		
 		var from_hex := actor.hex_position  # HexCoord
 		if not from_hex.is_valid():
-			push_warning("  [ApplyMoveAction] %s 当前位置未找到" % target.id)
+			push_warning("  [ApplyMoveAction] %s 当前位置未找到" % target_id)
 			continue
 		
 		var move_success := battle.grid.move_occupant(from_hex, target_coord)
@@ -53,7 +53,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var has_tile := grid.has_tile(target_coord)
 			push_error(
 				"[ApplyMoveAction] BUG: %s 移动失败：从 (%d, %d) → (%d, %d)\n" % [
-					target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
+					target_id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 				] +
 				"  格子存在: %s\n" % str(has_tile) +
 				"  当前占用: %s\n" % (occupant.get_id() if occupant != null else "none") +
@@ -65,11 +65,11 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		actor.hex_position = target_coord.duplicate()
 		
 		print("  [ApplyMoveAction] %s 移动完成：从 (%d, %d) → (%d, %d)" % [
-			target.id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
+			target_id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 		])
 		
 		var event := BattleEvents.MoveCompleteEvent.create(
-			target.id,
+			target_id,
 			from_hex.to_dict(),
 			target_coord.to_dict()
 		)

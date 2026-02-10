@@ -29,8 +29,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var targets := get_targets(ctx)
 	var target_actor_ids: Array[String] = []
-	for target in targets:
-		target_actor_ids.append(target.id)
+	for target_id in targets:
+		target_actor_ids.append(target_id)
 
 	var cue_id_value := _cue_id.resolve(ctx)
 	var params_value := _cue_params.resolve(ctx)

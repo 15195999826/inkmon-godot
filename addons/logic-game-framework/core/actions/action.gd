@@ -19,7 +19,7 @@ class BaseAction:
 	func execute(_ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
 
-	func get_targets(ctx: ExecutionContext) -> Array[TargetSelector.TargetRef]:
+	func get_targets(ctx: ExecutionContext) -> Array[String]:
 		return _target_selector.select(ctx)
 
 	## 冻结 Action，记录当前状态 hash
