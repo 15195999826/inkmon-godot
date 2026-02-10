@@ -48,7 +48,7 @@ func _teardown_test_instance() -> void:
 
 
 func _create_test_actor(ability_set: AbilitySet) -> TestActor:
-	return _test_instance.create_actor(func(): return TestActor.new(ability_set)) as TestActor
+	return _test_instance.add_actor(TestActor.new(ability_set)) as TestActor
 
 
 func _build_context(event: Dictionary = {}) -> ExecutionContext:

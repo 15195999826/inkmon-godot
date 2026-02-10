@@ -49,9 +49,7 @@ func _test_instance_lifecycle() -> void:
 	var instance := DummyInstance.new("inst-2")
 	var system := CountingSystem.new()
 	instance.add_system(system)
-	var actor: DummyActor = instance.create_actor(func():
-		return DummyActor.new()
-	)
+	var actor: DummyActor = instance.add_actor(DummyActor.new()) as DummyActor
 	TestFramework.assert_true(actor != null)
 	TestFramework.assert_equal(1, instance.get_actor_count())
 	TestFramework.assert_equal("created", instance.get_state())

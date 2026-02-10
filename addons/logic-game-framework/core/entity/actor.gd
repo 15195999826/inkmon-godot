@@ -2,6 +2,7 @@ class_name Actor
 extends RefCounted
 
 var _id: String = ""
+var _instance_id: String = ""
 var type: String = "actor"
 var _team: String = ""
 var _display_name: String = ""
@@ -20,9 +21,28 @@ func is_id_valid() -> bool:
 	return _id != ""
 
 
-## 设置 Actor ID（由子类或工厂函数调用）
+## 设置 Actor ID（由 GameplayInstance.add_actor 调用）
 func set_id(id_value: String) -> void:
 	_id = id_value
+
+
+## ID 被 add_actor 分配后的回调（子类可覆盖）
+## 用于同步内部引用了旧 ID 的组件（如 AbilitySet.owner_actor_id）
+func _on_id_assigned() -> void:
+	pass
+
+
+## 获取所属 GameplayInstance 的 ID
+func get_gameplay_instance_id() -> String:
+	return _instance_id
+
+
+## 获取所属 GameplayInstance
+## 通过 GameWorld 查询，避免循环引用
+func get_owner_gameplay_instance() -> GameplayInstance:
+	if _instance_id.is_empty():
+		return null
+	return GameWorld.get_instance_by_id(_instance_id)
 
 
 func get_team() -> String:

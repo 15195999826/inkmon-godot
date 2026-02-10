@@ -74,12 +74,17 @@ func on_resume() -> void:
 func on_end() -> void:
 	pass
 
-func create_actor(factory: Callable) -> Actor:
-	var actor: Actor = factory.call()
-	if actor != null:
-		_actors.append(actor)
-		_actor_id_2_actor_dic[actor.get_id()] = actor
-		actor.on_spawn()
+func add_actor(actor: Actor) -> Actor:
+	if actor == null:
+		return null
+	assert(not actor.is_id_valid(), "Actor already has an ID '%s'. Do not set ID before add_actor()." % actor.get_id())
+	var local_id := IdGenerator.generate(actor.type)
+	actor.set_id(ActorId.format(id, local_id))
+	actor._instance_id = id
+	actor._on_id_assigned()
+	_actors.append(actor)
+	_actor_id_2_actor_dic[actor.get_id()] = actor
+	actor.on_spawn()
 	return actor
 
 func remove_actor(actor_id: String) -> bool:

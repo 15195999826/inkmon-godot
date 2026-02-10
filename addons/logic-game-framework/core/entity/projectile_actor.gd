@@ -108,9 +108,10 @@ func update_position(dt: float) -> void:
 	_fly_distance += move_distance
 
 	var movement := Vector3.ZERO
-	if _launch_params.has("direction") and _launch_params["direction"] != null:
-		var direction := float(_launch_params["direction"])
-		movement = Vector3(cos(direction) * move_distance, sin(direction) * move_distance, 0.0)
+	var dir_value: Variant = _launch_params.get("direction")
+	if dir_value is Vector3 and (dir_value as Vector3) != Vector3.ZERO:
+		var dir_vec: Vector3 = dir_value
+		movement = dir_vec.normalized() * move_distance
 	elif _launch_params.has("targetPosition") and _launch_params["targetPosition"] is Vector3:
 		var target_pos: Vector3 = _launch_params["targetPosition"]
 		var direction_vec: Vector3 = target_pos - _position

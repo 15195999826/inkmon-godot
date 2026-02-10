@@ -37,15 +37,9 @@ var _atb_gauge: float = 0.0
 
 # ========== 初始化 ==========
 
-func _init(p_character_class: HexBattleClassConfig.CharacterClass, instance_id: String = "") -> void:
+func _init(p_character_class: HexBattleClassConfig.CharacterClass) -> void:
 	character_class = p_character_class
 	type = "Character"
-	
-	var local_id := IdGenerator.generate(type)
-	if instance_id != "":
-		_id = "%s:%s" % [instance_id, local_id]
-	else:
-		_id = local_id
 	
 	var class_config := HexBattleClassConfig.get_class_config(character_class)
 	_display_name = class_config.name
@@ -71,6 +65,12 @@ func _setup_attribute_constraints() -> void:
 			if inout_value["value"] > max_hp:
 				inout_value["value"] = max_hp
 	)
+
+
+## ID 被 add_actor 分配后，同步 ability_set 和 attribute_set 的 owner 引用
+func _on_id_assigned() -> void:
+	ability_set.owner_actor_id = get_id()
+	attribute_set.actor_id = get_id()
 
 
 ## 装备技能（在 HexBattle 初始化时调用）

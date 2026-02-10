@@ -86,6 +86,13 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var projectile := ProjectileActor.new(projectile_config)
 
+	# 通过 source actor 获取所属 GameplayInstance，注册投射物
+	var source_actor := GameWorld.get_actor(source_actor_id)
+	assert(source_actor != null, "LaunchProjectileAction: source actor '%s' not found." % source_actor_id)
+	var owner_instance := source_actor.get_owner_gameplay_instance()
+	assert(owner_instance != null, "LaunchProjectileAction: source actor '%s' has no owner GameplayInstance." % source_actor_id)
+	owner_instance.add_actor(projectile)
+
 	var launch_params := {
 		"source_actor_id": source_actor_id,
 		"target_actor_id": target_actor_id,

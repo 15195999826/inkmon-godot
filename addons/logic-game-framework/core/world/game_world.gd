@@ -129,4 +129,4 @@ func get_actor(actor_id: String) -> Actor:
 	var instance := get_instance_by_id(parsed.instance_id)
 	if instance == null:
 		return null
-	return instance.get_actor(parsed.local_id)
+	return instance.get_actor(actor_id)

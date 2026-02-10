@@ -38,7 +38,54 @@ func take_damage(amount: float) -> void:
 #     return attribute_set.hp
 ```
 
-## 2. 实例化与状态约束
+## 2. Actor 创建与注册规范
+
+### 核心流程
+
+Actor 的创建分为两步：**构造**和**注册**。
+
+1. **构造**：调用 `SomeActor.new(...)` 创建实例，此时 Actor 是纯对象，尚未分配完整 ID
+2. **注册**：调用 `gameplay_instance.add_actor(actor)` 将 Actor 注册到 GameplayInstance，框架统一分配 `{instance_id}:{local_id}` 格式的完整 ID
+
+```gdscript
+# ✅ 正确：先 new，再 add_actor
+var actor := CharacterActor.new(char_class)
+instance.add_actor(actor)
+
+# ✅ 在 Action 中通过 source actor 获取所属 instance
+var source_actor := GameWorld.get_actor(source_actor_id)
+var instance := source_actor.get_owner_gameplay_instance()
+instance.add_actor(projectile)
+```
+
+### ID 分配规则
+
+| 阶段 | Actor._id | 说明 |
+|------|-----------|------|
+| `SomeActor.new()` 后 | 空字符串 | 子类 `_init` 中**不要**生成 ID |
+| `add_actor()` 后 | `{instance_id}:{local_id}` | 框架自动生成 local_id 并拼接完整 ID，调用 `_on_id_assigned()` |
+
+### `_on_id_assigned()` 回调
+
+`add_actor()` 分配完整 ID 后会调用 `actor._on_id_assigned()`。子类如果在 `_init` 中创建了依赖 `get_id()` 的组件（如 `AbilitySet`、`AttributeSet`），**必须覆盖此方法同步引用**：
+
+```gdscript
+func _on_id_assigned() -> void:
+    ability_set.owner_actor_id = get_id()
+    attribute_set.actor_id = get_id()
+```
+
+### `get_owner_gameplay_instance()`
+
+类似 UE 的 `GetWorld()`，Actor 可通过此方法获取所属 GameplayInstance：
+
+```gdscript
+var instance := actor.get_owner_gameplay_instance()
+```
+
+内部通过存储 `_instance_id: String` 并查询 `GameWorld.get_instance_by_id()` 实现，避免 RefCounted 循环引用。
+
+## 3. 实例化与状态约束
 
 ### 核心原则
 

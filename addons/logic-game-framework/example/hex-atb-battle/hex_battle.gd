@@ -114,14 +114,14 @@ func start(config: Dictionary = {}) -> void:
 		grid_config = _build_default_grid_config()
 	UGridMap.configure(grid_config)
 	left_team = [
-		_create_character_actor(HexBattleClassConfig.CharacterClass.PRIEST),
-		_create_character_actor(HexBattleClassConfig.CharacterClass.WARRIOR),
-		_create_character_actor(HexBattleClassConfig.CharacterClass.ARCHER),
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.PRIEST)) as CharacterActor,
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.WARRIOR)) as CharacterActor,
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.ARCHER)) as CharacterActor,
 	]
 	right_team = [
-		_create_character_actor(HexBattleClassConfig.CharacterClass.MAGE),
-		_create_character_actor(HexBattleClassConfig.CharacterClass.BERSERKER),
-		_create_character_actor(HexBattleClassConfig.CharacterClass.ASSASSIN),
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.MAGE)) as CharacterActor,
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.BERSERKER)) as CharacterActor,
+		add_actor(CharacterActor.new(HexBattleClassConfig.CharacterClass.ASSASSIN)) as CharacterActor,
 	]
 	
 	for actor in left_team:
@@ -197,14 +197,6 @@ func _calculate_placement_ranges(grid_config: GridMapConfig) -> Dictionary:
 			"left": { "q_min": left_q_min, "q_max": left_q_max, "r_min": -r_range, "r_max": r_range },
 			"right": { "q_min": right_q_min, "q_max": right_q_max, "r_min": -r_range, "r_max": r_range },
 		}
-
-
-func _create_character_actor(char_class: HexBattleClassConfig.CharacterClass) -> CharacterActor:
-	var instance_id := id  # 使用 HexBattle 的 id 作为 instance_id
-	var actor := create_actor(func():
-		return CharacterActor.new(char_class, instance_id)
-	) as CharacterActor
-	return actor
 
 
 func _place_team_randomly(team: Array[CharacterActor], range_config: Dictionary) -> void:
