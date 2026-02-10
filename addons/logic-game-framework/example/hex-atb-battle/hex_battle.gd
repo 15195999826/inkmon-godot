@@ -284,6 +284,29 @@ func get_alive_actor_ids() -> Array[String]:
 	return result
 
 
+## 重写父类方法：移除 Actor 时清理格子占用和预订
+## 框架层 GameplayInstance.remove_actor 不感知格子系统，
+## 因此在 HexBattle 层补充清理逻辑。
+func remove_actor(actor_id: String) -> bool:
+	var actor := get_actor(actor_id)
+	if actor != null and actor.hex_position.is_valid():
+		# 清理该角色占据的格子
+		grid.remove_occupant(actor.hex_position)
+		# 清理该角色可能预订的格子（角色在移动途中被击杀时，目标格子仍有预订）
+		for coord in _find_reservations_by(actor_id):
+			grid.cancel_reservation(coord)
+	return super.remove_actor(actor_id)
+
+
+## 查找指定 actor 预订的所有格子
+func _find_reservations_by(actor_id: String) -> Array[HexCoord]:
+	var result: Array[HexCoord] = []
+	for coord in grid.get_all_coords():
+		if grid.get_reservation(coord) == actor_id:
+			result.append(coord)
+	return result
+
+
 ## 重写父类方法，返回类型收窄为 CharacterActor
 func get_actor(actor_id: String) -> CharacterActor:
 	return super.get_actor(actor_id) as CharacterActor
@@ -435,6 +458,16 @@ func can_use_skill_on(actor: CharacterActor, skill: Ability, target: CharacterAc
 	return true
 
 
+## AI 决策：决定 actor 本回合的行动（技能 > 移动 > 跳过）
+##
+## 并发安全说明：不会出现两个单位计划移动到同一格子的情况。
+## tick() 中 for actor in get_alive_actors() 是顺序遍历，_start_actor_action 是同步执行的。
+## receive_event → ActivateInstanceComponent.on_event → activate_new_execution_instance
+## → instance.tick(0) 会在同步调用链中立即触发 START tag 上的 StartMoveAction，
+## 该 Action 执行 grid.reserve_tile() 完成预订。
+## 因此后续 actor 决策时 is_reserved(n) 已能检测到先前的预订。
+## 注意：此安全性依赖 ATB 串行决策 + tick(0) 同步执行 START tag，
+## 如果改为并行决策或异步执行，需要额外的并发保护。
 func _decide_action(actor: CharacterActor) -> Dictionary:
 	var my_pos := actor.hex_position
 	var skill := actor.get_skill_ability()

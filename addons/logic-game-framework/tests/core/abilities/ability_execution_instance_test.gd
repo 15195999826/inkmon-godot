@@ -6,7 +6,7 @@ class TestAction:
 	var calls: Array[ExecutionContext] = []
 
 	func _init() -> void:
-		super._init()
+		super._init(TargetSelector.new())
 
 	func execute(ctx: ExecutionContext) -> ActionResult:
 		calls.append(ctx)

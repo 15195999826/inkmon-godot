@@ -203,12 +203,12 @@ static var FIREBALL_ABILITY := (
 			HexBattleTargetSelectors.current_target(),
 			# 投射物配置
 			Resolvers.dict_val({
-				"projectileType": ProjectileActor.PROJECTILE_TYPE_MOBA,
-				"speed": 200.0,  # 单位/秒
-				"maxLifetime": 5000.0,  # 最大飞行时间 5 秒
-				"hitDistance": 30.0,  # MOBA 类型的命中距离
-				"damage": 80.0,
-				"damageType": "magical",
+			ProjectileActor.CFG_PROJECTILE_TYPE: ProjectileActor.PROJECTILE_TYPE_MOBA,
+			ProjectileActor.CFG_SPEED: 200.0,  # 单位/秒
+			ProjectileActor.CFG_MAX_LIFETIME: 5000.0,  # 最大飞行时间 5 秒
+			ProjectileActor.CFG_HIT_DISTANCE: 30.0,  # MOBA 类型的命中距离
+			ProjectileActor.CFG_DAMAGE: 80.0,
+			ProjectileActor.CFG_DAMAGE_TYPE: "magical",
 			}),
 			_get_owner_position_resolver(),  # 起始位置
 			_get_target_position_resolver(),  # 目标位置
