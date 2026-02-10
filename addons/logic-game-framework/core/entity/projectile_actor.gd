@@ -11,6 +11,16 @@ const STATE_HIT := "hit"
 const STATE_MISSED := "missed"
 const STATE_DESPAWNED := "despawned"
 
+## Config key 常量
+const CFG_PROJECTILE_TYPE := "projectileType"
+const CFG_SPEED := "speed"  ## 单位/秒
+const CFG_MAX_LIFETIME := "maxLifetime"  ## 毫秒
+const CFG_PIERCING := "piercing"
+const CFG_MAX_PIERCE_COUNT := "maxPierceCount"
+const CFG_HIT_DISTANCE := "hitDistance"
+const CFG_DAMAGE := "damage"
+const CFG_DAMAGE_TYPE := "damageType"
+
 const DEFAULT_CONFIG := {
 	"projectileType": PROJECTILE_TYPE_BULLET,
 	"speed": 500.0,
@@ -39,6 +49,9 @@ func _get_position() -> Vector3:
 
 func get_projectile_state() -> String:
 	return _projectile_state
+
+func get_projectile_type() -> String:
+	return config.get(CFG_PROJECTILE_TYPE, PROJECTILE_TYPE_BULLET) as String
 
 func is_flying() -> bool:
 	return _projectile_state == STATE_FLYING
@@ -80,7 +93,7 @@ func launch(params: Dictionary) -> void:
 	_pierce_count = 0
 	_hit_targets.clear()
 
-	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) == PROJECTILE_TYPE_HITSCAN:
+	if get_projectile_type() == PROJECTILE_TYPE_HITSCAN:
 		if params.has("targetPosition") and params["targetPosition"] is Vector3:
 			_position = params["targetPosition"]
 
@@ -88,11 +101,11 @@ func update(dt: float) -> bool:
 	if _projectile_state != STATE_FLYING:
 		return false
 
-	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) == PROJECTILE_TYPE_HITSCAN:
+	if get_projectile_type() == PROJECTILE_TYPE_HITSCAN:
 		return false
 
 	_fly_time += dt
-	if _fly_time >= (config.get("maxLifetime", 0.0) as float):
+	if _fly_time >= (config.get(CFG_MAX_LIFETIME, 0.0) as float):
 		miss("timeout")
 		return false
 
@@ -104,7 +117,7 @@ func update_position(dt: float) -> void:
 		return
 
 	var dt_seconds := dt / 1000.0
-	var move_distance := (config.get("speed", 0.0) as float) * dt_seconds
+	var move_distance := (config.get(CFG_SPEED, 0.0) as float) * dt_seconds
 	_fly_distance += move_distance
 
 	var movement := Vector3.ZERO
@@ -112,19 +125,39 @@ func update_position(dt: float) -> void:
 	if dir_value is Vector3 and (dir_value as Vector3) != Vector3.ZERO:
 		var dir_vec: Vector3 = dir_value
 		movement = dir_vec.normalized() * move_distance
-	elif _launch_params.has("targetPosition") and _launch_params["targetPosition"] is Vector3:
-		var target_pos: Vector3 = _launch_params["targetPosition"]
-		var direction_vec: Vector3 = target_pos - _position
-		var distance_to_target := direction_vec.length()
-		if distance_to_target > 0.0:
-			var actual_move := min(move_distance, distance_to_target)
-			movement = direction_vec.normalized() * actual_move
+	else:
+		var target_pos := _resolve_target_position()
+		if target_pos != Vector3.ZERO or _launch_params.has("targetPosition"):
+			var direction_vec: Vector3 = target_pos - _position
+			var distance_to_target := direction_vec.length()
+			if distance_to_target > 0.0:
+				var actual_move := min(move_distance, distance_to_target)
+				movement = direction_vec.normalized() * actual_move
 
 	_position += movement
 
+
+## 获取目标的实时位置
+## MOBA 追踪型投射物会查询目标 Actor 的实时 position，
+## 其他类型退回到 launch_params 中的静态 targetPosition
+func _resolve_target_position() -> Vector3:
+	if get_projectile_type() == PROJECTILE_TYPE_MOBA:
+		var target_actor_id := get_target_actor_id()
+		if target_actor_id != "":
+			var instance := get_owner_gameplay_instance()
+			if instance != null:
+				var target := instance.get_actor(target_actor_id)
+				if target != null:
+					return target.position
+	var static_pos: Variant = _launch_params.get("targetPosition")
+	if static_pos is Vector3:
+		return static_pos
+	return Vector3.ZERO
+
+
 func get_distance_to_target() -> float:
-	var target_pos: Variant = _launch_params.get("targetPosition")
-	if not target_pos is Vector3:
+	var target_pos := _resolve_target_position()
+	if target_pos == Vector3.ZERO and not _launch_params.has("targetPosition"):
 		return INF
 	return _position.distance_to(target_pos)
 
@@ -134,9 +167,9 @@ func hit(target_id: String) -> bool:
 
 	_hit_targets[target_id] = true
 
-	if config.get("piercing", false) as bool:
+	if config.get(CFG_PIERCING, false) as bool:
 		_pierce_count += 1
-		var max_pierce: Variant = config.get("maxPierceCount", null)
+		var max_pierce: Variant = config.get(CFG_MAX_PIERCE_COUNT, null)
 		var max_pierce_count := INF if max_pierce == null else int(max_pierce)
 		if _pierce_count < max_pierce_count:
 			return true
@@ -157,9 +190,9 @@ func has_hit_target(target_id: String) -> bool:
 	return _hit_targets.has(target_id)
 
 func should_moba_hit() -> bool:
-	if (config.get("projectileType", PROJECTILE_TYPE_BULLET) as String) != PROJECTILE_TYPE_MOBA:
+	if get_projectile_type() != PROJECTILE_TYPE_MOBA:
 		return false
-	var hit_distance := config.get("hitDistance", 50.0) as float
+	var hit_distance := config.get(CFG_HIT_DISTANCE, 50.0) as float
 	return get_distance_to_target() <= hit_distance
 
 func serialize() -> Dictionary:

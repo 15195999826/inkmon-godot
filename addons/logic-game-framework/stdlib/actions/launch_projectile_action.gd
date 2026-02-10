@@ -108,8 +108,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		projectile.id,
 		source_actor_id,
 		start_position,
-		projectile.config.get("projectileType", "bullet"),
-		projectile.config.get("speed", 500.0),
+		projectile.config.get(ProjectileActor.CFG_PROJECTILE_TYPE, "bullet"),
+		projectile.config.get(ProjectileActor.CFG_SPEED, 500.0),
 		target_actor_id,
 		target_position
 	)

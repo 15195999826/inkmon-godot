@@ -34,7 +34,7 @@ func tick(actors: Array[Actor], dt: float) -> void:
 		_process_pending_removal(actors)
 
 func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Actor], dt: float) -> void:
-	if projectile.config.get("projectileType", "bullet") == ProjectileActor.PROJECTILE_TYPE_HITSCAN:
+	if projectile.get_projectile_type() == ProjectileActor.PROJECTILE_TYPE_HITSCAN:
 		_process_hitscan(projectile, potential_targets)
 		return
 
@@ -55,11 +55,12 @@ func _update_projectile(projectile: ProjectileActor, potential_targets: Array[Ac
 func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Actor]) -> void:
 	var valid_targets := _filter_valid_targets(projectile, potential_targets)
 
+	# 有指定目标时，在已过滤的有效目标中查找
 	var target_actor_id := projectile.get_target_actor_id()
 	if target_actor_id != "":
 		var target_actor: Actor = null
-		for actor in potential_targets:
-			if actor is Actor and actor.id == target_actor_id:
+		for actor in valid_targets:
+			if actor.id == target_actor_id:
 				target_actor = actor
 				break
 		if target_actor:
@@ -69,6 +70,7 @@ func _process_hitscan(projectile: ProjectileActor, potential_targets: Array[Acto
 			_mark_for_removal(projectile)
 			return
 
+	# 无指定目标或指定目标不在有效列表中，用碰撞检测
 	var collision := collision_detector.detect(projectile, valid_targets)
 	if collision.get("hit", false) and collision.get("target_actor_id", "") != "":
 		var hit_target_actor_id := collision.get("target_actor_id", "") as String
@@ -118,26 +120,21 @@ func _filter_valid_targets(projectile: ProjectileActor, potential_targets: Array
 func _mark_for_removal(projectile: ProjectileActor) -> void:
 	pending_removal[projectile.id] = true
 
-func _process_pending_removal(actors: Array[Actor]) -> void:
+func _process_pending_removal(_actors: Array[Actor]) -> void:
 	if pending_removal.is_empty():
 		return
-	var remaining: Array[Actor] = []
-	for actor in actors:
-		if actor is ProjectileActor and pending_removal.has(actor.id):
-			continue
-		remaining.append(actor)
-	actors.clear()
-	for actor in remaining:
-		actors.append(actor)
+	if _instance == null:
+		pending_removal.clear()
+		return
+	for actor_id in pending_removal:
+		_instance.remove_actor(actor_id)
 	pending_removal.clear()
 
 func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_position: Vector3) -> void:
 	if not event_collector:
 		return
 
-	var source_actor_id := projectile.get_source_actor_id()
-	if source_actor_id == "":
-		source_actor_id = "unknown"
+	var source_actor_id := _get_source_id(projectile)
 	var event := ProjectileEvents.create_projectile_hit_event(
 		projectile.id,
 		source_actor_id,
@@ -146,20 +143,25 @@ func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_p
 		projectile.get_fly_time(),
 		projectile.get_fly_distance(),
 		{
-			"damage": projectile.config.get("damage"),
-			"damageType": projectile.config.get("damageType"),
+			"damage": projectile.config.get(ProjectileActor.CFG_DAMAGE),
+			"damageType": projectile.config.get(ProjectileActor.CFG_DAMAGE_TYPE),
 		}
 	)
 
 	event_collector.push(event)
 
+	var despawn_event := ProjectileEvents.create_projectile_despawn_event(
+		projectile.id,
+		source_actor_id,
+		"hit"
+	)
+	event_collector.push(despawn_event)
+
 func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 	if not event_collector:
 		return
 
-	var source_actor_id := projectile.get_source_actor_id()
-	if source_actor_id == "":
-		source_actor_id = "unknown"
+	var source_actor_id := _get_source_id(projectile)
 	var final_position := projectile.position
 
 	var event := ProjectileEvents.create_projectile_miss_event(
@@ -185,19 +187,24 @@ func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pi
 	if not event_collector:
 		return
 
-	var source_actor_id := projectile.get_source_actor_id()
-	if source_actor_id == "":
-		source_actor_id = "unknown"
+	var source_actor_id := _get_source_id(projectile)
 	var event := ProjectileEvents.create_projectile_pierce_event(
 		projectile.id,
 		source_actor_id,
 		target_actor_id,
 		pierce_position,
 		projectile.get_pierce_count(),
-		projectile.config.get("damage", -1.0) as float
+		projectile.config.get(ProjectileActor.CFG_DAMAGE, -1.0) as float
 	)
 
 	event_collector.push(event)
+
+
+func _get_source_id(projectile: ProjectileActor) -> String:
+	var source_actor_id := projectile.get_source_actor_id()
+	if source_actor_id == "":
+		return "unknown"
+	return source_actor_id
 
 func get_active_projectiles(actors: Array[Actor]) -> Array[ProjectileActor]:
 	var projectiles: Array[ProjectileActor] = []
