@@ -37,21 +37,19 @@ func _init(
 	damage: float,
 	damage_type: BattleEvents.DamageType = BattleEvents.DamageType.PURE
 ) -> void:
-	super._init(null)  # ReflectDamageAction 不使用 target_selector
+	super._init(HexBattleTargetSelectors.event_source())
 	type = "reflect_damage"
 	_damage = damage
 	_damage_type = damage_type
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var current_event_dict := ctx.get_current_event()
-	# 使用强类型事件
-	var current_event := BattleEvents.DamageEvent.from_dict(current_event_dict)
-	var attacker_id := current_event.source_actor_id
-	
-	if attacker_id.is_empty():
+	var targets := get_targets(ctx)
+	if targets.is_empty():
 		print("  [ReflectDamageAction] 无攻击来源，跳过反伤")
 		return ActionResult.create_success_result([], { "skipped": true })
+	
+	var attacker_id := targets[0]
 	
 	var owner_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
 	var battle: HexBattle = ctx.game_state_provider

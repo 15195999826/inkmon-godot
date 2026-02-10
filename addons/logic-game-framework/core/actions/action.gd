@@ -10,11 +10,8 @@ class BaseAction:
 	var _frozen_hash: int = 0
 
 	## 子类必须调用 super._init(target_selector)
-	func _init(target_selector: TargetSelector = null) -> void:
-		if target_selector != null:
-			_target_selector = target_selector
-		else:
-			_target_selector = TargetSelector.current_target()
+	func _init(target_selector: TargetSelector) -> void:
+		_target_selector = target_selector
 
 	func execute(_ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([])
@@ -34,7 +31,7 @@ class BaseAction:
 class NoopAction:
 	extends BaseAction
 
-	func _init(target_selector: TargetSelector = null) -> void:
+	func _init(target_selector: TargetSelector) -> void:
 		super._init(target_selector)
 		type = "noop"
 

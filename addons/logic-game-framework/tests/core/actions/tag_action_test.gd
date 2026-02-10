@@ -15,6 +15,17 @@ class TestActor:
 		return _ability_set
 
 
+## 测试用固定目标选择器（框架层测试不依赖项目层）
+class FixedSelector extends TargetSelector:
+	var _targets: Array[String]
+
+	func _init(targets: Array[String]) -> void:
+		_targets = targets
+
+	func select(_ctx: ExecutionContext) -> Array[String]:
+		return _targets
+
+
 var _test_instance: GameplayInstance
 
 
@@ -60,7 +71,7 @@ func _test_apply_loose() -> void:
 	var ctx := _build_context({"kind": "apply"})
 
 	var action := TagAction.ApplyTagAction.new(
-		TargetSelector.fixed([actor_id]),
+		FixedSelector.new([actor_id]),
 		"combo",
 		Resolvers.int_val(2)  # stacks
 	)
@@ -79,7 +90,7 @@ func _test_apply_auto_duration() -> void:
 	var ctx := _build_context({"kind": "apply", "logicTime": 1.0})
 
 	var action := TagAction.ApplyTagAction.new(
-		TargetSelector.fixed([actor_id]),
+		FixedSelector.new([actor_id]),
 		"window",
 		Resolvers.int_val(1),    # stacks
 		Resolvers.float_val(5.0)   # duration
@@ -102,7 +113,7 @@ func _test_remove_tag() -> void:
 	var ctx := _build_context({"kind": "remove"})
 
 	var action := TagAction.RemoveTagAction.new(
-		TargetSelector.fixed([actor_id]),
+		FixedSelector.new([actor_id]),
 		"charge",
 		Resolvers.int_val(1)  # stacks to remove
 	)
@@ -121,7 +132,7 @@ func _test_has_tag_action() -> void:
 	ability_set.add_loose_tag("ready", 1)
 	var ctx := _build_context({"kind": "check"})
 
-	var selector := TargetSelector.fixed([actor_id])
+	var selector := FixedSelector.new([actor_id])
 	var then_action := Action.NoopAction.new(selector)
 	var else_action := Action.NoopAction.new(selector)
 	var action := TagAction.HasTagAction.new(

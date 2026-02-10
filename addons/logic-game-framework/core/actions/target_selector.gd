@@ -1,14 +1,21 @@
 ## TargetSelector - 目标选择器基类
 ##
 ## 用于在 Action 执行时选择目标 Actor。
-## 通过继承此类创建自定义选择器。
+## 框架层只提供基类和过滤组合能力，具体选择逻辑由项目层实现。
 ## select() 返回 Array[String]，每个元素是 actor_id。
 ##
-## 使用示例:
-##   var action = DamageAction.new({
-##       "targetSelector": TargetSelector.current_target(),
-##       "damage": 50.0,
-##   })
+## 项目层扩展示例:
+##   class AllEnemies extends TargetSelector:
+##       func select(ctx: ExecutionContext) -> Array[String]:
+##           var battle: MyBattle = ctx.game_state_provider
+##           return battle.get_enemy_ids(ctx.ability_ref.owner_actor_id)
+##
+## 过滤示例:
+##   MySelectors.all_enemies().filtered(
+##       func(id: String, ctx: ExecutionContext) -> bool:
+##           var battle: MyBattle = ctx.game_state_provider
+##           return battle.get_actor(id).attribute_set.hp > 0
+##   )
 class_name TargetSelector
 extends RefCounted
 
@@ -19,77 +26,28 @@ func select(_ctx: ExecutionContext) -> Array[String]:
 	return []
 
 
+## 在当前选择结果上应用过滤条件，返回新的选择器
+## filter_fn 签名: func(actor_id: String, ctx: ExecutionContext) -> bool
+func filtered(filter_fn: Callable) -> TargetSelector:
+	return Filtered.new(self, filter_fn)
+
+
 # ============================================================
-# 预定义选择器
+# 过滤组合器
 # ============================================================
 
-## 从当前事件获取目标（event.target_actor_id 或 event.target_actor_ids）
-class CurrentTarget extends TargetSelector:
+## 在源选择器结果上应用过滤函数
+class Filtered extends TargetSelector:
+	var _source: TargetSelector
+	var _filter: Callable
+
+	func _init(source: TargetSelector, filter_fn: Callable) -> void:
+		_source = source
+		_filter = filter_fn
+
 	func select(ctx: ExecutionContext) -> Array[String]:
-		var event := ctx.get_current_event()
-		if event.is_empty():
-			return []
-		if event.has("target_actor_ids") and event["target_actor_ids"] is Array:
-			var result: Array[String] = []
-			for t in event["target_actor_ids"]:
-				if t is String:
-					result.append(t)
-			return result
-		if event.has("target_actor_id") and event["target_actor_id"] is String:
-			return [event["target_actor_id"]]
-		return []
-
-
-## 选择 Ability 的 owner
-class AbilityOwner extends TargetSelector:
-	func select(ctx: ExecutionContext) -> Array[String]:
-		if ctx.ability_ref != null and not ctx.ability_ref.owner_actor_id.is_empty():
-			return [ctx.ability_ref.owner_actor_id]
-		return []
-
-
-## 固定目标选择器（用于测试或预设目标）
-class Fixed extends TargetSelector:
-	var _targets: Array[String]
-	
-	func _init(targets: Array[String]):
-		_targets = targets
-	
-	func select(_ctx: ExecutionContext) -> Array[String]:
-		return _targets
-
-
-# ============================================================
-# 工厂方法
-# ============================================================
-
-## 创建从当前事件获取目标的选择器
-static func current_target() -> CurrentTarget:
-	return CurrentTarget.new()
-
-
-## 创建选择 Ability owner 的选择器
-static func ability_owner() -> AbilityOwner:
-	return AbilityOwner.new()
-
-
-## 创建固定目标选择器
-static func fixed(targets: Array[String]) -> Fixed:
-	return Fixed.new(targets)
-
-
-## 自定义选择器（通过 Callable 实现）
-class Custom extends TargetSelector:
-	var _fn: Callable
-	
-	func _init(fn: Callable):
-		_fn = fn
-	
-	func select(ctx: ExecutionContext) -> Array[String]:
-		return _fn.call(ctx)
-
-
-## 创建自定义选择器
-## fn 签名: func(ctx: ExecutionContext) -> Array[String]
-static func custom(fn: Callable) -> Custom:
-	return Custom.new(fn)
+		var result: Array[String] = []
+		for id in _source.select(ctx):
+			if _filter.call(id, ctx):
+				result.append(id)
+		return result

@@ -17,19 +17,6 @@ const SKILL_COOLDOWNS := {
 }
 
 
-# ========== 目标选择器 ==========
-# 使用框架提供的 TargetSelector 类
-
-## 获取 Ability Owner 的选择器
-static func get_ability_owner_selector() -> TargetSelector:
-	return TargetSelector.ability_owner()
-
-
-## 获取当前事件目标的选择器
-static func get_current_target_selector() -> TargetSelector:
-	return TargetSelector.current_target()
-
-
 # ========== 辅助函数 ==========
 
 ## 从事件中获取目标坐标的解析器
@@ -95,17 +82,6 @@ static func _get_target_position_resolver() -> Vector3Resolver:
 	)
 
 
-## 从投射物命中事件获取目标 Actor 的选择器
-static func _get_projectile_hit_target_selector() -> TargetSelector:
-	return TargetSelector.custom(func(ctx: ExecutionContext) -> Array[String]:
-		var event := ctx.get_current_event()
-		var target_actor_id: String = event.get("target_actor_id", "")
-		if target_actor_id == "":
-			return []
-		return [target_actor_id]
-	)
-
-
 # ========== 移动 Ability ==========
 
 ## 移动 - 移动到相邻格子（两阶段）
@@ -120,11 +96,11 @@ static var MOVE_ABILITY := (
 		.trigger(TriggerConfig.new(GameEvent.ABILITY_ACTIVATE_EVENT, _ability_activate_filter))
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.MOVE)
 		.on_tag(TimelineTags.START, [HexBattleStartMoveAction.new(
-			TargetSelector.ability_owner(),
+			HexBattleTargetSelectors.ability_owner(),
 			_get_target_coord_from_event()
 		)])
 		.on_tag(TimelineTags.EXECUTE, [HexBattleApplyMoveAction.new(
-			TargetSelector.ability_owner(),
+			HexBattleTargetSelectors.ability_owner(),
 			_get_target_coord_from_event()
 		)])
 		.build()
@@ -148,17 +124,17 @@ static var SLASH_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SLASH)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("melee_slash")
 		)])
 		.on_tag(TimelineTags.HIT, [
 			HexBattleDamageAction.new(
-				TargetSelector.current_target(),
+				HexBattleTargetSelectors.current_target(),
 				50.0,
 				BattleEvents.DamageType.PHYSICAL
 			).on_critical(
 				HexBattleDamageAction.new(
-					TargetSelector.current_target(),
+					HexBattleTargetSelectors.current_target(),
 					10.0,
 					BattleEvents.DamageType.PHYSICAL
 				)
@@ -184,11 +160,11 @@ static var PRECISE_SHOT_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.PRECISE_SHOT)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("ranged_arrow")
 		)])
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			45.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
@@ -220,11 +196,11 @@ static var FIREBALL_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("magic_fireball")
 		)])
 		.on_tag(TimelineTags.LAUNCH, [LaunchProjectileAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			# 投射物配置
 			Resolvers.dict_val({
 				"projectileType": ProjectileActor.PROJECTILE_TYPE_MOBA,
@@ -247,7 +223,7 @@ static var FIREBALL_ABILITY := (
 		.trigger(TriggerConfig.new(ProjectileEvents.PROJECTILE_HIT_EVENT, _projectile_hit_filter))
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.FIREBALL_HIT)
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
-			_get_projectile_hit_target_selector(),
+			HexBattleTargetSelectors.current_target(),
 			80.0,
 			BattleEvents.DamageType.MAGICAL
 		)])
@@ -269,11 +245,11 @@ static var CRUSHING_BLOW_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.CRUSHING_BLOW)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("melee_heavy")
 		)])
 		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			90.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
@@ -297,22 +273,22 @@ static var SWIFT_STRIKE_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.SWIFT_STRIKE)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("melee_combo"),
 			Resolvers.dict_val({ "hits": 3 })
 		)])
 		.on_tag(TimelineTags.HIT1, [HexBattleDamageAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			10.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
 		.on_tag(TimelineTags.HIT2, [HexBattleDamageAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			10.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
 		.on_tag(TimelineTags.HIT3, [HexBattleDamageAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			10.0,
 			BattleEvents.DamageType.PHYSICAL
 		)])
@@ -336,11 +312,11 @@ static var HOLY_HEAL_ABILITY := (
 		ActiveUseConfig.builder()
 		.timeline_id(HexBattleSkillTimelines.TIMELINE_ID.HOLY_HEAL)
 		.on_tag(TimelineTags.START, [StageCueAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("magic_heal")
 		)])
 		.on_tag(TimelineTags.HEAL, [HexBattleHealAction.new(
-			TargetSelector.current_target(),
+			HexBattleTargetSelectors.current_target(),
 			Resolvers.float_val(40.0)
 		)])
 		.condition(HexBattleCooldownSystem.CooldownCondition.new())
