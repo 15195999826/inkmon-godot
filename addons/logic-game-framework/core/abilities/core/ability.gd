@@ -187,11 +187,11 @@ func _resolve_components(active_use_configs: Array[ActiveUseConfig], component_c
 	var result: Array[AbilityComponent] = []
 	for cfg in active_use_configs:
 		var component := cfg.create_component()
-		assert(component != null, "ActiveUseConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
+		Log.assert_crash(component != null, "Ability", "ActiveUseConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
 		result.append(component)
 	for cfg in component_configs:
 		var component := cfg.create_component()
-		assert(component != null, "AbilityComponentConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
+		Log.assert_crash(component != null, "Ability", "AbilityComponentConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
 		result.append(component)
 	return result
 

@@ -66,5 +66,5 @@ class StatModifierConfigBuilder:
 	## 构建 StatModifierConfig
 	## 验证至少有一个 modifier
 	func build() -> StatModifierConfig:
-		assert(not _configs.is_empty(), "StatModifierConfig: at least one modifier is required")
+		Log.assert_crash(not _configs.is_empty(), "StatModifierConfig", "at least one modifier is required")
 		return StatModifierConfig.new(_configs)

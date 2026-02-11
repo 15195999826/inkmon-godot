@@ -145,7 +145,7 @@ class ActiveUseConfigBuilder:
 	## 构建 ActiveUseConfig
 	## 验证必填字段，缺失时触发断言错误
 	func build() -> ActiveUseConfig:
-		assert(_timeline_id != "", "ActiveUseConfig: timeline_id is required")
+		Log.assert_crash(_timeline_id != "", "ActiveUseConfig", "timeline_id is required")
 		return ActiveUseConfig.new(
 			_timeline_id,
 			_tag_actions,

@@ -120,7 +120,7 @@ func _remove_handlers_where(should_remove: Callable) -> void:
 ##    - modify       → 将修改（Modification）追加到 MutableEvent
 ## 4. 返回 MutableEvent，调用方通过 mutable.cancelled / mutable.get_current_value() 读取结果
 func process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> MutableEvent:
-	assert(game_state_provider != null, "game_state_provider is required")
+	Log.assert_crash(game_state_provider != null, "EventProcessor", "game_state_provider is required")
 	var mutable := MutableEvent.new(event_dict, EventPhase.PHASE_PRE)
 
 	# ── 递归保护 ──
@@ -222,7 +222,7 @@ func process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[Stri
 ## 内部实现：统一 Post 阶段处理逻辑
 ## related_filter 为空表示不过滤（广播给所有 actor_ids），非空表示只广播给 related 中的 actor
 func _process_post_event_impl(event_dict: Dictionary, actor_ids: Array[String], related_filter: Dictionary, game_state_provider: Variant) -> void:
-	assert(game_state_provider != null, "game_state_provider is required")
+	Log.assert_crash(game_state_provider != null, "EventProcessor", "game_state_provider is required")
 	if _current_depth >= _config.max_depth:
 		var error_msg := "Event recursion depth exceeded: %s\nCurrent event: %s\nEvent call chain:\n%s" % [
 			_current_depth,
@@ -245,7 +245,7 @@ func _process_post_event_impl(event_dict: Dictionary, actor_ids: Array[String], 
 		if actor == null:
 			continue
 		var ability_set := IAbilitySetOwner.get_ability_set(actor)
-		assert(ability_set != null, "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
+		Log.assert_crash(ability_set != null, "EventProcessor", "Actor '%s' in actor_ids must implement IAbilitySetOwner" % actor_id)
 		ability_set.receive_event(event_dict, game_state_provider)
 
 	_current_depth -= 1

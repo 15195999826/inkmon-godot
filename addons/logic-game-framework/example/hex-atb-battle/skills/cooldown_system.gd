@@ -16,7 +16,7 @@ class CooldownCondition:
 	
 	func check(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> bool:
 		var battle_ability_set := ctx.ability_set as BattleAbilitySet
-		assert(battle_ability_set != null, "CooldownCondition requires BattleAbilitySet")
+		Log.assert_crash(battle_ability_set != null, "CooldownCondition", "requires BattleAbilitySet")
 		return not battle_ability_set.is_on_cooldown(ctx.ability.config_id)
 	
 	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:
@@ -41,7 +41,7 @@ class TimedCooldownCost:
 	
 	func pay(ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> void:
 		var battle_ability_set := ctx.ability_set as BattleAbilitySet
-		assert(battle_ability_set != null, "TimedCooldownCost requires BattleAbilitySet")
+		Log.assert_crash(battle_ability_set != null, "TimedCooldownCost", "requires BattleAbilitySet")
 		battle_ability_set.start_cooldown(ctx.ability.config_id, _duration)
 	
 	func get_fail_reason(_ctx: AbilityLifecycleContext, _event: Dictionary, _game_state: Variant) -> String:

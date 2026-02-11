@@ -61,8 +61,7 @@ func _handle_pre_event(mutable: MutableEvent, _handler_context: HandlerContext) 
 	if not _handler.is_valid():
 		return EventPhase.pass_intent()
 	var result: Variant = _handler.call(mutable, _lifecycle_context)
-	assert(result is Intent,
-		"PreEventComponent handler '%s' must return Intent, got: %s" % [_handler_name, type_string(typeof(result))])
+	Log.assert_crash(result is Intent, "PreEventComponent", "handler '%s' must return Intent, got: %s" % [_handler_name, type_string(typeof(result))])
 	return result as Intent
 
 

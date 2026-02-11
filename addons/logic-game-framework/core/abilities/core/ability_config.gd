@@ -128,7 +128,7 @@ class AbilityConfigBuilder:
 	## 构建 AbilityConfig
 	## 验证必填字段，缺失时触发断言错误
 	func build() -> AbilityConfig:
-		assert(_config_id != "", "AbilityConfig: config_id is required")
+		Log.assert_crash(_config_id != "", "AbilityConfig", "config_id is required")
 		return AbilityConfig.new(
 			_config_id,
 			_display_name,

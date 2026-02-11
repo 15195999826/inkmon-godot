@@ -58,6 +58,30 @@ func warning(module: String, message: String) -> void:
 func error(module: String, message: String) -> void:
 	_log(LogLevel.ERROR, module, message, show_stack)
 
+## 致命断言 - 条件不满足时终止程序
+## Debug 模式：走原生 assert 中断
+## Release 模式：写入 crash.log + OS.crash() 强制终止
+func assert_crash(condition: bool, module: String, message: String) -> void:
+	if condition:
+		return
+	var msg := "[%s] FATAL: %s" % [module, message]
+	# Debug 模式：原生 assert 中断，不会执行后续代码
+	assert(false, msg)
+	# --- 以下仅 Release 模式执行 ---
+	error(module, "FATAL: " + message)
+	_flush_crash_log(msg)
+	OS.crash(msg)
+
+## 将崩溃信息写入 user://crash.log（OS.crash 前调用，确保日志持久化）
+func _flush_crash_log(message: String) -> void:
+	var file := FileAccess.open("user://crash.log", FileAccess.WRITE)
+	if file == null:
+		return
+	var time := Time.get_datetime_string_from_system()
+	file.store_line("[%s] %s" % [time, message])
+	file.flush()
+	file.close()
+
 ## 内部日志处理
 func _log(level: LogLevel, module: String, message: String, with_stack: bool) -> void:
 	# 日志开关检查

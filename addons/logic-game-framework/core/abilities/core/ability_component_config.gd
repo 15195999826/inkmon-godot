@@ -8,5 +8,5 @@ class_name AbilityComponentConfig
 
 ## 创建对应的 AbilityComponent 实例。子类必须覆盖。
 func create_component() -> AbilityComponent:
-	assert(false, "AbilityComponentConfig.create_component() must be overridden by " + get_script().get_global_name())
+	Log.assert_crash(false, "AbilityComponentConfig", "create_component() must be overridden by " + get_script().get_global_name())
 	return null

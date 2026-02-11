@@ -96,7 +96,7 @@ class NoInstanceConfigBuilder:
 	## 构建 NoInstanceConfig
 	## 验证必填字段，缺失时触发断言错误
 	func build() -> NoInstanceConfig:
-		assert(not _triggers.is_empty(), "NoInstanceConfig: at least one trigger is required")
+		Log.assert_crash(not _triggers.is_empty(), "NoInstanceConfig", "at least one trigger is required")
 		return NoInstanceConfig.new(
 			_triggers,
 			_actions,

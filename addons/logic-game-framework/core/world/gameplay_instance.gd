@@ -77,7 +77,7 @@ func on_end() -> void:
 func add_actor(actor: Actor) -> Actor:
 	if actor == null:
 		return null
-	assert(not actor.is_id_valid(), "Actor already has an ID '%s'. Do not set ID before add_actor()." % actor.get_id())
+	Log.assert_crash(not actor.is_id_valid(), "GameplayInstance", "Actor already has an ID '%s'. Do not set ID before add_actor()." % actor.get_id())
 	var local_id := IdGenerator.generate(actor.type)
 	actor.set_id(ActorId.format(id, local_id))
 	actor._instance_id = id

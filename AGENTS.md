@@ -291,7 +291,11 @@ func get_current_event() -> Dictionary:
 
 **适用范围**：`Dictionary`、`Array` 等值类型。引用类型（`RefCounted`、`Node` 等）仍正常返回 `null`。
 
-## 11. autoload 脚本继承 Node
+## 11. 断言使用 `Log.assert_crash`
+
+禁止直接使用 `assert()`，统一使用 `Log.assert_crash(condition, module, message)`。
+
+## 12. autoload 脚本继承 Node
 
 ---
 

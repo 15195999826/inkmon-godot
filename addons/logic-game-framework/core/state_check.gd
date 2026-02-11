@@ -34,8 +34,7 @@ static func verify(obj: Object, frozen_hash: int, label: String) -> void:
 	if frozen_hash == 0:
 		return
 	var current := compute_hash(obj)
-	assert(current == frozen_hash,
-		"%s state modified during execution! %s" % [label, obj.get_script().resource_path])
+	Log.assert_crash(current == frozen_hash, "StateCheck", "%s state modified during execution! %s" % [label, obj.get_script().resource_path])
 
 
 ## 计算对象所有脚本变量的 hash（排除 _frozen 前缀变量）
