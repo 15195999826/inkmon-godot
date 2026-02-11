@@ -98,6 +98,11 @@ func _grant_class_passives() -> void:
 		var thorn_passive := Ability.new(HexBattlePassiveAbilities.THORN_PASSIVE, get_id())
 		ability_set.grant_ability(thorn_passive)
 
+	# 狂战士：死亡爆发（亡语 - 死亡时对所有敌方造成 20 点纯粹伤害）
+	if character_class == HexBattleClassConfig.CharacterClass.BERSERKER:
+		var deathrattle := Ability.new(HexBattlePassiveAbilities.DEATHRATTLE_AOE, get_id())
+		ability_set.grant_ability(deathrattle)
+
 	# 法师：生命力 + 活力（互相依赖的被动，用于验证收敛机制）
 	# 生命力：atk += max_hp * 0.01
 	# 活力：max_hp += atk * 0.1

@@ -47,6 +47,25 @@ class EventSource extends TargetSelector:
 		return [source_id]
 
 
+## 选择 Ability Owner 的所有敌方存活单位
+class AllEnemies extends TargetSelector:
+	func select(ctx: ExecutionContext) -> Array[String]:
+		if ctx.ability_ref == null or ctx.ability_ref.owner_actor_id.is_empty():
+			return []
+		var battle: HexBattle = ctx.game_state_provider
+		if battle == null:
+			return []
+		var owner := battle.get_actor(ctx.ability_ref.owner_actor_id)
+		if owner == null:
+			return []
+		var owner_team := owner.get_team_id()
+		var result: Array[String] = []
+		for actor in battle.get_alive_actors():
+			if actor.get_team_id() != owner_team:
+				result.append(actor.get_id())
+		return result
+
+
 ## 固定目标选择器（用于测试或预设目标）
 class Fixed extends TargetSelector:
 	var _targets: Array[String]
@@ -75,6 +94,11 @@ static func ability_owner() -> AbilityOwner:
 ## 从当前事件获取来源
 static func event_source() -> EventSource:
 	return EventSource.new()
+
+
+## 所有敌方存活单位
+static func all_enemies() -> AllEnemies:
+	return AllEnemies.new()
 
 
 ## 固定目标
