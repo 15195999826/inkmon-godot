@@ -23,16 +23,16 @@ signal frame_changed(current_frame: int, total_frames: int)
 signal playback_ended()
 
 ## 角色状态变化（转发自 RenderWorld）
-signal actor_state_changed(actor_id: String, state: Dictionary)
+signal actor_state_changed(actor_id: String, state: FrontendActorRenderState)
 
 ## 飘字创建（转发自 RenderWorld）
-signal floating_text_created(data: Dictionary)
+signal floating_text_created(data: FrontendRenderData.FloatingText)
 
 ## 角色死亡（转发自 RenderWorld）
 signal actor_died(actor_id: String)
 
 ## 攻击特效创建（转发自 RenderWorld）
-signal attack_vfx_created(data: Dictionary)
+signal attack_vfx_created(data: FrontendRenderData.AttackVfx)
 
 ## 攻击特效更新（转发自 RenderWorld）
 signal attack_vfx_updated(vfx_id: String, progress: float, scale_factor: float, alpha: float)
@@ -41,7 +41,7 @@ signal attack_vfx_updated(vfx_id: String, progress: float, scale_factor: float, 
 signal attack_vfx_removed(vfx_id: String)
 
 ## 投射物创建（转发自 RenderWorld）
-signal projectile_created(data: Dictionary)
+signal projectile_created(data: FrontendRenderData.Projectile)
 
 ## 投射物更新（转发自 RenderWorld）
 signal projectile_updated(projectile_id: String, position: Vector3, direction: Vector3)
@@ -259,9 +259,9 @@ func is_ended() -> bool:
 	return _is_ended()
 
 
-## 获取渲染状态
-func get_render_state() -> Dictionary:
-	return _world.get_state()
+## 获取 Actor 状态快照（actor_id -> FrontendActorRenderState）
+func get_actors_snapshot() -> Dictionary:
+	return _world.get_actors_snapshot()
 
 
 ## 获取角色世界坐标
@@ -384,11 +384,11 @@ func _analyze_event_coverage() -> void:
 
 # ========== 信号处理 ==========
 
-func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
+func _on_actor_state_changed(actor_id: String, state: FrontendActorRenderState) -> void:
 	actor_state_changed.emit(actor_id, state)
 
 
-func _on_floating_text_created(data: Dictionary) -> void:
+func _on_floating_text_created(data: FrontendRenderData.FloatingText) -> void:
 	floating_text_created.emit(data)
 
 
@@ -396,7 +396,7 @@ func _on_actor_died(actor_id: String) -> void:
 	actor_died.emit(actor_id)
 
 
-func _on_attack_vfx_created(data: Dictionary) -> void:
+func _on_attack_vfx_created(data: FrontendRenderData.AttackVfx) -> void:
 	attack_vfx_created.emit(data)
 
 
@@ -408,7 +408,7 @@ func _on_attack_vfx_removed(vfx_id: String) -> void:
 	attack_vfx_removed.emit(vfx_id)
 
 
-func _on_projectile_created(data: Dictionary) -> void:
+func _on_projectile_created(data: FrontendRenderData.Projectile) -> void:
 	projectile_created.emit(data)
 
 

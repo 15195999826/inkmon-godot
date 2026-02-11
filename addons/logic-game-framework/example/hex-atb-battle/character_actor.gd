@@ -181,9 +181,6 @@ func check_death() -> bool:
 func is_dead() -> bool:
 	return _is_dead
 
-func is_active() -> bool:
-	return attribute_set.hp > 0
-
 
 # ========== 录像支持（覆盖 Actor 基类方法） ==========
 

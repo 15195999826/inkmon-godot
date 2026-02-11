@@ -297,11 +297,10 @@ func _extract_world_position(position_arr: Array, actor_type: String) -> Vector3
 
 ## 重置单位视图
 func _reset_unit_views() -> void:
-	var state := _director.get_render_state()
-	var actors: Dictionary = state.get("actors", {})
+	var actors := _director.get_actors_snapshot()
 	
 	for actor_id: String in actors.keys():
-		var actor_state: Dictionary = actors[actor_id]
+		var actor_state: FrontendActorRenderState = actors[actor_id]
 		if _unit_views.has(actor_id):
 			var unit_view: FrontendUnitView = _unit_views[actor_id]
 			unit_view.update_state(actor_state)
@@ -325,7 +324,7 @@ func _update_all_unit_positions() -> void:
 
 # ========== 信号处理 ==========
 
-func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
+func _on_actor_state_changed(actor_id: String, state: FrontendActorRenderState) -> void:
 	if _unit_views.has(actor_id):
 		var unit_view: FrontendUnitView = _unit_views[actor_id]
 		unit_view.update_state(state)
@@ -335,17 +334,11 @@ func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
 		unit_view.set_world_position(world_pos)
 
 
-func _on_floating_text_created(data: Dictionary) -> void:
+func _on_floating_text_created(data: FrontendRenderData.FloatingText) -> void:
 	var floating_text := FrontendFloatingTextView.new()
 	_effects_root.add_child(floating_text)
 	
-	var text: String = data.get("text", "")
-	var color: Color = data.get("color", Color.WHITE)
-	var world_position: Vector3 = data.get("position", Vector3.ZERO)
-	var style: int = data.get("style", 0)
-	var duration: float = data.get("duration", 1000.0)
-	
-	floating_text.initialize(text, color, world_position, style, duration)
+	floating_text.initialize(data.text, data.color, data.position, data.style, data.duration)
 
 
 func _on_actor_died(actor_id: String) -> void:
@@ -363,26 +356,18 @@ func _on_playback_ended() -> void:
 
 # ========== 攻击特效信号处理 ==========
 
-func _on_attack_vfx_created(data: Dictionary) -> void:
-	var vfx_id: String = data.get("id", "")
-	if vfx_id.is_empty():
+func _on_attack_vfx_created(data: FrontendRenderData.AttackVfx) -> void:
+	if data.id.is_empty():
 		return
 	
 	var vfx_view := FrontendAttackVFXView.new()
-	vfx_view.name = "AttackVFX_" + vfx_id
+	vfx_view.name = "AttackVFX_" + data.id
 	_effects_root.add_child(vfx_view)
-	_attack_vfx_views[vfx_id] = vfx_view
+	_attack_vfx_views[data.id] = vfx_view
 	
 	# 初始化特效
-	var vfx_type: int = data.get("vfx_type", 0)
-	var vfx_color: Color = data.get("vfx_color", Color.WHITE)
-	var direction: Vector3 = data.get("direction", Vector3.FORWARD)
-	var distance: float = data.get("distance", 1.0)
-	var is_critical: bool = data.get("is_critical", false)
-	var source_position: Vector3 = data.get("source_position", Vector3.ZERO)
-	
-	vfx_view.global_position = source_position
-	vfx_view.initialize(vfx_id, vfx_type, vfx_color, direction, distance, is_critical)
+	vfx_view.global_position = data.source_position
+	vfx_view.initialize(data.id, data.vfx_type, data.vfx_color, data.direction, data.distance, data.is_critical)
 
 
 func _on_attack_vfx_updated(vfx_id: String, _progress: float, scale_factor: float, alpha: float) -> void:
@@ -400,25 +385,18 @@ func _on_attack_vfx_removed(vfx_id: String) -> void:
 
 # ========== 投射物信号处理 ==========
 
-func _on_projectile_created(data: Dictionary) -> void:
-	var projectile_id: String = data.get("id", "")
-	if projectile_id.is_empty():
+func _on_projectile_created(data: FrontendRenderData.Projectile) -> void:
+	if data.id.is_empty():
 		return
 	
 	var projectile_view := FrontendProjectileView.new()
-	projectile_view.name = "Projectile_" + projectile_id
+	projectile_view.name = "Projectile_" + data.id
 	_effects_root.add_child(projectile_view)
-	_projectile_views[projectile_id] = projectile_view
+	_projectile_views[data.id] = projectile_view
 	
 	# 初始化投射物
-	var projectile_type: int = data.get("projectile_type", 0)
-	var projectile_color: Color = data.get("projectile_color", Color(0.3, 0.7, 1.0))
-	var projectile_size: float = data.get("projectile_size", 0.5)
-	var direction: Vector3 = data.get("direction", Vector3.FORWARD)
-	var start_position: Vector3 = data.get("start_position", Vector3.ZERO)
-	
-	projectile_view.global_position = start_position
-	projectile_view.initialize(projectile_id, projectile_type, projectile_color, projectile_size, direction)
+	projectile_view.global_position = data.start_position
+	projectile_view.initialize(data.id, data.projectile_type, data.projectile_color, data.projectile_size, data.direction)
 
 
 func _on_projectile_updated(projectile_id: String, pos: Vector3, dir: Vector3) -> void:

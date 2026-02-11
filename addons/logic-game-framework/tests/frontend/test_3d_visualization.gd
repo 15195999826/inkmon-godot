@@ -78,19 +78,14 @@ func _check_units() -> void:
 		print("    - Unit %d: %s (position: %s)" % [i, unit.name, unit.position])
 
 
-func _on_actor_state_changed(actor_id: String, state: Dictionary) -> void:
+func _on_actor_state_changed(actor_id: String, state: FrontendActorRenderState) -> void:
 	print("  [Signal] Actor state changed: %s" % actor_id)
-	if state.has("position"):
-		print("    - Position: %s" % state["position"])
-	if state.has("hp"):
-		print("    - HP: %.1f / %.1f" % [state["hp"], state.get("maxHp", 0)])
+	print("    - Position: q=%d r=%d" % [state.position.q, state.position.r])
+	print("    - HP: %.1f / %.1f" % [state.visual_hp, state.max_hp])
 
 
-func _on_floating_text_created(data: Dictionary) -> void:
-	var actor_id := data.get("actor_id", "unknown")
-	var text := data.get("text", "")
-	# color is available but unused in this test output
-	print("  [Signal] Floating text created: %s -> '%s'" % [actor_id, text])
+func _on_floating_text_created(data: FrontendRenderData.FloatingText) -> void:
+	print("  [Signal] Floating text created: %s -> '%s'" % [data.actor_id, data.text])
 
 
 func _on_actor_died(actor_id: String) -> void:

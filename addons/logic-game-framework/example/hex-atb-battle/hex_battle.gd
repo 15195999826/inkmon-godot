@@ -270,7 +270,7 @@ func get_all_actors() -> Array[CharacterActor]:
 func get_alive_actors() -> Array[CharacterActor]:
 	var result: Array[CharacterActor] = []
 	for actor in get_all_actors():
-		if actor.attribute_set.hp > 0:
+		if not actor.is_dead():
 			result.append(actor)
 	return result
 
@@ -279,7 +279,7 @@ func get_alive_actors() -> Array[CharacterActor]:
 func get_alive_actor_ids() -> Array[String]:
 	var result: Array[String] = []
 	for actor in get_all_actors():
-		if actor.attribute_set.hp > 0:
+		if not actor.is_dead():
 			result.append(actor.get_id())
 	return result
 
@@ -492,11 +492,11 @@ func _check_battle_end() -> bool:
 	var right_alive := 0
 	
 	for actor in left_team:
-		if actor.attribute_set.hp > 0:
+		if not actor.is_dead():
 			left_alive += 1
 	
 	for actor in right_team:
-		if actor.attribute_set.hp > 0:
+		if not actor.is_dead():
 			right_alive += 1
 	
 	if left_alive == 0:

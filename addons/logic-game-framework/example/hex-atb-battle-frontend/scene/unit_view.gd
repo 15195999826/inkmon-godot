@@ -138,19 +138,14 @@ func get_actor_id() -> String:
 
 
 ## 更新状态
-func update_state(new_state: Dictionary) -> void:
-	var new_hp: float = new_state.get("visual_hp", _current_hp)
-	var new_alive: bool = new_state.get("is_alive", _is_alive)
-	var flash_progress: float = new_state.get("flash_progress", 0.0)
-	var tint_color: Color = new_state.get("tint_color", Color.WHITE)
-	
-	_current_hp = new_hp
-	_is_alive = new_alive
-	_flash_progress = flash_progress
+func update_state(new_state: FrontendActorRenderState) -> void:
+	_current_hp = new_state.visual_hp
+	_is_alive = new_state.is_alive
+	_flash_progress = new_state.flash_progress
 	
 	_update_hp_bar()
-	_update_flash_effect(flash_progress)
-	_update_tint_color(tint_color)
+	_update_flash_effect(new_state.flash_progress)
+	_update_tint_color(new_state.tint_color)
 	
 	# 处理死亡
 	if not _is_alive:

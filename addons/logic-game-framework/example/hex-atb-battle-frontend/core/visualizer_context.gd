@@ -9,7 +9,7 @@ extends RefCounted
 
 # ========== 内部状态引用 ==========
 
-## 角色状态 Map（actor_id -> ActorRenderState）
+## 角色状态 Map（actor_id -> FrontendActorRenderState）
 var _actors: Dictionary = {}
 
 ## 插值位置 Map（actor_id -> Vector2）用于平滑动画
@@ -47,20 +47,26 @@ func get_actor_position(actor_id: String) -> Vector3:
 
 ## 获取角色当前 HP
 func get_actor_hp(actor_id: String) -> float:
-	var actor: Dictionary = _actors.get(actor_id, {})
-	return actor.get("visual_hp", 0.0) as float
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return 0.0
+	return actor.visual_hp
 
 
 ## 获取角色最大 HP
 func get_actor_max_hp(actor_id: String) -> float:
-	var actor: Dictionary = _actors.get(actor_id, {})
-	return actor.get("max_hp", 100.0) as float
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return 100.0
+	return actor.max_hp
 
 
 ## 检查角色是否存活
 func is_actor_alive(actor_id: String) -> bool:
-	var actor: Dictionary = _actors.get(actor_id, {})
-	return actor.get("is_alive", false) as bool
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return false
+	return actor.is_alive
 
 
 ## 获取角色六边形坐标
@@ -70,15 +76,18 @@ func get_actor_hex_position(actor_id: String) -> HexCoord:
 		var pos: Vector2 = _interpolated_positions[actor_id]
 		return HexCoord.new(roundi(pos.x), roundi(pos.y))
 	
-	var actor: Dictionary = _actors.get(actor_id, {})
-	var pos: Dictionary = actor.get("position", {})
-	return HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return HexCoord.zero()
+	return actor.position
 
 
 ## 获取角色所属队伍
 func get_actor_team(actor_id: String) -> int:
-	var actor: Dictionary = _actors.get(actor_id, {})
-	return actor.get("team", 0) as int
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return 0
+	return actor.team
 
 
 ## 获取所有角色 ID
@@ -91,8 +100,10 @@ func get_all_actor_ids() -> Array[String]:
 
 ## 获取角色显示名称
 func get_actor_display_name(actor_id: String) -> String:
-	var actor: Dictionary = _actors.get(actor_id, {})
-	return actor.get("display_name", "") as String
+	var actor: FrontendActorRenderState = _actors.get(actor_id)
+	if actor == null:
+		return ""
+	return actor.display_name
 
 
 # ========== 配置查询 ==========
