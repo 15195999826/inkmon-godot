@@ -1,5 +1,5 @@
 class_name TimeDurationConfig
-extends RefCounted
+extends AbilityComponentConfig
 ## TimeDuration 组件配置
 ##
 ## 定义持续时间的配置数据，由 Ability._resolve_components() 解析为 TimeDurationComponent 实例。
@@ -17,3 +17,8 @@ var duration_ms: float
 
 func _init(duration_ms: float = 0.0) -> void:
 	self.duration_ms = duration_ms
+
+
+## 创建对应的 TimeDurationComponent 实例
+func create_component() -> AbilityComponent:
+	return TimeDurationComponent.new(duration_ms)

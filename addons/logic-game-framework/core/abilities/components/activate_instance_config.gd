@@ -20,7 +20,7 @@
 ##     .build()
 ## [/codeblock]
 class_name ActivateInstanceConfig
-extends RefCounted
+extends AbilityComponentConfig
 
 
 ## Timeline ID
@@ -46,6 +46,11 @@ func _init(
 	self.tag_actions = tag_actions
 	self.triggers = triggers
 	self.trigger_mode = trigger_mode
+
+
+## 创建对应的 ActivateInstanceComponent 实例
+func create_component() -> AbilityComponent:
+	return ActivateInstanceComponent.new(self)
 
 
 ## 创建 Builder

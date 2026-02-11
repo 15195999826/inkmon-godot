@@ -37,7 +37,7 @@ var ability_tags: Array[String]
 var active_use_components: Array[ActiveUseConfig]
 
 ## 效果组件配置列表（被动触发、Buff 等）
-var components: Array[RefCounted]
+var components: Array[AbilityComponentConfig]
 
 ## 自定义元数据（游戏层可自由附加，如施法距离、伤害类型等）
 var metadata: Dictionary = {}
@@ -50,7 +50,7 @@ func _init(
 	icon: String = "",
 	ability_tags: Array[String] = [],
 	active_use_components: Array[ActiveUseConfig] = [],
-	components: Array[RefCounted] = [],
+	components: Array[AbilityComponentConfig] = [],
 	metadata: Dictionary = {}
 ) -> void:
 	self.config_id = config_id
@@ -81,7 +81,7 @@ class AbilityConfigBuilder:
 	var _icon: String = ""
 	var _ability_tags: Array[String] = []
 	var _active_use_components: Array[ActiveUseConfig] = []
-	var _components: Array[RefCounted] = []
+	var _components: Array[AbilityComponentConfig] = []
 	var _metadata: Dictionary = {}
 	
 	## 设置配置 ID（必填）
@@ -116,7 +116,7 @@ class AbilityConfigBuilder:
 		return self
 	
 	## 添加效果组件配置
-	func component_config(config: RefCounted) -> AbilityConfigBuilder:
+	func component_config(config: AbilityComponentConfig) -> AbilityConfigBuilder:
 		_components.append(config)
 		return self
 	

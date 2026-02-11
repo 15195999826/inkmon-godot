@@ -34,7 +34,7 @@
 ##     .build()
 ## [/codeblock]
 class_name ActiveUseConfig
-extends RefCounted
+extends AbilityComponentConfig
 
 
 ## Timeline ID
@@ -70,6 +70,11 @@ func _init(
 	self.costs.assign(costs)
 	self.triggers = triggers
 	self.trigger_mode = trigger_mode
+
+
+## 创建对应的 ActiveUseComponent 实例
+func create_component() -> AbilityComponent:
+	return ActiveUseComponent.new(self)
 
 
 ## 创建 Builder

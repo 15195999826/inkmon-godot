@@ -26,7 +26,7 @@
 ## )
 ## ```
 class_name PreEventConfig
-extends RefCounted
+extends AbilityComponentConfig
 
 
 ## 事件类型
@@ -52,3 +52,8 @@ func _init(
 	self.handler = handler
 	self.filter = filter
 	self.name = name
+
+
+## 创建对应的 PreEventComponent 实例
+func create_component() -> AbilityComponent:
+	return PreEventComponent.new(self)

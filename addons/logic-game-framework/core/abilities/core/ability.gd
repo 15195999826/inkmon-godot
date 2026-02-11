@@ -183,37 +183,12 @@ func serialize() -> Dictionary:
 		"executionInstances": serialized_instances,
 	}
 
-func _resolve_components(active_use_configs: Array, component_configs: Array) -> Array[AbilityComponent]:
+func _resolve_components(active_use_configs: Array[ActiveUseConfig], component_configs: Array[AbilityComponentConfig]) -> Array[AbilityComponent]:
 	var result: Array[AbilityComponent] = []
-	
-	# 解析 ActiveUseConfig -> ActiveUseComponent
 	for cfg in active_use_configs:
-		if cfg is ActiveUseConfig:
-			result.append(ActiveUseComponent.new(cfg))
-		elif cfg is Callable:
-			result.append(cfg.call())
-		else:
-			result.append(cfg)
-	
-	# 解析组件配置
+		result.append(cfg.create_component())
 	for cfg in component_configs:
-		if cfg is ActivateInstanceConfig:
-			result.append(ActivateInstanceComponent.new(cfg))
-		elif cfg is NoInstanceConfig:
-			result.append(NoInstanceComponent.new(cfg))
-		elif cfg is PreEventConfig:
-			result.append(PreEventComponent.new(cfg))
-		elif cfg is DynamicStatModifierComponentConfig:
-			result.append(DynamicStatModifierComponent.new(cfg.modifier_config))
-		elif cfg is StatModifierConfig:
-			result.append(StatModifierComponent.new(cfg.modifier_configs))
-		elif cfg is TimeDurationConfig:
-			result.append(TimeDurationComponent.new(cfg.duration_ms))
-		elif cfg is Callable:
-			result.append(cfg.call())
-		else:
-			result.append(cfg)
-	
+		result.append(cfg.create_component())
 	return result
 
 func _is_executing_instance(instance: AbilityExecutionInstance) -> bool:

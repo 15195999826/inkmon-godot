@@ -335,6 +335,8 @@ func tick(dt: float) -> void:
 	# 处理投射物命中事件（在 base_tick 中 ProjectileSystem 已经更新）
 	_process_projectile_events()
 	
+	# ATB 与技能执行互斥：施法期间 ATB 冻结，不继续充能（经典 ATB 模式）。
+	# 若需支持"施法不打断 ATB 累积"等变体，可将此逻辑抽取为独立的 ATBSystem。
 	for actor in get_alive_actors():
 		actor.ability_set.tick(dt, _logic_time)
 		

@@ -1,5 +1,5 @@
 class_name DynamicStatModifierComponentConfig
-extends RefCounted
+extends AbilityComponentConfig
 ## DynamicStatModifierComponentConfig - 动态属性修改器组件配置
 ##
 ## 作为 DynamicStatModifierConfig 的 Config wrapper，
@@ -21,3 +21,8 @@ var modifier_config: DynamicStatModifierConfig
 
 func _init(p_config: DynamicStatModifierConfig) -> void:
 	modifier_config = p_config
+
+
+## 创建对应的 DynamicStatModifierComponent 实例
+func create_component() -> AbilityComponent:
+	return DynamicStatModifierComponent.new(modifier_config)

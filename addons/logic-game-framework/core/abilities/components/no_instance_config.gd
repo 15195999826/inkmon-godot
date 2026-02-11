@@ -19,7 +19,7 @@
 ##     .build()
 ## [/codeblock]
 class_name NoInstanceConfig
-extends RefCounted
+extends AbilityComponentConfig
 
 
 ## 触发器列表
@@ -40,6 +40,11 @@ func _init(
 	self.triggers = triggers
 	self.actions.assign(actions)
 	self.trigger_mode = trigger_mode
+
+
+## 创建对应的 NoInstanceComponent 实例
+func create_component() -> AbilityComponent:
+	return NoInstanceComponent.new(self)
 
 
 ## 创建 Builder

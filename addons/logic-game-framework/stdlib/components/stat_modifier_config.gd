@@ -1,5 +1,5 @@
 class_name StatModifierConfig
-extends RefCounted
+extends AbilityComponentConfig
 ## StatModifier 组件配置
 ##
 ## 定义属性修改器的配置数据，由 Ability._resolve_components() 解析为 StatModifierComponent 实例。
@@ -34,6 +34,11 @@ var modifier_configs: Array[ModifierEntry]
 
 func _init(configs: Array[ModifierEntry] = []) -> void:
 	modifier_configs = configs
+
+
+## 创建对应的 StatModifierComponent 实例
+func create_component() -> AbilityComponent:
+	return StatModifierComponent.new(modifier_configs)
 
 
 ## 创建 Builder

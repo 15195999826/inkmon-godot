@@ -1,5 +1,12 @@
 class_name ActiveUseComponent
 extends ActivateInstanceComponent
+## 主动使用组件：在 ActivateInstanceComponent 的 trigger → execute 流程中，
+## 插入 Condition 检查和 Cost 扣除。
+##
+## 继承关系说明：
+## ActiveUse "是一个" ActivateInstance —— 带有额外前置校验的触发执行组件。
+## 父类的 _check_triggers()、_activate_execution()、serialize() 等逻辑被完整复用，
+## on_event() 仅在 trigger 通过与 execute 之间增加 conditions/costs 管道。
 
 const COMPONENT_TYPE := "ActiveUseComponent"
 
