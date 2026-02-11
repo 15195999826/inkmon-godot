@@ -23,7 +23,7 @@ static func create_projectile_launched_event(projectile_id: String, source_actor
 		payload["targetPosition"] = target_position
 	return payload
 
-static func create_projectile_hit_event(projectile_id: String, source_actor_id: String, target_actor_id: String, hit_position: Vector3, fly_time: float, fly_distance: float, options: Dictionary = {}) -> Dictionary:
+static func create_projectile_hit_event(projectile_id: String, source_actor_id: String, target_actor_id: String, hit_position: Vector3, fly_time: float, fly_distance: float, ability_config_id: String = "", options: Dictionary = {}) -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_HIT_EVENT,
 		"projectileId": projectile_id,
@@ -33,11 +33,13 @@ static func create_projectile_hit_event(projectile_id: String, source_actor_id: 
 		"flyTime": fly_time,
 		"flyDistance": fly_distance,
 	}
+	if ability_config_id != "":
+		payload["ability_config_id"] = ability_config_id
 	for key in options.keys():
 		payload[key] = options[key]
 	return payload
 
-static func create_projectile_miss_event(projectile_id: String, source_actor_id: String, reason: String, final_position: Vector3, fly_time: float, target_actor_id: String = "") -> Dictionary:
+static func create_projectile_miss_event(projectile_id: String, source_actor_id: String, reason: String, final_position: Vector3, fly_time: float, target_actor_id: String = "", ability_config_id: String = "") -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_MISS_EVENT,
 		"projectileId": projectile_id,
@@ -48,6 +50,8 @@ static func create_projectile_miss_event(projectile_id: String, source_actor_id:
 	}
 	if target_actor_id != "":
 		payload["target_actor_id"] = target_actor_id
+	if ability_config_id != "":
+		payload["ability_config_id"] = ability_config_id
 	return payload
 
 static func create_projectile_despawn_event(projectile_id: String, source_actor_id: String, reason: String) -> Dictionary:
@@ -59,7 +63,7 @@ static func create_projectile_despawn_event(projectile_id: String, source_actor_
 	}
 
 ## damage: -1.0 表示无伤害数据
-static func create_projectile_pierce_event(projectile_id: String, source_actor_id: String, target_actor_id: String, pierce_position: Vector3, pierce_count: int, damage: float = -1.0) -> Dictionary:
+static func create_projectile_pierce_event(projectile_id: String, source_actor_id: String, target_actor_id: String, pierce_position: Vector3, pierce_count: int, damage: float = -1.0, ability_config_id: String = "") -> Dictionary:
 	var payload := {
 		"kind": PROJECTILE_PIERCE_EVENT,
 		"projectileId": projectile_id,
@@ -70,6 +74,8 @@ static func create_projectile_pierce_event(projectile_id: String, source_actor_i
 	}
 	if damage >= 0.0:
 		payload["damage"] = damage
+	if ability_config_id != "":
+		payload["ability_config_id"] = ability_config_id
 	return payload
 
 static func is_projectile_launched_event(event: Dictionary) -> bool:

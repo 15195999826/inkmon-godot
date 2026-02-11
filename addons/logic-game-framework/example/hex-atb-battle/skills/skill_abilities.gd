@@ -37,13 +37,17 @@ static func _ability_activate_filter(event_dict: Dictionary, ctx: AbilityLifecyc
 	return event.ability_instance_id == ability.id
 
 
-## 触发器过滤函数：匹配投射物命中事件（source_actor_id 匹配 Ability owner）
+## 触发器过滤函数：匹配投射物命中事件
+## 同时匹配 source_actor_id（发射者）和 ability_config_id（技能来源），
+## 确保只有本技能发出的投射物才触发命中响应。
 static func _projectile_hit_filter(event_dict: Dictionary, ctx: AbilityLifecycleContext) -> bool:
-	var owner_id: String = ctx.owner_actor_id
-	if owner_id == "":
+	var ability: Ability = ctx.ability
+	if ability == null:
+		Log.warning("ProjectileHitFilter", "ctx.ability is null, skipping filter")
 		return false
-	var source_actor_id: String = event_dict.get("source_actor_id", "")
-	return source_actor_id == owner_id
+	var event := GameEvent.ProjectileHit.from_dict(event_dict)
+	return event.source_actor_id == ctx.owner_actor_id \
+		and event.ability_config_id == ability.config_id
 
 
 # ========== 投射物位置解析器 ==========

@@ -359,6 +359,58 @@ class StageCue extends Base:
 		return d.get("kind") == STAGE_CUE_EVENT
 
 
+class ProjectileHit extends Base:
+	var projectile_id: String = ""
+	var source_actor_id: String = ""
+	var target_actor_id: String = ""
+	var ability_config_id: String = ""
+	var hit_position: Vector3 = Vector3.ZERO
+	var fly_time: float = 0.0
+	var fly_distance: float = 0.0
+	
+	func _init() -> void:
+		kind = ProjectileEvents.PROJECTILE_HIT_EVENT
+	
+	static func create(p_projectile_id: String, p_source_actor_id: String, p_target_actor_id: String, p_hit_position: Vector3, p_fly_time: float, p_fly_distance: float, p_ability_config_id: String = "") -> ProjectileHit:
+		var e := ProjectileHit.new()
+		e.projectile_id = p_projectile_id
+		e.source_actor_id = p_source_actor_id
+		e.target_actor_id = p_target_actor_id
+		e.hit_position = p_hit_position
+		e.fly_time = p_fly_time
+		e.fly_distance = p_fly_distance
+		e.ability_config_id = p_ability_config_id
+		return e
+	
+	func to_dict() -> Dictionary:
+		var d := {
+			"kind": kind,
+			"projectileId": projectile_id,
+			"source_actor_id": source_actor_id,
+			"target_actor_id": target_actor_id,
+			"hitPosition": hit_position,
+			"flyTime": fly_time,
+			"flyDistance": fly_distance,
+		}
+		if ability_config_id != "":
+			d["ability_config_id"] = ability_config_id
+		return d
+	
+	static func from_dict(d: Dictionary) -> ProjectileHit:
+		var e := ProjectileHit.new()
+		e.projectile_id = d.get("projectileId", "")
+		e.source_actor_id = d.get("source_actor_id", "")
+		e.target_actor_id = d.get("target_actor_id", "")
+		e.ability_config_id = d.get("ability_config_id", "")
+		e.hit_position = d.get("hitPosition", Vector3.ZERO)
+		e.fly_time = d.get("flyTime", 0.0)
+		e.fly_distance = d.get("flyDistance", 0.0)
+		return e
+	
+	static func is_match(d: Dictionary) -> bool:
+		return d.get("kind", "") == ProjectileEvents.PROJECTILE_HIT_EVENT
+
+
 class AbilityActivate extends Base:
 	var ability_instance_id: String = ""
 	var source_id: String = ""

@@ -142,6 +142,7 @@ func _emit_hit_event(projectile: ProjectileActor, target_actor_id: String, hit_p
 		hit_position,
 		projectile.get_fly_time(),
 		projectile.get_fly_distance(),
+		projectile.get_ability_config_id(),
 		{
 			"damage": projectile.config.get(ProjectileActor.CFG_DAMAGE),
 			"damageType": projectile.config.get(ProjectileActor.CFG_DAMAGE_TYPE),
@@ -170,7 +171,8 @@ func _emit_miss_event(projectile: ProjectileActor, reason: String) -> void:
 		reason,
 		final_position,
 		projectile.get_fly_time(),
-		projectile.get_target_actor_id()
+		projectile.get_target_actor_id(),
+		projectile.get_ability_config_id()
 	)
 
 	event_collector.push(event)
@@ -194,7 +196,8 @@ func _emit_pierce_event(projectile: ProjectileActor, target_actor_id: String, pi
 		target_actor_id,
 		pierce_position,
 		projectile.get_pierce_count(),
-		projectile.config.get(ProjectileActor.CFG_DAMAGE, -1.0) as float
+		projectile.config.get(ProjectileActor.CFG_DAMAGE, -1.0) as float,
+		projectile.get_ability_config_id()
 	)
 
 	event_collector.push(event)

@@ -3,10 +3,6 @@ extends Action.BaseAction
 
 const TYPE = "launchProjectile"
 
-var _hit_callbacks: Array[Action.BaseAction] = []
-var _miss_callbacks: Array[Action.BaseAction] = []
-var _pierce_callbacks: Array[Action.BaseAction] = []
-
 var _projectile_config: DictResolver
 var _start_position: Vector3Resolver
 var _target_position: Vector3Resolver
@@ -37,28 +33,6 @@ func _init(
 	_custom_data = custom_data
 
 
-## 重写 _freeze 以冻结回调 Action
-func _freeze() -> void:
-	super._freeze()
-	for callbacks in [_hit_callbacks, _miss_callbacks, _pierce_callbacks]:
-		for callback in callbacks:
-			callback._freeze()
-
-
-func on_projectile_hit(action: Action.BaseAction) -> LaunchProjectileAction:
-	_hit_callbacks.append(action)
-	return self
-
-
-func on_projectile_miss(action: Action.BaseAction) -> LaunchProjectileAction:
-	_miss_callbacks.append(action)
-	return self
-
-
-func on_projectile_pierce(action: Action.BaseAction) -> LaunchProjectileAction:
-	_pierce_callbacks.append(action)
-	return self
-
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	# 解析起始位置（必需）
@@ -83,6 +57,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var custom_data_value := _custom_data.resolve(ctx)
 
 	var source_actor_id := ctx.ability_ref.source_actor_id if ctx.ability_ref != null else "unknown"
+	var ability_config_id := ctx.ability_ref.config_id if ctx.ability_ref != null else ""
 
 	var projectile := ProjectileActor.new(projectile_config)
 
@@ -95,6 +70,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	var launch_params := {
 		"source_actor_id": source_actor_id,
+		"ability_config_id": ability_config_id,
 		"target_actor_id": target_actor_id,
 		"startPosition": start_position,
 		"targetPosition": target_position,
@@ -129,32 +105,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 
 	return result
 
-
-## 处理投射物命中回调
-func process_hit_callbacks(hit_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	return _process_callbacks(_hit_callbacks, hit_event, ctx)
-
-
-## 处理投射物未命中回调
-func process_miss_callbacks(miss_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	return _process_callbacks(_miss_callbacks, miss_event, ctx)
-
-
-## 处理投射物穿透回调
-func process_pierce_callbacks(pierce_event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	return _process_callbacks(_pierce_callbacks, pierce_event, ctx)
-
-
-## 执行回调列表，收集产生的事件
-func _process_callbacks(callbacks: Array[Action.BaseAction], event: Dictionary, ctx: ExecutionContext) -> Array[Dictionary]:
-	var events: Array[Dictionary] = []
-	for callback in callbacks:
-		var callback_ctx := ExecutionContext.create_callback_context(ctx, event)
-		var callback_result := callback.execute(callback_ctx)
-		callback._verify_unchanged()
-		if callback_result != null and callback_result.event_dicts:
-			events.append_array(callback_result.event_dicts)
-	return events
 
 
 ## 创建从 Actor 获取位置的解析器

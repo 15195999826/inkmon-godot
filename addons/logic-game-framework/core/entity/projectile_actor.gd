@@ -63,6 +63,9 @@ func get_launch_params() -> Dictionary:
 func get_source_actor_id() -> String:
 	return _launch_params.get("source_actor_id", "") as String
 
+func get_ability_config_id() -> String:
+	return _launch_params.get("ability_config_id", "") as String
+
 func get_target_actor_id() -> String:
 	return _launch_params.get("target_actor_id", "") as String
 
