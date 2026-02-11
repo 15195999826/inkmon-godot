@@ -57,6 +57,7 @@ func _init(config: Dictionary) -> void:
 
 
 func add_loose_tag(tag: String, stacks: int = 1) -> void:
+	assert(stacks > 0, "add_loose_tag: stacks must be positive, got %d" % stacks)
 	var old_count := get_tag_stacks(tag)
 	var current := int(_loose_tags.get(tag, 0))
 	_loose_tags[tag] = current + stacks
