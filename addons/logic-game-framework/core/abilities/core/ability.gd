@@ -186,9 +186,13 @@ func serialize() -> Dictionary:
 func _resolve_components(active_use_configs: Array[ActiveUseConfig], component_configs: Array[AbilityComponentConfig]) -> Array[AbilityComponent]:
 	var result: Array[AbilityComponent] = []
 	for cfg in active_use_configs:
-		result.append(cfg.create_component())
+		var component := cfg.create_component()
+		assert(component != null, "ActiveUseConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
+		result.append(component)
 	for cfg in component_configs:
-		result.append(cfg.create_component())
+		var component := cfg.create_component()
+		assert(component != null, "AbilityComponentConfig.create_component() returned null: %s" % cfg.get_script().get_global_name())
+		result.append(component)
 	return result
 
 func _is_executing_instance(instance: AbilityExecutionInstance) -> bool:

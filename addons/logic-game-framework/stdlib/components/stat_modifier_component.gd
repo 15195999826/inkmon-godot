@@ -15,9 +15,9 @@ func _init(modifier_configs: Array[StatModifierConfig.ModifierEntry]) -> void:
 	type = "StatModifierComponent"
 
 func on_apply(context: AbilityLifecycleContext) -> void:
-	var mod_list := _create_modifiers_internal(context)
+	applied_modifiers = _create_modifiers_internal(context)
 	var raw: RawAttributeSet = context.attribute_set.get_raw()
-	for modifier in mod_list:
+	for modifier in applied_modifiers:
 		raw.add_modifier(modifier)
 
 func _create_modifiers_internal(context: AbilityLifecycleContext) -> Array[AttributeModifier]:
