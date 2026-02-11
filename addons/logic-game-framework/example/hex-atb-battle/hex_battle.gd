@@ -458,7 +458,7 @@ func can_use_skill_on(actor: CharacterActor, skill: Ability, target: CharacterAc
 	return true
 
 
-## AI 决策：决定 actor 本回合的行动（技能 > 移动 > 跳过）
+## AI 决策：委托给 actor 的 AI 策略对象
 ##
 ## 并发安全说明：不会出现两个单位计划移动到同一格子的情况。
 ## tick() 中 for actor in get_alive_actors() 是顺序遍历，_start_actor_action 是同步执行的。
@@ -469,69 +469,7 @@ func can_use_skill_on(actor: CharacterActor, skill: Ability, target: CharacterAc
 ## 注意：此安全性依赖 ATB 串行决策 + tick(0) 同步执行 START tag，
 ## 如果改为并行决策或异步执行，需要额外的并发保护。
 func _decide_action(actor: CharacterActor) -> Dictionary:
-	var my_pos := actor.hex_position
-	var skill := actor.get_skill_ability()
-	var skill_ready := not actor.ability_set.is_on_cooldown(skill.config_id)
-	
-	# 收集敌方存活单位
-	var enemies: Array[CharacterActor] = []
-	for a in get_alive_actors():
-		if a.get_team_id() != actor.get_team_id():
-			enemies.append(a)
-	
-	# 1. 技能优先：如果技能就绪，寻找有效目标
-	if skill_ready:
-		var valid_targets: Array[CharacterActor] = []
-		for target in get_alive_actors():
-			if can_use_skill_on(actor, skill, target):
-				valid_targets.append(target)
-		
-		if valid_targets.size() > 0:
-			# 选择最近的有效目标
-			var best_target: CharacterActor = valid_targets[0]
-			var best_dist := my_pos.distance_to(best_target.hex_position)
-			for i in range(1, valid_targets.size()):
-				var dist := my_pos.distance_to(valid_targets[i].hex_position)
-				if dist < best_dist:
-					best_dist = dist
-					best_target = valid_targets[i]
-			return {
-				"type": "skill",
-				"ability_instance_id": skill.id,
-				"target_actor_id": best_target.get_id(),
-			}
-	
-	# 2. 无法使用技能 → 向最近的敌人移动
-	if my_pos.is_valid() and enemies.size() > 0:
-		# 找到最近的敌人
-		var nearest_enemy: CharacterActor = enemies[0]
-		var nearest_dist := my_pos.distance_to(nearest_enemy.hex_position)
-		for i in range(1, enemies.size()):
-			var dist := my_pos.distance_to(enemies[i].hex_position)
-			if dist < nearest_dist:
-				nearest_dist = dist
-				nearest_enemy = enemies[i]
-		
-		# 从邻居格子中选出能让距离最小的
-		var neighbors: Array[HexCoord] = my_pos.get_neighbors()
-		var best_coord: HexCoord = null
-		var best_move_dist := nearest_dist  # 当前距离作为基准
-		for n in neighbors:
-			if UGridMap.model.has_tile(n) and not UGridMap.model.is_occupied(n) and not UGridMap.model.is_reserved(n):
-				var move_dist := n.distance_to(nearest_enemy.hex_position)
-				if move_dist < best_move_dist:
-					best_move_dist = move_dist
-					best_coord = n
-		
-		if best_coord != null:
-			return {
-				"type": "move",
-				"ability_instance_id": actor.get_move_ability().id,
-				"target_coord": best_coord,
-			}
-	
-	# 3. 无法移动也无法使用技能 → 跳过
-	return { "type": "skip" }
+	return actor.ai_strategy.decide(actor, self)
 
 
 func _create_action_use_event(ability_instance_id: String, source_id: String, target_actor_id: String, target_coord: HexCoord) -> Dictionary:

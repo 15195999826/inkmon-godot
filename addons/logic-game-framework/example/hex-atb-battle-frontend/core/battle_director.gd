@@ -149,6 +149,9 @@ func _process(delta: float) -> void:
 	if not _is_playing:
 		return
 	
+	# delta 是 Godot _process(delta) 传入的，单位是秒（比如 60fps 时 ≈ 0.0167 秒）。
+	# 整个表演层内部的时间单位统一用毫秒（duration、delay、elapsed 全是 ms）。
+	# 转为毫秒后再乘以播放速度。
 	_tick(delta * 1000.0 * _speed)
 
 

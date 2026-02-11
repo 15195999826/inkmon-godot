@@ -18,6 +18,9 @@ var attribute_set: HexBattleCharacterAttributeSet
 var ability_set: BattleAbilitySet
 var _is_dead: bool = false
 
+## AI 策略
+var ai_strategy: AIStrategy
+
 ## 当前位置（六边形坐标）
 ## 使用 HexCoord.invalid() 表示未设置位置，在 _init 中初始化
 var hex_position: HexCoord = HexCoord.invalid()
@@ -53,6 +56,7 @@ func _init(p_character_class: HexBattleClassConfig.CharacterClass) -> void:
 	attribute_set.set_def_base(stats["def"])
 	attribute_set.set_speed_base(stats["speed"])
 	ability_set = BattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
+	ai_strategy = AIStrategyFactory.get_strategy(character_class)
 
 
 ## 设置属性约束
