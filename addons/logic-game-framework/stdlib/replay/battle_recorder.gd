@@ -9,6 +9,24 @@ extends RefCounted
 ##
 ## record_frame() 调用时，将两种来源合并写入当前帧的 timeline。
 ## pending_events 作为帧间缓冲区，在合并后清空。
+##
+## 【已知问题：录像文件大小】
+##
+## 当前所有事件无差别录入 timeline，长时间战斗（>500帧）录像文件可能过大。
+##
+## 优化方案（按优先级）：
+##
+## 1. 事件过滤：在 record_frame() 中添加可配置的事件白名单/黑名单
+##    - 表演层不需要的事件（如 attribute_changed 高频事件）可跳过录入
+##    - 通过 recorder_config 传入 { "event_filter": ["damage", "heal", "death", ...] }
+##
+## 2. 高频事件节流：对同一 actor 的同类事件做帧间合并
+##    - 例如连续 3 帧的 attribute_changed 只保留最后一帧的值
+##    - 适用于 ATB 进度条等每帧变化的属性
+##
+## 3. 二进制格式：将 JSON 替换为 MessagePack 或自定义二进制格式
+##    - 预期体积减少 50-70%
+##    - 需要同步修改 Web 端解析器
 
 var _record: ReplayData.BattleRecord
 var _meta: ReplayData.BattleMeta

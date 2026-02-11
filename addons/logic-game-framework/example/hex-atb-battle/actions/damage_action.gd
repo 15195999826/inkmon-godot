@@ -133,48 +133,23 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		else:
 			print("  [DamageAction] %s 对 %s 造成 %.0f %s 伤害%s" % [source_name, target_name, final_damage, damage_type_str, crit_text])
 		
+		# ========== 应用伤害 + 死亡处理 ==========
 		var event := BattleEvents.DamageEvent.create(
-			target_id,
-			final_damage,
-			_damage_type,
-			source_actor_id,
-			is_critical,
-			false  # is_reflected
+			target_id, final_damage, _damage_type, source_actor_id, is_critical, false
 		)
-		var damage_event: Dictionary = ctx.event_collector.push(event.to_dict())
-		all_events.append(damage_event)
+		var damage_result := HexBattleDamageUtils.apply_damage(
+			event, alive_actor_ids, ctx, battle,
+		)
+		all_events.append_array(damage_result.all_events)
 		
-		var target_actor := battle.get_actor(target_id)
-		if target_actor != null:
-			target_actor.attribute_set.set_hp_base(target_actor.attribute_set.hp - final_damage)
-			
-			print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f" % [
-				target_name, final_damage, target_actor.attribute_set.hp
-			])
-			
-			if battle.logger != null:
-				battle.logger.damage_dealt(source_actor_id, target_id, final_damage, damage_type_str, false)
-			
-			if target_actor.check_death():
-				print("  [死亡] %s 已阵亡" % target_name)
-				
-				if battle.logger != null:
-					battle.logger.actor_died(target_id, source_actor_id)
-				
-				var death_event := BattleEvents.DeathEvent.create(target_id, source_actor_id)
-				var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
-				all_events.append(death_dict)
-				
-				if alive_actor_ids.size() > 0:
-					event_processor.process_post_event(death_dict, alive_actor_ids, battle)
-				
-				battle.remove_actor(target_id)
-		
-		var callback_events := _process_callbacks(damage_event, is_critical, ctx)
+		# ========== 回调处理（在 post damage 广播之前） ==========
+		var callback_events := _process_callbacks(damage_result.damage_event_dict, is_critical, ctx)
 		all_events.append_array(callback_events)
 		
-		if alive_actor_ids.size() > 0:
-			event_processor.process_post_event(damage_event, alive_actor_ids, battle)
+		# ========== Post damage 广播 ==========
+		HexBattleDamageUtils.broadcast_post_damage(
+			damage_result.damage_event_dict, alive_actor_ids, battle,
+		)
 	
 	return ActionResult.create_success_result(all_events, { "damage": _damage })
 

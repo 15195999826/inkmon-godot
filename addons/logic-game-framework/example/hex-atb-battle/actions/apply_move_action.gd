@@ -52,7 +52,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var reservation := grid.get_reservation(target_coord)
 			var has_tile := grid.has_tile(target_coord)
 			push_error(
-				"[ApplyMoveAction] BUG: %s 移动失败：从 (%d, %d) → (%d, %d)\n" % [
+				"[ApplyMoveAction] UNEXPECTED: %s 移动失败：从 (%d, %d) → (%d, %d)\n" % [
 					target_id, from_hex.q, from_hex.r, target_coord.q, target_coord.r
 				] +
 				"  格子存在: %s\n" % str(has_tile) +

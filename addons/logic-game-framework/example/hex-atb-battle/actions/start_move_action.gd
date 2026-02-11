@@ -51,7 +51,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			var occupant := battle.grid.get_occupant(target_coord)
 			var reservation := battle.grid.get_reservation(target_coord)
 			push_error(
-				"[StartMoveAction] BUG: %s 无法预订格子 (%d, %d)\n" % [target_id, target_coord.q, target_coord.r] +
+				"[StartMoveAction] UNEXPECTED: %s 无法预订格子 (%d, %d)\n" % [target_id, target_coord.q, target_coord.r] +
 				"  当前占用: %s\n" % (occupant.get_id() if occupant != null else "none") +
 				"  当前预订: %s\n" % (reservation if reservation != "" else "none") +
 				"  这不应该发生！AI 决策应该过滤了不可用格子。"

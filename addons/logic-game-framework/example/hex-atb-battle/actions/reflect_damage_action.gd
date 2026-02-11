@@ -50,51 +50,28 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		return ActionResult.create_success_result([], { "skipped": true })
 	
 	var attacker_id := targets[0]
-	
 	var owner_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
 	var battle: HexBattle = ctx.game_state_provider
+	var alive_actor_ids := battle.get_alive_actor_ids()
+	
 	var owner_name := HexBattleGameStateUtils.get_actor_display_name(owner_actor_id, battle)
 	var attacker_name := HexBattleGameStateUtils.get_actor_display_name(attacker_id, battle)
 	var damage_type_str := BattleEvents._damage_type_to_string(_damage_type)
 	print("  [ReflectDamageAction] %s 反伤 %s %.0f 点 %s 伤害" % [owner_name, attacker_name, _damage, damage_type_str])
 	
+	# ========== 应用伤害 + 死亡处理 ==========
 	var event := BattleEvents.DamageEvent.create(
-		attacker_id,
-		_damage,
-		_damage_type,
-		owner_actor_id,
-		false,  # is_critical
-		true    # is_reflected
+		attacker_id, _damage, _damage_type, owner_actor_id, false, true
 	)
-	var reflect_event: Dictionary = ctx.event_collector.push(event.to_dict())
-	var attacker_actor := battle.get_actor(attacker_id)
-	if attacker_actor != null:
-		attacker_actor.attribute_set.set_hp_base(attacker_actor.attribute_set.hp - _damage)
-		
-		print("  [伤害] %s 受到 %.0f 伤害, HP: %.0f (反伤)" % [
-			attacker_name, _damage, attacker_actor.attribute_set.hp
-		])
-		
-		if battle.logger != null:
-			battle.logger.damage_dealt(owner_actor_id, attacker_id, _damage, damage_type_str, true)
-		
-		if attacker_actor.check_death():
-			print("  [死亡] %s 已阵亡" % attacker_name)
-			
-			if battle.logger != null:
-				battle.logger.actor_died(attacker_id, owner_actor_id)
-			
-			var death_event := BattleEvents.DeathEvent.create(attacker_id, owner_actor_id)
-			var death_dict: Dictionary = ctx.event_collector.push(death_event.to_dict())
-			
-			var alive_for_death_event := battle.get_alive_actor_ids()
-			if alive_for_death_event.size() > 0:
-				GameWorld.event_processor.process_post_event(death_dict, alive_for_death_event, battle)
-			
-			battle.remove_actor(attacker_id)
+	var damage_result := HexBattleDamageUtils.apply_damage(
+		event, alive_actor_ids, ctx, battle,
+	)
 	
-	var alive_actor_ids := battle.get_alive_actor_ids()
-	if alive_actor_ids.size() > 0:
-		GameWorld.event_processor.process_post_event(reflect_event, alive_actor_ids, battle)
+	# ========== Post damage 广播 ==========
+	HexBattleDamageUtils.broadcast_post_damage(
+		damage_result.damage_event_dict, alive_actor_ids, battle,
+	)
 	
-	return ActionResult.create_success_result([reflect_event], { "damage": _damage, "target": attacker_id })
+	return ActionResult.create_success_result(
+		damage_result.all_events, { "damage": _damage, "target": attacker_id }
+	)

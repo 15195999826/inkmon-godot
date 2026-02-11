@@ -101,6 +101,27 @@ func launch(params: Dictionary) -> void:
 		if params.has("targetPosition") and params["targetPosition"] is Vector3:
 			_position = params["targetPosition"]
 
+## 每帧更新投射物状态
+##
+## 【已知问题：高速投射物穿透】
+## 当一帧内移动距离 > 碰撞半径时，投射物可能直接穿过目标。
+##
+## 简化修复方案（无需 Raycasting）：
+##   在 ProjectileSystem._update_projectile() 的碰撞检测前，
+##   比较本帧移动距离与碰撞半径：
+##     var move_distance = speed * dt / 1000.0
+##     var hit_distance = projectile.config.get(CFG_HIT_DISTANCE, 50.0)
+##     if move_distance > hit_distance:
+##         # 将本帧拆分为多个子步（substep），每步移动 ≤ hit_distance
+##         var steps = ceili(move_distance / hit_distance)
+##         var sub_dt = dt / steps
+##         for i in range(steps):
+##             projectile.update_position(sub_dt)
+##             var collision = collision_detector.detect(projectile, targets)
+##             if collision.hit: break
+##
+##   优点：实现简单，无需引入射线检测
+##   缺点：高速投射物每帧多次碰撞检测，但通常只需 2-3 次子步
 func update(dt: float) -> bool:
 	if _projectile_state != STATE_FLYING:
 		return false

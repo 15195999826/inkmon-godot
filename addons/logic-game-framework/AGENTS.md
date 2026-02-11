@@ -180,7 +180,7 @@ logic_game_framework/debug/action_state_check = true
 ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", true)
 ```
 
-详见：[Action 无状态设计决策](docs/design-decisions/action-stateless-design.md)
+详见本文档「实例化与状态约束」章节。
 
 ## 3. GameStateProvider 的 Variant 设计
 
