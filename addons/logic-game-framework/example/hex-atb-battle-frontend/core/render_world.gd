@@ -444,7 +444,16 @@ func as_context() -> FrontendVisualizerContext:
 func get_actor_world_position(actor_id: String) -> Vector3:
 	if _interpolated_positions.has(actor_id):
 		var pos: Vector2 = _interpolated_positions[actor_id]
-		var pixel := _layout.coord_to_pixel(Vector2i(roundi(pos.x), roundi(pos.y)))
+		# hex→pixel 是线性变换，对浮点坐标直接用两端 lerp 即可精确插值
+		var q0 := floori(pos.x)
+		var r0 := floori(pos.y)
+		var frac_q := pos.x - q0
+		var frac_r := pos.y - r0
+		# 沿 q 轴插值，再沿 r 轴插值（双线性，对线性函数精确）
+		var p00 := _layout.coord_to_pixel(Vector2i(q0, r0))
+		var p10 := _layout.coord_to_pixel(Vector2i(q0 + 1, r0))
+		var p01 := _layout.coord_to_pixel(Vector2i(q0, r0 + 1))
+		var pixel := p00 + (p10 - p00) * frac_q + (p01 - p00) * frac_r
 		return Vector3(pixel.x, 0.0, pixel.y)
 	
 	var actor: FrontendActorRenderState = _actors.get(actor_id)

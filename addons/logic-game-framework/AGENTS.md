@@ -1,7 +1,18 @@
 # Logic Game Framework - Architecture Overview
 
-> **Coding conventions** have been moved to the `lgf` skill (`.opencode/skill/lgf/SKILL.md`).
+> **Coding conventions** and **full API reference** are in the `lgf` skill.
 > Use `load_skills=["lgf"]` when delegating tasks that involve this framework.
+>
+> **Quick navigation** (`.opencode/skill/lgf/`):
+> - `SKILL.md` — Conventions (attribute access, actor creation, statelessness, resolvers, pre-events)
+> - `reference/conventions-detail.md` — Full examples, reference chain diagrams, architecture
+> - `reference/entity.md` — Actor, System, GameWorld, GameplayInstance
+> - `reference/abilities.md` — Ability, AbilitySet, AbilityConfig, Components, Builder API
+> - `reference/actions.md` — Action, ExecutionContext, TargetSelector, Resolvers
+> - `reference/events.md` — EventProcessor, MutableEvent, Intent, Modification
+> - `reference/attributes.md` — RawAttributeSet, AttributeModifier, Calculator, TagContainer
+> - `reference/stdlib.md` — StatModifier, TimeDuration, Stack, Projectile, Replay, Timeline
+> - `reference/example-app.md` — Three-layer example app (Core Events → Game Logic → Presentation)
 
 ---
 
@@ -27,8 +38,9 @@ graph TB
     end
     
     subgraph "Example"
-        HexBattle[HexBattle<br/>ATB Battle]
-        Frontend[Frontend<br/>Presentation Layer]
+        Core[hex-atb-battle-core<br/>Shared Events]
+        HexBattle[hex-atb-battle<br/>Game Logic]
+        Frontend[hex-atb-battle-frontend<br/>Presentation Layer]
     end
     
     World --> Entity
@@ -43,7 +55,9 @@ graph TB
     Systems --> Entity
     Replay --> Events
     HexBattle --> World
+    HexBattle --> Core
     HexBattle --> Replay
+    Frontend --> Core
     Frontend --> Replay
 ```
 
