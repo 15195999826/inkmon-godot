@@ -9,6 +9,9 @@ func _init():
 	# 延迟初始化以避免循环依赖
 	pass
 
+func _ready() -> void:
+	_ensure_initialized()
+
 func _ensure_initialized() -> void:
 	if event_processor == null:
 		event_processor = EventProcessor.new()
