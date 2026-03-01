@@ -60,7 +60,7 @@ func _test_registration() -> void:
 	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
-	var component := PreEventComponent.new(PreEventConfig.new(
+	var component_config := PreEventConfig.new(
 		"pre_damage",
 		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
@@ -68,9 +68,9 @@ func _test_registration() -> void:
 			]),
 		func(event: Dictionary, ctx: AbilityLifecycleContext) -> bool:
 			return event.get("targetId") == ctx.owner_actor_id
-	))
+	)
 
-	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component_config])
 	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
@@ -89,15 +89,15 @@ func _test_unregistration() -> void:
 	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
-	var component := PreEventComponent.new(PreEventConfig.new(
+	var component_config := PreEventConfig.new(
 		"pre_damage",
 		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
 				Modification.multiply("damage", 0.5),
 			])
-	))
+	)
 
-	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component_config])
 	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 	ability_set.revoke_ability(ability.id)
@@ -116,16 +116,16 @@ func _test_modify_event() -> void:
 	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
-	var component := PreEventComponent.new(PreEventConfig.new(
+	var component_config := PreEventConfig.new(
 		"pre_damage",
 		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.modify_intent(ctx.ability.id, [
 				Modification.multiply("damage", 0.7),
 				Modification.add("damage", -10.0),
 			])
-	))
+	)
 
-	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component])
+	var ability_config := AbilityConfig.new("buff_armor", "", "", "", [], [], [component_config])
 	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 
@@ -145,13 +145,13 @@ func _test_cancel_event() -> void:
 	var event_processor := GameWorld.event_processor
 	var state := MockState.new(ability_set, event_processor)
 
-	var component := PreEventComponent.new(PreEventConfig.new(
+	var component_config := PreEventConfig.new(
 		"pre_damage",
 		func(_mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 			return EventPhase.cancel_intent(ctx.ability.id, "immune")
-	))
+	)
 
-	var ability_config := AbilityConfig.new("buff_immune", "", "", "", [], [], [component])
+	var ability_config := AbilityConfig.new("buff_immune", "", "", "", [], [], [component_config])
 	var ability := Ability.new(ability_config, owner_actor_id)
 	ability_set.grant_ability(ability)
 

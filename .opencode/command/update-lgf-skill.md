@@ -36,7 +36,10 @@ Look at the commits and diff above. Identify:
 - Removed or deprecated features
 - New patterns or conventions introduced
 
-If there are **no commits** or **no diff** since the last sync, report "No changes detected" and stop.
+If there are **no commits** or **no diff** since the last sync:
+1. Report "No changes detected"
+2. Still proceed to **Step 4** to update the tracking file to current HEAD
+3. This ensures the next run starts from the correct baseline
 
 ### Step 2: Map Changes to Skill Docs
 

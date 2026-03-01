@@ -22,7 +22,6 @@ func _test_any_trigger() -> void:
 		],
 		"any"
 	)
-	var component := ActivateInstanceComponent.new(component_config)
 	var ability_config := AbilityConfig.new(
 		"test",
 		"",
@@ -30,9 +29,10 @@ func _test_any_trigger() -> void:
 		"",
 		[],
 		[],
-		[component]
+		[component_config]
 	)
 	var ability := Ability.new(ability_config, owner_actor_id)
+	var component: ActivateInstanceComponent = ability.get_all_components()[0] as ActivateInstanceComponent
 	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
@@ -58,7 +58,6 @@ func _test_all_trigger() -> void:
 		],
 		"all"
 	)
-	var component := ActivateInstanceComponent.new(component_config)
 	var ability_config := AbilityConfig.new(
 		"test",
 		"",
@@ -66,9 +65,10 @@ func _test_all_trigger() -> void:
 		"",
 		[],
 		[],
-		[component]
+		[component_config]
 	)
 	var ability := Ability.new(ability_config, owner_actor_id)
+	var component: ActivateInstanceComponent = ability.get_all_components()[0] as ActivateInstanceComponent
 	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 

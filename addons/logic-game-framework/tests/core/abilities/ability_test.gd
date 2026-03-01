@@ -20,6 +20,11 @@ class TestComponent:
 		event_hit = true
 		return true
 
+class TestComponentConfig:
+	extends AbilityComponentConfig
+
+	func create_component() -> AbilityComponent:
+		return TestComponent.new()
 func _init() -> void:
 	TestFramework.register_test("Ability applies/removes and expires", _test_lifecycle)
 	TestFramework.register_test("Ability triggers component listeners", _test_triggered_listener)
@@ -27,7 +32,7 @@ func _init() -> void:
 
 func _test_lifecycle() -> void:
 	var owner_actor_id := "actor-1"
-	var component := TestComponent.new()
+	var test_config := TestComponentConfig.new()
 	var config := AbilityConfig.new(
 		"fire",
 		"",
@@ -35,9 +40,10 @@ func _test_lifecycle() -> void:
 		"",
 		[],
 		[],
-		[component]
+		[test_config]
 	)
 	var ability := Ability.new(config, owner_actor_id)
+	var component: TestComponent = ability.get_all_components()[0] as TestComponent
 	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 
 	ability.apply_effects(context)
@@ -50,10 +56,9 @@ func _test_lifecycle() -> void:
 	ability.expire("manual")
 	TestFramework.assert_equal(Ability.STATE_EXPIRED, ability.get_state())
 	TestFramework.assert_equal("manual", ability.get_expire_reason())
-
 func _test_triggered_listener() -> void:
 	var owner_actor_id := "actor-2"
-	var component := TestComponent.new()
+	var test_config := TestComponentConfig.new()
 	var config := AbilityConfig.new(
 		"storm",
 		"",
@@ -61,9 +66,10 @@ func _test_triggered_listener() -> void:
 		"",
 		[],
 		[],
-		[component]
+		[test_config]
 	)
 	var ability := Ability.new(config, owner_actor_id)
+	var component: TestComponent = ability.get_all_components()[0] as TestComponent
 	var context := AbilityLifecycleContext.new(owner_actor_id, null, ability, null, null)
 	ability.apply_effects(context)
 
@@ -80,7 +86,6 @@ func _test_triggered_listener() -> void:
 	TestFramework.assert_equal("hit", str(result["event"].get("kind", "")))
 	TestFramework.assert_equal(1, result["components"].size())
 	TestFramework.assert_equal("TestComponent", result["components"][0])
-
 func _test_execution_instances() -> void:
 	TimelineRegistry.reset()
 	TimelineRegistry.register(TimelineData.new("t-ability", 1.0, {}))
