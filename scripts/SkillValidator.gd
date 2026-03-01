@@ -126,7 +126,7 @@ func _check_runtime(script: GDScript) -> AbilityConfig:
 		if timeline != null and timeline is TimelineData:
 			result.timeline = {
 				"id": timeline.id,
-				"duration": timeline.duration,
+			"duration": timeline.total_duration,
 				"tags": timeline.tags,
 			}
 	
