@@ -68,7 +68,7 @@ func _ready() -> void:
 		tick_count += 1
 		for actor in battle.get_all_actors():
 			actor.ability_set.tick(dt, battle.get_logic_time())
-			actor.ability_set.tick_executions(dt)
+			actor.ability_set.tick_executions(dt, battle)
 		battle.tick(dt)
 
 		# 抓取 damage event

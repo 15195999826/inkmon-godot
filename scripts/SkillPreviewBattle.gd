@@ -95,7 +95,7 @@ static func run_preview(skill_source: String, scene_config: Dictionary) -> Dicti
 		# tick ability systems
 		for actor in battle.get_all_actors():
 			actor.ability_set.tick(TICK_INTERVAL, battle.get_logic_time())
-			actor.ability_set.tick_executions(TICK_INTERVAL)
+			actor.ability_set.tick_executions(TICK_INTERVAL, battle)
 
 		# tick GameplayInstance（驱动 ProjectileSystem 等 systems）
 		battle.tick(TICK_INTERVAL)
