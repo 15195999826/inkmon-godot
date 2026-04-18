@@ -1,5 +1,6 @@
 ---
 description: Review GDScript files against coding conventions
+argument-hint: <path>
 ---
 
 # Review GDScript Coding Conventions

@@ -1,32 +1,33 @@
 ---
-description: Update LGF skill docs based on recent addon changes
+description: Update enforcing-lgf skill docs based on recent addon changes
+allowed-tools: Bash, Read, Edit, Write
 ---
 
 # Update Logic Game Framework Skill Documentation
 
 ## Baseline
 
-The last synced commit is recorded in `.opencode/skill/lgf/update.json`:
+The last synced commit is recorded in `.claude/skills/enforcing-lgf/update.json`:
 
-!`cat .opencode/skill/lgf/update.json`
+!`cat .claude/skills/enforcing-lgf/update.json`
 
 ## Recent Changes
 
 Commits since last sync that touched the LGF addon:
 
-!`node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('.opencode/skill/lgf/update.json','utf8'));const h=j.last_commit;const {execSync}=require('child_process');process.stdout.write(execSync('git log --oneline '+h+'..HEAD -- addons/logic-game-framework/').toString())"`
+!`LAST=$(grep -oP '"last_commit"\s*:\s*"\K[^"]+' .claude/skills/enforcing-lgf/update.json) && git log --oneline "$LAST"..HEAD -- addons/logic-game-framework/`
 
 Diff of all changes since last sync:
 
-!`node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('.opencode/skill/lgf/update.json','utf8'));const h=j.last_commit;const {execSync}=require('child_process');process.stdout.write(execSync('git diff '+h+'..HEAD -- addons/logic-game-framework/').toString())"`
+!`LAST=$(grep -oP '"last_commit"\s*:\s*"\K[^"]+' .claude/skills/enforcing-lgf/update.json) && git diff "$LAST"..HEAD -- addons/logic-game-framework/`
 
 ## Current Skill Files
 
-!`find .opencode/skill/lgf/ -type f -name "*.md" -o -name "*.json"`
+!`find .claude/skills/enforcing-lgf/ -type f \( -name "*.md" -o -name "*.json" \)`
 
 ## Instructions
 
-You are updating the LGF skill documentation to reflect recent changes in the `addons/logic-game-framework/` addon source code.
+You are updating the `enforcing-lgf` skill documentation to reflect recent changes in the `addons/logic-game-framework/` addon source code.
 
 ### Step 1: Analyze Changes
 
@@ -70,7 +71,7 @@ For each affected doc:
 
 ### Step 4: Update Tracking
 
-After all skill docs are updated, update `.opencode/skill/lgf/update.json`:
+After all skill docs are updated, update `.claude/skills/enforcing-lgf/update.json`:
 - Set `last_commit` to the current HEAD commit hash (run `git rev-parse HEAD`)
 - Set `last_update` to today's date (YYYY-MM-DD format)
 - Set `note` to a brief summary of what was updated
