@@ -158,8 +158,7 @@ class _PreviewInstance extends HexBattle:
 		add_system(projectile_system)
 
 		# Timeline 注册
-		for tl in HexBattleSkillTimelines.get_all_timelines():
-			TimelineRegistry.register(tl)
+		HexBattleAllSkills.register_all_timelines()
 
 		# 创建角色 → 放入 left_team / right_team
 		var caster_cfg: Dictionary = config.get("caster", {})
