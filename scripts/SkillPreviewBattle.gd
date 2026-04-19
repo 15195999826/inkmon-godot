@@ -533,6 +533,8 @@ static func _resolve_target_v2(
 ## 正确使用 left_team/right_team，无需重写 get_all_actors 等查询方法
 class _PreviewInstance extends HexBattle:
 
+	var _projectile_system: ProjectileSystem = null
+
 	func _init() -> void:
 		super._init()  # HexBattle._init() → 生成 battle ID
 		type = "skill_preview"
@@ -549,10 +551,10 @@ class _PreviewInstance extends HexBattle:
 
 		# 投射物系统
 		var collision_detector := MobaCollisionDetector.new()
-		projectile_system = ProjectileSystem.new(
+		_projectile_system = ProjectileSystem.new(
 			collision_detector, GameWorld.event_collector, false
 		)
-		add_system(projectile_system)
+		add_system(_projectile_system)
 
 		# Timeline 注册
 		HexBattleAllSkills.register_all_timelines()
