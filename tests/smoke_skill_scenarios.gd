@@ -73,9 +73,9 @@ func _run_scenario(path: String) -> void:
 	var scenario_name := scenario.get_name()
 	print("→ %s" % scenario_name)
 
-	var active_skill := scenario.get_active_skill()
-	if active_skill == null:
-		_results.append({"name": scenario_name, "pass": false, "failures": ["get_active_skill() returned null"]})
+	var actions := scenario.get_actions()
+	if actions.is_empty():
+		_results.append({"name": scenario_name, "pass": false, "failures": ["get_actions() returned empty (did you set get_active_skill or override get_actions?)"]})
 		return
 
 	var scene_config := scenario.get_scene_config()
@@ -85,8 +85,8 @@ func _run_scenario(path: String) -> void:
 		scene_config = scene_config.duplicate()
 		scene_config["caster_passives"] = passives
 
-	var result := SkillPreviewBattle.run_with_config(
-		active_skill, scene_config, scenario.get_max_ticks()
+	var result := SkillPreviewBattle.run_with_actions(
+		scene_config, actions, scenario.get_max_ticks()
 	)
 
 	if not result.get("success", false):

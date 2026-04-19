@@ -164,15 +164,44 @@ static func run_with_config(
 	scene_config: Dictionary,
 	max_ticks: int = MAX_TICKS
 ) -> Dictionary:
-	var errors: Array[String] = []
 	if ability_config == null:
-		errors.append("ability_config is null")
-		return {"success": false, "replay": {}, "caster_id": "", "ally_ids": [], "enemy_ids": [], "errors": errors}
+		return _empty_result(["ability_config is null"])
+	# 单步 shim：caster 施放 ability_config,target 来自 scene_config.target(默认 auto)
+	var target_cfg: Dictionary = scene_config.get("target", {"mode": "auto"})
+	var target_ref := _target_cfg_to_ref(target_cfg)
+	var actions: Array[Dictionary] = [{
+		"caster": "caster",
+		"skill": ability_config,
+		"target": target_ref,
+	}]
+	return run_with_actions(scene_config, actions, max_ticks)
+
+
+## 多步 action 序列版本。一个 action 描述 "谁施放什么技能打谁"。
+##
+## 适合:反伤/尸爆等被动触发场景(让 enemy 来施放 Strike 打 caster)、多单位协同场景。
+##
+## action 字典格式:
+## [codeblock]
+## {
+##   "caster": "caster" | "ally_<N>" | "enemy_<N>",  # 默认 "caster"
+##   "skill":  AbilityConfig,                         # 必填
+##   "target": "auto" | "caster" | "ally_<N>" | "enemy_<N>",  # 默认 "auto"
+## }
+## [/codeblock]
+##
+## 所有 actions 在 tick 开始前**一次性 grant + activate**(等价于多个施法者同帧动手)。
+## 返回结构与 run_with_config 相同。
+static func run_with_actions(
+	scene_config: Dictionary,
+	actions: Array[Dictionary],
+	max_ticks: int = MAX_TICKS
+) -> Dictionary:
+	var errors: Array[String] = []
 
 	GameWorld.init()
 
 	var preview_config := _build_preview_config(scene_config)
-
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
 		var inst := _PreviewInstance.new()
 		inst.start(preview_config)
@@ -180,9 +209,8 @@ static func run_with_config(
 	) as _PreviewInstance
 
 	if battle == null:
-		errors.append("Failed to create preview battle instance")
 		GameWorld.destroy()
-		return {"success": false, "replay": {}, "caster_id": "", "ally_ids": [], "enemy_ids": [], "errors": errors}
+		return _empty_result(["Failed to create preview battle instance"])
 
 	var caster: CharacterActor = battle.left_team[0]
 	var ally_actors: Array[CharacterActor] = []
@@ -193,31 +221,39 @@ static func run_with_config(
 		else:
 			enemy_actors.append(actor as CharacterActor)
 
-	# Grant 主动技能
-	var active_ability := Ability.new(ability_config, caster.get_id())
-	caster.ability_set.grant_ability(active_ability, battle)
-
-	# Grant 被动
+	# Grant caster 的 passives(只挂 caster,需要挂其他 actor 的被动请用 actor_passives 扩展)
 	var passives: Array = scene_config.get("caster_passives", [])
 	for passive_config in passives:
 		if passive_config is AbilityConfig:
 			var passive_ability := Ability.new(passive_config, caster.get_id())
 			caster.ability_set.grant_ability(passive_ability, battle)
 
-	# 解析 target
-	var target_actor_id := _resolve_target_v2(scene_config.get("target", {"mode": "auto"}), caster, ally_actors, enemy_actors)
+	# 依次 grant + activate 所有 actions
+	for action in actions:
+		var caster_ref := str(action.get("caster", "caster"))
+		var skill_config := action.get("skill") as AbilityConfig
+		var target_ref := str(action.get("target", "auto"))
+		if skill_config == null:
+			errors.append("action missing skill AbilityConfig: %s" % str(action))
+			continue
+		var action_caster := _resolve_actor_ref(caster_ref, caster, ally_actors, enemy_actors)
+		if action_caster == null:
+			errors.append("action caster ref unresolved: %s" % caster_ref)
+			continue
+		var action_ability := Ability.new(skill_config, action_caster.get_id())
+		action_caster.ability_set.grant_ability(action_ability, battle)
+		var action_target_id := _resolve_target_ref(target_ref, action_caster, caster, ally_actors, enemy_actors)
+		var activate_event := {
+			"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
+			"abilityInstanceId": action_ability.id,
+			"sourceId": action_caster.get_id(),
+			"logicTime": 0.0,
+		}
+		if action_target_id != "":
+			activate_event["target_actor_id"] = action_target_id
+		action_caster.ability_set.receive_event(activate_event, battle)
 
-	var activate_event := {
-		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
-		"abilityInstanceId": active_ability.id,
-		"sourceId": caster.get_id(),
-		"logicTime": 0.0,
-	}
-	if target_actor_id != "":
-		activate_event["target_actor_id"] = target_actor_id
-	caster.ability_set.receive_event(activate_event, battle)
-
-	# Tick 循环：跑到技能执行完毕 + POST_EXECUTION_TICKS，或达到 max_ticks 上限
+	# Tick 循环
 	var tick_count := 0
 	var post_execution_countdown := -1
 	while tick_count < max_ticks:
@@ -230,9 +266,17 @@ static func run_with_config(
 		battle.recorder.record_frame(tick_count, frame_events)
 
 		if post_execution_countdown < 0:
-			# 检查所有 actor（不只是 caster）- DOT/HOT buff 的 loop timeline 在 target 身上
+			# 判定"结束":
+			#   1. 所有 CharacterActor 的 ability 都没有 executing instance(cover DOT/HOT loop)
+			#   2. 场上没有飞行中的 projectile(cover 投射物命中前的飞行阶段)
+			# 用 battle.get_actors() 而非 get_all_actors() —— 后者是 HexBattle 的 CharacterActor 过滤视图
 			var still_executing := false
-			for actor in battle.get_all_actors():
+			for actor in battle.get_actors():
+				if actor is ProjectileActor:
+					if (actor as ProjectileActor).is_flying():
+						still_executing = true
+						break
+					continue
 				if not (actor is CharacterActor):
 					continue
 				for ability in (actor as CharacterActor).ability_set.get_abilities():
@@ -261,8 +305,7 @@ static func run_with_config(
 	for e in enemy_actors:
 		enemy_ids.append(e.get_id())
 
-	# 在 destroy 前抓一个"结束时各 actor 的 ability config_id 列表"快照。
-	# 这是因为 grant/revoke 不经 event_collector，replay 里没这些事件，无法从 replay 反推最终状态。
+	# grant/revoke 不经 event_collector,在 destroy 前抓 ability 状态 + hp 快照
 	var final_ability_states: Dictionary = {}
 	var final_actor_hps: Dictionary = {}
 	for actor in battle.get_all_actors():
@@ -275,6 +318,11 @@ static func run_with_config(
 				config_ids.append(ability.config_id)
 		final_ability_states[c_actor.get_id()] = config_ids
 		final_actor_hps[c_actor.get_id()] = c_actor.attribute_set.hp
+
+	# 死者也加到 final_actor_hps(check_death 会 remove_actor,得从 ally/enemy_ids 补)
+	for aid in ally_ids + enemy_ids + [caster_id]:
+		if not final_actor_hps.has(aid):
+			final_actor_hps[aid] = 0.0
 
 	GameWorld.destroy()
 
@@ -291,6 +339,80 @@ static func run_with_config(
 		"final_actor_hps": final_actor_hps,
 		"errors": errors,
 	}
+
+
+static func _empty_result(errs: Array) -> Dictionary:
+	var typed_errs: Array[String] = []
+	for e in errs:
+		typed_errs.append(str(e))
+	return {
+		"success": false,
+		"replay": {},
+		"caster_id": "",
+		"ally_ids": [] as Array[String],
+		"enemy_ids": [] as Array[String],
+		"final_ability_states": {},
+		"final_actor_hps": {},
+		"errors": typed_errs,
+	}
+
+
+## 把 scene_config.target dict 转成 action target_ref 字符串
+static func _target_cfg_to_ref(target_cfg: Dictionary) -> String:
+	var mode: String = target_cfg.get("mode", "auto")
+	match mode:
+		"enemy_index":
+			return "enemy_%d" % int(target_cfg.get("index", 0))
+		"ally_index":
+			return "ally_%d" % int(target_cfg.get("index", 0))
+		_:
+			return "auto"
+
+
+## 解析 actor ref ("caster" / "ally_N" / "enemy_N") → 具体 CharacterActor
+static func _resolve_actor_ref(
+	ref: String,
+	caster: CharacterActor,
+	ally_actors: Array[CharacterActor],
+	enemy_actors: Array[CharacterActor]
+) -> CharacterActor:
+	if ref == "caster":
+		return caster
+	if ref.begins_with("ally_"):
+		var idx := int(ref.substr(5))
+		if idx >= 0 and idx < ally_actors.size():
+			return ally_actors[idx]
+	if ref.begins_with("enemy_"):
+		var idx := int(ref.substr(6))
+		if idx >= 0 and idx < enemy_actors.size():
+			return enemy_actors[idx]
+	return null
+
+
+## 解析 target ref → actor id 字符串("auto" 相对于 action 施法者找最近敌人)
+static func _resolve_target_ref(
+	ref: String,
+	action_caster: CharacterActor,
+	scene_caster: CharacterActor,
+	ally_actors: Array[CharacterActor],
+	enemy_actors: Array[CharacterActor]
+) -> String:
+	if ref == "auto":
+		# action_caster 的敌方列表 = 所有非同队
+		var candidates: Array[CharacterActor] = []
+		for a in [scene_caster] + ally_actors + enemy_actors:
+			if a.get_team_id() != action_caster.get_team_id():
+				candidates.append(a)
+		var best: CharacterActor = null
+		var best_dist: int = 999999
+		for c in candidates:
+			var dist := action_caster.hex_position.distance_to(c.hex_position)
+			if dist < best_dist:
+				best_dist = dist
+				best = c
+		return best.get_id() if best != null else ""
+	var resolved := _resolve_actor_ref(ref, scene_caster, ally_actors, enemy_actors)
+	return resolved.get_id() if resolved != null else ""
 
 
 static func _build_preview_config(scene_config: Dictionary) -> Dictionary:
@@ -475,9 +597,20 @@ class _PreviewInstance extends HexBattle:
 		actor.hex_position = coord.duplicate()
 		return actor
 
-	# tick 只驱动 base_tick（systems），不走 ATB/AI
+	# tick 驱动 base_tick(systems) + 广播 projectile 事件给 abilities,
+	# 不走 ATB/AI。projectile_hit 必须从 event_collector 广播出去,否则 Fireball/PreciseShot
+	# 的 ActivateInstanceConfig(trigger=PROJECTILE_HIT_EVENT) 永远收不到事件。
 	func tick(dt: float) -> void:
 		base_tick(dt)
+		_broadcast_projectile_events()
+
+	func _broadcast_projectile_events() -> void:
+		var events := GameWorld.event_collector.collect()
+		var alive_actor_ids := get_alive_actor_ids()
+		for event in events:
+			var kind: String = event.get("kind", "")
+			if kind == ProjectileEvents.PROJECTILE_HIT_EVENT or kind == ProjectileEvents.PROJECTILE_MISS_EVENT:
+				GameWorld.event_processor.process_post_event(event, alive_actor_ids, self)
 
 
 # ========== 私有辅助方法 ==========

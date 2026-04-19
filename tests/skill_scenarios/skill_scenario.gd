@@ -33,9 +33,26 @@ func get_scene_config() -> Dictionary:
 	return {}
 
 
-## 返回要给 caster 装备的**ActiveUse** 技能 config（必须一个）
+## 返回 caster 要施放的 ActiveUse 技能 config。
+## 若 scenario override 了 get_actions()，本方法可以不实现（返回 null）。
 func get_active_skill() -> AbilityConfig:
 	return null
+
+
+## 返回 action 序列，描述"谁施放什么技能打谁"。
+##
+## 默认实现:基于 get_active_skill() 派生单步 action(caster 自动施法最近敌人)。
+## Override 用于:
+##   - 被动技能测试(让 enemy 先打 caster 触发反伤/尸爆)
+##   - 多步协同(ally 先 buff,然后 caster 攻击)
+##   - 跨队施法(诡异场景)
+##
+## action 格式见 SkillPreviewBattle.run_with_actions 约定。
+func get_actions() -> Array[Dictionary]:
+	var active := get_active_skill()
+	if active == null:
+		return []
+	return [{"caster": "caster", "skill": active, "target": "auto"}]
 
 
 ## 返回给 caster 额外挂的被动技能（可空）
