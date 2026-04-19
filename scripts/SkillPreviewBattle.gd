@@ -130,6 +130,273 @@ static func run_preview(skill_source: String, scene_config: Dictionary) -> Dicti
 	return _make_result(true, replay_data, errors)
 
 
+## 从已编译 AbilityConfig + 场景 dict 跑一次 preview，返回结构化结果
+##
+## 两类消费者共用:
+##   - `tests/skill_scenarios/` scenario runner(自动断言)
+##   - `scenes/SkillPreview.tscn` 开发者工具(UI 驱动 + replay 播放)
+##
+## scene_config 约定格式:
+## [codeblock]
+## {
+##   "map": { "rows": int, "cols": int } | { "radius": int },
+##   "caster": { "class": String, "pos": [q, r], "hp": float?, "atk": float? },
+##   "caster_passives": Array[AbilityConfig],
+##   "allies":  [{ "class": ..., "pos": [q, r], "hp": float? }, ...],
+##   "enemies": [{ "class": ..., "pos": [q, r], "hp": float? }, ...],
+##   "target":  { "mode": "auto"|"enemy_index"|"ally_index"|"fixed_pos", "index": int?, "pos": [q,r]? }
+## }
+## [/codeblock]
+##
+## 返回:
+## [codeblock]
+## {
+##   "success": bool,
+##   "replay":    Dictionary,       # BattleRecorder.stop_recording 产出，供 BattleReplayScene.load_replay 使用
+##   "caster_id": String,
+##   "ally_ids":  Array[String],    # 不含 caster
+##   "enemy_ids": Array[String],
+##   "errors":    Array[String],
+## }
+## [/codeblock]
+static func run_with_config(
+	ability_config: AbilityConfig,
+	scene_config: Dictionary,
+	max_ticks: int = MAX_TICKS
+) -> Dictionary:
+	var errors: Array[String] = []
+	if ability_config == null:
+		errors.append("ability_config is null")
+		return {"success": false, "replay": {}, "caster_id": "", "ally_ids": [], "enemy_ids": [], "errors": errors}
+
+	GameWorld.init()
+
+	var preview_config := _build_preview_config(scene_config)
+
+	var battle := GameWorld.create_instance(func() -> GameplayInstance:
+		var inst := _PreviewInstance.new()
+		inst.start(preview_config)
+		return inst
+	) as _PreviewInstance
+
+	if battle == null:
+		errors.append("Failed to create preview battle instance")
+		GameWorld.destroy()
+		return {"success": false, "replay": {}, "caster_id": "", "ally_ids": [], "enemy_ids": [], "errors": errors}
+
+	var caster: CharacterActor = battle.left_team[0]
+	var ally_actors: Array[CharacterActor] = []
+	var enemy_actors: Array[CharacterActor] = []
+	for actor in battle.right_team:
+		if actor.get_team_id() == caster.get_team_id():
+			ally_actors.append(actor as CharacterActor)
+		else:
+			enemy_actors.append(actor as CharacterActor)
+
+	# Grant 主动技能
+	var active_ability := Ability.new(ability_config, caster.get_id())
+	caster.ability_set.grant_ability(active_ability, battle)
+
+	# Grant 被动
+	var passives: Array = scene_config.get("caster_passives", [])
+	for passive_config in passives:
+		if passive_config is AbilityConfig:
+			var passive_ability := Ability.new(passive_config, caster.get_id())
+			caster.ability_set.grant_ability(passive_ability, battle)
+
+	# 解析 target
+	var target_actor_id := _resolve_target_v2(scene_config.get("target", {"mode": "auto"}), caster, ally_actors, enemy_actors)
+
+	var activate_event := {
+		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
+		"abilityInstanceId": active_ability.id,
+		"sourceId": caster.get_id(),
+		"logicTime": 0.0,
+	}
+	if target_actor_id != "":
+		activate_event["target_actor_id"] = target_actor_id
+	caster.ability_set.receive_event(activate_event, battle)
+
+	# Tick 循环：跑到技能执行完毕 + POST_EXECUTION_TICKS，或达到 max_ticks 上限
+	var tick_count := 0
+	var post_execution_countdown := -1
+	while tick_count < max_ticks:
+		tick_count += 1
+		for actor in battle.get_all_actors():
+			actor.ability_set.tick(TICK_INTERVAL, battle.get_logic_time())
+			actor.ability_set.tick_executions(TICK_INTERVAL, battle)
+		battle.tick(TICK_INTERVAL)
+		var frame_events := GameWorld.event_collector.flush()
+		battle.recorder.record_frame(tick_count, frame_events)
+
+		if post_execution_countdown < 0:
+			# 检查所有 actor（不只是 caster）- DOT/HOT buff 的 loop timeline 在 target 身上
+			var still_executing := false
+			for actor in battle.get_all_actors():
+				if not (actor is CharacterActor):
+					continue
+				for ability in (actor as CharacterActor).ability_set.get_abilities():
+					if ability.is_expired():
+						continue
+					if ability.get_executing_instances().size() > 0:
+						still_executing = true
+						break
+				if still_executing:
+					break
+			if not still_executing:
+				post_execution_countdown = POST_EXECUTION_TICKS
+		else:
+			post_execution_countdown -= 1
+			if post_execution_countdown <= 0:
+				break
+
+	var end_reason := "preview_complete" if tick_count < max_ticks else "timeout"
+	var replay_data := battle.recorder.stop_recording(end_reason)
+
+	var caster_id := caster.get_id()
+	var ally_ids: Array[String] = []
+	for a in ally_actors:
+		ally_ids.append(a.get_id())
+	var enemy_ids: Array[String] = []
+	for e in enemy_actors:
+		enemy_ids.append(e.get_id())
+
+	# 在 destroy 前抓一个"结束时各 actor 的 ability config_id 列表"快照。
+	# 这是因为 grant/revoke 不经 event_collector，replay 里没这些事件，无法从 replay 反推最终状态。
+	var final_ability_states: Dictionary = {}
+	var final_actor_hps: Dictionary = {}
+	for actor in battle.get_all_actors():
+		if not (actor is CharacterActor):
+			continue
+		var c_actor := actor as CharacterActor
+		var config_ids: Array[String] = []
+		for ability in c_actor.ability_set.get_abilities():
+			if not ability.is_expired():
+				config_ids.append(ability.config_id)
+		final_ability_states[c_actor.get_id()] = config_ids
+		final_actor_hps[c_actor.get_id()] = c_actor.attribute_set.hp
+
+	GameWorld.destroy()
+
+	if tick_count >= max_ticks:
+		errors.append("Preview timed out after %d ticks" % max_ticks)
+
+	return {
+		"success": errors.is_empty(),
+		"replay": replay_data,
+		"caster_id": caster_id,
+		"ally_ids": ally_ids,
+		"enemy_ids": enemy_ids,
+		"final_ability_states": final_ability_states,
+		"final_actor_hps": final_actor_hps,
+		"errors": errors,
+	}
+
+
+static func _build_preview_config(scene_config: Dictionary) -> Dictionary:
+	var map_cfg: Dictionary = scene_config.get("map", {"rows": 5, "cols": 5})
+	var grid_config := GridMapConfig.new()
+	grid_config.grid_type = GridMapConfig.GridType.HEX
+	grid_config.size = map_cfg.get("size", 10.0) as float
+	grid_config.orientation = GridMapConfig.Orientation.FLAT
+	if map_cfg.has("radius"):
+		grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
+		grid_config.radius = map_cfg.get("radius") as int
+	else:
+		grid_config.draw_mode = GridMapConfig.DrawMode.ROW_COLUMN
+		grid_config.rows = map_cfg.get("rows", 5) as int
+		grid_config.columns = map_cfg.get("cols", map_cfg.get("columns", 5)) as int
+
+	var caster_src: Dictionary = scene_config.get("caster", {})
+	var caster_cfg := _actor_src_to_preview_cfg(caster_src)
+
+	var dummies_cfg: Array = []
+	var allies: Array = scene_config.get("allies", [])
+	for i in range(allies.size()):
+		var cfg := _actor_src_to_preview_cfg(allies[i] as Dictionary)
+		cfg["team"] = "A"  # 与 caster 同队
+		cfg["id"] = "ally_%d" % i
+		dummies_cfg.append(cfg)
+	var enemies: Array = scene_config.get("enemies", [])
+	for i in range(enemies.size()):
+		var cfg := _actor_src_to_preview_cfg(enemies[i] as Dictionary)
+		cfg["team"] = "B"
+		cfg["id"] = "enemy_%d" % i
+		dummies_cfg.append(cfg)
+
+	return {"map_config": grid_config, "caster": caster_cfg, "dummies": dummies_cfg}
+
+
+static func _actor_src_to_preview_cfg(src: Dictionary) -> Dictionary:
+	var pos_val: Variant = src.get("pos", [0, 0])
+	var q := 0
+	var r := 0
+	if pos_val is Array and (pos_val as Array).size() >= 2:
+		q = (pos_val as Array)[0] as int
+		r = (pos_val as Array)[1] as int
+	var attrs: Dictionary = {}
+	if src.has("hp"):
+		attrs["hp"] = src.get("hp")
+		attrs["max_hp"] = src.get("hp")
+	if src.has("atk"):
+		attrs["atk"] = src.get("atk")
+	return {
+		"class": src.get("class", "WARRIOR"),
+		"position": {"q": q, "r": r},
+		"attributes": attrs,
+	}
+
+
+static func _resolve_target_v2(
+	target_cfg: Dictionary,
+	caster: CharacterActor,
+	ally_actors: Array[CharacterActor],
+	enemy_actors: Array[CharacterActor]
+) -> String:
+	var mode: String = target_cfg.get("mode", "auto")
+
+	if mode == "enemy_index":
+		var idx: int = target_cfg.get("index", 0) as int
+		if idx >= 0 and idx < enemy_actors.size():
+			return enemy_actors[idx].get_id()
+		return ""
+
+	if mode == "ally_index":
+		var idx: int = target_cfg.get("index", 0) as int
+		if idx >= 0 and idx < ally_actors.size():
+			return ally_actors[idx].get_id()
+		return ""
+
+	if mode == "fixed_pos":
+		var pos_val: Variant = target_cfg.get("pos", [0, 0])
+		if pos_val is Array and (pos_val as Array).size() >= 2:
+			var target_coord := HexCoord.new((pos_val as Array)[0] as int, (pos_val as Array)[1] as int)
+			var best_actor: CharacterActor = null
+			var best_fixed_dist: int = 999999
+			for actor in enemy_actors + ally_actors:
+				var dist := actor.hex_position.distance_to(target_coord)
+				if dist < best_fixed_dist:
+					best_fixed_dist = dist
+					best_actor = actor
+			if best_actor != null:
+				return best_actor.get_id()
+		return ""
+
+	# mode == "auto":最近敌人
+	var best_enemy: CharacterActor = null
+	var best_auto_dist: int = 999999
+	for enemy in enemy_actors:
+		var dist := caster.hex_position.distance_to(enemy.hex_position)
+		if dist < best_auto_dist:
+			best_auto_dist = dist
+			best_enemy = enemy
+	if best_enemy != null:
+		return best_enemy.get_id()
+	if enemy_actors.size() > 0:
+		return enemy_actors[0].get_id()
+	return ""
+
+
 # ========== 内部 Battle Instance ==========
 
 ## 最小化 HexBattle 子类
@@ -187,7 +454,9 @@ class _PreviewInstance extends HexBattle:
 		}, replay_map_config)
 
 	func _create_actor(cfg: Dictionary, team_id: int, id_hint: String) -> CharacterActor:
-		var actor := CharacterActor.new(HexBattleClassConfig.CharacterClass.WARRIOR)
+		var class_str: String = cfg.get("class", "WARRIOR")
+		var char_class := HexBattleClassConfig.string_to_class(class_str)
+		var actor := CharacterActor.new(char_class)
 		actor._display_name = cfg.get("displayName", id_hint)
 		add_actor(actor)
 		actor.set_team_id(team_id)
@@ -196,6 +465,8 @@ class _PreviewInstance extends HexBattle:
 		var max_hp: float = attrs.get("maxHp", attrs.get("max_hp", 100.0)) as float
 		actor.attribute_set.set_max_hp_base(max_hp)
 		actor.attribute_set.set_hp_base(attrs.get("hp", max_hp) as float)
+		if attrs.has("atk"):
+			actor.attribute_set.set_atk_base(attrs.get("atk") as float)
 		# 位置
 		var pos: Dictionary = cfg.get("position", {})
 		var coord := HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
