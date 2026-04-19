@@ -420,7 +420,15 @@ static func _build_preview_config(scene_config: Dictionary) -> Dictionary:
 	var grid_config := GridMapConfig.new()
 	grid_config.grid_type = GridMapConfig.GridType.HEX
 	grid_config.size = map_cfg.get("size", 10.0) as float
-	grid_config.orientation = GridMapConfig.Orientation.FLAT
+	# 读 orientation, 默认 FLAT。接受 string ("flat"/"pointy") 或 enum int。
+	var orient_val: Variant = map_cfg.get("orientation", "flat")
+	if orient_val is String:
+		grid_config.orientation = (
+			GridMapConfig.Orientation.POINTY if (orient_val as String) == "pointy"
+			else GridMapConfig.Orientation.FLAT
+		)
+	else:
+		grid_config.orientation = int(orient_val) as GridMapConfig.Orientation
 	if map_cfg.has("radius"):
 		grid_config.draw_mode = GridMapConfig.DrawMode.RADIUS
 		grid_config.radius = map_cfg.get("radius") as int
