@@ -192,6 +192,11 @@ tests/skill_scenarios/
 6. ✅ actions/apply_shield_action.gd
 7. ✅ buffs/ward_buff.gd + skills/ward.gd（V1 independent 策略）+ skills/all_skills.gd 注册 WARD_TIMELINE
 8. ✅ tests/skill_scenarios/shield_{basic_absorb, full_absorb_no_thorns, priority_order}_scenario.gd
+9. ✅ Codex 审查后修复（P1/P2/P3）：
+   - frontend: visualizers/damage_visualizer.gd 飘字/血条/闪白按 actual_life_damage 走，额外飘 "护盾 -N"
+   - scenario_assert_context.gd: total_damage_to 语义改为「实际生命伤害」(actual_life_damage)，
+     新增 total_modified_damage_to / total_shield_absorbed_for
+   - apply_damage: on_break 回调返回 Array[Dictionary] 时并入 ActionResult.all_events
 ```
 
 ### 落地踩坑（供未来类似工作参考）
@@ -264,7 +269,7 @@ tests/skill_scenarios/
 | 项 | 描述 | 触发拍板时机 |
 |---|---|---|
 | **actor 死亡导致 ability 移除时，护盾 `on_expire` 是否触发** | actor 死亡 → ability 整体清理 → 残余护盾的 `on_expire` 要不要走？这是 ability lifecycle 的通用问题，不是护盾特有 | V1 基础 Ward 没有 `on_expire`，不影响。做 Aphotic 或新增带 `on_expire` 的护盾时拍 |
-| **`thorn.gd` 是当前唯一 on-damage-taken 反应** | V1 只改了它一个的过滤条件。**新增同类 ability 时必须同步加 `actual_life_damage > 0` 过滤**，否则破坏吸收语义 | 新增反伤/吸血/受击 buff 时 |
+| **damage event `damage` 字段语义已变更** | 现在是「修正后但未扣护盾」的总伤害。**所有读 damage event 的消费者**（反伤/吸血/受击 buff filter、frontend visualizer、统计 helper、外部 replay 工具）都要意识到：HP 实际损失 = `actual_life_damage`。`thorn.gd` / `damage_visualizer.gd` / `ScenarioAssertContext.total_damage_to` 已就位，新增同类消费者要同步对齐 | 新增任何读 damage event 的代码时 |
 | **`stacking_policy` 仅占位** | V1 重复施放只能产生独立护盾实例（`independent`）。Refresher / Aphotic 风格的"刷新或替换"语义 V1 不支持 | 实现 Shield Rune / Aphotic 时 |
 | **`damage_types` 取值集合** | 当前未明确 `damage_type` 的标准取值（"physical" / "magical" / "pure" / "true"...）。需要在 `battle_events.gd` 里定义统一枚举 | 实现物理盾/魔法盾时 |
 

@@ -92,11 +92,34 @@ func filter_events(filters: Dictionary) -> Array[Dictionary]:
 
 # ========== 高层语义断言 ==========
 
-## 对某 actor 造成的总 damage 之和
+## 对某 actor 造成的实际生命伤害之和（即 sum(actual_life_damage)）。
+##
+## 护盾系统上线后，damage event 的 damage 字段是「修正后但未扣护盾」的总伤害，
+## actual_life_damage 才是真正打到生命的部分。本 helper 反映的是 HP 实际损失量，
+## 与「target.hp 在战斗后下降了多少」语义一致。
+##
+## 老 scenario（无护盾参与）actual_life_damage 默认 = damage，行为不变。
+## 需要原始 modified damage 总和的场景请用 total_modified_damage_to。
 func total_damage_to(target_id: String) -> float:
 	var sum := 0.0
 	for e in filter_damage_events({"target_actor_id": target_id}):
+		sum += e.get("actual_life_damage", e.get("damage", 0.0)) as float
+	return sum
+
+
+## 对某 actor 造成的「修正后总伤害」之和（含被护盾吸收的部分）。
+func total_modified_damage_to(target_id: String) -> float:
+	var sum := 0.0
+	for e in filter_damage_events({"target_actor_id": target_id}):
 		sum += e.get("damage", 0.0) as float
+	return sum
+
+
+## 对某 actor 上的护盾总吸收量
+func total_shield_absorbed_for(target_id: String) -> float:
+	var sum := 0.0
+	for e in filter_damage_events({"target_actor_id": target_id}):
+		sum += e.get("shield_absorbed", 0.0) as float
 	return sum
 
 
