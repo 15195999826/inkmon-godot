@@ -30,7 +30,7 @@ Replay Data → Visualizer (translate) → Scheduler (timing) → RenderWorld (s
 | **Translate** | `FrontendBaseVisualizer` | Event → VisualAction[] (pure function) | NO |
 | **Schedule** | `FrontendActionScheduler` | Manage delay/duration/progress | YES |
 | **State** | `FrontendRenderWorld` | Apply actions to actor state, emit signals | YES |
-| **Render** | `FrontendBattleReplayScene` | Listen to signals, update 3D nodes | YES |
+| **Render** | `FrontendWorldView` (unit lifecycle) + `FrontendBattleAnimator` (VFX/floating-text overlay) | Reactive view from world signals + animator subscribes director state changes | YES |
 
 **Key design decisions:**
 - VisualAction = pure data, no Node references → serializable, replay-safe

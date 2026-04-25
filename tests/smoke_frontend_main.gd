@@ -1,13 +1,14 @@
 ## Smoke test: headless 模式下加载 frontend main.tscn，触发 Start Battle，播放到结束
 ##
-## 目标：验证 frontend 完整链路（配置 UI → core 战斗 → replay 生成 → director 播放 → scheduler 排空）
-##      不验证视觉正确性，只验证 "逻辑 + 表演调度" 跑通不崩。
+## 目标：验证 frontend 完整链路（配置 UI → core 战斗 → battle_finished signal →
+##      WorldView spawn unit views → BattleAnimator 播放 → playback_ended）
+##      不验证视觉正确性，只验证"逻辑 + 表演调度"跑通不崩。
 ##
 ## 覆盖的回归面：
 ##   - main.tscn 能在 headless 下实例化（无 Viewport 也不炸）
-##   - _on_start_battle_button_pressed() 同步产出合法 replay
-##   - Director tick + ActionScheduler 能把所有动作播到排空
-##   - Unit view / Replay scene 生命周期无异常
+##   - _on_start_battle_button_pressed() 同步跑完 logic battle 并触发 animator.play
+##   - WorldView 响应式 spawn unit views
+##   - BattleAnimator + Director tick + ActionScheduler 把所有动作播到排空
 ##
 ## 不覆盖：像素渲染正确性、粒子视觉、相机跟随、音效
 ##
@@ -27,8 +28,8 @@ const PLAYBACK_SPEED := 100.0
 
 
 var _main_scene: Node
-var _replay_scene: FrontendBattleReplayScene
-var _director: FrontendBattleDirector
+var _world_view: FrontendWorldView
+var _animator: FrontendBattleAnimator
 var _elapsed: float = 0.0
 var _finished: bool = false
 
@@ -53,49 +54,51 @@ func _ready() -> void:
 		return
 	add_child(_main_scene)
 
-	# 让 main._ready 和 replay_scene._ready 跑完
+	# 让 main._ready 跑完 (创建 WorldView / BattleAnimator 等)
 	await get_tree().process_frame
 
-	# Step 2: 定位 Director
-	_replay_scene = _main_scene.get_node_or_null("BattleReplayScene") as FrontendBattleReplayScene
-	if _replay_scene == null:
-		_fail("BattleReplayScene node not found under Main")
+	# Step 2: 定位 WorldView / BattleAnimator (main.gd 在 _setup_world_view_and_animator
+	# 时设的 node name)
+	_world_view = _main_scene.get_node_or_null("WorldView") as FrontendWorldView
+	if _world_view == null:
+		_fail("WorldView node not found under Main")
 		return
-	_director = _replay_scene.get_director()
-	if _director == null:
-		_fail("Director not available from BattleReplayScene")
+	_animator = _main_scene.get_node_or_null("BattleAnimator") as FrontendBattleAnimator
+	if _animator == null:
+		_fail("BattleAnimator node not found under Main")
 		return
 
-	# Step 3: 同步触发 Start Battle（内部会跑 core battle + load_replay）
+	# Step 3: 同步触发 Start Battle (_on_start_battle_button_pressed 内部:
+	# 创建 HexBattle -> WorldView.bind_world -> battle.start -> tick 跑完
+	# -> battle_finished signal -> animator.play 同步触发)
 	print("Step 1: Triggering start battle...")
 	_main_scene.call("_on_start_battle_button_pressed")
 
-	var total := _director.get_total_frames()
+	var total := _animator.get_total_frames()
 	if total <= 0:
-		_fail("Replay loaded but total_frames=%d (expected > 0)" % total)
+		_fail("Animator started but total_frames=%d (expected > 0)" % total)
 		return
-	var snapshot := _director.get_actors_snapshot()
-	if snapshot.is_empty():
-		_fail("No actors in snapshot after load_replay")
+	var unit_count := _world_view.get_unit_view_count()
+	if unit_count == 0:
+		_fail("WorldView has no unit views after battle start")
 		return
-	print("  + Replay loaded: %d frames, %d actors" % [total, snapshot.size()])
+	print("  + Battle loaded: %d frames, %d unit views" % [total, unit_count])
 
 	# Step 4: 加速播放并等 playback_ended
-	_director.playback_ended.connect(_on_playback_ended, CONNECT_ONE_SHOT)
-	_director.set_speed(PLAYBACK_SPEED)
-	_replay_scene.play()
-	print("Step 2: Playing...")
+	_animator.playback_ended.connect(_on_playback_ended, CONNECT_ONE_SHOT)
+	_animator.set_speed(PLAYBACK_SPEED)
+	print("Step 2: Playing at %.0fx ..." % PLAYBACK_SPEED)
 
 
 func _process(delta: float) -> void:
-	if _finished or _director == null:
+	if _finished or _animator == null:
 		return
 	_elapsed += delta
 	if _elapsed >= TIMEOUT_SEC:
 		_fail("Playback did not end within %.0fs (current_frame=%d/%d)" % [
 			TIMEOUT_SEC,
-			_director.get_current_frame(),
-			_director.get_total_frames(),
+			_animator.get_current_frame(),
+			_animator.get_total_frames(),
 		])
 
 
@@ -105,31 +108,27 @@ func _on_playback_ended() -> void:
 	print("Step 3: playback_ended signal received, asserting invariants...")
 
 	# Invariant 1: is_ended() == true
-	if not _director.is_ended():
-		_fail("playback_ended fired but is_ended() is false")
+	if not _animator.is_ended():
+		_fail("playback_ended fired but animator.is_ended() is false")
 		return
 
 	# Invariant 2: current_frame 推进到总帧数
-	var cur := _director.get_current_frame()
-	var tot := _director.get_total_frames()
+	var cur := _animator.get_current_frame()
+	var tot := _animator.get_total_frames()
 	if cur < tot:
 		_fail("current_frame (%d) < total_frames (%d) at end" % [cur, tot])
 		return
 
-	# Invariant 3: UnitsRoot 下至少有一个 unit view
-	var units_root := _replay_scene.get_node_or_null("UnitsRoot")
-	if units_root == null:
-		_fail("UnitsRoot node not found")
-		return
-	var unit_count := units_root.get_child_count()
+	# Invariant 3: WorldView 至少有一个 unit view
+	var unit_count := _world_view.get_unit_view_count()
 	if unit_count == 0:
-		_fail("UnitsRoot has no children after playback")
+		_fail("WorldView has no unit views after playback")
 		return
 
 	# Invariant 4: 所有 actor 的 visual_hp ∈ [0, max_hp]
-	var snapshot := _director.get_actors_snapshot()
+	var snapshot := _animator.get_actors_snapshot()
 	if snapshot.is_empty():
-		_fail("actors_snapshot empty after playback")
+		_fail("animator.get_actors_snapshot() empty after playback")
 		return
 	for actor_id: String in snapshot.keys():
 		var st: FrontendActorRenderState = snapshot[actor_id]
