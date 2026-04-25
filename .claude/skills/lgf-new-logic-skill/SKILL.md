@@ -21,9 +21,21 @@ description: Use when implementing any logic-layer skill/ability/buff/passive fr
 
 ---
 
-## 1. 权威设计源:先读 `.lomo-team/reference/inkmon-skill-design.md`
+## 1. 权威设计源 + 进度追踪(开工 Step 0)
 
-**所有要实现的技能都在那份文档里**,共 16 个,分 Tier 1/2/3:
+本 skill 有**两份必读文档**,顺序固定:
+
+### Step 0 — 先读进度文档:`docs/skills/skill-implementation-progress.md`
+
+每次启动**第一件事**就是读这个文档,从中获取:
+
+1. **总览** — 当前阶段进度(Tier 1/2/3 各完成了多少) + 下一个建议
+2. **Pattern 速查表** — 你要做的机制有没有最近的落地参考。如果有 → 先打开那个已落地技能的 `.gd` + scenario 看一遍,**模仿改写**比照着 design 文档骨架重写靠谱
+3. **「偏离 design 文档的地方」一节** — design 文档写的时候 LGF 还在演进,部分 pattern 已经过时(比如**护盾不走 PreEventConfig 而是独立 ShieldComponent**)。模仿这些机制时**以 progress 文档列出的实际落地为准**
+
+### Step 1 — 再读权威设计源:`.lomo-team/reference/inkmon-skill-design.md`
+
+16 个技能,分 Tier 1/2/3:
 
 | Tier | 数量 | 性质 | 何时选 |
 |---|---|---|---|
@@ -31,26 +43,9 @@ description: Use when implementing any logic-layer skill/ability/buff/passive fr
 | Tier 2 中级 | 6 (Fireball / Decimating Smash / Chain Lightning / Thorns / Mend / Shadow Step) | Timeline + 多 Action 组合 | Tier 1 完成后 |
 | Tier 3 高级 | 4 (Deathrattle / Stance / Demon Form / Summon Totem) | 跨系统组合 | 前两 tier 稳定后 |
 
-### 1.1 当前实现进度(开工前对号入座)
-
-taxonomy 里的 16 技能 ≠ 现在的实现状态。实际 `addons/.../hex-atb-battle/skills/` 里长这样:
-
-| 状态 | 技能 |
-|---|---|
-| ✅ 已实现(taxonomy 内) | Strike, Poison(Tier 1)/ Fireball, Thorn(Tier 2)/ Deathrattle(deathrattle_aoe,Tier 3) |
-| ✅ 已实现(taxonomy **外**,先行验证) | swift_strike, precise_shot, holy_heal, crushing_blow, vigor, vitality, move |
-| ❌ Tier 1 待补 | **Ward / Knockback Punch / Expose / Execute** |
-| ❌ Tier 2 待补 | Decimating Smash(crushing_blow 可能是其前身,需设计确认)/ Chain Lightning / Mend / Shadow Step |
-| ❌ Tier 3 待补 | Stance / Demon Form / Summon Totem |
-
-**给接手 AI 的信号**:
-- 用户说"做 Ward"/"做 Expose" 等 Tier 1 缺口技能时,这是**首选方向**(Tier 1 的 pattern 验证还没跑完)。
-- 若用户提到 `crushing_blow` 和 `Decimating Smash` 的对应关系,**要先和用户确认**是沿用还是重写,不要自作主张。
-- 已实现的 taxonomy 外技能(swift_strike 等)是真实产出的 scenario 范本,不要删,它们在 §5.3 被引用。
-
 **每个技能的设计卡都包含**:
 - 灵感来源(StS / ItB / TFT 的哪个机制)
-- LGF 拆解(用哪个 Component / Action / Timeline / TargetSelector)
+- LGF 拆解(用哪个 Component / Action / Timeline / TargetSelector)— **若 progress 文档「偏离」一节标了它过时,以 progress 为准**
 - 骨架代码(不是最终代码,是起点)
 - 能测试的 LGF 能力(写 scenario 要覆盖哪些断言)
 - 变体方向(做完主技能后可做的变种)
@@ -59,9 +54,14 @@ taxonomy 里的 16 技能 ≠ 现在的实现状态。实际 `addons/.../hex-atb
 
 1. **对号**:用户说"做 X" → 去 `inkmon-skill-design.md` 查 X 是否在 16 个里
 2. **完整读那一节**(包括变体方向 —— 可能用户其实想做变体而不是主技能)
-3. **若不在 16 个里**:停下来问用户 —— 是加入 taxonomy 还是临时做?不要自由发挥
+3. **回头查 progress** 看有没有相近 pattern 已落地;有就先看落地实例
+4. **若不在 16 个里**:停下来问用户 —— 是加入 taxonomy 还是临时做?不要自由发挥
 
-**原则**:这些技能是"**机制模板库**"不是"最终技能池"。实现质量 > 数量。未来 AI 看到相似需求(比如"做 HOT")要能**模仿 Poison 改写**,而不是重新发明。
+### Step 2 — 完成后回写 progress 文档
+
+每完成一个技能,按 progress 文档「维护约定」一节更新:对应行的状态/落地名/文件/scenario;Pattern 速查表加新行;若实现偏离了 design 文档,加到「偏离 design 文档的地方」;更新顶部「最后更新」日期 + 「当前焦点 / 下一个建议」。
+
+**原则**:这些技能是"**机制模板库**"不是"最终技能池"。实现质量 > 数量。未来 AI 看到相似需求(比如"做 HOT")要能**模仿 Poison 改写**,而不是重新发明 — 这正是 progress 文档的 Pattern 速查表存在的理由。
 
 ---
 

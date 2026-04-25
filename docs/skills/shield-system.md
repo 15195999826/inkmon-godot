@@ -36,40 +36,20 @@ Ability (例如 ward_buff)
 
 ---
 
-## 🔄 完整伤害流程
+## 🔄 在伤害流程中的位置
 
-```
-原始伤害产生（攻击 / 中毒 / 反伤）
-  ↓
-EventProcessor.process_pre_event   ← 易伤/减伤等 SET/ADD/MULTIPLY
-  ↓
-命中特有修正（暴击）
-  ↓
-ShieldResolver.resolve(actor, modified, damage_type)
-  ↓ 内部：按规则消耗、提交 ShieldComponent.current 变更
-  ↓ 返回 (life_damage, consumption_records[])
-  ↓
-actor.lose_hp(life_damage)
-  ↓
-push final damage event {
-  original_damage,
-  modified_damage,
-  shield_absorbed,
-  actual_life_damage,        ← 反伤/吸血看这个
-  consumption_records[]
-}
-  ↓
-for record in consumption_records:
-  if record.broken: record.shield.on_break(record)    ← push 新事件，死亡移除前触发
-  ↓
-死亡检测 / remove_actor                              ← 必须在 on_break 之后
-  ↓
-EventProcessor.process_post_event   ← 反伤/吸血在这里触发
-```
+护盾结算是项目层 `apply_damage` 流程中**夹在「修正后伤害确定」和「扣血」之间**的一步：
 
-**关键顺序**：`on_break` 必须在死亡移除（`remove_actor`）之前触发。否则像 Aphotic 这类"破裂时 AoE 爆炸"的护盾，回调时 owner actor 已被移除，拿不到位置/状态/ability 上下文。
+> pre_event 修正（易伤 / 减伤）→ 命中特殊修正（暴击）→ **护盾结算（吸收 + 记录消耗）** → 扣血（按穿透后的 `actual_life_damage`）→ 破裂回调 `on_break` → 死亡检测 / `remove_actor` → post_event（反伤 / 吸血在这里读 `actual_life_damage` 触发）
 
-**到期不在伤害流程里** — `on_expire`（duration 到期）由 `TimeDurationComponent` / ability 生命周期驱动，**不出现在 `consumption_records` 里**。详见下面 [🕐 护盾到期路径](#-护盾到期路径).
+两条**对护盾系统不可妥协**的顺序约束：
+
+1. **护盾结算必须在扣血之前** — 否则没有"吸收"语义可言。
+2. **`on_break` 回调必须在 `remove_actor` 之前** — 否则像 Aphotic 这类"破裂时 AoE 爆炸"的护盾，回调时 owner actor 已被移除，拿不到位置 / 状态 / ability 上下文。
+
+完整 9 步流程图、damage event schema 各字段「该读哪个」对照表、未来扩展点 → 见 [damage-pipeline.md](damage-pipeline.md)。
+
+**到期不在伤害流程里** — `on_expire`（duration 到期）由 `TimeDurationComponent` / ability 生命周期驱动，**不出现在 `consumption_records` 里**。详见下面 [🕐 护盾到期路径](#-护盾到期路径)。
 
 ---
 
