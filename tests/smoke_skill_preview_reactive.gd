@@ -150,7 +150,8 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		_fail("battle %d: empty timeline" % (_battles_done + 1))
 		return
 	_phase = "animating"
-	_animator.play(timeline, _world_view.get_unit_views())
+	_animator.load(timeline, _world_view.get_unit_views())
+	_animator.play()
 
 
 func _on_anim_done() -> void:

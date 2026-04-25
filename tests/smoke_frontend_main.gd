@@ -85,8 +85,11 @@ func _ready() -> void:
 	print("  + Battle loaded: %d frames, %d unit views" % [total, unit_count])
 
 	# Step 4: 加速播放并等 playback_ended
+	# main.gd 的 _on_battle_finished 只 load 不 play(用户按 Play 才播放),
+	# smoke 模拟 "用户按 Play" 显式触发。
 	_animator.playback_ended.connect(_on_playback_ended, CONNECT_ONE_SHOT)
 	_animator.set_speed(PLAYBACK_SPEED)
+	_animator.play()
 	print("Step 2: Playing at %.0fx ..." % PLAYBACK_SPEED)
 
 

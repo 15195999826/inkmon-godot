@@ -112,7 +112,8 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		total = (timeline["timeline"] as Array).size()
 	print("[Smoke] battle_finished: frames=%d, recorded tick_count=%d" % [total, _world.tick_count])
 	_phase = "animating"
-	_animator.play(timeline, _world_view.get_unit_views())
+	_animator.load(timeline, _world_view.get_unit_views())
+	_animator.play()
 
 
 func _on_anim_done() -> void:
