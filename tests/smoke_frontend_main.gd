@@ -19,7 +19,7 @@
 extends Node
 
 
-const MAIN_SCENE := "res://addons/logic-game-framework/example/hex-atb-battle-frontend/main.tscn"
+const MAIN_SCENE := "res://addons/logic-game-framework/example/hex-atb-battle-frontend/demo_frontend.tscn"
 ## 超时时间（秒）。100x 加速下，典型一场 200 帧 battle 约 0.3s 真实时间。
 const TIMEOUT_SEC := 30.0
 ## 播放加速倍率，压缩真实耗时。过高会让单帧推进的逻辑时间 > 动画持续时间导致视觉异常，
