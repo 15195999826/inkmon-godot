@@ -533,6 +533,12 @@ static func _resolve_target_v2(
 ## 正确使用 left_team/right_team，无需重写 get_all_actors 等查询方法
 class _PreviewInstance extends HexBattle:
 
+	# 自管 recorder: _PreviewInstance.start() 不走 procedure 路径(跳过 ATB/AI/队伍),
+	# 自己 new BattleRecorder 持有。父类 HexBattle 的 get_replay_data 走 procedure
+	# 取 recorder, 不会读这里。SkillPreviewBattle 的 record_frame / stop_recording
+	# 调用直接通过这个字段。
+	var recorder: BattleRecorder = null
+
 	var _projectile_system: ProjectileSystem = null
 
 	func _init() -> void:
