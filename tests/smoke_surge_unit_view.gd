@@ -3,14 +3,16 @@
 ## 走完整 Director → Visualizer → RenderWorld → UnitView 链路,
 ## 在每帧推进后断言 UnitView._buff_label.text 序列。
 ##
-## 调查 codex 注释中提到的"frontend 会忽略 3→2,表现成 3→1→消失"假说。
-## 测试结果:**该现象不存在**。同帧 [AbilityGranted(3), StacksChanged(3→2)] 经
-## RenderWorld 正确合并(ADD 然后 UPDATE → primary=2),frontend 显示 U2 → U1 → 消失。
-## 看不到 U3 是因为同帧聚合,不是 bug。
+## 此 smoke 用真实战斗 SkillPreviewBattle 跑(不再手工构造 ReplayData),才能
+## 复现 BattleRecorder 把 pending(AbilityGranted)放在 collector(StacksChanged)
+## 之后的真实顺序问题。
 ##
-## 这是回归保护:future 改 RenderWorld 的 dirty/flush 顺序时,断言不会让同帧
-## ADD+UPDATE 退化(变成"先 emit ADD 后 emit UPDATE"会导致玩家看到 U3 闪烁后变 U2,
-## 视觉吵闹;或反过来 UPDATE 先 ADD 后,UPDATE 找不到 buff 静默失败 → 永远停在 U3)。
+## 修复前(pending 在 collector 后):frontend 看到 StacksChanged 早于 AbilityGranted
+## → UPDATE 静默失败 → ADD primary=3 → 显示 U3 → 下一帧 U1 → 消失(漏 U2)。
+##
+## 修复后(pending 在 collector 前,见 battle_recorder.gd):AbilityGranted 先到 →
+## ADD primary=3 → UPDATE primary=2 → 显示 U3 一闪即变 U2(同帧合并到最终 primary=2,
+## 实际 unit_view 渲染只看到 U2) → U1 → 消失。
 extends Node
 
 
