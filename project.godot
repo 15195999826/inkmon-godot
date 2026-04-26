@@ -29,6 +29,13 @@ UGridMap="*res://addons/ultra-grid-map/u_grid_map.gd"
 
 enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg")
 
+[display]
+
+window/size/viewport_width=1400
+window/size/viewport_height=820
+window/size/window_width_override=1400
+window/size/window_height_override=820
+
 [logic_game_framework]
 
 debug/action_state_check=true
