@@ -69,7 +69,7 @@ func _ready() -> void:
 		return
 
 	# Step 3: 同步触发 Start Battle (_on_start_battle_button_pressed 内部:
-	# 创建 HexBattle -> WorldView.bind_world -> battle.start -> tick 跑完
+	# 创建 HexDemoWorldGameplayInstance -> WorldView.bind_world -> battle.start -> tick 跑完
 	# -> battle_finished signal -> animator.play 同步触发)
 	print("Step 1: Triggering start battle...")
 	_main_scene.call("_on_start_battle_button_pressed")

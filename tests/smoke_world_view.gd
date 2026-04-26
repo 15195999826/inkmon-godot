@@ -6,8 +6,8 @@
 ##
 ## 覆盖：
 ##   - bind_world 前无 view；bind_world 后 view 数 == actor 数（hydrate）
-##   - HexBattle.start → configure_grid signal → grid renderer 建立
-##   - HexBattle.start → actor_added × N → unit view × N
+##   - HexDemoWorldGameplayInstance.start → configure_grid signal → grid renderer 建立
+##   - HexDemoWorldGameplayInstance.start → actor_added × N → unit view × N
 ##   - WorldGI.tick 驱动战斗至 battle_finished signal，拿到非空 timeline
 ##   - BattleAnimator.play(timeline, views) 跑到 playback_ended 不崩
 ##   - WorldGI.remove_actor → WorldView unit view 随之移除
@@ -22,7 +22,7 @@ const TIMEOUT_SEC := 30.0
 const ANIM_SPEED := 50.0
 
 
-var _world: HexBattle
+var _world: HexDemoWorldGameplayInstance
 var _world_view: FrontendWorldView
 var _animator: FrontendBattleAnimator
 var _phase: String = "init"
@@ -46,8 +46,8 @@ func _ready() -> void:
 		_fail("WorldView 初始应当无 unit view")
 		return
 
-	# Step 2: 建 HexBattle 但 *不* 立即 start —— bind_world 先接管 signal
-	_world = HexBattle.new()
+	# Step 2: 建 HexDemoWorldGameplayInstance 但 *不* 立即 start —— bind_world 先接管 signal
+	_world = HexDemoWorldGameplayInstance.new()
 	GameWorld.create_instance(func() -> GameplayInstance: return _world)
 
 	_world_view.bind_world(_world)
@@ -66,7 +66,7 @@ func _ready() -> void:
 
 	var expected_actors := _world.get_all_actors().size()
 	if expected_actors == 0:
-		_fail("HexBattle.start 后 actor 数为 0, 实装异常")
+		_fail("HexDemoWorldGameplayInstance.start 后 actor 数为 0, 实装异常")
 		return
 
 	if _world_view.get_unit_view_count() != expected_actors:

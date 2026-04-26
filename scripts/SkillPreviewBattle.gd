@@ -3,8 +3,8 @@ extends RefCounted
 ## 技能预览战斗
 ##
 ## 最小化战斗容器，用于技能编辑器的实时预览。
-## _PreviewInstance 继承 HexBattle 并顺着其设计走：
-## - 正确使用 left_team/right_team（无需重写 get_all_actors）
+## _PreviewInstance 继承 HexWorldGameplayInstance, 自管 left_team / right_team /
+## recorder, 不走 ATB/AI/procedure 流程。
 ## - start() 承担全部初始化（地图/角色/投射物/录像）
 ## - run_preview() 只关注：编译 → 创建 → 施法 → 收集
 
@@ -12,7 +12,7 @@ extends RefCounted
 ## 安全上限，防止技能执行死循环
 const MAX_TICKS := 500
 
-## tick 时间步长（与 HexBattle 一致）
+## tick 时间步长（与 HexBattleProcedure 一致）
 const TICK_INTERVAL := 100.0
 
 ## 技能执行完成后的额外等待帧数（等待投射物落地等）
@@ -269,7 +269,7 @@ static func run_with_actions(
 			# 判定"结束":
 			#   1. 所有 CharacterActor 的 ability 都没有 executing instance(cover DOT/HOT loop)
 			#   2. 场上没有飞行中的 projectile(cover 投射物命中前的飞行阶段)
-			# 用 battle.get_actors() 而非 get_all_actors() —— 后者是 HexBattle 的 CharacterActor 过滤视图
+			# 用 battle.get_actors() 而非 get_all_actors() —— 后者是 _PreviewInstance 的 left+right staging 视图
 			var still_executing := false
 			for actor in battle.get_actors():
 				if actor is ProjectileActor:
@@ -529,24 +529,32 @@ static func _resolve_target_v2(
 
 # ========== 内部 Battle Instance ==========
 
-## 最小化 HexBattle 子类
-## 正确使用 left_team/right_team，无需重写 get_all_actors 等查询方法
-class _PreviewInstance extends HexBattle:
+## 最小化 HexWorldGameplayInstance 子类: SkillPreviewBattle 用的"web 端 preview"
+## 路径(arch 上与 addon SkillPreviewWorldGI 是孪生但不共享代码), 不走 procedure
+## 的 ATB/AI/队伍流程, 自己拼装 grid/projectile/actor/recorder。
+##
+## 注意: addon 内 skill-preview 场景走 SkillPreviewWorldGI(独立实现, 含 reset/
+## queue_preview), 这里是 main 仓 web 桥接 godot_preview_skill 的轻量复刻。
+class _PreviewInstance extends HexWorldGameplayInstance:
 
-	# 自管 recorder: _PreviewInstance.start() 不走 procedure 路径(跳过 ATB/AI/队伍),
-	# 自己 new BattleRecorder 持有。父类 HexBattle 的 get_replay_data 走 procedure
-	# 取 recorder, 不会读这里。SkillPreviewBattle 的 record_frame / stop_recording
-	# 调用直接通过这个字段。
+	# left_team / right_team: 沿用 HexDemoWorldGameplayInstance 的"双队伍 staging"
+	# 结构, SkillPreviewBattle 外部直接读 battle.left_team[0] / battle.right_team。
+	var left_team: Array[CharacterActor] = []
+	var right_team: Array[CharacterActor] = []
+
+	# 自管 recorder: _PreviewInstance.start() 不走 procedure 路径, 自己 new
+	# BattleRecorder 持有。SkillPreviewBattle 的 record_frame / stop_recording
+	# 直接通过这个字段。
 	var recorder: BattleRecorder = null
 
 	var _projectile_system: ProjectileSystem = null
 
 	func _init() -> void:
-		super._init()  # HexBattle._init() → 生成 battle ID
+		super._init(IdGenerator.generate("preview"))
 		type = "skill_preview"
 
 	## 承担全部初始化：地图/投射物/timeline/角色/录像
-	## 跳过 HexBattle.start() 的 ATB/队伍/日志流程
+	## 不走 HexDemoWorldGameplayInstance.start() 的 ATB/队伍/日志流程
 	func start(config: Dictionary = {}) -> void:
 		_state = "running"
 
@@ -587,7 +595,10 @@ class _PreviewInstance extends HexBattle:
 		var replay_map_config: Dictionary = {}
 		if UGridMap.model != null:
 			replay_map_config = UGridMap.model.to_config_dict()
-		recorder.start_recording(get_all_actors(), {
+		var all_actors: Array[CharacterActor] = []
+		all_actors.append_array(left_team)
+		all_actors.append_array(right_team)
+		recorder.start_recording(all_actors, {
 			"positionFormats": { "Character": "hex" }
 		}, replay_map_config)
 
@@ -619,6 +630,14 @@ class _PreviewInstance extends HexBattle:
 	func tick(dt: float) -> void:
 		base_tick(dt)
 		_broadcast_projectile_events()
+
+	## SkillPreviewBattle 外部用 battle.get_all_actors() 遍历 caster + dummies。
+	## 走 left_team + right_team staging, 不走 actor registry。
+	func get_all_actors() -> Array[CharacterActor]:
+		var result: Array[CharacterActor] = []
+		result.append_array(left_team)
+		result.append_array(right_team)
+		return result
 
 	func _broadcast_projectile_events() -> void:
 		var events := GameWorld.event_collector.collect()
