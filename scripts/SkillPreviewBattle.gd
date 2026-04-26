@@ -3,8 +3,7 @@ extends RefCounted
 ## 技能预览战斗
 ##
 ## 最小化战斗容器，用于技能编辑器的实时预览。
-## _PreviewInstance 继承 HexWorldGameplayInstance, 自管 left_team / right_team /
-## recorder, 不走 ATB/AI/procedure 流程。
+## _PreviewInstance: 自管 left_team / right_team / recorder, 不走 ATB/AI/procedure。
 ## - start() 承担全部初始化（地图/角色/投射物/录像）
 ## - run_preview() 只关注：编译 → 创建 → 施法 → 收集
 
@@ -269,7 +268,7 @@ static func run_with_actions(
 			# 判定"结束":
 			#   1. 所有 CharacterActor 的 ability 都没有 executing instance(cover DOT/HOT loop)
 			#   2. 场上没有飞行中的 projectile(cover 投射物命中前的飞行阶段)
-			# 用 battle.get_actors() 而非 get_all_actors() —— 后者是 _PreviewInstance 的 left+right staging 视图
+			# 用 battle.get_actors() (registry) 而非 get_all_actors() (staging)
 			var still_executing := false
 			for actor in battle.get_actors():
 				if actor is ProjectileActor:
@@ -529,22 +528,16 @@ static func _resolve_target_v2(
 
 # ========== 内部 Battle Instance ==========
 
-## 最小化 HexWorldGameplayInstance 子类: SkillPreviewBattle 用的"web 端 preview"
-## 路径(arch 上与 addon SkillPreviewWorldGI 是孪生但不共享代码), 不走 procedure
-## 的 ATB/AI/队伍流程, 自己拼装 grid/projectile/actor/recorder。
-##
-## 注意: addon 内 skill-preview 场景走 SkillPreviewWorldGI(独立实现, 含 reset/
-## queue_preview), 这里是 main 仓 web 桥接 godot_preview_skill 的轻量复刻。
+## web 桥接 godot_preview_skill 的轻量 world instance: 自拼 grid/projectile/actor/
+## recorder, 不走 procedure 的 ATB/AI/队伍流程。addon 编辑器场景对应类是
+## SkillPreviewWorldGI(独立实现, 含 reset/queue_preview)。
 class _PreviewInstance extends HexWorldGameplayInstance:
 
-	# left_team / right_team: 沿用 HexDemoWorldGameplayInstance 的"双队伍 staging"
-	# 结构, SkillPreviewBattle 外部直接读 battle.left_team[0] / battle.right_team。
+	## SkillPreviewBattle 外部直接读 battle.left_team[0] / battle.right_team。
 	var left_team: Array[CharacterActor] = []
 	var right_team: Array[CharacterActor] = []
 
-	# 自管 recorder: _PreviewInstance.start() 不走 procedure 路径, 自己 new
-	# BattleRecorder 持有。SkillPreviewBattle 的 record_frame / stop_recording
-	# 直接通过这个字段。
+	## 不走 procedure 路径, 自管。
 	var recorder: BattleRecorder = null
 
 	var _projectile_system: ProjectileSystem = null
@@ -554,7 +547,6 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		type = "skill_preview"
 
 	## 承担全部初始化：地图/投射物/timeline/角色/录像
-	## 不走 HexDemoWorldGameplayInstance.start() 的 ATB/队伍/日志流程
 	func start(config: Dictionary = {}) -> void:
 		_state = "running"
 
@@ -624,14 +616,12 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		actor.hex_position = coord.duplicate()
 		return actor
 
-	# tick 驱动 base_tick(systems) + 广播 projectile 事件给 abilities,
-	# 不走 ATB/AI。projectile_hit 必须从 event_collector 广播出去,否则 Fireball/PreciseShot
-	# 的 ActivateInstanceConfig(trigger=PROJECTILE_HIT_EVENT) 永远收不到事件。
+	## projectile_hit 必须从 event_collector 广播出去, 否则 Fireball/PreciseShot
+	## 的 ActivateInstanceConfig(trigger=PROJECTILE_HIT_EVENT) 收不到事件。
 	func tick(dt: float) -> void:
 		base_tick(dt)
-		_broadcast_projectile_events()
+		broadcast_projectile_events()
 
-	## SkillPreviewBattle 外部用 battle.get_all_actors() 遍历 caster + dummies。
 	## 走 left_team + right_team staging, 不走 actor registry。
 	func get_all_actors() -> Array[CharacterActor]:
 		var result: Array[CharacterActor] = []
@@ -639,13 +629,12 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		result.append_array(right_team)
 		return result
 
-	func _broadcast_projectile_events() -> void:
-		var events := GameWorld.event_collector.collect()
-		var alive_actor_ids := get_alive_actor_ids()
-		for event in events:
-			var kind: String = event.get("kind", "")
-			if kind == ProjectileEvents.PROJECTILE_HIT_EVENT or kind == ProjectileEvents.PROJECTILE_MISS_EVENT:
-				GameWorld.event_processor.process_post_event(event, alive_actor_ids, self)
+	func get_alive_actors() -> Array[CharacterActor]:
+		var result: Array[CharacterActor] = []
+		for actor in get_all_actors():
+			if not actor.is_dead():
+				result.append(actor)
+		return result
 
 
 # ========== 私有辅助方法 ==========
