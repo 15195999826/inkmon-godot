@@ -45,8 +45,7 @@ Replay Data → Visualizer (translate) → Scheduler (timing) → RenderWorld (s
 ```gdscript
 # CORRECT: read-only context, return data
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
-    var hp := context.get_actor_hp(actor_id)
-    return [FrontendUpdateHPAction.new(actor_id, hp, hp - damage, config.damage_hp_bar_duration)]
+    return [FrontendApplyHPDeltaAction.new(actor_id, -damage, config.damage_hp_bar_delay)]
 
 # WRONG: modifying state in visualizer
 func translate(event: Dictionary, context: FrontendVisualizerContext) -> Array[FrontendVisualAction]:
@@ -300,7 +299,7 @@ Read-only query interface passed to `translate()`.
 | ActionType | Class | Key Properties |
 |-----------|-------|---------------|
 | `MOVE` | `FrontendMoveAction` | `from_hex`, `to_hex`, `easing` |
-| `UPDATE_HP` | `FrontendUpdateHPAction` | `from_hp`, `to_hp` |
+| `APPLY_HP_DELTA` | `FrontendApplyHPDeltaAction` | `delta` (瞬时指令,state path,见 design-note 2026-04-26-presentation-event-vs-state「血条迁移到 state」) |
 | `FLOATING_TEXT` | `FrontendFloatingTextAction` | `text`, `color`, `position`, `style` |
 | `PROCEDURAL_VFX` | `FrontendProceduralVFXAction` | `effect` (HIT_FLASH/SHAKE/COLOR_TINT), `intensity` |
 | `DEATH` | `FrontendDeathAction` | `killer_id` |
