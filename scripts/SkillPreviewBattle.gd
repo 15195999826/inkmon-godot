@@ -270,17 +270,16 @@ static func run_with_actions(
 		return a["_idx"] < b["_idx"]
 	)
 
-	# Tick 循环
+	# Tick 循环 —— 顺序对齐 SkillPreviewProcedure.tick_once:
+	#   base_tick 推进 logic_time → fire 已到时 keyframe → ability tick + tick_executions → record。
+	# fire 必须在 ability tick 之前, 否则刚 grant 的 ability 要等下帧才跑首次 tick,
+	# 与真实 procedure 行为偏差 1 个 execution tick。
 	var tick_count := 0
 	var post_execution_countdown := -1
 	while tick_count < max_ticks:
 		tick_count += 1
-		for actor in battle.get_all_actors():
-			actor.ability_set.tick(TICK_INTERVAL, battle.get_logic_time())
-			actor.ability_set.tick_executions(TICK_INTERVAL, battle)
 		battle.tick(TICK_INTERVAL)
 
-		# battle.tick 之后 logic_time 已推进, 此时 drain 到时 keyframe → 进入本帧 record。
 		var cur_logic_time := battle.get_logic_time()
 		while not pending.is_empty() and float(pending[0]["time_ms"]) <= cur_logic_time:
 			var kf: Dictionary = pending.pop_front()
@@ -291,6 +290,10 @@ static func run_with_actions(
 				kf["target_id"] as String,
 				float(kf["time_ms"]),
 			)
+
+		for actor in battle.get_all_actors():
+			actor.ability_set.tick(TICK_INTERVAL, cur_logic_time)
+			actor.ability_set.tick_executions(TICK_INTERVAL, battle)
 
 		var frame_events := GameWorld.event_collector.flush()
 		battle.recorder.record_frame(tick_count, frame_events)
