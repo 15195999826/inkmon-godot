@@ -176,20 +176,26 @@ static func run_with_config(
 	return run_with_actions(scene_config, actions, max_ticks)
 
 
-## 多步 action 序列版本。一个 action 描述 "谁施放什么技能打谁"。
+## 多步 action 序列版本。一个 action 描述 "谁在何时施放什么技能打谁"。
 ##
-## 适合:反伤/尸爆等被动触发场景(让 enemy 来施放 Strike 打 caster)、多单位协同场景。
+## 适合:反伤/尸爆等被动触发场景(让 enemy 来施放 Strike 打 caster)、多单位协同场景、
+## 时序 combo (caster t=0 + caster t=600 + enemy t=300 等)。
 ##
 ## action 字典格式:
 ## [codeblock]
 ## {
-##   "caster": "caster" | "ally_<N>" | "enemy_<N>",  # 默认 "caster"
-##   "skill":  AbilityConfig,                         # 必填
-##   "target": "auto" | "caster" | "ally_<N>" | "enemy_<N>",  # 默认 "auto"
+##   "caster":  "caster" | "ally_<N>" | "enemy_<N>",          # 默认 "caster"
+##   "skill":   AbilityConfig,                                 # 必填
+##   "target":  "auto" | "caster" | "ally_<N>" | "enemy_<N>",  # 默认 "auto"
+##   "time_ms": int,                                           # 默认 0; <=0 在 tick 开始前立即触发
 ## }
 ## [/codeblock]
 ##
-## 所有 actions 在 tick 开始前**一次性 grant + activate**(等价于多个施法者同帧动手)。
+## 调度语义: time_ms <= battle.get_logic_time() 触发, 与 SkillPreviewProcedure 对齐;
+## time_ms<=0 在 tick 开始前一次性 grant+activate (第 0 帧施法 → 第 1 帧首次 tick 命中)。
+## time_ms>0 进 pending 队列, 每帧 battle.tick 后 drain 已到时项 (在那个 tick 的
+## frame_events 里能看到 ABILITY_ACTIVATE_EVENT, 对应技能效果落在下一帧或之后)。
+##
 ## 返回结构与 run_with_config 相同。
 static func run_with_actions(
 	scene_config: Dictionary,
@@ -227,11 +233,16 @@ static func run_with_actions(
 			var passive_ability := Ability.new(passive_config, caster.get_id())
 			caster.ability_set.grant_ability(passive_ability, battle)
 
-	# 依次 grant + activate 所有 actions
-	for action in actions:
+	# 把 actions 拆成 t<=0 (立即) + 其余 (pending 队列, 按 time_ms+原始 idx 稳定排序)。
+	# 每条 pending 项 = {time_ms, action_caster, ability_config, target_id}
+	# action_caster 提前解析: 编辑期 actor 数量稳定, 不会中途消失。
+	var pending: Array[Dictionary] = []
+	for action_idx in actions.size():
+		var action: Dictionary = actions[action_idx]
 		var caster_ref := str(action.get("caster", "caster"))
 		var skill_config := action.get("skill") as AbilityConfig
 		var target_ref := str(action.get("target", "auto"))
+		var time_ms: int = int(action.get("time_ms", 0))
 		if skill_config == null:
 			errors.append("action missing skill AbilityConfig: %s" % str(action))
 			continue
@@ -239,18 +250,25 @@ static func run_with_actions(
 		if action_caster == null:
 			errors.append("action caster ref unresolved: %s" % caster_ref)
 			continue
-		var action_ability := Ability.new(skill_config, action_caster.get_id())
-		action_caster.ability_set.grant_ability(action_ability, battle)
-		var action_target_id := _resolve_target_ref(target_ref, action_caster, caster, ally_actors, enemy_actors)
-		var activate_event := {
-			"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
-			"abilityInstanceId": action_ability.id,
-			"sourceId": action_caster.get_id(),
-			"logicTime": 0.0,
-		}
-		if action_target_id != "":
-			activate_event["target_actor_id"] = action_target_id
-		action_caster.ability_set.receive_event(activate_event, battle)
+		var action_target_id := _resolve_target_ref(
+			target_ref, action_caster, caster, ally_actors, enemy_actors
+		)
+		if time_ms <= 0:
+			_fire_action(battle, action_caster, skill_config, action_target_id, 0.0)
+		else:
+			pending.append({
+				"time_ms": time_ms,
+				"_idx": action_idx,
+				"action_caster": action_caster,
+				"ability_config": skill_config,
+				"target_id": action_target_id,
+			})
+
+	pending.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a["time_ms"] != b["time_ms"]:
+			return a["time_ms"] < b["time_ms"]
+		return a["_idx"] < b["_idx"]
+	)
 
 	# Tick 循环
 	var tick_count := 0
@@ -261,6 +279,19 @@ static func run_with_actions(
 			actor.ability_set.tick(TICK_INTERVAL, battle.get_logic_time())
 			actor.ability_set.tick_executions(TICK_INTERVAL, battle)
 		battle.tick(TICK_INTERVAL)
+
+		# battle.tick 之后 logic_time 已推进, 此时 drain 到时 keyframe → 进入本帧 record。
+		var cur_logic_time := battle.get_logic_time()
+		while not pending.is_empty() and float(pending[0]["time_ms"]) <= cur_logic_time:
+			var kf: Dictionary = pending.pop_front()
+			_fire_action(
+				battle,
+				kf["action_caster"] as CharacterActor,
+				kf["ability_config"] as AbilityConfig,
+				kf["target_id"] as String,
+				float(kf["time_ms"]),
+			)
+
 		var frame_events := GameWorld.event_collector.flush()
 		battle.recorder.record_frame(tick_count, frame_events)
 
@@ -268,24 +299,28 @@ static func run_with_actions(
 			# 判定"结束":
 			#   1. 所有 CharacterActor 的 ability 都没有 executing instance(cover DOT/HOT loop)
 			#   2. 场上没有飞行中的 projectile(cover 投射物命中前的飞行阶段)
+			#   3. pending 队列空 (cover 还没到点的 schedule)
 			# 用 battle.get_actors() (registry) 而非 get_all_actors() (staging)
 			var still_executing := false
-			for actor in battle.get_actors():
-				if actor is ProjectileActor:
-					if (actor as ProjectileActor).is_flying():
-						still_executing = true
-						break
-					continue
-				if not (actor is CharacterActor):
-					continue
-				for ability in (actor as CharacterActor).ability_set.get_abilities():
-					if ability.is_expired():
+			if not pending.is_empty():
+				still_executing = true
+			else:
+				for actor in battle.get_actors():
+					if actor is ProjectileActor:
+						if (actor as ProjectileActor).is_flying():
+							still_executing = true
+							break
 						continue
-					if ability.get_executing_instances().size() > 0:
-						still_executing = true
+					if not (actor is CharacterActor):
+						continue
+					for ability in (actor as CharacterActor).ability_set.get_abilities():
+						if ability.is_expired():
+							continue
+						if ability.get_executing_instances().size() > 0:
+							still_executing = true
+							break
+					if still_executing:
 						break
-				if still_executing:
-					break
 			if not still_executing:
 				post_execution_countdown = POST_EXECUTION_TICKS
 		else:
@@ -338,6 +373,29 @@ static func run_with_actions(
 		"final_actor_hps": final_actor_hps,
 		"errors": errors,
 	}
+
+
+## Grant ability 给 action_caster + receive ABILITY_ACTIVATE_EVENT。
+## logic_time 写 keyframe 自身的 time_ms (deterministic intent), 与
+## SkillPreviewProcedure._fire_due_keyframes 对齐。
+static func _fire_action(
+	battle: _PreviewInstance,
+	action_caster: CharacterActor,
+	ability_config: AbilityConfig,
+	target_id: String,
+	keyframe_time_ms: float,
+) -> void:
+	var ability := Ability.new(ability_config, action_caster.get_id())
+	action_caster.ability_set.grant_ability(ability, battle)
+	var activate_event := {
+		"kind": GameEvent.ABILITY_ACTIVATE_EVENT,
+		"abilityInstanceId": ability.id,
+		"sourceId": action_caster.get_id(),
+		"logicTime": keyframe_time_ms,
+	}
+	if target_id != "":
+		activate_event["target_actor_id"] = target_id
+	action_caster.ability_set.receive_event(activate_event, battle)
 
 
 static func _empty_result(errs: Array) -> Dictionary:
@@ -474,56 +532,6 @@ static func _actor_src_to_preview_cfg(src: Dictionary) -> Dictionary:
 		"position": {"q": q, "r": r},
 		"attributes": attrs,
 	}
-
-
-static func _resolve_target_v2(
-	target_cfg: Dictionary,
-	caster: CharacterActor,
-	ally_actors: Array[CharacterActor],
-	enemy_actors: Array[CharacterActor]
-) -> String:
-	var mode: String = target_cfg.get("mode", "auto")
-
-	if mode == "enemy_index":
-		var idx: int = target_cfg.get("index", 0) as int
-		if idx >= 0 and idx < enemy_actors.size():
-			return enemy_actors[idx].get_id()
-		return ""
-
-	if mode == "ally_index":
-		var idx: int = target_cfg.get("index", 0) as int
-		if idx >= 0 and idx < ally_actors.size():
-			return ally_actors[idx].get_id()
-		return ""
-
-	if mode == "fixed_pos":
-		var pos_val: Variant = target_cfg.get("pos", [0, 0])
-		if pos_val is Array and (pos_val as Array).size() >= 2:
-			var target_coord := HexCoord.new((pos_val as Array)[0] as int, (pos_val as Array)[1] as int)
-			var best_actor: CharacterActor = null
-			var best_fixed_dist: int = 999999
-			for actor in enemy_actors + ally_actors:
-				var dist := actor.hex_position.distance_to(target_coord)
-				if dist < best_fixed_dist:
-					best_fixed_dist = dist
-					best_actor = actor
-			if best_actor != null:
-				return best_actor.get_id()
-		return ""
-
-	# mode == "auto":最近敌人
-	var best_enemy: CharacterActor = null
-	var best_auto_dist: int = 999999
-	for enemy in enemy_actors:
-		var dist := caster.hex_position.distance_to(enemy.hex_position)
-		if dist < best_auto_dist:
-			best_auto_dist = dist
-			best_enemy = enemy
-	if best_enemy != null:
-		return best_enemy.get_id()
-	if enemy_actors.size() > 0:
-		return enemy_actors[0].get_id()
-	return ""
 
 
 # ========== 内部 Battle Instance ==========

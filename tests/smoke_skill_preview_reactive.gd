@@ -130,8 +130,16 @@ func _start_next_battle() -> void:
 		_fail("Animator 被重建 (battle=%d)" % (_battles_done + 1))
 		return
 
-	# 发动 strike
-	_world.queue_preview(_caster_id, HexBattleStrike.ABILITY, _target_id, [] as Array[AbilityConfig])
+	# 发动 strike: 新 actor_setups API, caster t=0 一条 keyframe
+	_world.queue_preview([{
+		"actor_id": _caster_id,
+		"passives": [] as Array[AbilityConfig],
+		"track": [{
+			"time_ms": 0,
+			"ability_config": HexBattleStrike.ABILITY,
+			"target_id": _target_id,
+		}],
+	}], false)
 
 	var participants: Array[Actor] = []
 	for actor in _world.get_actors():
