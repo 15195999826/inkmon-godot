@@ -99,8 +99,7 @@ func _process(delta: float) -> void:
 	if _finished:
 		return
 
-	# 抓 unit_view 子 view 的 buff label 文本变化,记录序列
-	# (Step 2 拆分后:_buff_label 移到 BuffRowView,通过 getter 访问)
+	# 抓 buff label 文本变化序列
 	var current_text := ""
 	if _unit_view != null and is_instance_valid(_unit_view):
 		var buff_view := _unit_view.get_buff_row_view()
