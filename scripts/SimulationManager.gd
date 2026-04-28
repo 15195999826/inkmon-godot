@@ -4,7 +4,6 @@ var _js_callback_greet: JavaScriptObject
 var _js_callback_battle: JavaScriptObject
 var _js_callback_runtime_test: JavaScriptObject
 var _js_callback_validate_skill: JavaScriptObject
-var _js_callback_preview_skill: JavaScriptObject
 
 
 func _ready():
@@ -43,11 +42,6 @@ func _setup_js_bridge():
 	window.godot_validate_skill = _js_callback_validate_skill
 	print("[Godot] JS Bridge registered: window.godot_validate_skill")
 	
-	# 注册 preview_skill 回调
-	_js_callback_preview_skill = JavaScriptBridge.create_callback(_on_preview_skill_call)
-	window.godot_preview_skill = _js_callback_preview_skill
-	print("[Godot] JS Bridge registered: window.godot_preview_skill")
-
 func _on_greet_call(args: Array) -> String:
 	var name_arg = args[0] if args.size() > 0 else "Unknown"
 	return greet(name_arg)
@@ -182,52 +176,3 @@ func _get_failed_stage(result: Dictionary) -> String:
 	if not stages.structure.passed:
 		return "structure: " + str(stages.structure.get("errors", ["unknown"]))
 	return "unknown"
-
-
-func _on_preview_skill_call(args: Array) -> String:
-	var input_json: String = args[0] if args.size() > 0 else ""
-	var result := run_preview_skill(input_json)
-	# 写入全局变量（多线程 WASM 中回调返回值不可靠）
-	var window = JavaScriptBridge.get_interface("window")
-	window.godot_skill_preview_result = result
-	return result
-
-
-func run_preview_skill(input_json: String) -> String:
-	print("\n[Godot] Starting skill preview...")
-	print("[Godot] Input JSON length: %d bytes" % input_json.length())
-	
-	# 解析输入 JSON
-	var parsed = JSON.parse_string(input_json)
-	if parsed == null or not (parsed is Dictionary):
-		var error_result := {
-			"success": false,
-			"replay": null,
-			"errors": ["Failed to parse input JSON"],
-		}
-		return JSON.stringify(error_result)
-	
-	var skill_source: String = parsed.get("skill_source", "")
-	var scene_config: Dictionary = parsed.get("scene_config", {})
-	
-	if skill_source.is_empty():
-		var error_result := {
-			"success": false,
-			"replay": null,
-			"errors": ["skill_source is empty"],
-		}
-		return JSON.stringify(error_result)
-	
-	# 执行预览
-	var result: Dictionary = SkillPreviewBattle.run_preview(skill_source, scene_config)
-	
-	var json_str := JSON.stringify(result)
-	
-	print("[Godot] Preview result: success=%s" % result.get("success", false))
-	var errors: Array = result.get("errors", [])
-	if errors.size() > 0:
-		print("[Godot] Preview errors: %s" % str(errors))
-	else:
-		print("[Godot] Preview replay JSON length: %d chars" % json_str.length())
-	
-	return json_str
