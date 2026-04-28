@@ -1,17 +1,18 @@
-## Smoke: SkillPreviewProcedure 单 actor 多 keyframe (合法间隔)
+## Smoke: SkillPreviewProcedure 单 actor 多 keyframe (timeline 合法 / cooldown 拦截)
 ##
-## 配置: caster t=0 / t=2100 / t=4200 三发 Strike → dummy
-##   Strike occupy = max(timeline=500ms, cooldown=2000ms) = 2000ms
-##   间隔 2100ms / 4200ms 都 > 2000ms, UI 会接受这个排布。
+## 配置: caster t=0 / t=500 / t=1000 三发 Strike → dummy
+##   Strike timeline = 500ms (UI occupy 边界), cooldown = 2000ms
+##   间隔 500ms 满足 timeline 边界 (UI 接受) — 但 cooldown=2000ms > 500ms,
+##   后两发会在 ActiveUseComponent 被 CooldownCondition reject。
+##
+## 这是关注点分离后的核心回归: UI 只防 timeline 重叠, "能否释放"由 LGF 在
+## fire 时检查并 push AbilityActivateFailed 事件供前端 console 渲染。
 ##
 ## 期望:
-##   1. caster 上恰好 3 条 executionActivated 事件 (每个 keyframe 触发一次 execution)
-##      用 execution 计数而不是 damage 计数: Strike on_critical 会多 push 一条 damage,
-##      暴击随机 → damage 数量飘, execution 数稳定。
-##   2. caster 上只 grant 一个 Strike Ability instance —— 后两次 fire 复用 (去重 grant 后)
-##   3. 3 个 executionActivated 事件 abilityInstanceId 全部相同
-##
-## 退出码: 0 PASS / 1 FAIL; 标记 "SMOKE_TEST_RESULT: PASS|FAIL - <reason>"
+##   1. 1 条 executionActivated (第一发) + 2 条 abilityActivateFailed (后两发)
+##   2. abilityActivateFailed.reason 含 "冷却" (来自 CooldownCondition.get_fail_reason)
+##   3. abilityActivateFailed.failedComponentType == "condition"
+##   4. caster 上只 grant 一个 Strike Ability (procedure 去重)
 extends Node
 
 
@@ -27,7 +28,7 @@ var _finished: bool = false
 
 func _ready() -> void:
 	Log.set_level(Log.LogLevel.WARNING)
-	print("=== Smoke: skill_preview proc multi-keyframe legal ===")
+	print("=== Smoke: skill_preview proc multi-keyframe legal (timeline ok, cooldown rejects) ===")
 
 	GameWorld.init()
 	_world = SkillPreviewWorldGI.new()
@@ -74,8 +75,8 @@ func _ready() -> void:
 			"passives": [] as Array[AbilityConfig],
 			"track": [
 				{"time_ms": 0,    "ability_config": HexBattleStrike.ABILITY, "target_id": _dummy_id},
-				{"time_ms": 2100, "ability_config": HexBattleStrike.ABILITY, "target_id": _dummy_id},
-				{"time_ms": 4200, "ability_config": HexBattleStrike.ABILITY, "target_id": _dummy_id},
+				{"time_ms": 500,  "ability_config": HexBattleStrike.ABILITY, "target_id": _dummy_id},
+				{"time_ms": 1000, "ability_config": HexBattleStrike.ABILITY, "target_id": _dummy_id},
 			],
 		},
 		{
@@ -108,12 +109,11 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		return
 
 	var grant_count := 0
-	var exec_frames: Array[int] = []
-	var exec_instance_ids: Array[String] = []
+	var exec_count := 0
+	var failed_events: Array[Dictionary] = []
 	for frame_data in timeline.get("timeline", []) as Array:
 		if not (frame_data is Dictionary):
 			continue
-		var frame := int((frame_data as Dictionary).get("frame", 0))
 		for ev in (frame_data as Dictionary).get("events", []) as Array:
 			if not (ev is Dictionary):
 				continue
@@ -121,22 +121,32 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 			if kind == "abilityGranted" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
 				grant_count += 1
 			elif kind == "executionActivated" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
-				exec_frames.append(frame)
-				exec_instance_ids.append(str((ev as Dictionary).get("abilityInstanceId", "")))
+				exec_count += 1
+			elif kind == "abilityActivateFailed" and str((ev as Dictionary).get("sourceId", "")) == _caster_id:
+				failed_events.append(ev as Dictionary)
 
-	if exec_instance_ids.size() != 3:
-		_fail("expected 3 executionActivated (one per keyframe), got %d (frames=%s)" %
-				[exec_instance_ids.size(), str(exec_frames)])
+	if exec_count != 1:
+		_fail("expected 1 executionActivated (only first fire passes cooldown), got %d" % exec_count)
+		return
+	if failed_events.size() != 2:
+		_fail("expected 2 abilityActivateFailed events (后两发被 cooldown 拦), got %d" % failed_events.size())
 		return
 	if grant_count != 1:
-		_fail("expected exactly 1 abilityGranted on caster (instance reuse), got %d" % grant_count)
+		_fail("expected exactly 1 abilityGranted (instance reuse), got %d" % grant_count)
 		return
-	if exec_instance_ids[0] != exec_instance_ids[1] or exec_instance_ids[1] != exec_instance_ids[2]:
-		_fail("execution abilityInstanceId 应该全部相同 (复用), got %s" % str(exec_instance_ids))
-		return
+	# 验证 reason 含"冷却" / failedComponentType=="condition"
+	for fev in failed_events:
+		var reason := str(fev.get("reason", ""))
+		var ft := str(fev.get("failedComponentType", ""))
+		if not ("冷却" in reason):
+			_fail("expected reason to contain '冷却', got: %s" % reason)
+			return
+		if ft != "condition":
+			_fail("expected failedComponentType=condition, got: %s" % ft)
+			return
 
-	_pass("3 executions @ frames=%s; grant=1 (reused); exec_instance=%s" %
-			[str(exec_frames), exec_instance_ids[0]])
+	_pass("exec=1 + 2 cooldown failures (reason='%s'); grant=1 (reused)" %
+			str(failed_events[0].get("reason", "")))
 
 
 func _pass(reason: String) -> void:
