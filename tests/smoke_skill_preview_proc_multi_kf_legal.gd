@@ -5,7 +5,9 @@
 ##   间隔 2100ms / 4200ms 都 > 2000ms, UI 会接受这个排布。
 ##
 ## 期望:
-##   1. 3 条 damage 事件指向 dummy
+##   1. caster 上恰好 3 条 executionActivated 事件 (每个 keyframe 触发一次 execution)
+##      用 execution 计数而不是 damage 计数: Strike on_critical 会多 push 一条 damage,
+##      暴击随机 → damage 数量飘, execution 数稳定。
 ##   2. caster 上只 grant 一个 Strike Ability instance —— 后两次 fire 复用 (去重 grant 后)
 ##   3. 3 个 executionActivated 事件 abilityInstanceId 全部相同
 ##
@@ -105,8 +107,8 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		_fail("Empty timeline")
 		return
 
-	var dmg_frames: Array[int] = []
 	var grant_count := 0
+	var exec_frames: Array[int] = []
 	var exec_instance_ids: Array[String] = []
 	for frame_data in timeline.get("timeline", []) as Array:
 		if not (frame_data is Dictionary):
@@ -116,28 +118,25 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 			if not (ev is Dictionary):
 				continue
 			var kind := str((ev as Dictionary).get("kind", ""))
-			if kind == "damage" and str((ev as Dictionary).get("target_actor_id", "")) == _dummy_id:
-				dmg_frames.append(frame)
-			elif kind == "abilityGranted" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
+			if kind == "abilityGranted" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
 				grant_count += 1
 			elif kind == "executionActivated" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
+				exec_frames.append(frame)
 				exec_instance_ids.append(str((ev as Dictionary).get("abilityInstanceId", "")))
 
-	if dmg_frames.size() != 3:
-		_fail("expected 3 damage events, got %d (frames=%s)" % [dmg_frames.size(), str(dmg_frames)])
+	if exec_instance_ids.size() != 3:
+		_fail("expected 3 executionActivated (one per keyframe), got %d (frames=%s)" %
+				[exec_instance_ids.size(), str(exec_frames)])
 		return
 	if grant_count != 1:
 		_fail("expected exactly 1 abilityGranted on caster (instance reuse), got %d" % grant_count)
-		return
-	if exec_instance_ids.size() != 3:
-		_fail("expected 3 executionActivated, got %d" % exec_instance_ids.size())
 		return
 	if exec_instance_ids[0] != exec_instance_ids[1] or exec_instance_ids[1] != exec_instance_ids[2]:
 		_fail("execution abilityInstanceId 应该全部相同 (复用), got %s" % str(exec_instance_ids))
 		return
 
-	_pass("3 damage frames=%s; grant=1 (reused); exec_instance=%s" %
-			[str(dmg_frames), exec_instance_ids[0]])
+	_pass("3 executions @ frames=%s; grant=1 (reused); exec_instance=%s" %
+			[str(exec_frames), exec_instance_ids[0]])
 
 
 func _pass(reason: String) -> void:

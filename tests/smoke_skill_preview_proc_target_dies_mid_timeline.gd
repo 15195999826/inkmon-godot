@@ -7,12 +7,14 @@
 ##
 ## 断言:
 ##   1. battle_finished emit 且 timeline 非空
-##   2. 至少有 2 条 damage 事件 (前两发命中)
+##   2. 至少有 1 条 damage 事件 (放宽: Strike on_critical 暴击 + 50 base + 10 crit
+##      可能让第一发就 60 = overkill 直接致死, 第二发命中 dead actor 行为由 LGF 决定;
+##      关注点是 procedure 不崩, damage 多少由下层契约管)
 ##   3. 至少有 1 条 death 事件
 ##   4. caster 三次 keyframe 都 fire 到 (3 个 executionActivated, 不会因为
 ##      target 死亡而 silently 跳过整个 keyframe)
 ##
-## 不断言: 第三发 fire 后是否还有 damage —— 那是 LGF action 层 (DamageAction
+## 不断言: 暴击数量 / 第三发是否打到死者 —— 那是 LGF action 层 (DamageAction
 ## 对死者的语义) 的责任, 不在本测试覆盖。
 extends Node
 
@@ -127,8 +129,8 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 			elif kind == "executionActivated" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
 				exec_count += 1
 
-	if dmg_count < 2:
-		_fail("expected at least 2 damage (first two hits before death), got %d" % dmg_count)
+	if dmg_count < 1:
+		_fail("expected at least 1 damage, got %d" % dmg_count)
 		return
 	if death_count < 1:
 		_fail("expected dummy death event, got %d death events" % death_count)

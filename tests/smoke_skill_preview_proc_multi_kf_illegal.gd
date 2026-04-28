@@ -4,9 +4,10 @@
 ##   间隔 < cooldown (2000ms) —— UI 在编辑期会拦住, 但 procedure 收到这种配置
 ##   (例如外部 preset / 测试场景手工 queue) 必须不崩, 走 cooldown silently reject。
 ##
-## 期望: 1 条 damage (第一发), procedure 正常 emit battle_finished, 不崩。
+## 期望: 1 条 executionActivated (第一发), procedure 正常 emit battle_finished, 不崩。
 ##   后两发被 CooldownCondition reject; 因为去重 grant, caster 上仍只有 1 个 instance,
 ##   说明改动 1 不会因为后续 keyframe fire 失败而堆积/泄漏 ability。
+##   不用 damage 计数 — Strike on_critical 暴击会多 push 一条 damage, 数量随机不稳。
 ##
 ## 这是 改动 1 的反向 invariant 测试: "UI 失守时 procedure 不崩"。
 extends Node
@@ -104,7 +105,7 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		_fail("Empty timeline")
 		return
 
-	var dmg_count := 0
+	var exec_count := 0
 	var grant_count := 0
 	for frame_data in timeline.get("timeline", []) as Array:
 		if not (frame_data is Dictionary):
@@ -113,19 +114,19 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 			if not (ev is Dictionary):
 				continue
 			var kind := str((ev as Dictionary).get("kind", ""))
-			if kind == "damage" and str((ev as Dictionary).get("target_actor_id", "")) == _dummy_id:
-				dmg_count += 1
+			if kind == "executionActivated" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
+				exec_count += 1
 			elif kind == "abilityGranted" and str((ev as Dictionary).get("actorId", "")) == _caster_id:
 				grant_count += 1
 
-	if dmg_count != 1:
-		_fail("expected exactly 1 damage (others cooldown-rejected), got %d" % dmg_count)
+	if exec_count != 1:
+		_fail("expected exactly 1 executionActivated (others cooldown-rejected), got %d" % exec_count)
 		return
 	if grant_count != 1:
 		_fail("expected exactly 1 abilityGranted (no duplicate grants from rejected fires), got %d" % grant_count)
 		return
 
-	_pass("cooldown reject works: damage=1, grant=1")
+	_pass("cooldown reject works: exec=1, grant=1")
 
 
 func _pass(reason: String) -> void:
