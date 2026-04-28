@@ -99,11 +99,13 @@ func _process(delta: float) -> void:
 	if _finished:
 		return
 
-	# 抓 unit_view._buff_label.text 变化,记录序列
-	var label_node = _unit_view.get("_buff_label")
+	# 抓 unit_view 子 view 的 buff label 文本变化,记录序列
+	# (Step 2 拆分后:_buff_label 移到 BuffRowView,通过 getter 访问)
 	var current_text := ""
-	if label_node != null and is_instance_valid(label_node):
-		current_text = label_node.text
+	if _unit_view != null and is_instance_valid(_unit_view):
+		var buff_view := _unit_view.get_buff_row_view()
+		if buff_view != null and is_instance_valid(buff_view):
+			current_text = buff_view.get_label_text()
 	if current_text != _last_label:
 		_last_label = current_text
 		_label_history.append(current_text)
