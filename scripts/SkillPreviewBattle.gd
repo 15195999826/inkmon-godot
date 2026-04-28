@@ -341,6 +341,9 @@ static func run_with_actions(
 	var enemy_ids: Array[String] = []
 	for e in enemy_actors:
 		enemy_ids.append(e.get_id())
+	var environment_ids: Array[String] = []
+	for env in battle.environments:
+		environment_ids.append(env.get_id())
 
 	# grant/revoke 不经 event_collector,在 destroy 前抓 ability 状态 + hp 快照
 	var final_ability_states: Dictionary = {}
@@ -372,6 +375,7 @@ static func run_with_actions(
 		"caster_id": caster_id,
 		"ally_ids": ally_ids,
 		"enemy_ids": enemy_ids,
+		"environment_ids": environment_ids,
 		"final_ability_states": final_ability_states,
 		"final_actor_hps": final_actor_hps,
 		"errors": errors,
@@ -411,6 +415,7 @@ static func _empty_result(errs: Array) -> Dictionary:
 		"caster_id": "",
 		"ally_ids": [] as Array[String],
 		"enemy_ids": [] as Array[String],
+		"environment_ids": [] as Array[String],
 		"final_ability_states": {},
 		"final_actor_hps": {},
 		"errors": typed_errs,
@@ -514,7 +519,30 @@ static func _build_preview_config(scene_config: Dictionary) -> Dictionary:
 		cfg["id"] = "enemy_%d" % i
 		dummies_cfg.append(cfg)
 
-	return {"map_config": grid_config, "caster": caster_cfg, "dummies": dummies_cfg}
+	# 环境物 (M1: stone_wall 起步)。scenario 格式: [{"type": "stone_wall", "pos": [q, r]}]
+	var environment_cfgs: Array = []
+	var env_src: Array = scene_config.get("environment", [])
+	for env_entry in env_src:
+		if not (env_entry is Dictionary):
+			continue
+		var entry: Dictionary = env_entry
+		var pos_val: Variant = entry.get("pos", [0, 0])
+		var q := 0
+		var r := 0
+		if pos_val is Array and (pos_val as Array).size() >= 2:
+			q = (pos_val as Array)[0] as int
+			r = (pos_val as Array)[1] as int
+		environment_cfgs.append({
+			"type": entry.get("type", "stone_wall"),
+			"pos": {"q": q, "r": r},
+		})
+
+	return {
+		"map_config": grid_config,
+		"caster": caster_cfg,
+		"dummies": dummies_cfg,
+		"environment": environment_cfgs,
+	}
 
 
 static func _actor_src_to_preview_cfg(src: Dictionary) -> Dictionary:
@@ -547,6 +575,10 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 	## SkillPreviewBattle 外部直接读 battle.left_team[0] / battle.right_team。
 	var left_team: Array[CharacterActor] = []
 	var right_team: Array[CharacterActor] = []
+
+	## 环境物 actor (StoneWall 等), 与 character 分开 staging,
+	## 用于 scenario 断言"墙没受影响"等。
+	var environments: Array[EnvironmentActor] = []
 
 	## 不走 procedure 路径, 自管。
 	var recorder: BattleRecorder = null
@@ -590,6 +622,15 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 			var dummy := _create_actor(dcfg, team_int, did)
 			right_team.append(dummy)
 
+		# 环境物 (M1: StoneWall 起步)。格式: [{"type": "stone_wall", "pos": {"q": 2, "r": 0}}]
+		var env_cfgs: Array = config.get("environment", [])
+		for ecfg_var in env_cfgs:
+			if not (ecfg_var is Dictionary):
+				continue
+			var env_actor := _create_environment(ecfg_var as Dictionary)
+			if env_actor != null:
+				environments.append(env_actor)
+
 		# 录像
 		recorder = BattleRecorder.new({
 			"battleId": id,
@@ -598,12 +639,36 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		var replay_map_config: Dictionary = {}
 		if UGridMap.model != null:
 			replay_map_config = UGridMap.model.to_config_dict()
-		var all_actors: Array[CharacterActor] = []
-		all_actors.append_array(left_team)
-		all_actors.append_array(right_team)
+		var all_actors: Array[Actor] = []
+		for c in left_team:
+			all_actors.append(c)
+		for c in right_team:
+			all_actors.append(c)
+		for e in environments:
+			all_actors.append(e)
 		recorder.start_recording(all_actors, {
-			"positionFormats": { "Character": "hex" }
+			"positionFormats": { "Character": "hex", "Environment": "hex" }
 		}, replay_map_config)
+
+	## 创建环境物 actor 并放入 grid。M1 仅支持 "stone_wall" type。
+	## cfg 格式: {"type": "stone_wall", "pos": {"q": q, "r": r}}
+	func _create_environment(cfg: Dictionary) -> EnvironmentActor:
+		var env_type: String = cfg.get("type", "")
+		var env_actor: EnvironmentActor = null
+		match env_type:
+			"stone_wall":
+				env_actor = HexBattleStoneWall.create()
+			_:
+				push_warning("[SkillPreviewBattle] 未知 environment type: %s" % env_type)
+				return null
+		add_actor(env_actor)
+		var pos: Dictionary = cfg.get("pos", {})
+		var coord := HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
+		if UGridMap.model.has_tile(coord):
+			UGridMap.model.place_occupant(coord, env_actor)
+		env_actor.hex_position = coord.duplicate()
+		return env_actor
+
 
 	func _create_actor(cfg: Dictionary, team_id: int, id_hint: String) -> CharacterActor:
 		var class_str: String = cfg.get("class", "WARRIOR")

@@ -146,22 +146,59 @@ a. 读 inkmon-skill-design.md 对应设计卡 (§1)
      ↓
 b. 读 enforcing-lgf + 本 skill §4/§5,检查 LGF 原语怎么用
      ↓
-c. 在 submodule 内实现
+c. 调研既有原语 + 起草方案稿
+     - 文件清单 / Action 拆分 / Timeline / 决策树
+     - **明确列出"新机制清单"**:新 Action / 新事件类型 / 新公共 API / 新 schema 字段
+     - 列出需要用户决断的设计抉择(如事件复用 vs 新建)
+     ↓
+d. ★ 用户 align 门(必须)
+     - 把方案稿 + 待决策点交给用户讨论
+     - **任何"新机制"必须用户逐项确认后才能进入实现**
+     - 用户可能要求与外部(Codex / 其他 reviewer)讨论后再定
+     - 未达成共识时不要往下走
+     ↓
+e. 在 submodule 内实现
      - AbilityConfig: addons/.../example/hex-atb-battle/skills/
      - Buff (若有): addons/.../example/hex-atb-battle/buffs/
      - 新 Action (仅当现有不够): addons/.../example/hex-atb-battle/actions/
      - 新 TargetSelector (若形状特殊): addons/.../example/hex-atb-battle/target_selectors.gd
      ↓
-d. 在 submodule 内 commit + push
+f. 在 submodule 内 commit + push
      ↓
-e. 外层写 scenario 测试: tests/skill_scenarios/<name>_scenario.gd (§5)
+g. 外层写 scenario 测试: tests/skill_scenarios/<name>_scenario.gd (§5)
      ↓
-f. 跑 scenario 验证: godot --headless tests/smoke_skill_scenarios.tscn
+h. 跑 scenario 验证: godot --headless tests/smoke_skill_scenarios.tscn
      ↓
-g. 外层 bump addons 指针 + commit scenario
+i. 外层 bump addons 指针 + commit scenario
      ↓
-h. (可选) pattern 传递验证: 新 session 让 AI 基于此技能做变体 (§6)
+j. (可选) pattern 传递验证: 新 session 让 AI 基于此技能做变体 (§6)
 ```
+
+### 3.1 "新机制"的判定标准(必须走用户 align 门)
+
+任一条命中即视为"新机制",**必须**先经用户确认:
+
+- 新增 / 修改 `hex-atb-battle-core` 的事件类型(包括给现有事件加字段)
+- 新增 LGF core / stdlib 层的公共 API
+- 新增不在 design 卡里的 Action / Component / Resolver
+- 修改外部 addon(如 `ultra-grid-map`)的公共接口
+- 引入新的 ability_tag / meta key / damage_type 等 schema 值
+
+**反例**(不算新机制,可直接做):
+- 复用现有 Action / 现有事件,仅参数化使用
+- 新增技能内部私有 helper 函数
+- scenario 测试本身
+
+### 3.2 用户 align 门的产出格式
+
+方案稿至少包含:
+1. **调研结论表**:既有原语现状(API、事件、Action) → 是否够用
+2. **拟实现文件清单**:每个文件标"新建/改"
+3. **核心决策树 / Timeline 草案**
+4. **"新机制清单"**:逐条列出,每条注明候选方案与推荐倾向
+5. **scenario 覆盖清单**:至少哪些 case
+
+用户回复后再更新任务列表、解锁实现任务。
 
 ---
 
@@ -314,7 +351,14 @@ godot --headless tests/smoke_skill_scenarios.tscn
 - [ ] 确认哪部分走 submodule 层、哪部分走外层(§2.3)
 - [ ] 设计卡中指出的 LGF 原语,已确认存在(或识别出是新原语需要先谈)
 
-## 9. 收工前自检
+## 9. 实现前自检(用户 align 门 — 在动手写代码之前必过)
+
+- [ ] 方案稿按 §3.2 格式完成(调研 / 文件清单 / 决策树 / 新机制清单 / scenario 覆盖)
+- [ ] 「新机制清单」按 §3.1 标准识别完整(事件 schema / 公共 API / 不在 design 卡里的 Action 等)
+- [ ] 已把方案交给用户讨论,**所有"新机制"逐项获得用户明确确认**
+- [ ] 待决策的设计抉择已收敛(用户可能要求与外部 reviewer 讨论后再定 — 等达成共识)
+
+## 10. 收工前自检
 
 - [ ] Submodule 内已 commit + push
 - [ ] 外层已 bump submodule 指针

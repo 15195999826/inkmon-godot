@@ -21,6 +21,7 @@ var events: Array[Dictionary] = []  ## 扁平化的所有事件（跨所有 fram
 var caster_id: String = ""
 var ally_ids: Array[String] = []
 var enemy_ids: Array[String] = []
+var environment_ids: Array[String] = []
 
 ## actor_id → Array[config_id]，战斗结束瞬间该 actor 身上还在生效的 ability config_id 列表
 var final_ability_states: Dictionary = {}
@@ -34,6 +35,7 @@ func _init(preview_result: Dictionary) -> void:
 	caster_id = str(preview_result.get("caster_id", ""))
 	ally_ids = preview_result.get("ally_ids", []) as Array[String]
 	enemy_ids = preview_result.get("enemy_ids", []) as Array[String]
+	environment_ids = preview_result.get("environment_ids", []) as Array[String]
 	final_ability_states = preview_result.get("final_ability_states", {}) as Dictionary
 	final_actor_hps = preview_result.get("final_actor_hps", {}) as Dictionary
 	events = _flatten_events(preview_result.get("replay", {}) as Dictionary)
@@ -47,6 +49,10 @@ func ally_id(index: int) -> String:
 
 func enemy_id(index: int) -> String:
 	return enemy_ids[index] if index >= 0 and index < enemy_ids.size() else ""
+
+
+func environment_id(index: int) -> String:
+	return environment_ids[index] if index >= 0 and index < environment_ids.size() else ""
 
 
 # ========== 事件过滤 ==========
