@@ -1,10 +1,10 @@
 ## Smoke: SkillPreviewProcedure 多 keyframe 不同 skill (cooldown namespace 隔离)
 ##
-## 配置: caster t=0 Strike + t=200 SwiftStrike + t=2100 Strike → dummy
+## 配置: caster t=0 Strike + t=200 SwiftStrike + t=2000 Strike → dummy
 ##   Strike cooldown 2000ms, SwiftStrike cooldown 3000ms, 不同 config_id
 ##   cooldown tag = cooldown:<config_id>, namespace 互不影响
 ##   t=200 SwiftStrike 不会被 Strike 的 cooldown:skill_strike tag 拦
-##   t=2100 Strike 距 t=0 Strike 2100ms > 2000ms occupy, 合法
+##   t=2000 Strike 刚好踩在 cooldown 到期边界, 应该合法
 ##
 ## 期望 caster 上 executionActivated = 3 (Strike x2 + SwiftStrike x1, 各一次 execution)。
 ##   不用 damage 计数: Strike on_critical 暴击会多 push 一条 damage, 数量随机不稳。
@@ -72,7 +72,7 @@ func _ready() -> void:
 			"track": [
 				{"time_ms": 0,    "ability_config": HexBattleStrike.ABILITY,      "target_id": _dummy_id},
 				{"time_ms": 200,  "ability_config": HexBattleSwiftStrike.ABILITY, "target_id": _dummy_id},
-				{"time_ms": 2100, "ability_config": HexBattleStrike.ABILITY,      "target_id": _dummy_id},
+				{"time_ms": 2000, "ability_config": HexBattleStrike.ABILITY,      "target_id": _dummy_id},
 			],
 		},
 		{
