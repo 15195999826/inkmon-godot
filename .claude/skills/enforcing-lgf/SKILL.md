@@ -26,6 +26,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 ## Reference
 
 - **Conventions (detailed)**: See [reference/conventions-detail.md](reference/conventions-detail.md) — Full examples, reference chain diagrams, architecture
+- **Cast eligibility vs Condition**: See [reference/cast-eligibility-vs-condition.md](reference/cast-eligibility-vs-condition.md) — Where to put "can this skill be cast" config (metadata, NOT Condition). Read before adding any new cast-time filter (range / target kinds / faction / LOS).
 - **Entity & World**: See [reference/entity.md](reference/entity.md) — Actor, System, GameWorld, GameplayInstance
 - **Abilities**: See [reference/abilities.md](reference/abilities.md) — Ability, AbilitySet, AbilityConfig, Components, Builder API
 - **Actions**: See [reference/actions.md](reference/actions.md) — Action, ExecutionContext, TargetSelector, Resolvers
