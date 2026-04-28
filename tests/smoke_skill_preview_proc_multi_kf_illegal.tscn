@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b8tlmkfillegalv1"]
+
+[ext_resource type="Script" path="res://tests/smoke_skill_preview_proc_multi_kf_illegal.gd" id="1"]
+
+[node name="SmokeMkfIllegal" type="Node"]
+script = ExtResource("1")
