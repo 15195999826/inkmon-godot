@@ -667,7 +667,13 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		add_actor(env_actor)
 		var pos: Dictionary = cfg.get("pos", {})
 		var coord := HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
-		UGridMap.model.place_occupant(coord, env_actor)
+		var placed := UGridMap.model != null and UGridMap.model.place_occupant(coord, env_actor)
+		if not placed:
+			remove_actor(env_actor.get_id())
+			push_warning("[SkillPreviewBattle] environment 放置失败: %s @ (%d, %d)" % [
+				env_type, coord.q, coord.r
+			])
+			return null
 		env_actor.hex_position = coord.duplicate()
 		return env_actor
 

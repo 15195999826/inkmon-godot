@@ -22,7 +22,7 @@ func get_scene_config() -> Dictionary:
 		"caster":  {"class": "WARRIOR", "pos": [0, 0]},
 		"enemies": [{"class": "WARRIOR", "pos": [1, 0], "hp": 1000}],
 		"environment": [
-			{"type": "stone_wall", "pos": [2, 0]},
+			{"type": "stone_wall", "pos": [0, 1]},
 		],
 		"target":  {"mode": "auto"},
 	}
