@@ -281,6 +281,7 @@ static func run_with_actions(
 		battle.tick(TICK_INTERVAL)
 
 		var cur_logic_time := battle.get_logic_time()
+		_sync_all_actor_tag_logic_time(battle, cur_logic_time)
 		while not pending.is_empty() and float(pending[0]["time_ms"]) <= cur_logic_time:
 			var kf: Dictionary = pending.pop_front()
 			_fire_action(
@@ -403,6 +404,11 @@ static func _fire_action(
 	if target_id != "":
 		activate_event["target_actor_id"] = target_id
 	action_caster.ability_set.receive_event(activate_event, battle)
+
+
+static func _sync_all_actor_tag_logic_time(battle: _PreviewInstance, now_ms: float) -> void:
+	for actor in battle.get_all_actors():
+		actor.ability_set.tag_container.tick(0.0, now_ms)
 
 
 static func _empty_result(errs: Array) -> Dictionary:
@@ -650,22 +656,18 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 			"positionFormats": { "Character": "hex", "Environment": "hex" }
 		}, replay_map_config)
 
-	## 创建环境物 actor 并放入 grid。M1 仅支持 "stone_wall" type。
+	## 创建环境物 actor 并放入 grid。M1 仅支持 stone_wall。
 	## cfg 格式: {"type": "stone_wall", "pos": {"q": q, "r": r}}
 	func _create_environment(cfg: Dictionary) -> EnvironmentActor:
 		var env_type: String = cfg.get("type", "")
-		var env_actor: EnvironmentActor = null
-		match env_type:
-			"stone_wall":
-				env_actor = HexBattleStoneWall.create()
-			_:
-				push_warning("[SkillPreviewBattle] 未知 environment type: %s" % env_type)
-				return null
+		if env_type != HexBattleStoneWall.KIND:
+			push_warning("[SkillPreviewBattle] 未知 environment type: %s" % env_type)
+			return null
+		var env_actor := HexBattleStoneWall.create()
 		add_actor(env_actor)
 		var pos: Dictionary = cfg.get("pos", {})
 		var coord := HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
-		if UGridMap.model.has_tile(coord):
-			UGridMap.model.place_occupant(coord, env_actor)
+		UGridMap.model.place_occupant(coord, env_actor)
 		env_actor.hex_position = coord.duplicate()
 		return env_actor
 
@@ -687,8 +689,7 @@ class _PreviewInstance extends HexWorldGameplayInstance:
 		# 位置
 		var pos: Dictionary = cfg.get("position", {})
 		var coord := HexCoord.new(pos.get("q", 0) as int, pos.get("r", 0) as int)
-		if UGridMap.model.has_tile(coord):
-			UGridMap.model.place_occupant(coord, actor)
+		UGridMap.model.place_occupant(coord, actor)
 		actor.hex_position = coord.duplicate()
 		return actor
 
