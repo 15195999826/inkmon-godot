@@ -1,10 +1,10 @@
-# Example App — Presentation Layer (`hex-atb-battle-frontend`)
+# Example App — Presentation Layer (`hex-atb-battle/frontend`)
 
 > Part of the Example App reference. See also: [Overview & Core Events](example-app-overview.md) | [Game Logic](example-app-game-logic.md)
 
 Replay-driven declarative animation pipeline for visualizing battle events as 3D animations.
 
-**Full documentation**: See `addons/logic-game-framework/example/hex-atb-battle-frontend/README.md` for flow diagrams and data format specs.
+**Full documentation**: See `addons/logic-game-framework/example/hex-atb-battle/frontend/README.md` for flow diagrams and data format specs.
 
 ## Contents
 - [4-Layer Pipeline](#4-layer-pipeline)

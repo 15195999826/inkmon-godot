@@ -6,7 +6,7 @@ Source: `addons/logic-game-framework/example/`
 
 ## Contents
 - [Three-Layer Architecture](#three-layer-architecture)
-- [Layer 1: Core Events](#layer-1-core-events-hex-atb-battle-core)
+- [Layer 1: Core Events](#layer-1-core-events-hex-atb-battlecore)
 - [Cross-Layer Data Flow](#cross-layer-data-flow)
 - [Design Pattern Summary](#design-pattern-summary)
 
@@ -32,7 +32,7 @@ Source: `addons/logic-game-framework/example/`
 └────────────────────┬────────────────────────────────────┘
                      │ references shared data structures
 ┌────────────────────▼────────────────────────────────────┐
-│           Core Events Layer (hex-atb-battle-core)        │
+│           Core Events Layer (hex-atb-battle/core)        │
 │   Strongly-typed event definitions, shared enums         │
 │   Serializable, replay-safe, no logic                    │
 └─────────────────────────────────────────────────────────┘
@@ -42,7 +42,7 @@ Source: `addons/logic-game-framework/example/`
 
 ---
 
-## Layer 1: Core Events (`hex-atb-battle-core`)
+## Layer 1: Core Events (`hex-atb-battle/core`)
 
 ### Purpose
 
@@ -51,7 +51,7 @@ Pure data layer. Defines the **event contract** between logic and presentation. 
 ### Directory Structure
 
 ```
-hex-atb-battle-core/
+hex-atb-battle/core/
   events/
     battle_events.gd    # All event type definitions
   README.md
