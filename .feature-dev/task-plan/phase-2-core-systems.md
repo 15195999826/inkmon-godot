@@ -1,6 +1,6 @@
 # Phase 2 — Core Systems（M1 期间核心玩法支柱）
 
-> **状态**：进行中（P2.1 + P2.2 + P2.3 已完成 2026-05-01；P2.4-P2.8 待启动）
+> **状态**：进行中（P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 已完成 2026-05-01；P2.7-P2.8 待启动）
 > **进入条件**：Phase 1 收口条件全过 ✓
 > **退出条件**：本文档 §收口条件 全过 → 切换到 Phase 3
 
@@ -128,23 +128,36 @@
 
 ---
 
-### P2.6 — Player Command + Building Placement + 胜负判定改写
+### P2.6 — Player Command + Building Placement + 胜负判定改写 ✅ 已完成 2026-05-01
 
 **目标**：玩家放置建筑命令进 simulation；胜负判定从"team 全灭"改为"水晶塔 hp = 0"。
 
-**改动范围**：
-- 新增：`logic/commands/rts_player_command.gd`（基类）
-  - 子类：`PlaceBuildingCommand / UpgradeBuildingCommand / SellBuildingCommand`
-- 新增：`logic/commands/rts_player_command_queue.gd`（持 pending commands，按 tick stamp 应用）
-- 新增：`logic/commands/rts_building_placement.gd`（合法性验证：建造区 / 占用 cells / 资金）
-- 修改：`RtsBattleProcedure._check_battle_end`：`team 全灭` → `crystal_tower of team X is dead`
-- 修改：`RtsTeam` 抽象（破 L1）— 队伍配置（faction_id / starting_resources / build_zone）
-- 修改：录像 player_commands 字段持续 append（流式录像）
+**已落地范围**（详细 evidence 见 `../Progress.md` AC5）：
+- 新增 `logic/config/rts_team_config.gd`（RtsTeamConfig：team_id / faction_id / starting_resources / build_zone Rect2 / crystal_tower_id；`unconfigured(team_id)` + `create(...)` 工厂）
+- 新增 `logic/commands/rts_player_command.gd`（基类：tick_stamp + team_id + apply 钩子 + serialize 录像支持）
+- 新增 `logic/commands/rts_place_building_command.gd`（PlaceBuildingCommand：building_kind + position_2d；apply 走 RtsBuildingPlacement.validate → RtsBuildings.create_<kind> → add_actor → place_building 写 pathing map → spend_team_resources → add_unit_to_team → 自动绑 ct_id）
+- 新增 `logic/commands/rts_player_command_queue.gd`（RtsPlayerCommandQueue：enqueue / apply_due 按 tick_stamp 升序，同 tick 保 insertion-order；history 持续 append 含 success / fail entries）
+- 新增 `logic/commands/rts_building_placement.gd`（静态校验：build_zone / 地图边界 / cells 阻挡 / cells 占用 / 资源充足；返回 reason 枚举字符串）
+- 新增 `logic/commands/README.md`（commands/ 目录使用说明 + 添加新命令类型指南）
+- 修改 `logic/config/rts_building_config.gd`（StatBlock 加 cost 字段：barracks=100 / archer_tower=50 / crystal_tower=0）
+- 修改 `logic/controller/rts_unit_controller.gd`（加 `_player_command_active` flag + `set_activity_chain(chain, override_strategy=false)` 第 2 参数 + `clear_player_command_override` / `is_player_command_active` API；tick 在 override 时跳过 strategy.decide，仅推进 current_activity，链跑完自动清 flag；override=true 时也清 abandoned 状态让玩家命令复活 stuck 单位）
+- 修改 `core/rts_auto_battle_procedure.gd`：
+  - 字段 `_team_configs / _team_resources / _player_command_queue / _player_commands_log`
+  - opts 新增 `team_configs: Dictionary[int, RtsTeamConfig]` + `player_command_queue: RtsPlayerCommandQueue`（旧 smoke 不传时按需 unconfigured + lazy create）
+  - `_init` 调 `_install_team_configs(opts.team_configs)` 装配占位
+  - `start()` 在 footprint 写入循环里加自动绑 crystal_tower_id
+  - `tick_once` step 1.5（1 之后，2 之前）：`_player_command_queue.apply_due` + log append
+  - `_check_battle_end` 重写：走 `_is_team_lost(team_id, team_actors)` — `team_config.has_crystal_tower()` 优先（找 actor_id == crystal_tower_id 死亡判败），否则 fallback team-wipeout（Phase 1 行为兼容）
+  - 公共 API：`enqueue_player_command(cmd)` / `get_team_config(team_id)` / `get_team_resources(team_id)` / `spend_team_resources(team_id, amount)` / `get_player_commands_log()`
+- **未做 / 留 P2.7+**：UpgradeBuildingCommand / SellBuildingCommand 子类未落地（P2.6 acceptance 不需要；留 RtsPlayerCommand 基类接口预留）；单位攻击建筑未做（AutoTargetSystem + BasicAttackAction 仍只看 RtsUnitActor）
 
-**验证**：
-- 新 smoke `tests/battle/smoke_player_command.tscn`：scripted 玩家在 tick 30 放置 barracks，验证建筑出现 + 后续生产
-- 新 smoke `tests/battle/smoke_crystal_tower_win.tscn`：水晶塔 hp 设极低，验证战斗以"塔被毁"判胜负
-- 主 smoke 适配新胜负条件（仍 PASS）
+**验证**（已通过）：
+- 新 smoke `tests/battle/smoke_player_command.tscn`：3 phase（放置 ok + 同位置 dup fail + build_zone 外 fail）；log 3 entries; resources 200→100; placed_id=Building_4; ticks=30
+- 新 smoke `tests/battle/smoke_crystal_tower_win.tscn`：双 ct 起手 + procedure.start() 自动绑 ct_id；手动 mark_dead 右方 ct + tick 2 → result=left_win；ticks=2
+- 新 smoke `tests/battle/smoke_player_command_production.tscn`：tick 30 玩家命令放兵营 → 后 570 ticks 累积 7 个 melee spawn + override-strategy SpawnLane 让最远朝东 254.74 px；resources=100
+- 主 smoke `tests/battle/smoke_rts_auto_battle.tscn` 不退化：仍 left_win, ticks=347, melee_max_dist=24.00, ranged_max_dist=125.75, detoured=4（不传 team_configs → fallback 全灭判定 0 行为差）
+- 决定性 smoke 仍 bit-equal（seed=12345, run1=run2=(left_win, 347), tick_diff=0）
+- LGF 73/73 + 全部 P1/P2 子 smoke 仍 PASS
 
 ---
 
@@ -211,9 +224,9 @@ P2.1 与 P2.2/P2.3 可并行；P2.4 依赖 P2.1（strategy 已经返回 Activity
 
 - [x] **AC1 — Activity 系统**：`smoke_activity_chain` PASS；UnitController 内已无 string FSM ✓ (P2.1 完成 2026-05-01; evidence in `../Progress.md` AC1)
 - [x] **AC2 — 避障四层（前 3 层）**：`smoke_steering` 8 单位散开 ✅ PASS (P2.2 完成 2026-05-01)；`smoke_stuck_recovery` 包围降级 ✅ PASS (P2.3 完成 2026-05-01); evidence in `../Progress.md` AC2
-- [ ] **AC3 — AutoTargetSystem**：`smoke_auto_target` priority 标签生效；4v4 主 smoke 性能改善（每 20 tick 扫 vs 每 tick 扫）
-- [ ] **AC4 — Production**：`smoke_production` 兵营周期 spawn PASS
-- [ ] **AC5 — Player Command + Crystal Tower**：`smoke_player_command` PASS；`smoke_crystal_tower_win` PASS；胜负判定改为塔死
+- [x] **AC3 — AutoTargetSystem**：`smoke_auto_target` priority 标签生效 ✅ PASS (P2.4 完成 2026-05-01); 4v4 主 smoke 行为等价 (left_win, ticks=347); evidence in `../Progress.md` AC3
+- [x] **AC4 — Production**：`smoke_production` 兵营周期 spawn ✅ PASS (P2.5 完成 2026-05-01); 双 barracks 30s 跑 600 ticks 各 spawn 7 melee, 朝东偏移 118.51 px; evidence in `../Progress.md` AC4
+- [x] **AC5 — Player Command + Crystal Tower**：`smoke_player_command` ✅ + `smoke_crystal_tower_win` ✅ + `smoke_player_command_production` ✅ PASS (P2.6 完成 2026-05-01); 玩家命令 tick 30 放兵营 → 7 spawns + override-strategy SpawnLane; crystal-tower 死 → 该方败 (start() 自动绑 ct_id); evidence in `../Progress.md` AC5
 - [ ] **AC6 — Frontend Director 流式**：`smoke_director_streaming` PASS；frontend 0 处 `actor.position_2d` 直读
 - [ ] **AC7 — AIR layer + 飞行单位**：`smoke_flying_units` PASS（防空塔只打飞行 / 地面武器打不到飞行 / 飞行穿过地面建筑）
 - [ ] **AC8 — 城堡战争最小可玩 demo**：编辑器 F6 跑 `demo_rts_frontend.tscn`，玩家可放置建筑、看到建筑生产单位、单位互打（含飞行 vs 防空）、塔被毁判胜负

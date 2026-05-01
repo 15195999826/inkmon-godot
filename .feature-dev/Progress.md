@@ -1,8 +1,8 @@
 ## Progress — RTS Auto-Battle M1 架构重构
 
-**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 done (4/8 sub-tasks)**, 不退化
+**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 done (6/8 sub-tasks)**, 不退化
 
-最近更新: 2026-05-01 (P2.4 完成)
+最近更新: 2026-05-01 (P2.6 完成)
 
 ---
 
@@ -31,21 +31,42 @@
     5. **dead-cache immediate rescan**: cache 命中目标 mark_dead 后 1 个 tick 内 cache 切到其他敌人 (不等下个 RESCAN 周期)
   - 命令 B (4v4 行为): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_4_smoke_rts.txt 2>&1`
   - Evidence: `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS - 因 AutoTarget 让单位每 20 tick 重评目标, 战斗时长从 P2.3 的 239 → 347 ticks (合理: 之前 strategy 锁定首个 target, 现在会切换到威胁更高/更近的); AC3 (melee_max=24.00 / ranged 至少 1 长程) 仍全过, AC2 detour=4 仍存在
-- [ ] **AC4 — Production**: `smoke_production` 兵营周期 spawn PASS
-- [ ] **AC5 — Player Command + Crystal Tower**: `smoke_player_command` PASS; `smoke_crystal_tower_win` PASS
+- [x] **AC4 — Production**: `smoke_production` 兵营周期 spawn PASS (P2.5)
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_production.tscn > /tmp/p2_5_smoke_production.txt 2>&1`
+  - Evidence: `rts production smoke: ticks=600 left_spawned=7 right_spawned=7 max_left_eastward=118.51 px`; PASS
+    - 左 / 右各 1 个 barracks (production_period_ms=4000) → 30s @ 50ms 跑 600 ticks 后各 spawn 7 个 melee (理论 7-8, 阈值 ≥ 5)
+    - footprint blocking 验证: 起手 `_verify_footprint_blocking` 检查左 / 右 barracks 4 个 cell 全 `is_tile_blocking=true`
+    - SpawnLane 进军证据: 左队最大 x 偏移 118.51 px (从 spawn x≈140 到最远 x≈258); strategy + AutoTargetSystem 接管后 AttackActivity 驱动 unit 朝中场敌人移动
+- [x] **AC5 — Player Command + Crystal Tower**: `smoke_player_command` ✅ + `smoke_crystal_tower_win` ✅ + `smoke_player_command_production` ✅ PASS (P2.6 完成 2026-05-01)
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_player_command.tscn > /tmp/p2_6_player_command.txt 2>&1`
+  - Evidence A: `rts player_command smoke: ticks=30 log_entries=3 resources_remaining=100 placed_id=rts_world_0:Building_4`; PASS
+    - 3 条 player_command_log entries: entry0 (PlaceBuildingCommand barracks @ (150, 200)) success → actor_id=Building_4 + footprint cells (4, 5)/(5, 5)/(4, 6)/(5, 6) blocking + 扣 100 resources;
+      entry1 (同位置二次放置) fail reason=cells_blocked (验证占用拒绝);
+      entry2 (build_zone 之外 (50, 400)) fail reason=out_of_build_zone (验证建造区合法性);
+      仅 entry0 扣资源, 200 → 100 (cost=100)
+  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_crystal_tower_win.tscn > /tmp/p2_6_crystal_tower.txt 2>&1`
+  - Evidence B: `rts crystal_tower_win smoke: ticks=2 result=left_win left_ct_dead=false right_ct_dead=true`; PASS
+    - 起手 procedure.start() 自动绑定双方 crystal_tower_id (smoke 不需要手动 set);
+    - tick 1 双 ct 都活 → procedure 不结束;
+    - 手动 mark_dead 右方 ct + tick 2 → `_check_battle_end` 走 crystal-tower 模式 → result=left_win (取代 fallback 全灭判定)
+  - 命令 C: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_player_command_production.tscn > /tmp/p2_6_pc_production.txt 2>&1`
+  - Evidence C: `rts player_command_production smoke: ticks=600 placed_id=rts_world_0:Building_4 left_spawned=7 max_eastward=254.74 resources=100`; PASS
+    - tick 30 placement 成功 → 后 570 ticks (28.5s) 内累积 7 个 melee spawn (理论 7-8, 阈值 ≥ 3);
+    - SpawnLane override_strategy=true 让 RtsAttackMoveActivity 不被 strategy.decide 替换 → 单位最远朝东偏移 254.74 px (验证 P2.6 override flag);
+    - 双方 crystal_tower 占位让战斗不自然结束 (AutoTarget 不打 buildings, 当前 limitation; 战斗保持 in_progress)
 - [ ] **AC6 — Frontend Director 流式**: `smoke_director_streaming` PASS; frontend 0 处 `actor.position_2d` 直读
 - [ ] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` PASS
 - [ ] **AC8 — 城堡战争最小可玩 demo**: 编辑器 F6 跑 `demo_rts_frontend.tscn`, 玩家可放置建筑、塔被毁判胜负
-- [x] **AC9 — 不退化** (P2.4 重新验证, 全部 P1 + P2.1-P2.4 smokes 仍 PASS):
-  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p2_4_lgf.txt 2>&1` → `73/73 PASS`
-  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p2_4_hex.txt 2>&1` → `结果: right_win` (exit 0; hex 不强制 winner 一致)
-  - 命令 C: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_4_smoke_rts.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS
-    - 注: AutoTarget 每 20 tick 重评目标, 战斗时长从 P2.3 的 239 → 347 ticks (合理变化, 仍在 MAX_TICKS=1200 内分胜负); melee_max_dist=24.00 不变 (兵种行为 AC3 仍过)
-  - 命令 D: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p2_4_det.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (P2.4 决定性顺序保证: AutoTargetSystem 内部不调 randf, 按 units 入参顺序 iterate, by_team 字典靠 Godot 4 insertion-order 语义保等价于 _get_enemies)
-  - 全部 P1 + P2.1-P2.4 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / **auto_target** / frontend: all PASS
-    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p2_4_<name>.txt 2>&1`
-    - 关键 evidence: smoke_steering `8/8 movers, total_traveled=2746.7`; smoke_stuck_recovery `3/3 surrounded units abandoned`; smoke_activity_chain `phase1_ticks=26, drift=0.00`; smoke_grid_pathfinding `traveled=552.00 straight=400.00 max_y_dev=74.00`
-- [ ] **AC10 — Bit-identical replay** (Phase 2 新增, P2.6+P2.7 落地)
+- [x] **AC9 — 不退化** (P2.6 重新验证, 全部 P1 + P2.1-P2.6 smokes 仍 PASS):
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p2_6_lgf.txt 2>&1` → `73/73 PASS`
+  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p2_6_hex.txt 2>&1` → `结果: right_win` (exit 0)
+  - 命令 C: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_6_smoke_rts.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS
+    - 与 P2.5 末态完全一致 — 4v4 主 smoke 不传 team_configs → procedure 内部用 unconfigured(team_id) 占位 → fallback 全灭判定 (Phase 1 兼容); P2.6 改写胜负判定 0 行为差异
+  - 命令 D: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p2_6_det.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (P2.6 不引入 randf; player_commands_log 仅追加, 不影响 sim 路径)
+  - 全部 P1 + P2.1-P2.6 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / **player_command** / **crystal_tower_win** / **player_command_production** / frontend: all PASS
+    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p2_6_<name>.txt 2>&1`
+    - 关键 evidence: P2.6 新 3 smoke 见 AC5; 旧 smoke 与 P2.5 末态完全一致
+- [ ] **AC10 — Bit-identical replay** (Phase 2 新增, P2.7 完整 BattleRecorder 落地)
 
 ---
 
@@ -93,8 +114,43 @@
     - 修改 `core/rts_auto_battle_procedure.gd` (加 _auto_target_system: RtsAutoTargetSystem lazy 字段; tick_once step 2.5 在 controller.tick 之前调 _auto_target_system.tick(world, alive_units))
     - 新增 `tests/battle/smoke_auto_target.{gd,tscn}` (5 子测试: priority over distance / HOLD_FIRE / DEFENSIVE / no-priority fallback / dead-cache immediate rescan; 直接驱动 RtsAutoTargetSystem 不接 procedure)
   - Evidence: 见 AC3 + AC9 上方
-- [ ] **P2.5 — Production System + Building Factory**
-- [ ] **P2.6 — Player Command + Building Placement + 胜负判定改写**
+- [x] **P2.6 — Player Command + Building Placement + 胜负判定改写**
+  - 改动:
+    - 新增 `logic/config/rts_team_config.gd` (RtsTeamConfig: team_id / faction_id / starting_resources / build_zone Rect2 / crystal_tower_id; 工厂 `unconfigured(team_id)` + `create(team_id, faction, resources, zone)`; 查询 `has_build_zone / contains_position / has_crystal_tower`)
+    - 新增 `logic/commands/rts_player_command.gd` (基类: tick_stamp / team_id / `apply(procedure, world) -> Dictionary` 钩子 / `command_type / serialize` 录像支持)
+    - 新增 `logic/commands/rts_place_building_command.gd` (PlaceBuildingCommand: building_kind + position_2d; apply 走 RtsBuildingPlacement.validate → RtsBuildings.create_<kind> → add_actor + set position + place_building 写 pathing map + spend_team_resources + add_unit_to_team + 自动绑 crystal_tower_id)
+    - 新增 `logic/commands/rts_player_command_queue.gd` (RtsPlayerCommandQueue: enqueue / apply_due (按 tick_stamp 升序, 同 tick 保 insertion-order, 决定性) / history append / get_failed_history / pending_count)
+    - 新增 `logic/commands/rts_building_placement.gd` (静态校验: build_zone / 地图边界 / cells 阻挡 / cells 占用 / 资源充足; 返回 result dict 含 reason 枚举 + footprint + cost)
+    - 新增 `logic/commands/README.md` (commands/ 目录使用说明 + 添加新命令类型指南)
+    - 修改 `logic/config/rts_building_config.gd` (StatBlock 加 `cost: int` 字段; barracks=100 / archer_tower=50 / crystal_tower=0; get_stats 拷贝 cost 到 block)
+    - 修改 `logic/controller/rts_unit_controller.gd` (加 `_player_command_active: bool` flag + `set_activity_chain(chain, override_strategy=false)` 第 2 参数 + `clear_player_command_override` / `is_player_command_active` API; tick 在 override 时跳过 strategy.decide, 仅推进 current_activity, 链跑完自动清 flag; override=true 时也清 abandoned 状态让玩家命令复活 stuck 单位)
+    - 修改 `core/rts_auto_battle_procedure.gd`:
+      - 字段加 `_team_configs / _team_resources / _player_command_queue / _player_commands_log`;
+      - opts 新增 `team_configs: Dictionary[int, RtsTeamConfig]` + `player_command_queue: RtsPlayerCommandQueue` (旧 smoke 不传时按需 unconfigured + lazy create);
+      - `_init` 调 `_install_team_configs(opts.team_configs)` 装配占位 (旧 smoke 行为不破);
+      - `start()` 在 footprint 写入循环里加自动绑 crystal_tower_id (smoke 不需手动 set);
+      - tick_once step 1.5 (1 之后, 2 之前): `_player_command_queue.apply_due` + log append;
+      - `_check_battle_end` 重写: 走 `_is_team_lost(team_id, team_actors)` — `team_config.has_crystal_tower()` 优先 (找 actor_id == crystal_tower_id 死亡判败), 否则 fallback team-wipeout (Phase 1 行为兼容);
+      - 公共 API: `enqueue_player_command(cmd)` / `get_team_config(team_id)` / `get_team_resources(team_id)` / `spend_team_resources(team_id, amount)` / `get_player_commands_log()`;
+      - 内部 `_install_team_configs` (装配占位让 0/1 必有 entry)
+    - 新增 `tests/battle/smoke_player_command.{gd,tscn}` (3 phase: 放置 OK + 同位置二次失败 + 建造区外失败; 验证 player_commands_log 3 条 entry, resources 200→100, footprint cells blocking, 建筑 in left_team)
+    - 新增 `tests/battle/smoke_crystal_tower_win.{gd,tscn}` (双 crystal_tower 起手, procedure.start() 自动绑 crystal_tower_id; tick 1 双活 → not finished; mark_dead 右方 + tick 2 → result=left_win)
+    - 新增 `tests/battle/smoke_player_command_production.{gd,tscn}` (P2.5+P2.6 联动: tick 30 player command 放兵营 → 600 ticks 后 left_spawned=7 + max_eastward=254.74 px + override_strategy=true 让 SpawnLane 不被 strategy.decide 替换)
+  - Evidence: 见 AC5 + AC9 上方
+- [x] **P2.5 — Production System + Building Factory**
+  - 改动:
+    - 新增 `logic/buildings/rts_building_attribute_set.gd` (hp / max_hp / production_speed_multiplier; cross-clamp hp ≤ max_hp; 与 `RtsUnitAttributeSet` 同构 apply_config 路径)
+    - 新增 `logic/config/rts_building_config.gd` (3 个 building_kind: crystal_tower / barracks / archer_tower; StatBlock = name + max_hp + footprint_size + is_crystal_tower + production_period_ms + spawn_unit_kind + spawn_unit_stance)
+    - 重写 `logic/rts_building_actor.gd` (从 stub 升级到完整 actor: 加 attribute_set / footprint_size / is_crystal_tower / production_period_ms / spawn_unit_kind / spawn_unit_stance / `_production_progress_ms`; `get_footprint_cells(grid)` 按 footprint_size AABB 算 cells, 偶数尺寸左上偏置, 奇数居中)
+    - 新增 `logic/buildings/rts_buildings.gd` (工厂 module — `create_crystal_tower / create_barracks / create_archer_tower`; 共用 `_create_from_kind` 配齐 attribute_set + ability_set + max_hp/hp + footprint + 生产字段; collision_radius 估算为 footprint 半边长)
+    - 新增 `logic/production/rts_production_system.gd` (纯 RefCounted; `tick(dt_ms, world, spawner)` 走全部 alive RtsBuildingActor, 累加 `_production_progress_ms` × `production_speed_multiplier`, 满周期触发 `spawner.call(building)`; spawner 返回非 null 则减一周期, null 视为 spawn 失败下次重试; 不调 randf 决定性安全)
+    - 修改 `core/rts_auto_battle_procedure.gd`:
+      - opts 新增 `unit_spawner: Callable(building) -> RtsUnitActor`; 字段 `_production_system: RtsProductionSystem`(lazy) + `_unit_spawner: Callable`
+      - 新 `start()` override: 在 `super.start()` 之后走 `get_all_actors()` 找 RtsBuildingActor, 调 `world.rts_grid.place_building(id, get_footprint_cells(grid))` 把 footprint 写入 pathing map (单位寻路自动绕开建筑)
+      - tick_once step 4e: `if _unit_spawner.is_valid(): _production_system.tick(_tick_interval, world, _unit_spawner)` (在 stuck_detector 之后, event_sink 之前)
+      - 新 `add_unit_to_team(unit, team_id)` 公共 API: 让 spawner 把新单位加入 left_team / right_team 对应阵营 (procedure 内部 `_check_battle_end` / `get_alive_actors` 立即可见; 仅支持 team_id ∈ {0, 1})
+    - 新增 `tests/battle/smoke_production.{gd,tscn}` (左 / 右各 1 barracks 对称布置; 自管 spawner 创建 unit + RtsNavAgent + RtsUnitController + `add_unit_to_team` + 初始 `RtsAttackMoveActivity` SpawnLane chain; 600 ticks @ 50ms = 30s 跑完 assert ≥ 5 spawn / team + 至少 1 left spawn 朝东 ≥ 50px)
+  - Evidence: 见 AC4 + AC9 上方
 - [ ] **P2.7 — Frontend BattleDirector 接入流式 events**
 - [ ] **P2.8 — AIR layer + target_layer_mask + 飞行单位**
 
@@ -104,7 +160,7 @@
 
 ```
 P2.1 (Activity) ✓ ─────────────────┐
-                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ──> P2.6 (Player Command) ──> P2.7 (Frontend Director) ──> P2.8 (AIR layer)
+                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ✓ ──> P2.6 (Player Command) ✓ ──> P2.7 (Frontend Director) ──> P2.8 (AIR layer)
 P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 ```
 
@@ -131,18 +187,50 @@ P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 | Unit class tags 默认 (P2.4) | `…/logic/config/rts_unit_class_config.gd` (StatBlock.unit_tags / target_priorities) |
 | Strategy 简化 (P2.4) | `…/logic/ai/rts_basic_attack_strategy.gd` (读 _cached_target_id, 不再扫描) |
 | Auto target smoke (P2.4) | `…/tests/battle/smoke_auto_target.{gd,tscn}` (5 子测试: priority/HOLD_FIRE/DEFENSIVE/fallback/dead-cache) |
+| Building factory (P2.5) | `…/logic/buildings/rts_buildings.gd` (`create_crystal_tower / create_barracks / create_archer_tower`) |
+| Building actor (P2.5) | `…/logic/rts_building_actor.gd` (footprint_size / attribute_set / production fields; AABB get_footprint_cells) |
+| Building attribute set (P2.5) | `…/logic/buildings/rts_building_attribute_set.gd` (hp / max_hp / production_speed_multiplier) |
+| Building config (P2.5) | `…/logic/config/rts_building_config.gd` (KIND_* 常量 + StatBlock 表; 3 种建筑) |
+| Production system (P2.5) | `…/logic/production/rts_production_system.gd` (`tick(dt_ms, world, spawner)`) |
+| Procedure production wiring (P2.5) | `…/core/rts_auto_battle_procedure.gd` (`start()` override 注册 footprint; `_production_system` lazy + step 4e tick; `add_unit_to_team` API) |
+| Production smoke (P2.5) | `…/tests/battle/smoke_production.{gd,tscn}` (双 barracks 对称, 30s 跑 600 ticks 验证 ≥ 5 spawn / team + 朝东 ≥ 50px) |
+| Team config (P2.6) | `…/logic/config/rts_team_config.gd` (faction_id / starting_resources / build_zone / crystal_tower_id; `unconfigured(team_id)` + `create(...)` 工厂) |
+| Player command 基类 (P2.6) | `…/logic/commands/rts_player_command.gd` (tick_stamp + team_id + apply 钩子 + serialize) |
+| PlaceBuildingCommand (P2.6) | `…/logic/commands/rts_place_building_command.gd` (apply 走 placement.validate → factory → add_actor → place_building → spend_team_resources → add_unit_to_team → 自动绑 ct_id) |
+| Player command queue (P2.6) | `…/logic/commands/rts_player_command_queue.gd` (enqueue + apply_due 按 tick_stamp 升序, 同 tick 保 insertion-order, 决定性) |
+| Building placement validator (P2.6) | `…/logic/commands/rts_building_placement.gd` (build_zone / 地图边界 / cells / 资源 全校验, 返回 reason 枚举) |
+| Controller override-strategy (P2.6) | `…/logic/controller/rts_unit_controller.gd` (`set_activity_chain(chain, override=false)` + `_player_command_active` flag + `clear_player_command_override`) |
+| Procedure 玩家命令 wiring (P2.6) | `…/core/rts_auto_battle_procedure.gd` (`_team_configs / _team_resources / _player_command_queue / _player_commands_log`; tick_once step 1.5 apply_due; `_check_battle_end` 走 `_is_team_lost`) |
+| Player command smoke (P2.6) | `…/tests/battle/smoke_player_command.{gd,tscn}` (3 phase: ok/dup/out-of-zone, log 3 entries, resources 扣减) |
+| Crystal tower win smoke (P2.6) | `…/tests/battle/smoke_crystal_tower_win.{gd,tscn}` (双 ct + auto-bind ct_id + mark_dead → left_win) |
+| Player command + production smoke (P2.6) | `…/tests/battle/smoke_player_command_production.{gd,tscn}` (P2.5+P2.6 联动: 玩家 tick 30 放兵营 → 7 spawns + override-strategy SpawnLane) |
 
 ---
 
 ## 残余风险(从 Phase 1 继承; 跨 phase 不变)
 
-- **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: left_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.1 验收。
+- **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: right_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.6 验收。
 - **30Hz default tick 与 50ms M0 smoke 兼容**: smokes 仍 explicitly 传 `tick_interval_ms = 50.0`; 30Hz 默认仅在 demo / 新调方启用。Phase 2 P2.7 流式 frontend 接入后再统一切到 30Hz。
-- **录像 still no-op**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism 用; 完整流式 event_timeline + bit-identical replay 在 Phase 2 P2.6+P2.7。
+- **录像 still no-op**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism 用; P2.6 加 `_player_commands_log` 但没写入 BattleRecorder; 完整流式 event_timeline + bit-identical replay 在 Phase 2 P2.7。
+- **P2.6 单位不能攻击建筑** (留 P2.7+ 解决): AutoTargetSystem (`logic/ai/rts_auto_target_system.gd`) 只挑 RtsUnitActor 候选, BasicAttackAction (`logic/actions/rts_basic_attack_action.gd`) target cast as RtsUnitActor 也只接受 unit。本轮 smoke_crystal_tower_win 走"手动 mark_dead"模拟塔被打死 — 胜负判定规则已验证, 但端到端"单位 → 攻击 → 摧毁建筑"链路要等 P2.7 后扩 building 的 attribute_set / 受击事件 wiring。AC8 城堡战争最小可玩 demo 依赖此能力, 不在 P2.6 范围内。
+- **P2.6 UpgradeBuildingCommand / SellBuildingCommand 子类未落地**: 仅留 `RtsPlayerCommand` 基类 + apply 钩子接口预留; P2.6 acceptance 不需要这两个子类。Phase 3 经济系统改造时再补全 (建筑升级 / 卖建筑返还资源等场景)。
 
 ---
 
-## 决策记录(Phase 2 期间新增)
+## 决策记录(P2.6 期间新增)
+
+- **P2.6 RtsTeamConfig 不强制 crystal_tower_id 存在**: `crystal_tower_id == ""` → `has_crystal_tower()=false` → `_check_battle_end` 走 fallback team-wipeout (Phase 1 行为)。这让 4v4 主 smoke 不需要任何 team_configs 配置就能跑, 与"不破回归"硬约束对齐
+- **P2.6 自动绑 crystal_tower_id 在 procedure.start() 而非 placement command**: smoke / 调方常在 add_actor 之后才 set position; start() 此时所有起手建筑 position 已就位。但 PlaceBuildingCommand 战斗中放下水晶塔时也要绑 — 故 PlaceBuildingCommand.apply 内部也有"crystal_tower_id == "" → 绑定"逻辑 (双 path 都覆盖)
+- **P2.6 player_command 走 tick_stamp 而非 frame-stamp**: tick 是逻辑时间, frame 是渲染时间; replay 用 tick 保证 deterministic. 同 seed + 同 player_commands (tick_stamp 序) → 同 apply 顺序 → 同 sim 输出 (smoke_determinism 仍 bit-equal 验证)
+- **P2.6 失败命令进 history.failed 而不静默丢弃**: replay / UI 反馈需要"为何失败" (玩家放兵营失败要给 UI 提示)。failed entry 含 reason 枚举字符串, 不含具体本地化文案 — UI 层映射到本地化文案
+- **P2.6 placement validator 是纯函数**: `RtsBuildingPlacement.validate` 不 new actor / 不写状态; 只检查并返回 result dict。失败时不创建 building → 失败 path 干净, 不留 ghost 实例。成功时返回 footprint 给调方继续 (避免重算)
+- **P2.6 `_player_command_active` 与 `_command_abandoned` 互斥优先**: stuck 单位被 abandoned 后, 玩家给新命令 (`set_activity_chain(chain, override=true)`) 应能"复活"单位 — 否则 abandoned flag 会让单位永远 idle, 玩家 UI 没法操控。set_activity_chain(override=true) 时一并清 _command_abandoned
+- **P2.6 crystal_tower 默认 cost=0 而非 1000+**: 玩家不能花钱建主基地 (主基地是 scenario 起手放置的); cost=0 让 smoke / 调方在战斗中通过 PlaceBuildingCommand 放主基地也合法 — 适合 Phase 3 RtsScenarioHarness 走玩家命令 setup 路径。barracks=100 / archer_tower=50 是经济占位, P3 经济系统重做时再调
+- **P2.6 不修 RtsAutoTargetSystem 让单位选 building 为目标**: AutoTargetSystem 只挑 RtsUnitActor (line 116/134); BasicAttackAction 也只 cast target as RtsUnitActor (line 59); 让单位攻击建筑是 P2.7+ 的工作 (需要 building 的 attribute_set / 受击事件等完整 wiring)。P2.6 范围内 smoke_crystal_tower_win 走"手动 mark_dead"模拟塔被打死 — 验证胜负判定逻辑就够 (P2.6 deliverable)
+- **P2.6 smoke 设置双 crystal_tower 而不是单方**: 双方都有 ct 让两边都走 crystal-tower 模式 (而非一边 ct + 一边 fallback); 测试一致性更好。fallback 兼容性由 4v4 主 smoke 间接验证 (无 team_configs → unconfigured → fallback 工作良好)
+- **P2.6 spawn_unit_kind 字段保持在 RtsBuildingActor**: 不挪到 RtsBuildingConfig — building 实例在 spawn 后可能改变 stats (升级建筑 buff), 让 actor 持当前实际值。config 只是"出生模板", actor 是"运行时 source of truth"
+
+## 决策记录(P2.1-P2.5 期间新增)
 
 - **P2.1 advance 子先父后 vs 父先子后**: 选**父 supervisor 先 tick** (AttackActivity.tick 决定是否 push/cancel MoveTo child) — 与 OpenRA Activity.cs 反过来, 但更符合 RTS 主控逻辑 (parent 决定 child 何时创建/取消)
 - **P2.1 Activity 复用 vs 每 tick 重建**: controller.tick 调 `current_activity.is_equivalent_to(proposed)` (子类 override: AttackActivity 比 target_id, MoveToActivity 比 target_pos) — 等价复用, 不等价 cancel + flush + 接管。避免每 tick 重建 nav 状态导致 set_target 抖动
@@ -163,6 +251,12 @@ P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 - **P2.4 决定性来自 by_team 字典 insertion-order**: AutoTargetSystem 用 Dictionary 按 team_id 分组 enemies, 然后 iterate by_team.keys() 取出非己方阵营。Godot 4 Dictionary keys() 走 insertion-order, 入参 units 顺序 = world.get_alive_units 顺序 = world.get_actors 顺序 = insertion order, 所以同 seed → 同分组 → 同评分 → 同 cache 选择 → bit-equal 战斗 (smoke_determinism tick_diff=0 验证)
 - **P2.4 RtsAttackActivity 不动而靠 strategy 切换**: 没把 AutoTargetSystem 集成进 AttackActivity (那需要 Activity 持引用 to system, 跨层耦合)。改为: AutoTargetSystem 写 _cached_target_id → strategy.decide 提议新 AttackActivity(new_id) → controller.is_equivalent_to 比 target_id 不等价 → cancel 旧 activity + 接管新的。这样 Activity 保持 pure (target_id 不可变), 切换的责任全在 controller / strategy reconcile 一处
 - **P2.4 默认 stance=AGGRESSIVE 而非 DEFENSIVE**: 与 OpenRA 默认相反。但 RTS M1 Phase 2 仅 AI 驱动 (P2.6 玩家命令未到), 单位需要主动找敌否则 4v4 干站。Phase 2 P2.6 玩家命令系统接入后, 玩家放新单位时可显式设 DEFENSIVE 让其 stance 行为更被动
+- **P2.5 spawner: Callable opts vs procedure 自接管**: 选 Callable 注入 (与 event_sink / unit_runtimes 同模式)。spawner 由 smoke 实现 — 创建 RtsUnitActor + RtsNavAgent (Node2D, 需要场景树 parent) + RtsUnitController + 注册到 unit_runtimes + 调 `procedure.add_unit_to_team`. production_system 保持纯 RefCounted, 不感知场景树, 决定性更可控
+- **P2.5 footprint 注册放 `procedure.start()` 而不是 `world.add_actor` 之时**: smoke / 调方常在 `add_actor` 之后才 set position_2d, 此时 footprint cells 还是上一次或默认; 推迟到 `start()` (`super.start()` 之后) 时所有 building 的 position 已就位。代价: 战斗中通过 spawner / 玩家命令 (P2.6) 新增建筑要 spawner 自己负责 `world.rts_grid.place_building`, 但这刚好是 P2.6 PlaceBuildingCommand 的职责
+- **P2.5 production_period_ms 满周期减一周期 (而非清零)**: `_production_progress_ms -= production_period_ms` 让 dt 溢出量保留, spawn 节奏稳定; 清零会让"刚好满周期触发 spawn 时 dt 余量丢失", 长跑后单位生成数量低于理论值。50ms tick vs 4000ms 周期差 80×, 实战影响小, 但保留 (P3 高速 tick / 慢速建筑组合时差异显著)
+- **P2.5 spawner 返回 null 视为 spawn 失败但 progress 不重置**: 玩家 cap 已满 / spawn 位被占等暂时性失败时下次 tick 继续重试; progress 不退也不清。代价是溢出累积 (调方负责 cap progress 或忽略); P2.6 玩家命令系统接入时若需要 strict cap 可在 spawner 内 progress 强制截断
+- **P2.5 add_unit_to_team 不更新 base BattleProcedure._participant_ids**: base 用 _participant_ids 仅做 in_combat 标记; 后加入单位无 in_combat 也无 abilities 依赖此标记 (M1 范围内). P2.7 频繁加入新 actor 时若需要 in_combat 一致, 再扩 add_unit_to_team 接 base API
+- **P2.5 SpawnLane 初始 activity 当前会被 strategy.decide override**: spawner 设 `RtsAttackMoveActivity(target_pos)` 但 controller.tick reconcile 规则: current=AttackMoveActivity vs proposed=IdleActivity (无敌时) / AttackActivity (有敌时), is_equivalent_to=false → cancel + 替换。P2.5 双兵营布局两边都有敌 → strategy 接管 AttackActivity 让单位向中场敌人移动, 视觉效果与 SpawnLane 一致 (units 朝 enemy 推进)。P2.6 玩家命令系统会引入"player command 优先级"机制让 SpawnLane / PlayerCommand 不被自动 override; 当前保留 set_activity_chain 调用作为 P2.6 接口预留 + 文档意图标记
 
 ---
 

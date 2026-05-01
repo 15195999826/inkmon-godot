@@ -7,7 +7,7 @@
 在 Phase 1 修好的骨架上,搭建**城堡战争核心玩法支柱**(含飞行单位)。
 
 **Feature 总目标**: 把 RTS M0(功能 spike)演进为遵守 LGF 根原则的、支持城堡战争玩法的、流式 simulation + 决定性 replay 的工业级架构。
-**总目标分三个 phase**, Phase 1 ✅ 已完成(2026-05-01), 当前 Phase 2 进行中(4/8 子任务完成: P2.1 + P2.2 + P2.3 + P2.4)。
+**总目标分三个 phase**, Phase 1 ✅ 已完成(2026-05-01), 当前 Phase 2 进行中(6/8 子任务完成: P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6)。
 
 > 完整决策与架构总图: [`task-plan/architecture-baseline.md`](task-plan/architecture-baseline.md)
 > Phase 2 详细子任务: [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md)
@@ -23,9 +23,11 @@
   - 详细 evidence: [`Progress.md`](Progress.md) AC2 + AC9
 - ✅ P2.4 — AutoTargetSystem(Mindustry + OpenRA 合璧)
   - 详细 evidence: [`Progress.md`](Progress.md) AC3 + AC9
-- ⏳ P2.5 — Production System + Building Factory ← **下一个**
-- ⏳ P2.6 — Player Command + Building Placement + 胜负判定改写
-- ⏳ P2.7 — Frontend BattleDirector 接入流式 events
+- ✅ P2.5 — Production System + Building Factory
+  - 详细 evidence: [`Progress.md`](Progress.md) AC4 + AC9
+- ✅ P2.6 — Player Command + Building Placement + 胜负判定改写
+  - 详细 evidence: [`Progress.md`](Progress.md) AC5 + AC9
+- ⏳ P2.7 — Frontend BattleDirector 接入流式 events ← **下一个**
 - ⏳ P2.8 — AIR Layer + target_layer_mask + 飞行单位
 
 ## 非目标(本轮 Phase 2 不做)
@@ -46,27 +48,25 @@
 
 ## 下一步
 
-**P2.5 — Production System + Building Factory**
+**P2.7 — Frontend BattleDirector 接入流式 events**
 
-> 详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §P2.5
+> 详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §P2.7
 
 主要改动:
-- 新增 `logic/buildings/rts_buildings.gd`(工厂 module)
-  - `create_crystal_tower() / create_barracks() / create_archer_tower()`(building_kind 字符串区分)
-- 新增 `logic/config/rts_building_config.gd`(建筑数值表: hp / footprint / production_period / spawn_unit_kind)
-- 新增 `logic/production/rts_production_system.gd`
-  - `tick(dt)`: 每个生产建筑累积 progress, 到点 spawn unit + 设 SpawnLane intent(去打对方水晶塔)
-- 新增 `logic/buildings/rts_building_attribute_set.gd`(hp / max_hp + 可能的 production_speed_multiplier)
-- 修改 `RtsBuildingActor` override `writes_to_pathing_map() = true`、`get_footprint_cells()` 返回 AABB cells
-- 新 smoke `tests/battle/smoke_production.tscn`: 用 scripted `world.add_actor(barracks)` 直接放置, 跑 30 秒, 验证至少生成 N 个单位
-- 单位 spawn 后立即向对方水晶塔进发(验证 SpawnLane intent)
-- P2.6 落地后再加 `smoke_player_command_production.tscn` 验证"玩家命令 → placement → production"完整链路
+- 重构 `frontend/visualizers/rts_unit_visualizer.gd` (不再 `sync()` 拉 position; 改为订阅 `MoveCompleteEvent / DamageEvent / DeathEvent`)
+- 新增 `frontend/visualizers/rts_building_visualizer.gd` (建筑 view, 含 hp bar / footprint outline / production progress 显示)
+- 新增 `frontend/core/rts_battle_director.gd` (参照 hex `battle_director.gd`; 流式消费 procedure 当前 tick events; `_tick(delta)` 累积 logic_accumulator, 按 SIM_DT 推进)
+- 新增 `frontend/world_view.gd` (响应 `actor_added / actor_removed / position_changed` signal)
+- 新增插值层 — 每个 visualizer 持 prev_pos / curr_pos, `_process(alpha)` 插值到平滑位移
+- 修改 `demo_rts_frontend.tscn` 接入 BattleDirector 替代直接 polling
+- 新 smoke `tests/frontend/smoke_director_streaming.tscn` (跑 5 秒战斗, verify visualizer 收到 N 个 events 并表演)
+- 编辑器 F6 验证 `demo_rts_frontend.tscn` 视觉流畅 (用户肉眼)
 
 **关键约束**:
-- 建筑工厂模式 = `building_kind: String` 字段区分(决策 E from architecture-baseline.md)
-- 建筑用 AABB collision_profile + 写 pathing map(单位绕过), 与 unit 的圆形 collision 不同
-- production_system 是 system (放 logic/production/), 不是建筑组件 — 走 LGF system tick 路径
-- spawn 出来的单位走 AutoTargetSystem 找目标 (P2.4 已就位); SpawnLane intent 是初始 attack-move 链头
+- frontend 不再有 0 处 `actor.position_2d` 直读 (state polling 全废, AC6 主断言)
+- BattleDirector 的 SIM_DT (33.33ms @ 30Hz) 与 procedure 的 _tick_interval 对齐, 渲染 `_process` 走 alpha 插值
+- 复用 hex `BattleDirector` 抽象基类时若有 hex_position 硬编码需要适配 (设计风险已在 phase-2-core-systems.md §已知风险 列出)
+- Phase 2 P2.7 完成后 BattleRecorder 会持续 append `_player_commands_log` (P2.6 已铺好的字段) 到 `RtsRecording.player_commands`, 配合 AC10 bit-identical replay
 
 ## Phase 2 完成后
 
