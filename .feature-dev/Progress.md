@@ -1,110 +1,171 @@
-# Progress — rts-auto-battle (M0)
+## Progress — RTS Auto-Battle M1 架构重构
 
-**Status**: planned / acceptance criteria locked / 等待用户确认后启动 M0.1
+**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 done (4/8 sub-tasks)**, 不退化
 
-## 验收准则 checklist
+最近更新: 2026-05-01 (P2.4 完成)
 
-- [x] **AC1 — Headless smoke**：`smoke_rts_auto_battle.tscn` 输出 `SMOKE_TEST_RESULT: PASS - <winner>` 退出码 0
-  - 命令：`godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/rts_smoke.txt 2>&1`
-  - Evidence: `/tmp/rts_smoke.txt` 末尾 `SMOKE_TEST_RESULT: PASS - left_win`，exit 0（M0.7）
-- [x] **AC2 — 不穿墙绕路**：障碍物挡路布局下战斗完整打完
-  - Evidence: 4v4 战斗完成 + slot 1/2 起点在 y=230/270 (障碍 y 范围内)，detoured=1 表明 max_y_deviation ≥ 30 绕过了 navmesh（M0.7）
-- [x] **AC3 — 兵种行为正确**：melee 距离 ≤ melee_range；ranged 至少 1 次 attack 距离 > melee_range
-  - Evidence: melee_max_dist=24.00 (≤24×1.05)；ranged_max_dist=125.44 > 24；melee=39 attacks ranged=32 attacks（M0.7）
-- [x] **AC4 — LGF 单元测试 73/73 PASS**
-  - 命令：`godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/lgf_unit.txt 2>&1`
-  - Baseline: 73/73 PASS（截至 commit `4a9d72f`）
-  - Evidence: 每个 M0.x 完成后 re-run，全程 73/73 PASS
-- [~] **AC5 — Hex 例子不退化**：`hex-atb-battle/logic/demo_headless.tscn` 跑到 `left_win|right_win`
-  - 命令：`godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/hex_demo.txt 2>&1`
-  - Baseline: 122 帧 right_win，exit 0
-  - Evidence: M0.7 复跑战斗结果 `右方胜利! 总帧数: 190 结果: right_win`，但退出码 **139**（signal 11 shutdown segfault）
-  - 状态: **半通过** —— battle 契约不退化（仍能跑到 winner），但严格意义上 AC5 要求退出码 0 未满足。详见"残余风险"段，与 RTS 改动无关，归 LGF submodule 既有 leak 范畴
+---
 
-## Phase 进度（详见 task-plan/README.md）
+## Phase 2 验收准则 checklist
 
-- [x] M0.1 目录骨架
-  - 命令: `godot --headless --path . --import` → exit 0；`godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_skeleton.tscn`
-  - Evidence: `/tmp/import.txt`（exit 0），`/tmp/rts_skeleton.txt` 末尾含 `SMOKE_TEST_RESULT: PASS - skeleton loaded`
-  - AC4 re-run: 73/73 PASS（`/tmp/lgf_unit.txt`）
-  - Artifact: `addons/logic-game-framework/example/rts-auto-battle/{core,logic,frontend,tests}/` + 4 README + `tests/battle/smoke_skeleton.{gd,tscn}`
-- [x] M0.2 WorldGI + Procedure
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_skeleton.tscn`
-  - Evidence: `/tmp/rts_skeleton.txt` 末尾 `SMOKE_TEST_RESULT: PASS - skeleton loaded`，验证 1v1 stub actor + procedure tick 1 次正常 + 杀死 left 后 `_check_battle_end → right_win`
-  - AC4 re-run: 73/73 PASS（`/tmp/lgf_unit.txt`）
-  - Artifact: `core/rts_world_gameplay_instance.gd`、`core/rts_auto_battle_procedure.gd`、`logic/rts_battle_actor.gd`（stub）；smoke_skeleton 升级为 1v1 procedure 验证
-- [x] M0.3 Actor + Stats
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_skeleton.tscn`
-  - Evidence: `/tmp/rts_skeleton.txt` 末尾 `SMOKE_TEST_RESULT: PASS - skeleton 4v4 ok, stats ok, cooldown tick ok, _check_battle_end ok`，验证 4v4 (各 2 melee + 2 ranged) spawn / attribute_set 数值 / cooldown 推进 / 杀完左方判 right_win
-  - AC4 re-run: 73/73 PASS（`/tmp/lgf_unit.txt`）
-  - AC5 re-run: hex demo battle 完成（`左方胜利! 总帧数: 118 结果: left_win`），但 exit 139（signal 11 shutdown segfault）。**残余风险见下**
-  - Artifact: `logic/config/rts_unit_class_config.gd`、`logic/config/rts_unit_attribute_set.gd`、`logic/rts_character_actor.gd`
-- [x] M0.4 Navigation 接入
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_navigation.tscn`
-  - Evidence: `/tmp/rts_nav.txt` 末尾 `SMOKE_TEST_RESULT: PASS - nav 50,250 → 450,250 around obstacle`，`traveled=416 straight=400 ratio=1.040 max_y_dev=49.99 final=(449.98, 249.99)` —— 单位从 (50,250) 抵达 (450,250) ± 10 px，期间 y 偏离起点最多 49.99 px (绕过中央 (200..300, 200..300) 障碍证据)
-  - AC4 re-run: 73/73 PASS（`/tmp/lgf_unit.txt`）
-  - Artifact: `logic/components/rts_nav_agent.gd`、`frontend/scene/rts_battle_map.gd`、`tests/battle/smoke_navigation.{gd,tscn}`
-  - 设计 note：navmesh 用 3×3 = 8 polygon 显式拼出可走区域，跳过中央障碍格。第一版用 4 大条带因相邻 polygon 端点不重合（NavServer 要求精确匹配）导致路径在障碍前 198 px 处断开
-- [x] M0.5 AI 行为循环
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_ai.tscn`
-  - Evidence: `/tmp/rts_ai.txt` 末尾 `SMOKE_TEST_RESULT: PASS - 1v1 melee engage at attack_range`，`final_dist=24.01 atk_range=24.00 left=(237.99, 200.35) right=(262.01, 200.34)` —— 双方各自走到中央障碍上方相遇，停在 attack_range 边界上不再前进，连续 5 帧 in_range
-  - AC4 re-run: 73/73 PASS
-  - AC5 re-run: hex demo 完成 `结果: right_win 总帧数: 173`，segfault 残余风险持续（exit 139, 见上文），battle 契约不退化
-  - Artifact: `logic/ai/rts_basic_ai.gd`、`tests/battle/smoke_ai.{gd,tscn}`
-- [x] M0.6 Attack action / death / 胜负判定
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_attack.tscn`
-  - Evidence: `/tmp/rts_attack.txt` 末尾 `SMOKE_TEST_RESULT: PASS - 1v1 melee left wins by killing right`，`result=left_win ticks=83 attacks=3 deaths=1 melee_max_dist=24.01`
-  - AC4 re-run: 73/73 PASS
-  - Artifact: `logic/rts_battle_events.gd`、`logic/actions/rts_basic_attack_action.gd`、`logic/logger/rts_battle_logger.gd`、`tests/battle/smoke_attack.{gd,tscn}`
-  - 设计 note：attack action 不继承 BaseAction —— BaseAction 需要 ExecutionContext / TargetSelector / AbilityRef 这套，对 M0 basic attack 太重；改用静态 helper `RtsBasicAttackAction.execute(attacker, target, world)`，仍走 EventProcessor pre/post 管线（pre_damage 留 hook 给 buff/passive，M0 PreEvent handler 全空）
-- [x] M0.7 Headless smoke + 兵种行为断言（acceptance gate AC1/AC2/AC3）
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn`
-  - Evidence: `/tmp/rts_smoke.txt` 末尾 `SMOKE_TEST_RESULT: PASS - left_win`，明细 `result=left_win ticks=291 attacks=71 (melee=39 ranged=32) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.44 detoured=1`
-  - **AC1 ✓**：smoke 输出 `SMOKE_TEST_RESULT: PASS - left_win`，退出码 0
-  - **AC2 ✓**：spawn 时 slot 1/2 都在 y=230/270 (障碍 y 范围 200..300 内)；detoured=1 表明至少 1 个起点被障碍挡住的单位的 max_y_deviation ≥ 30，绕过了 navmesh
-  - **AC3 ✓**：melee_max_dist=24.00 ≤ MELEE_RANGE_THRESHOLD×1.05=25.2；ranged_max_dist=125.44 > MELEE_RANGE_THRESHOLD=24（拉开了距离打）
-  - AC4 re-run: 73/73 PASS
-  - AC5 re-run: hex demo 完成（190 ticks right_win），仍 exit 139，残余风险持续
-  - Artifact: `tests/battle/smoke_rts_auto_battle.{gd,tscn}`；map spawn pattern 修改：4-slot 模式 y={80, 230, 270, 420} 强制中央两 slot 接敌绕路
-- [x] M0.8 Frontend stub visualizer
-  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/frontend/smoke_frontend_main.tscn`
-  - Evidence: `/tmp/rts_frontend.txt` 末尾 `SMOKE_TEST_RESULT: PASS - frontend stub renders 4v4 without script error`，`visualizers=8 alive_after_3.0s=8`
-  - AC4 re-run: 73/73 PASS
-  - Artifact: `frontend/visualizers/rts_unit_visualizer.gd`、`frontend/demo_rts_frontend.{gd,tscn}`、`tests/frontend/smoke_frontend_main.{gd,tscn}`
-  - 编辑器 F6 验证 (用户): 待用户在 GUI Godot 里打开 `demo_rts_frontend.tscn` 肉眼确认 8 个圆圈互相走 / 攻击 / 死掉消失（headless 只能验证 Node 树构建无误，看不见画面）
-- [x] M0.9 文档同步
-  - 主仓 `CLAUDE.md` "测试 / 几个入口" 表新增 RTS 主 smoke + RTS 前端 smoke 两行（保留原 hex 三行）
-  - `addons/logic-game-framework/example/README.md` 新建（之前 example/ 没有 index），列出 hex / rts 两示例对比表
-  - `addons/logic-game-framework/CHANGELOG.md` 加 `[Unreleased] — 2026-04-30 RTS 自动战斗示例` 段，按 LGF Keep-a-Changelog 约定写 Added / Changed / Notes
-  - 收口 AC1-AC5 final sweep（详见上方 checklist）：4/5 PASS，AC5 半通过
+详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §收口条件 (10 AC)。
 
-## 关键 artifact 路径
+- [x] **AC1 — Activity 系统**: `smoke_activity_chain` PASS; UnitController 内已无 string FSM
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_activity_chain.tscn > /tmp/p2_1_chain.txt 2>&1`
+  - Evidence: `/tmp/p2_1_chain.txt` → `phase1_ticks=26, pre_cancel=(144.83, 73.69), settled=(144.83, 73.69), drift=0.00`; PASS - chain order + cancel propagation + nav cleanup
+  - 命令: `grep -rn '_last_intent_action\|_make_idle_intent\|_make_attack_intent\|_make_approach_intent' addons/logic-game-framework/example/rts-auto-battle/` → 仅命中 design note 注释 (Progress.md 之外 0 处代码引用)
+  - Evidence: `RtsUnitController` 字段从 `_last_intent_action: String` → `current_activity: RtsActivity`; `RtsAIStrategy.decide` 返回 `RtsActivity` (不再 Dictionary Intent)
+- [x] **AC2 — 避障四层(前 3 层)**: `smoke_steering` 8 单位散开 ✅ PASS (P2.2); `smoke_stuck_recovery` 包围降级 ✅ PASS (P2.3)
+  - 命令 A (steering): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_steering.tscn > /tmp/p2_2_steering.txt 2>&1`
+  - Evidence: `/tmp/p2_2_steering.txt` → `min_pair_dist OK; movers=8/8; total_traveled=2746.7 px; final_spread=(54.0, 75.6); buckets=3`; PASS - 8 单位 ≥ 2r-0.5
+  - 命令 B (stuck): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_stuck_recovery.tscn > /tmp/p2_3_stuck.txt 2>&1`
+  - Evidence: `/tmp/p2_3_stuck.txt` → `abandoned=3/3 units; positions stable; intents=idle`; PASS - 3/3 包围单位 abandon command (>= 2 主断言达成); 位置漂移 < 5 px; controller.get_intent_action() == "idle"; wants_to_attack == false
+  - 命令 C: `grep -rn 'RtsMinimalPushOut.resolve' addons/logic-game-framework/example/rts-auto-battle/{core,logic}/` → 0 处 (procedure 已切到 spatial_hash + steering); smoke_minimal_push_out 仍存自测算法 (Phase 1 baseline 不破)
+- [x] **AC3 — AutoTargetSystem**: `smoke_auto_target` priority 标签生效 ✅ PASS (P2.4); 4v4 主 smoke 行为等价 (left_win 仍达成, 兵种行为 AC3 全过)
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_auto_target.tscn > /tmp/p2_4_auto_target.txt 2>&1`
+  - Evidence: `/tmp/p2_4_auto_target.txt` → 5 子测试 PASS:
+    1. **priority overrides distance**: archer (target_priorities=[{ranged:100},{melee:10}]) → 选远距 ranged (200px) 而非近距 melee (70px)
+    2. **HOLD_FIRE**: stance=HOLD_FIRE 时 _cached_target_id 始终空 (即使预设 stale 也清掉)
+    3. **DEFENSIVE**: 仅候选距离 ≤ 1.5×attack_range (180px for RANGED) 内的敌人; 250px 外敌人不被选, 加近敌后立即切换
+    4. **no-priority fallback**: 默认 target_priorities=[] → 退化为最近 (与 _select_nearest 同序, P1.5 行为兼容)
+    5. **dead-cache immediate rescan**: cache 命中目标 mark_dead 后 1 个 tick 内 cache 切到其他敌人 (不等下个 RESCAN 周期)
+  - 命令 B (4v4 行为): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_4_smoke_rts.txt 2>&1`
+  - Evidence: `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS - 因 AutoTarget 让单位每 20 tick 重评目标, 战斗时长从 P2.3 的 239 → 347 ticks (合理: 之前 strategy 锁定首个 target, 现在会切换到威胁更高/更近的); AC3 (melee_max=24.00 / ranged 至少 1 长程) 仍全过, AC2 detour=4 仍存在
+- [ ] **AC4 — Production**: `smoke_production` 兵营周期 spawn PASS
+- [ ] **AC5 — Player Command + Crystal Tower**: `smoke_player_command` PASS; `smoke_crystal_tower_win` PASS
+- [ ] **AC6 — Frontend Director 流式**: `smoke_director_streaming` PASS; frontend 0 处 `actor.position_2d` 直读
+- [ ] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` PASS
+- [ ] **AC8 — 城堡战争最小可玩 demo**: 编辑器 F6 跑 `demo_rts_frontend.tscn`, 玩家可放置建筑、塔被毁判胜负
+- [x] **AC9 — 不退化** (P2.4 重新验证, 全部 P1 + P2.1-P2.4 smokes 仍 PASS):
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p2_4_lgf.txt 2>&1` → `73/73 PASS`
+  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p2_4_hex.txt 2>&1` → `结果: right_win` (exit 0; hex 不强制 winner 一致)
+  - 命令 C: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_4_smoke_rts.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS
+    - 注: AutoTarget 每 20 tick 重评目标, 战斗时长从 P2.3 的 239 → 347 ticks (合理变化, 仍在 MAX_TICKS=1200 内分胜负); melee_max_dist=24.00 不变 (兵种行为 AC3 仍过)
+  - 命令 D: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p2_4_det.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (P2.4 决定性顺序保证: AutoTargetSystem 内部不调 randf, 按 units 入参顺序 iterate, by_team 字典靠 Godot 4 insertion-order 语义保等价于 _get_enemies)
+  - 全部 P1 + P2.1-P2.4 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / **auto_target** / frontend: all PASS
+    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p2_4_<name>.txt 2>&1`
+    - 关键 evidence: smoke_steering `8/8 movers, total_traveled=2746.7`; smoke_stuck_recovery `3/3 surrounded units abandoned`; smoke_activity_chain `phase1_ticks=26, drift=0.00`; smoke_grid_pathfinding `traveled=552.00 straight=400.00 max_y_dev=74.00`
+- [ ] **AC10 — Bit-identical replay** (Phase 2 新增, P2.6+P2.7 落地)
+
+---
+
+## Phase 2 子任务进度
+
+详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §Sub-tasks。
+
+- [x] **P2.1 — Activity 系统 (OpenRA 风)**
+  - 改动:
+    - 新增 `logic/activity/activity.gd` (RtsActivity 基类: child + next + state QUEUED/ACTIVE/CANCELING/DONE; static advance driver — 父 supervisor 模式)
+    - 新增 `logic/activity/idle_activity.gd` (RtsIdleActivity)
+    - 新增 `logic/activity/move_to_activity.gd` (RtsMoveToActivity, 走 nav agent 抵达 target_pos)
+    - 新增 `logic/activity/attack_activity.gd` (RtsAttackActivity, 自带 in-range/out-of-range 切换 + nav 接敌)
+    - 新增 `logic/activity/attack_move_activity.gd` (RtsAttackMoveActivity 雏形, P2.4 AutoTarget 完整集成)
+    - 重写 `logic/ai/rts_ai_strategy.gd` (decide 返回 RtsActivity, 删 _make_*_intent helpers)
+    - 重写 `logic/ai/rts_basic_attack_strategy.gd` (返回 RtsAttackActivity 或 RtsIdleActivity)
+    - 重写 `logic/controller/rts_unit_controller.gd` (current_activity 替代 _last_intent_action; reconcile + advance + bind_runtime)
+    - 更新 `core/rts_auto_battle_procedure.gd` 注释 (Phase 2 P2.1 已落地, 不再是 forward-looking)
+    - 新增 `tests/battle/smoke_activity_chain.{gd,tscn}` (chain primitive 单元测试 + cancel 传播 + nav cleanup)
+  - Evidence: 见 AC1 + AC9 上方
+- [x] **P2.2 — Spatial Hash + Steering(避障 1+2 层)**
+  - 改动:
+    - 重写 `logic/components/rts_nav_agent.gd` (P2.2 拆 movement: `compute_desired_velocity(dt)` 写 actor.velocity 不动 position; `integrate(dt)` 写 position += velocity * dt + 推进 waypoint, 含 steering 推过头时跳号; `tick(dt)` 保留作 backwards-compat full-step, 仅 smoke_navigation / smoke_grid_pathfinding 用)
+    - 新增 `logic/movement/rts_spatial_hash.gd` (cell_size=64 桶索引; `update(actor_id, pos)` 增量更新 / `update_all(actors)` 批量同步 + 自动 unregister 死亡; `query_radius(center, radius)` 返回排序的候选 actor_id, 决定性 by id sort)
+    - 新增 `logic/movement/rts_unit_steering.gd` (separation + deflection; SEPARATION_BUFFER=0 严格 r+r 阈值保 atk_range 接战; MAX_SEP_FRACTION=0.7 防 cluster 后侧单位被推完全反向; 静止单位也施 sep — 让抵达后 cluster 不重叠; deflection 仅作用于 moving units, 方向由 actor_id parity 决定 — 不调 randf)
+    - 修改 `core/rts_auto_battle_procedure.gd` step 4 (P2.2 movement 三段管线): `_spatial_hash.update_all` → 4a 全单位 `compute_desired_velocity` → 4b 全单位 `RtsUnitSteering.apply` → 4c 全单位 `integrate`; **删除** `RtsMinimalPushOut.resolve` 调用 (steering 已包含 separation, 不再需要 fallback)
+    - 修改 `logic/activity/move_to_activity.gd` + `attack_activity.gd` (tick 不再调 `_nav_agent.tick(dt)` — 移动归 procedure step 4; 仅维护 nav target / wants_to_attack)
+    - 修改 `tests/battle/smoke_activity_chain.gd` (`_drive_nav` helper 模拟 procedure step 4 三段, 替代 activity 内的 nav.tick)
+    - 新增 `tests/battle/smoke_steering.{gd,tscn}` (8 单位 converging on (400, 100) → 200 ticks 后任意 pair dist ≥ 2r-0.5; 不接 procedure / strategy / controller, 直接驱动 P2.2 三模块)
+  - Evidence: 见 AC2 + AC9 上方
+- [x] **P2.3 — Stuck Detection + Local Repath(避障第 3 层)**
+  - 改动:
+    - 新增 `logic/movement/rts_stuck_detector.gd` (per-actor `_State`: last_pos / stuck_ticks / repath_failures; STUCK_TICK_THRESHOLD=20 (≈1s @ 50ms) / MAX_REPATH_FAILURES=3; tick(units, controllers) 在 procedure step 4d 调用)
+    - 修改 `logic/components/rts_nav_agent.gd` (加 4 个 public 访问器: `has_target` / `is_at_final_target` / `get_final_target` / `has_empty_path` — stuck detector 用 `has_target + !is_at_final_target` 判"想动但没到目标")
+    - 修改 `logic/controller/rts_unit_controller.gd` (加 `_command_abandoned` flag + `abandon_command()` / `is_command_abandoned()` / `clear_command_abandon()` API; tick 检查 abandoned, 若 true 跳过 strategy.decide 仅推进 current_activity = Idle)
+    - 修改 `core/rts_auto_battle_procedure.gd` (加 `_stuck_detector: RtsStuckDetector` lazy 字段; tick_once 在 step 4c integrate 之后插 step 4d `_stuck_detector.tick(alive_units, _unit_runtimes)`)
+    - 新增 `tests/battle/smoke_stuck_recovery.{gd,tscn}` (3 单位塞在中央障碍内 — 起点+所有相邻 cell 全 blocking → A* 永远找不到路径; 远端放 dummy enemy 触发 basic_attack_strategy 不停 set_target; 200 ticks 后验证 ≥ 2/3 abandon + 漂移 < 5 px + intent="idle" + wants_to_attack=false)
+  - Evidence: 见 AC2 + AC9 上方
+- [x] **P2.4 — AutoTargetSystem(Mindustry + OpenRA 合璧)**
+  - 改动:
+    - 新增 `logic/ai/rts_auto_target_system.gd` (RESCAN_INTERVAL_TICKS=20 全量 + cache 失效单位本 tick 立即单独重扫; 评分公式 `score = max_priority_weight × 1e5 - dsq` 让 weight 主导但 weight=0 时退化到最近; stance HOLD_FIRE 清空 / DEFENSIVE 仅 1.5×atk_range 内候选 / AGGRESSIVE 全场)
+    - 修改 `logic/config/rts_unit_class_config.gd` (StatBlock 加 unit_tags + target_priorities; MELEE 默认 unit_tags=["melee","ground"], RANGED 默认 ["ranged","ground"], 两者 target_priorities=[] 保持 Phase 1 行为)
+    - 修改 `logic/rts_unit_actor.gd` (新 Stance enum + DEFENSIVE_ENGAGE_RANGE_FACTOR=1.5; 加字段 unit_tags / target_priorities / stance / _cached_target_id; _init 拷 stats.unit_tags / target_priorities 给 actor 独立副本)
+    - 重写 `logic/ai/rts_basic_attack_strategy.gd` (decide 不再扫描 — 直接读 actor._cached_target_id; 失效则 IdleActivity 让下个 tick 的 AutoTargetSystem 重 scan)
+    - 修改 `core/rts_auto_battle_procedure.gd` (加 _auto_target_system: RtsAutoTargetSystem lazy 字段; tick_once step 2.5 在 controller.tick 之前调 _auto_target_system.tick(world, alive_units))
+    - 新增 `tests/battle/smoke_auto_target.{gd,tscn}` (5 子测试: priority over distance / HOLD_FIRE / DEFENSIVE / no-priority fallback / dead-cache immediate rescan; 直接驱动 RtsAutoTargetSystem 不接 procedure)
+  - Evidence: 见 AC3 + AC9 上方
+- [ ] **P2.5 — Production System + Building Factory**
+- [ ] **P2.6 — Player Command + Building Placement + 胜负判定改写**
+- [ ] **P2.7 — Frontend BattleDirector 接入流式 events**
+- [ ] **P2.8 — AIR layer + target_layer_mask + 飞行单位**
+
+---
+
+## 顺序依赖
+
+```
+P2.1 (Activity) ✓ ─────────────────┐
+                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ──> P2.6 (Player Command) ──> P2.7 (Frontend Director) ──> P2.8 (AIR layer)
+P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
+```
+
+---
+
+## 关键 artifact 路径(Phase 2)
 
 | 类型 | 路径 |
 |---|---|
-| RTS 示例根 | `addons/logic-game-framework/example/rts-auto-battle/` |
-| Headless smoke | `…/tests/battle/smoke_rts_auto_battle.tscn` |
-| Frontend demo（M0.8 stub）| `…/frontend/demo_rts_frontend.tscn` |
-| 战斗 log 输出 | `user://logs/rts_*.log`（参照 hex 例子约定）|
-| 战斗 replay | `user://replays/rts_*.json`（参照 hex 例子）|
+| Activity 基类 + driver | `addons/.../rts-auto-battle/logic/activity/activity.gd` |
+| Activity 子类 | `…/logic/activity/{idle,move_to,attack,attack_move}_activity.gd` |
+| 重写 strategy | `…/logic/ai/rts_ai_strategy.gd` + `rts_basic_attack_strategy.gd` |
+| 重写 controller | `…/logic/controller/rts_unit_controller.gd` |
+| Activity primitive smoke | `…/tests/battle/smoke_activity_chain.{gd,tscn}` |
+| Nav 拆 movement (P2.2) | `…/logic/components/rts_nav_agent.gd` (`compute_desired_velocity` / `integrate`) |
+| Spatial hash (P2.2) | `…/logic/movement/rts_spatial_hash.gd` (cell_size=64 桶 + sorted query_radius) |
+| Unit steering (P2.2) | `…/logic/movement/rts_unit_steering.gd` (separation + deflection 决定性) |
+| Steering smoke (P2.2) | `…/tests/battle/smoke_steering.{gd,tscn}` (8 单位 converging) |
+| Stuck detector (P2.3) | `…/logic/movement/rts_stuck_detector.gd` (per-actor `_State`, local repath + abandon_command 升级) |
+| Controller abandon API (P2.3) | `…/logic/controller/rts_unit_controller.gd` (`abandon_command` / `is_command_abandoned` / `clear_command_abandon`) |
+| Stuck recovery smoke (P2.3) | `…/tests/battle/smoke_stuck_recovery.{gd,tscn}` (3 围困单位 abandon) |
+| AutoTarget system (P2.4) | `…/logic/ai/rts_auto_target_system.gd` (RESCAN_INTERVAL_TICKS=20, score=weight×1e5-dsq, stance 处理) |
+| Stance + tags 字段 (P2.4) | `…/logic/rts_unit_actor.gd` (Stance enum + unit_tags + target_priorities + _cached_target_id) |
+| Unit class tags 默认 (P2.4) | `…/logic/config/rts_unit_class_config.gd` (StatBlock.unit_tags / target_priorities) |
+| Strategy 简化 (P2.4) | `…/logic/ai/rts_basic_attack_strategy.gd` (读 _cached_target_id, 不再扫描) |
+| Auto target smoke (P2.4) | `…/tests/battle/smoke_auto_target.{gd,tscn}` (5 子测试: priority/HOLD_FIRE/DEFENSIVE/fallback/dead-cache) |
 
-## 残余风险 / 已知坑
+---
 
-- **AC5 hex demo segfault on shutdown**（M0.3 发现）：
-  - 现象：`godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn` 战斗能正常打到 `结果: left_win` / `right_win`，但 `get_tree().quit()` 后 Godot 进程 signal 11，exit 139
-  - 隔离测试结论：与 RTS 代码无关（RTS 文件只是 class_name 注册，hex demo 不引用任何 Rts* 类型）
-  - 与 Autonomous-Work-Protocol.md 的"既有 leak 不影响退出码 0"描述不一致 —— 退出码确实被影响
-  - 可能根因：LGF object 在 headless ShutdownScene 时 destructor 触发 use-after-free。要排根需要进 LGF submodule（违反硬约束 1）
-  - 当前处置：M0 期间记为残余风险，battle 跑完判胜负的契约部分不退化即可；AC5 在收口时如果 user 坚持退出码 0，需要重启 LGF submodule 修复授权
-- **Submodule 修改风险**：M0 设计上不动 `addons/logic-game-framework/core/` 与 `…/stdlib/`。若实现中发现 LGF 基类暴露不够（例：BattleProcedure tick 接口与连续时间不兼容），停下来跟用户确认是改 submodule 还是绕路。
-- **NavigationServer2D 在 headless 下行为**：Godot 4.x navigation 在 headless 下需要至少跑一帧 sync map，smoke 入口要 `await get_tree().physics_frame` 一次再开始 tick；否则 path query 返回空。M0.4 落地时验证。
-- **既有 leak warning**：退出时 `ObjectDB instances leaked` 是 LGF 现存 leak，不影响退出码 0；不要被它误导成 RTS 引入的新 leak。
-- **UGridMap autoload 不接入**：`project.godot` 的 UGridMap 是 hex 专用，RTS 例子完全不调用它，但 autoload 仍在场景生命周期里——确认 autoload 默认 idle 不会干扰 RTS smoke。
+## 残余风险(从 Phase 1 继承; 跨 phase 不变)
 
-## 决定记录（plan 阶段做出的默认）
+- **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: left_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.1 验收。
+- **30Hz default tick 与 50ms M0 smoke 兼容**: smokes 仍 explicitly 传 `tick_interval_ms = 50.0`; 30Hz 默认仅在 demo / 新调方启用。Phase 2 P2.7 流式 frontend 接入后再统一切到 30Hz。
+- **录像 still no-op**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism 用; 完整流式 event_timeline + bit-identical replay 在 Phase 2 P2.6+P2.7。
 
-- M0 起步规模 4v4（不是 8v8）；跑稳后再考虑扩
-- 兵种 2 种（melee + ranged），骑兵推迟
-- 不穿墙断言用「能完整打完」间接证明 + 可选路径长度比；不做几何级 trajectory 断言
-- 表演层 stub 是 M0.8 的最小可识别 visualizer，不做美化
-- 不实例化新技能 / buff（basic attack only）
+---
+
+## 决策记录(Phase 2 期间新增)
+
+- **P2.1 advance 子先父后 vs 父先子后**: 选**父 supervisor 先 tick** (AttackActivity.tick 决定是否 push/cancel MoveTo child) — 与 OpenRA Activity.cs 反过来, 但更符合 RTS 主控逻辑 (parent 决定 child 何时创建/取消)
+- **P2.1 Activity 复用 vs 每 tick 重建**: controller.tick 调 `current_activity.is_equivalent_to(proposed)` (子类 override: AttackActivity 比 target_id, MoveToActivity 比 target_pos) — 等价复用, 不等价 cancel + flush + 接管。避免每 tick 重建 nav 状态导致 set_target 抖动
+- **P2.1 cancel 路径下 on_first_run 可能未跑**: 子类 on_last_run 必须**幂等** (即使没 on_first_run 也安全 cleanup) — IdleActivity / MoveToActivity / AttackActivity 都验证这一点
+- **P2.1 keeping legacy controller API**: `wants_to_attack()` / `get_intent_action()` 保留 — procedure / smoke_ai 不感知 Activity 实现细节, 委托给 current_activity. P2.6 player command 也走类似模式 (set_activity_chain 入口)
+- **P2.2 SEPARATION_BUFFER = 0 (严格 r+r 阈值, 不留 buffer)**: 任何 buffer > 0 都会让 attackers 在 atk_range = 2r 处被 sep 推开 (strength = (sep_radius - 2r)/sep_radius > 0); buffer=0 时 attackers 在 atk_range 处 strength=0 不施力, 接战不被破坏。代价是 cluster 后侧单位需要"挤过"完全重叠才会有 sep — 但 MAX_SEP_FRACTION=0.7 保证后侧仍有 0.3*move_speed 朝目标前进, 不会被沉默卡住
+- **P2.2 静止单位也施 separation, 但 deflection 只 moving**: 抵达后 cluster 不重叠是首要不变量, 必须给静止单位施 sep; deflection 是"同向移动迎面对撞时旋转避让", 静止无方向可旋, 自然跳过
+- **P2.2 sep_force 总幅度 cap (MAX_SEP_FRACTION=0.7) 而不是 N 邻居 sum 后裸推**: 不 cap 时 N 邻居叠加 sum 经常远超 move_speed, clamp(combined, move_speed) 之后变成"全力反向" → cluster 后半部单位被推到 cluster 后方再也赶不上。cap sep_force.length() ≤ 0.7*move_speed 后, combined = desired + sep 在最坏情况下仍有 0.3*move_speed 朝 desired 方向, 不会反向飞
+- **P2.2 决定性: spatial_hash query_radius 输出 sort by id**: 按 actor_id 字典序排序 → 多次跑同 seed 同 player_commands 输入, 邻居迭代顺序一致 → 浮点 sum 顺序一致 → bit-equal velocity → bit-equal position. 配合 actor_id parity 决定 deflection sign, 无 randf 调用. smoke_determinism (seed=12345) 跑 2 次 tick_diff=0 验证
+- **P2.2 删 RtsMinimalPushOut 调用而保留代码文件**: procedure step 4 不再调 push-out (steering separation 已覆盖); 但 smoke_minimal_push_out 仍存自验证算法本身能跑 — Phase 1 baseline 不破。文件作为"备胎"留着, 未来如果 steering 出问题可临时 fallback
+- **P2.3 stuck detection 触发条件 = "想动但没到目标"**: 不用 agent.is_arrived (它把 path 空也算 arrived, 漏掉"A* 找不到路"的情形); 用 `has_target() && !is_at_final_target()` + 单 tick displacement < 1 px。这样既覆盖"path 找不到 → 站着不动"也覆盖"path 有但被建筑挡住 → 走不到下一 waypoint"
+- **P2.3 失败计数 reset 时机**: 单位本 tick 实际位移 ≥ 阈值 → 立即清 stuck_ticks + repath_failures (干净状态: 单位刚突围出来, 不让历史失败计数误伤)。但 stuck 触发 repath 后只 reset stuck_ticks (失败计数累加), 给 3 次 retry 机会; 第 3 次失败才 abandon — 不让暂时性 race condition 直接降级
+- **P2.3 abandoned 后 controller 跳过 strategy.decide**: 不只是替换 current_activity 为 Idle, 还设 `_command_abandoned` flag, controller.tick 在 abandoned 状态下完全不调 strategy.decide。否则下 tick basic_attack_strategy 又提议 AttackActivity, reconcile 替换掉 Idle, stuck 循环重启。flag 只能由 `clear_command_abandon()` 显式解除 (P2.6 玩家命令系统接入时调)
+- **P2.3 abandon 单位仍 advance current_activity**: 即使 strategy.decide 跳过, controller 仍 `current_activity.bind_runtime + RtsActivity.advance` 推进 Idle — 否则 Idle 永远 stuck 在 QUEUED 状态, 下次 cancel 时钩子串不正确; 也保 Idle 的 actor.current_target_id="" 等清理生效
+- **P2.4 评分公式 score = weight × 1e5 - dsq (单一标量) 而不是 lex 排序 (weight desc, dsq asc)**: 标量等价于 lex 当 WEIGHT_SCALE 远大于战场 max dsq (500×500 战场 max dsq = 5e5, WEIGHT_SCALE = 1e5 也使 weight=1 永远胜过最远候选; 实战 priority weight 都 ≥ 10 — 100×1e5 远大于 5e5 dsq)。标量代码更简单, strict ">" 取最大同分时保留先扫到的 (与 _select_nearest 同序), 不需要 tiebreak by id
+- **P2.4 weight=0 时退化到最近选择**: 默认 target_priorities=[] → priority_weight 永远返回 0 → score = -dsq → max score = min dsq → 最近敌人。这正是 P1.5 _select_nearest 行为, 让 4v4 主 smoke 不需要任何 priority 配置就能用 AutoTargetSystem (默认无变化)
+- **P2.4 cache 失效当 tick 立即重扫 (而不是等下个 RESCAN 周期)**: 单 tick 重扫一个 unit 是 O(N), 全量重扫所有 needs_rescan 是 O(K×N) 其中 K = needs_rescan size。比"等 20 tick 才重扫"避免单位空窗中段, 又比"每 tick 全量重扫" O(N²) 便宜很多。代价是死亡 actor 在战斗中频繁触发 needs_rescan, 但 4v4 死 6 个单位也只有 6 次额外 O(N) 重扫
+- **P2.4 决定性来自 by_team 字典 insertion-order**: AutoTargetSystem 用 Dictionary 按 team_id 分组 enemies, 然后 iterate by_team.keys() 取出非己方阵营。Godot 4 Dictionary keys() 走 insertion-order, 入参 units 顺序 = world.get_alive_units 顺序 = world.get_actors 顺序 = insertion order, 所以同 seed → 同分组 → 同评分 → 同 cache 选择 → bit-equal 战斗 (smoke_determinism tick_diff=0 验证)
+- **P2.4 RtsAttackActivity 不动而靠 strategy 切换**: 没把 AutoTargetSystem 集成进 AttackActivity (那需要 Activity 持引用 to system, 跨层耦合)。改为: AutoTargetSystem 写 _cached_target_id → strategy.decide 提议新 AttackActivity(new_id) → controller.is_equivalent_to 比 target_id 不等价 → cancel 旧 activity + 接管新的。这样 Activity 保持 pure (target_id 不可变), 切换的责任全在 controller / strategy reconcile 一处
+- **P2.4 默认 stance=AGGRESSIVE 而非 DEFENSIVE**: 与 OpenRA 默认相反。但 RTS M1 Phase 2 仅 AI 驱动 (P2.6 玩家命令未到), 单位需要主动找敌否则 4v4 干站。Phase 2 P2.6 玩家命令系统接入后, 玩家放新单位时可显式设 DEFENSIVE 让其 stance 行为更被动
+
+---
+
+## Phase 1 摘要(已完成 2026-05-01)
+
+详见 [`task-plan/phase-1-foundation.md`](task-plan/phase-1-foundation.md)。9/9 AC 全过, 不归档(同一 feature 早期 phase, 归档放整个 RTS M1 重构完成时做)。

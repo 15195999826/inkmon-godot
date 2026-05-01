@@ -1,127 +1,119 @@
-# Task Plan — rts-auto-battle (M0)
+# Task Plan — RTS Auto-Battle M1 架构重构
 
-把 RTS 自动战斗最小可玩闭环拆成 9 个可独立验证的步骤。每步落地后跑窄验证（编辑器 F6 或 headless），更新 `Progress.md`，再进下一步。
+> **Feature 总目标**：把 RTS M0（功能 spike）演进为遵守 LGF 根原则的、支持城堡战争玩法的、可流式 simulation + 决定性 replay 的工业级架构。
+>
+> **三 phase 串联**：Foundation（修根偏离 + 基础设施）→ Core Systems（玩法支柱）→ Advanced（高级特性）。
+>
+> **执行模式**：一次只开发一个 phase。当前 phase 收口后才进下一 phase。
 
-## 参照范式
+---
 
-完全对标 `addons/logic-game-framework/example/hex-atb-battle/`：
+## 文档索引
 
-- WorldGI 子类范式 → `core/hex_world_gameplay_instance.gd`
-- BattleProcedure tick 循环范式 → `core/hex_battle_procedure.gd`
-- Actor 子类含 AbilitySet 的范式 → `logic/character_actor.gd`
-- Headless 入口范式 → `logic/demo_headless.gd` + `demo_headless.tscn`
-- Smoke test 范式 → `tests/battle/smoke_skill_scenarios.tscn`
-- Frontend demo 范式 → `frontend/demo_frontend.gd` + `demo_frontend.tscn`
+| 文档 | 角色 | 状态 |
+|---|---|---|
+| [`architecture-baseline.md`](architecture-baseline.md) | 锁定决策 + 总图（13 条决策 + 模块拓扑 + 基类骨架）| **稳定 spec**，跨 phase 不变 |
+| [`phase-1-foundation.md`](phase-1-foundation.md) | Phase 1 详细子任务 P1.1–P1.7 | ✅ **已完成 9/9 AC**（2026-05-01） |
+| [`phase-2-core-systems.md`](phase-2-core-systems.md) | Phase 2 详细子任务 P2.1–P2.8 | **当前 active phase** |
+| [`phase-3-advanced.md`](phase-3-advanced.md) | Phase 3 详细子任务 P3.1–P3.5（可选项）| 待启动（且需用户明确启动）|
 
-新例子放 `addons/logic-game-framework/example/rts-auto-battle/`，三层结构对齐。
+> `architecture-baseline.md` 是稳定 spec，所有 phase 文档引用它而不重复决策。
+> 各 phase 文档自给自足，autonomous-feature-runner 一次只读当前 phase 的文档。
 
-## Phase 拆分
+---
 
-### M0.1 — 目录骨架
+## Phase 总览
 
-- 建子目录：`example/rts-auto-battle/{core,logic,frontend,tests/battle,tests/frontend}/`
-- 占位文件：每层一个 `README.md`（写"WIP M0"），`.gd` 文件先写 class_name + extends + 空 `_ready()`
-- 验证：`godot --headless --path . --import` 通过；新目录下任意 `.tscn`（空场景）能 F6 启动不报错
+### Phase 1 — Foundation（M1 启动前不可妥协）
 
-### M0.2 — WorldGI + Procedure
+修复 RTS M0 架构审查发现的**对 LGF 根原则的硬偏离**（S1/S2/S3/M4），铺好基础设施（fixed-tick + grid wrapper + actor 三层基类）。
 
-- `core/rts_world_gameplay_instance.gd` extends `WorldGameplayInstance`
-  - 不依赖 UGridMap / hex grid；自己管 `_actors_by_id` 已由父类提供
-  - 暴露 map_size: Vector2、navigation_region: NavigationRegion2D（M0.4 注入）
-- `core/rts_auto_battle_procedure.gd` extends `BattleProcedure`
-  - tick(dt) 推进 cooldown / navigation
-  - `_check_battle_end()` 一方全灭 → set winner
-  - `MAX_TICKS` 安全上限（例：1000 ticks @ 50ms = 50s）
-- 验证：单元测试或最小 smoke：实例化 WorldGI + 空 procedure，tick 1 次不崩
+**核心承诺**：Phase 1 完成后，RTS 4v4 仍能跑到 winner，且代码骨架支持 Phase 2 平滑加入 Activity / Steering / Production / Player Command。
 
-### M0.3 — Actor + Stats
+7 个子任务：
+- P1.1 Actor 三层基类 / P1.2 Grid wrapper / P1.3 Procedure 内化（S1）
+- P1.4 Action 标准化（S2）/ P1.5 AI 拆分（S3）/ P1.6 Cooldown tag-duration（M4）
+- P1.7 Fixed-tick + RtsRng + light determinism
 
-- `logic/rts_battle_actor.gd` extends `Actor`（不继承 HexBattleActor，hex 含 hex_position）
-  - 字段：`position: Vector2`、`velocity: Vector2`、`team_id: int`、`is_dead: bool`
-- `logic/rts_character_actor.gd` extends `RtsBattleActor`
-  - 字段：`unit_class: UnitClass`（enum: MELEE / RANGED）、`attack_cooldown_remaining: float`、`current_target: String`（敌方 actor id）
-  - AbilitySet 创建：复用 LGF `AbilitySet.create_ability_set`，挂 attribute set
-- `logic/rts_unit_attribute_set.gd` extends `RawAttributeSet`
-  - 属性：`hp / max_hp / atk / def / move_speed / attack_speed / attack_range`
-- `logic/config/rts_unit_class_config.gd` — 兵种数值表
-  - MELEE: hp 200, atk 25, def 5, move_speed 80 px/s, attack_speed 1.0/s, attack_range 24 px
-  - RANGED: hp 120, atk 18, def 2, move_speed 70 px/s, attack_speed 0.8/s, attack_range 120 px
-- 验证：spawn 4v4 无报错，能从 logger 看到 8 个 actor 注册
+**Acceptance**：9 条（详见 [phase-1-foundation.md §收口条件](phase-1-foundation.md)）
 
-### M0.4 — Navigation 接入
+---
 
-- `frontend/scene/rts_battle_map.tscn`：含 NavigationRegion2D + 几个 ColorPolygon2D 障碍物（500×500 边界 + 中央 2-3 块石头）
-- `logic/components/rts_nav_agent.gd`（非 Component；纯封装类）：包 NavigationAgent2D 的初始化与 set_target
-- 验证：单测脚本：spawn 一个单位在 (50,250)，目标 (450,250)，中央障碍 (200..300, 200..300)；run 5s tick；最终位置应抵达 target，且中途 position.x 出现过非线性 y（绕路证据）
-- **headless 注意**：tick 前 `await get_tree().physics_frame` 让 NavigationServer 同步一次
+### Phase 2 — Core Systems（M1 期间核心玩法）
 
-### M0.5 — AI 行为循环
+在 Phase 1 修好的骨架上，搭建**城堡战争核心玩法支柱**（含飞行单位）。
 
-- `logic/ai/rts_basic_ai.gd`：每 tick：
-  1. 若 `current_target` 死或丢失 → `find_nearest_enemy`
-  2. 距离 ≤ `attack_range` → 停止移动（清空 nav target），cooldown 到时触发 attack
-  3. 距离 > `attack_range` → 设 nav target = enemy.position（每 200ms 刷新一次，避免每帧重算）
-- 没用 LGF 的 `AIStrategy` 接口（hex 那套基于 ATB tick 的策略与 RTS 连续 tick 不同），新写一个轻量 ai 类即可
+**核心承诺**：Phase 2 完成后，城堡战争最小可玩 demo 跑通 — 玩家放置兵营 → 兵营周期 spawn 单位 → 单位走 grid / 互避障 / 找最近敌人 / 攻击建筑 → 飞行 vs 防空对位 → 水晶塔被毁判胜负。
 
-### M0.6 — Attack action / death / 胜负判定
+8 个子任务：
+- P2.1 Activity 系统（OpenRA 风）
+- P2.2 Spatial Hash + Steering（避障 1+2 层）
+- P2.3 Stuck Detection + Local Repath（避障第 3 层）
+- P2.4 AutoTargetSystem（Mindustry + OpenRA 合璧）
+- P2.5 Production System + Building Factory
+- P2.6 Player Command + Building Placement + 胜负判定改写
+- P2.7 Frontend BattleDirector 接入流式 events
+- **P2.8 AIR Layer + target_layer_mask + 飞行单位**（前移自原 P3.2，城堡战争一等公民）
 
-- `logic/actions/rts_basic_attack_action.gd` extends `BaseAction`
-  - 复用 LGF 现有 DamageAction 路径（调用 `damage_utils` 跑 attacker.atk vs target.def 公式）
-  - 触发完整 EventProcessor pre/post 管线（让 buff/passive 有 hook 接入空间）
-- `logic/rts_battle_pre_events.gd`：仅注册必要的 pre-event handler（M0 可空，留 hook 给 M1）
-- `_check_battle_end` 每 tick 跑一次：所有 left_team / right_team 都死 → set winner
-- 验证：单测 spawn 1 melee 攻击 1 dummy，dummy 在 N 次 attack 内 hp ≤ 0 标记 is_dead
+**Acceptance**：10 条（详见 [phase-2-core-systems.md §收口条件](phase-2-core-systems.md)），含 bit-identical replay determinism + 飞行 vs 防空验证
 
-### M0.7 — Headless smoke + 兵种行为断言
+---
 
-- `tests/battle/smoke_rts_auto_battle.gd` + `.tscn`：
-  - spawn 4v4（左队 2 melee + 2 ranged，右队对称）
-  - run 直到 `_check_battle_end` 触发或 MAX_TICKS
-  - 收尾断言：
-    - 必过：winner ∈ {left, right}，print `SMOKE_TEST_RESULT: PASS - <winner>`
-    - 兵种行为：扫 logger 中所有 attack 事件，按 attacker.unit_class 分组：
-      - 所有 MELEE attack 的 dist ≤ melee_attack_range × 1.05（容差）
-      - 所有 RANGED unit 至少出现 1 次 dist > melee_attack_range
-    - 任一断言失败 → print `SMOKE_TEST_RESULT: FAIL - <reason>`，退出码 1
-- 障碍物布局：左军在 x≈50 区，右军在 x≈450 区，中央 (200..300, 200..300) 一块石头，强制绕行
+### Phase 3 — Advanced（M2+ 高级特性，可选）
 
-### M0.8 — Frontend stub visualizer
+在 Phase 2 已完成的"功能可玩"城堡战争上加**高级 RTS 特性**：高低地形 / 群体队形 / 声明式 scenario / fog of war。
 
-- `frontend/visualizers/rts_unit_visualizer.gd`：Sprite2D 或 Polygon2D，按 team_id 染色（左红右蓝）+ 圆形 + 当前 hp 文本
-- `frontend/demo_rts_frontend.gd` + `demo_rts_frontend.tscn`：
-  - 加载 `frontend/scene/rts_battle_map.tscn`
-  - 创建 RtsWorldGI，spawn 4v4
-  - `_process(dt)` 推进 procedure tick
-  - 把 actor.position sync 到 visualizer.position
-- 不要：动画、攻击特效、HUD、相机控制（M0 静态俯视即可）
-- 验证：编辑器 F6 跑 `demo_rts_frontend.tscn`，肉眼看单位走动 / 互相攻击 / 死亡消失
+**核心承诺**：Phase 3 各子任务**独立可选**；用户可按项目需要选做哪些。
 
-### M0.9 — 文档同步
+4 个子任务（独立可选）：
+- P3.1 离散 tile.height + LOS（D3-E）
+- P3.2 Group Formation（避障第 4 层）
+- P3.3 RtsScenarioHarness（声明式测试）
+- P3.4 Fog of War / Vision System
 
-- `addons/logic-game-framework/example/README.md`（如不存在则按需创建）增补 RTS 例子条目
-- 主仓 `CLAUDE.md` 的"测试 / 三个入口"表 → 增补 RTS smoke 入口（或者写说明文：RTS 例子是 M1 候选位置）
-- `addons/logic-game-framework/CHANGELOG.md` `[Unreleased]` 段加一条 `Added` 条目
+**Acceptance**：用户认可的子任务集各自 PASS（不强制全做）
 
-## 收口条件
+> 飞行单位已前移到 Phase 2 P2.8，不在 Phase 3 范围内。
 
-`Next-Steps.md` 的 5 条验收准则全过 + Phase 进度 9/9 + 文档同步完成 → archive + 切到等待状态。
+---
 
-## 顺序依赖
+## 全局收口条件
 
-```
-M0.1 骨架 → M0.2 WorldGI/Procedure → M0.3 Actor/Stats
-                                          ↓
-                                      M0.4 Navigation
-                                          ↓
-                                      M0.5 AI loop
-                                          ↓
-                                      M0.6 Attack/Death
-                                          ↓
-                                      M0.7 Smoke ← acceptance gate (AC1, AC2, AC3)
-                                          ↓
-                                      M0.8 Frontend stub
-                                          ↓
-                                      M0.9 Docs sync ← acceptance gate (AC4, AC5 final re-check)
-```
+整个 RTS M1 架构重构 feature 完成 = **Phase 3 全过 OR 用户决定不做完 Phase 3 的剩余子任务**。
 
-每个 phase 完成都要 re-run AC4（LGF 73/73）确保不退化；AC5（hex demo）每 3 个 phase 跑一次即可。
+完成时执行：
+1. 创建 `archive/<YYYY-MM-DD>-rts-m1-refactor/` 归档全部 phase 进度
+2. 主 `Next-Steps.md` 切回"等待用户确认下一个 feature"
+3. 主 `Current-State.md` 更新为 RTS M1 重构后的 baseline
+
+---
+
+## Phase 间过渡协议
+
+### Phase 1 → Phase 2
+- Phase 1 acceptance 全过 → **不归档**（同一 feature 的早期 phase）
+- 更新 `Next-Steps.md` 当前目标 → Phase 2
+- 更新 `Progress.md` 切到 Phase 2 子任务清单
+- `task-plan/phase-2-core-systems.md` 已就位（无需重新规划）
+- 用户在新会话调 `/autonomous-feature-runner` 即可继续
+
+### Phase 2 → Phase 3
+- Phase 2 acceptance 全过 → 仍**不归档**
+- 用户**明确决定**是否启动 Phase 3（不像 Phase 1→2 自动衔接）
+- 若启动：更新 `Next-Steps.md / Progress.md` 切到 Phase 3
+- 若不启动：直接进归档流程（见下）
+
+### Phase 3 完成 / 用户决定收尾
+- 创建 archive，主 docs 切回等待状态
+
+---
+
+## 实现纪律（贯穿三 phase）
+
+来自 `Autonomous-Work-Protocol.md`，Phase 期间不变：
+
+1. **不修改 LGF submodule core / stdlib**
+2. **测试入口规范**：`.tscn` 入口 + `> /tmp/*.txt 2>&1` redirect，不用 `--script` 不用 pipe
+3. **触发 stop 条件**：需要修改 `project.godot` autoload / `scripts/SimulationManager.gd` / LGF submodule 时要先确认
+4. **每 phase 完成 re-run validation 顺序**：import → LGF 73/73 → RTS smoke → hex demo
+5. **决策来自 architecture-baseline.md**：实现时如发现需要改决策，**先停下来跟用户对齐**再改 baseline

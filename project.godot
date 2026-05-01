@@ -24,6 +24,7 @@ TimelineRegistry="*res://addons/logic-game-framework/core/timeline/timeline.gd"
 WaitGroupManager="*res://addons/lomolib/wait_group/wait_group_manager.gd"
 ItemSystem="*res://addons/lomolib/inventoryKit/item_system.gd"
 UGridMap="*res://addons/ultra-grid-map/u_grid_map.gd"
+RtsRng="*res://addons/logic-game-framework/example/rts-auto-battle/logic/rts_rng.gd"
 
 [display]
 
