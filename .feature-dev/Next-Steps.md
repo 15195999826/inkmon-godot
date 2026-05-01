@@ -1,4 +1,4 @@
-# Next Steps
+# Next Steps — 2026-05-01 (P2.7 完成, 进入 P2.8)
 
 ## 当前目标
 
@@ -7,7 +7,7 @@
 在 Phase 1 修好的骨架上,搭建**城堡战争核心玩法支柱**(含飞行单位)。
 
 **Feature 总目标**: 把 RTS M0(功能 spike)演进为遵守 LGF 根原则的、支持城堡战争玩法的、流式 simulation + 决定性 replay 的工业级架构。
-**总目标分三个 phase**, Phase 1 ✅ 已完成(2026-05-01), 当前 Phase 2 进行中(6/8 子任务完成: P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6)。
+**总目标分三个 phase**, Phase 1 ✅ 已完成(2026-05-01), 当前 Phase 2 进行中(7/8 子任务完成: P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 + P2.7)。
 
 > 完整决策与架构总图: [`task-plan/architecture-baseline.md`](task-plan/architecture-baseline.md)
 > Phase 2 详细子任务: [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md)
@@ -27,8 +27,9 @@
   - 详细 evidence: [`Progress.md`](Progress.md) AC4 + AC9
 - ✅ P2.6 — Player Command + Building Placement + 胜负判定改写
   - 详细 evidence: [`Progress.md`](Progress.md) AC5 + AC9
-- ⏳ P2.7 — Frontend BattleDirector 接入流式 events ← **下一个**
-- ⏳ P2.8 — AIR Layer + target_layer_mask + 飞行单位
+- ✅ P2.7 — Frontend BattleDirector 接入流式 events
+  - 详细 evidence: [`Progress.md`](Progress.md) AC6 + AC9 + AC10 (bit-identical replay 一并验证)
+- ⏳ P2.8 — AIR Layer + target_layer_mask + 飞行单位 ← **下一个 (Phase 2 最后一个子任务)**
 
 ## 非目标(本轮 Phase 2 不做)
 
@@ -48,25 +49,30 @@
 
 ## 下一步
 
-**P2.7 — Frontend BattleDirector 接入流式 events**
+**P2.8 — AIR Layer + target_layer_mask + 飞行单位 (Phase 2 最后一个子任务)**
 
-> 详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §P2.7
+> 详见 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) §P2.8
 
 主要改动:
-- 重构 `frontend/visualizers/rts_unit_visualizer.gd` (不再 `sync()` 拉 position; 改为订阅 `MoveCompleteEvent / DamageEvent / DeathEvent`)
-- 新增 `frontend/visualizers/rts_building_visualizer.gd` (建筑 view, 含 hp bar / footprint outline / production progress 显示)
-- 新增 `frontend/core/rts_battle_director.gd` (参照 hex `battle_director.gd`; 流式消费 procedure 当前 tick events; `_tick(delta)` 累积 logic_accumulator, 按 SIM_DT 推进)
-- 新增 `frontend/world_view.gd` (响应 `actor_added / actor_removed / position_changed` signal)
-- 新增插值层 — 每个 visualizer 持 prev_pos / curr_pos, `_process(alpha)` 插值到平滑位移
-- 修改 `demo_rts_frontend.tscn` 接入 BattleDirector 替代直接 polling
-- 新 smoke `tests/frontend/smoke_director_streaming.tscn` (跑 5 秒战斗, verify visualizer 收到 N 个 events 并表演)
-- 编辑器 F6 验证 `demo_rts_frontend.tscn` 视觉流畅 (用户肉眼)
+- 新增 `logic/units/flying/` (飞行 unit_class 配置 — 至少 1 个 AIR 单位, 如 flying_scout)
+- 修改 `RtsUnitController` movement 分支: layer == AIR 不调 A* (直线朝目标飞 + 同层飞行单位间软排斥); 不写 pathing map; is_passable callback 对 ground 阻挡 return true
+- 新增 `logic/weapons/rts_weapon_config.gd` 含 `target_layer_mask: int` (GROUND / AIR / BOTH bitmask)
+- 修改 `RtsAutoTargetSystem`: 扫描时按 `mover.weapon.target_layer_mask` 过滤候选 (防空塔只挑 AIR; 普通弓兵 BOTH; 纯地面武器 GROUND-only)
+- 修改 `RtsBasicAttackAction.can_hit(attacker, defender)`: 检查 layer mask, 不匹配 → invalid target (防御性检查)
+- 修改 unit spawn 配置加 `default_movement_layer` + `weapon.target_layer_mask`
+- 新增至少 1 个 anti-air weapon 配置 (archer_tower 升级或新塔)
+- 新 smoke `tests/battle/smoke_flying_units.tscn`: 地面单位 + 防空塔 + 飞龙
+  - 防空塔 (`target_layer_mask = AIR`) 只打飞龙
+  - 普通地面单位 (`target_layer_mask = GROUND`) 打不到飞龙
+  - 飞龙穿过地面建筑 footprint
+- 升级 `frontend/visualizers/rts_unit_visualizer.gd` 让飞行单位画在 8px 上空 (走 actor.get_render_height — RtsBattleActor 已有 API, P1.1 接口预留)
+- 单位攻击建筑能力一并接入 (P2.6 留在 P2.7+ 的 limitation, AC8 城堡战争最小可玩 demo 依赖此): AutoTargetSystem 候选扩到 RtsBuildingActor; BasicAttackAction target cast 兼容 building; building 受击事件 wiring
 
 **关键约束**:
-- frontend 不再有 0 处 `actor.position_2d` 直读 (state polling 全废, AC6 主断言)
-- BattleDirector 的 SIM_DT (33.33ms @ 30Hz) 与 procedure 的 _tick_interval 对齐, 渲染 `_process` 走 alpha 插值
-- 复用 hex `BattleDirector` 抽象基类时若有 hex_position 硬编码需要适配 (设计风险已在 phase-2-core-systems.md §已知风险 列出)
-- Phase 2 P2.7 完成后 BattleRecorder 会持续 append `_player_commands_log` (P2.6 已铺好的字段) 到 `RtsRecording.player_commands`, 配合 AC10 bit-identical replay
+- 不修改 LGF submodule core / stdlib (硬约束 1)
+- 飞行单位的 RtsUnitActor 子类化 vs 字段配置: 倾向后者 (movement_layer = AIR, 字段已在 RtsBattleActor)
+- AC7 (smoke_flying_units) + AC8 (城堡战争最小可玩 demo) 联动验收
+- bit-identical replay (AC10) 不能因 P2.8 引入随机回退 — 飞行单位与防空单位的目标筛选必须 deterministic (与 P2.4 AutoTargetSystem 同 by-team-key insertion-order 保证)
 
 ## Phase 2 完成后
 

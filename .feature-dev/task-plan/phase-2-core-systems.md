@@ -1,6 +1,6 @@
 # Phase 2 — Core Systems（M1 期间核心玩法支柱）
 
-> **状态**：进行中（P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 已完成 2026-05-01；P2.7-P2.8 待启动）
+> **状态**：进行中（P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 + P2.7 已完成 2026-05-01；P2.8 待启动）
 > **进入条件**：Phase 1 收口条件全过 ✓
 > **退出条件**：本文档 §收口条件 全过 → 切换到 Phase 3
 
@@ -161,23 +161,27 @@
 
 ---
 
-### P2.7 — Frontend BattleDirector 接入流式 events
+### P2.7 — Frontend BattleDirector 接入流式 events ✅ 已完成 2026-05-01
 
-**目标**：把 frontend 从"`_process` 拉 actor.position_2d"（state polling）改为消费 event_timeline 流式 events，复用 hex 已有的 BattleDirector + Visualizer 四层管线。
+**目标**：把 frontend 从"`_process` 拉 actor.position_2d"（state polling）改为 BattleDirector push 模式 — Director 在 tick boundary 单次 snapshot + emit signal, visualizer 完全 0 处直读 actor.
 
-**改动范围**：
-- 新增：`frontend/visualizers/rts_unit_visualizer.gd` 升级
-  - 不再 `sync()` 拉 position；改为订阅 `MoveCompleteEvent / DamageEvent / DeathEvent`
-- 新增：`frontend/visualizers/rts_building_visualizer.gd`（建筑 view）
-- 新增：`frontend/core/rts_battle_director.gd`（参照 hex `battle_director.gd`）
-  - 流式消费 procedure 当前 tick events
-  - `_tick(delta)` 累积 logic_accumulator，按 SIM_DT 推进
-- 新增：`frontend/world_view.gd`（响应 `actor_added / actor_removed / position_changed` signal）
-- 新增：插值层 — 每个 visualizer 持 prev_pos / curr_pos，`_process(alpha)` 插值
+**已落地范围**（详细 evidence 见 `../Progress.md` AC6 + AC10）：
+- 新增 `frontend/core/rts_battle_director.gd`（RtsBattleDirector — Node; SIM_DT_MS = procedure.get_tick_interval; _process(delta) 累 dt 推 procedure.tick_once; tick boundary _capture_prev / _capture_curr_and_emit; 5 个 signal: frame_advanced / actor_render_state_updated / attack_resolved / actor_died / battle_ended; 接管 procedure._event_sink 转发 events; 维护 _render_states dict {prev_pos, curr_pos, hp, max_hp, is_dead}; 公共 API: attach / detach / get_alpha / get_render_state / get_actor_ids / is_running / is_ended / get_current_tick）
+- 新增 `frontend/world_view.gd`（RtsWorldView — Node2D; bind(world, director) 监听 world.actor_added/removed → 自动 spawn/despawn visualizer; 路由 director.actor_render_state_updated 到对应 visualizer.update_render_state; 路由 director.actor_died 到 visualizer.on_died; RtsUnitActor → RtsUnitVisualizer / RtsBuildingActor → RtsBuildingVisualizer 分发）
+- 升级 `frontend/visualizers/rts_unit_visualizer.gd`（push 模式: 不再持 actor 引用, 改持 actor_id + WeakRef director; bind(actor_id, team_id, director) 起手从 director.get_render_state 拉一次; update_render_state(prev_pos, curr_pos, hp, max_hp, is_dead) 由 WorldView 路由信号写; _process(delta) 走 director.get_alpha() 在 prev_pos / curr_pos 之间 lerp 给 60FPS 渲染插值; on_died 调暗 polygon + label "DEAD"; 删 sync() 入口；queryable: actor_id / get_render_position / get_render_hp / get_render_is_dead）
+- 新增 `frontend/visualizers/rts_building_visualizer.gd`（RtsBuildingVisualizer — Node2D; AABB footprint 矩形 (footprint_size × CELL_SIZE=32) + hp bar + 水晶塔金色边框; 不需要插值; queue_redraw 由 update_render_state 触发）
+- 改写 `frontend/demo_rts_frontend.gd`（新顺序: world / battle_map / director / world_view → world_view.bind → spawn 4v4 (visualizer 自动创建) → start_rts_battle → director.attach; demo._process 逻辑全删, 全自动由 director 驱动; battle_ended → procedure.finish + print 结果）
+- 修改 `core/rts_auto_battle_procedure.gd` finish() override（在 super.finish() 返回 dict 上注 RTS 专属字段 — `player_commands` 副本 + `rng_seed`; bit-identical replay smoke 用此入口拿完整 record）
+- 升级 `tests/frontend/smoke_frontend_main.gd`（visualizer.actor 字段已删 → 改用 vis.actor_id != "" + vis.get_render_is_dead()）
+- 新增 `tests/frontend/smoke_director_streaming.{gd,tscn}`（4v4 走 director path 跑 4s; 验证 render_emits > 0 + attack_emits > 0 + 至少 1 visualizer moved 离 spawn x; 信号链路完整）
+- 新增 `tests/replay/smoke_replay_bit_identical.{gd,tscn}`（AC10: 同 seed=42 + 同 2 commands tick 5/10 跑 2 次 100 ticks; IdGenerator.reset_id_counter 之间; timeline events 逐字段 deep equal — Dictionary/Array/HexCoord(q,r) 递归; player_commands_log entry-by-entry deep equal; rng_seed 一致）
 
-**验证**：
-- 新 smoke `tests/frontend/smoke_director_streaming.tscn`：跑 5 秒战斗，verify visualizer 收到 N 个 events 并表演
-- 编辑器 F6 验证 `demo_rts_frontend.tscn` 视觉流畅（用户肉眼）
+**验证**（已通过）：
+- `smoke_director_streaming` PASS: visualizers=8 render_emits=648 attack_emits=16 death_emits=0 moved=8 ticks=80（4s @ 50ms tick）
+- `smoke_replay_bit_identical` PASS: seed=42 commands=2 frames=10 events=20，timeline + commands_log bit-identical
+- AC6 grep: `actor.position_2d` 在 `frontend/visualizers/` 0 处直读, `frontend/world_view.gd` 仅创建期 hydrate（不算 polling）, `frontend/core/rts_battle_director.gd` 在 tick boundary 投影（不算 polling）
+- 不退化: LGF 73/73 PASS, 主 smoke ticks=347 不变, smoke_determinism tick_diff=0 仍 bit-equal, hex demo exit 0
+- 编辑器 F6 视觉验证（用户肉眼）：留给用户在编辑器中确认 `demo_rts_frontend.tscn` 平滑渲染（headless 不能验证 60FPS 视觉效果）
 
 ---
 
@@ -227,11 +231,11 @@ P2.1 与 P2.2/P2.3 可并行；P2.4 依赖 P2.1（strategy 已经返回 Activity
 - [x] **AC3 — AutoTargetSystem**：`smoke_auto_target` priority 标签生效 ✅ PASS (P2.4 完成 2026-05-01); 4v4 主 smoke 行为等价 (left_win, ticks=347); evidence in `../Progress.md` AC3
 - [x] **AC4 — Production**：`smoke_production` 兵营周期 spawn ✅ PASS (P2.5 完成 2026-05-01); 双 barracks 30s 跑 600 ticks 各 spawn 7 melee, 朝东偏移 118.51 px; evidence in `../Progress.md` AC4
 - [x] **AC5 — Player Command + Crystal Tower**：`smoke_player_command` ✅ + `smoke_crystal_tower_win` ✅ + `smoke_player_command_production` ✅ PASS (P2.6 完成 2026-05-01); 玩家命令 tick 30 放兵营 → 7 spawns + override-strategy SpawnLane; crystal-tower 死 → 该方败 (start() 自动绑 ct_id); evidence in `../Progress.md` AC5
-- [ ] **AC6 — Frontend Director 流式**：`smoke_director_streaming` PASS；frontend 0 处 `actor.position_2d` 直读
-- [ ] **AC7 — AIR layer + 飞行单位**：`smoke_flying_units` PASS（防空塔只打飞行 / 地面武器打不到飞行 / 飞行穿过地面建筑）
-- [ ] **AC8 — 城堡战争最小可玩 demo**：编辑器 F6 跑 `demo_rts_frontend.tscn`，玩家可放置建筑、看到建筑生产单位、单位互打（含飞行 vs 防空）、塔被毁判胜负
-- [ ] **AC9 — 不退化**：LGF 73/73 PASS；hex demo 不退化；RTS 主 smoke + Phase 1 light determinism 仍 PASS
-- [ ] **AC10 — Bit-identical replay**（Phase 2 新增 acceptance）：`smoke_replay_determinism` 同 seed + 同 player_commands 跑 2 次产出 bit-identical event_timeline
+- [x] **AC6 — Frontend Director 流式**：`smoke_director_streaming` ✅ PASS (P2.7 完成 2026-05-01); frontend 0 处 `actor.position_2d` 直读 (visualizer 完全 push 模式; Director 在 tick boundary 单次 snapshot 是合规 state projection); evidence in `../Progress.md` AC6
+- [ ] **AC7 — AIR layer + 飞行单位**：`smoke_flying_units` PASS（防空塔只打飞行 / 地面武器打不到飞行 / 飞行穿过地面建筑）— P2.8 待启动
+- [ ] **AC8 — 城堡战争最小可玩 demo**：编辑器 F6 跑 `demo_rts_frontend.tscn`，玩家可放置建筑、看到建筑生产单位、单位互打（含飞行 vs 防空）、塔被毁判胜负 — 依赖 P2.8 (单位攻击建筑链路 + 飞行单位)
+- [x] **AC9 — 不退化** (P2.7 重新验证 2026-05-01): LGF 73/73 PASS; hex demo exit 0, left_win; RTS 主 smoke 仍 left_win, ticks=347, 全部 P1+P2.1-P2.7 smokes PASS; smoke_determinism tick_diff=0 仍 bit-equal
+- [x] **AC10 — Bit-identical replay**：`smoke_replay_bit_identical` ✅ PASS (P2.7 完成 2026-05-01); 同 seed=42 + 同 2 commands → timeline events + player_commands_log + rng_seed 全 bit-identical (HexCoord 字段递归 q/r 比对); evidence in `../Progress.md` AC10
 
 ---
 

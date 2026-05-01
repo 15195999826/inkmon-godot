@@ -62,11 +62,21 @@ skill 通用 stop 条件之外，本项目额外停下的情况：
 
 ## Commit 策略
 
-- 默认 **不主动 commit / push / 开 PR**，除非用户明确要求
-- 如果用户要求 commit：
-  - submodule 改动单独 commit 在 submodule 内，主仓 commit 同时 bump submodule pointer
-  - commit message 中文 / 英文皆可，遵循 `commit-commands:commit` 风格
+- **每阶段性任务完成主动 commit**，不再等用户明确要求
+  - 何时算"阶段性完成"：
+    - 子任务 (P2.x / P3.x) 全部 acceptance 子项 PASS + smoke 不退化 + 文档同步更新到 Progress.md / Next-Steps.md / Current-State.md
+    - phase 整体 acceptance 收口（Phase 1/2/3 切换时）
+    - 独立 bug fix / 重构 + 验证通过
+  - **不**算阶段性完成（此时不 commit，继续往下做）：
+    - 单纯写完代码但 smoke 没跑过
+    - 写到一半遇到中间错误状态
+    - 仅文档改动（跟着代码改动一起 commit，别单独提）
+- commit 操作规范：
+  - submodule (addons/logic-game-framework/) 改动**单独 commit 在 submodule 内**，主仓 commit 同时 bump submodule pointer（两条 commit，顺序 submodule → 主仓）
+  - commit message 中文 / 英文皆可，遵循 `commit-commands:commit` 风格；阶段性 commit 在 message 里点明 "P2.x done" / 关键 acceptance 结论
   - 不 `--no-verify`、不 `--amend`、不 force push（与用户全局规则一致）
+  - **push / 开 PR 仍需用户明确要求** — commit 是本地节点保护，push 是公开发布，边界不同
+- 如果不确定一个工作单元算不算"阶段性完成"，**倾向于 commit 而不是攒在一起** — 多个小 commit 比一个大 commit 容易回滚
 
 ## 文档维护
 

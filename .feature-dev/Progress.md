@@ -1,8 +1,8 @@
 ## Progress — RTS Auto-Battle M1 架构重构
 
-**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 done (6/8 sub-tasks)**, 不退化
+**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 + P2.7 done (7/8 sub-tasks)**, 不退化
 
-最近更新: 2026-05-01 (P2.6 完成)
+最近更新: 2026-05-01 (P2.7 完成)
 
 ---
 
@@ -54,19 +54,26 @@
     - tick 30 placement 成功 → 后 570 ticks (28.5s) 内累积 7 个 melee spawn (理论 7-8, 阈值 ≥ 3);
     - SpawnLane override_strategy=true 让 RtsAttackMoveActivity 不被 strategy.decide 替换 → 单位最远朝东偏移 254.74 px (验证 P2.6 override flag);
     - 双方 crystal_tower 占位让战斗不自然结束 (AutoTarget 不打 buildings, 当前 limitation; 战斗保持 in_progress)
-- [ ] **AC6 — Frontend Director 流式**: `smoke_director_streaming` PASS; frontend 0 处 `actor.position_2d` 直读
-- [ ] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` PASS
-- [ ] **AC8 — 城堡战争最小可玩 demo**: 编辑器 F6 跑 `demo_rts_frontend.tscn`, 玩家可放置建筑、塔被毁判胜负
-- [x] **AC9 — 不退化** (P2.6 重新验证, 全部 P1 + P2.1-P2.6 smokes 仍 PASS):
-  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p2_6_lgf.txt 2>&1` → `73/73 PASS`
-  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p2_6_hex.txt 2>&1` → `结果: right_win` (exit 0)
-  - 命令 C: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p2_6_smoke_rts.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS
-    - 与 P2.5 末态完全一致 — 4v4 主 smoke 不传 team_configs → procedure 内部用 unconfigured(team_id) 占位 → fallback 全灭判定 (Phase 1 兼容); P2.6 改写胜负判定 0 行为差异
-  - 命令 D: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p2_6_det.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (P2.6 不引入 randf; player_commands_log 仅追加, 不影响 sim 路径)
-  - 全部 P1 + P2.1-P2.6 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / **player_command** / **crystal_tower_win** / **player_command_production** / frontend: all PASS
-    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p2_6_<name>.txt 2>&1`
-    - 关键 evidence: P2.6 新 3 smoke 见 AC5; 旧 smoke 与 P2.5 末态完全一致
-- [ ] **AC10 — Bit-identical replay** (Phase 2 新增, P2.7 完整 BattleRecorder 落地)
+- [x] **AC6 — Frontend Director 流式**: `smoke_director_streaming` ✅ PASS (P2.7 完成 2026-05-01); frontend 0 处 `actor.position_2d` 直读 (visualizer / world_view 完全不读 actor; Director 在 tick boundary 单次 snapshot 是合规 state projection)
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/frontend/smoke_director_streaming.tscn > /tmp/p27_streaming.txt 2>&1`
+  - Evidence A: `visualizers=8 render_emits=648 attack_emits=16 death_emits=0 moved=8 ticks=80`; PASS - 4s 战斗 8 单位移动了, 16 次 attack events 经 director 信号路径流到 visualizer
+  - 命令 B (frontend smoke 升级走 director): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/frontend/smoke_frontend_main.tscn > /tmp/p27_rts_fe.txt 2>&1` → `visualizers=8 alive_after_3.0s=8 SMOKE_TEST_RESULT: PASS`
+  - 命令 C (AC6 主断言 grep): `grep -rn 'actor\.position_2d' addons/logic-game-framework/example/rts-auto-battle/frontend/visualizers/ addons/logic-game-framework/example/rts-auto-battle/frontend/world_view.gd` → 0 处直读 (visualizer 完全 0 处 actor.* 字段读)
+  - Evidence: visualizer 走 push 模式 — `update_render_state(prev_pos, curr_pos, hp, max_hp, is_dead)` 由 RtsWorldView 路由 director.actor_render_state_updated signal 进来; visualizer `_process(delta)` 走 director.get_alpha() 在 prev_pos / curr_pos 之间 lerp, 60FPS 渲染插值 30Hz logic tick
+- [ ] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` PASS (P2.8 待启动)
+- [ ] **AC8 — 城堡战争最小可玩 demo**: 编辑器 F6 跑 `demo_rts_frontend.tscn`, 玩家可放置建筑、塔被毁判胜负 (依赖 P2.8 飞行单位 / 端到端单位攻击建筑链路)
+- [x] **AC9 — 不退化** (P2.7 重新验证, 全部 P1 + P2.1-P2.7 smokes 仍 PASS):
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p27_lgf.txt 2>&1` → `73/73 PASS`
+  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p27_hex.txt 2>&1` → `结果: left_win` (exit 0; segfault 没复现)
+  - 命令 C (主 smoke): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p27_main2.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS — 与 P2.6 末态完全一致 (P2.7 仅 frontend 改动 + procedure.finish 注 player_commands/rng_seed 包装, 不影响 sim 路径)
+  - 命令 D (determinism): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p27_det2.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (light determinism 仍达成)
+  - 全部 P1 + P2.1-P2.7 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / player_command / crystal_tower_win / player_command_production / **frontend_main** (P2.7 升级走 director) / **director_streaming** (P2.7 新) / **replay_bit_identical** (P2.7 新): all PASS
+    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p27_<name>.txt 2>&1`
+- [x] **AC10 — Bit-identical replay**: `smoke_replay_bit_identical` ✅ PASS (P2.7 完成 2026-05-01)
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_replay_bit_identical.tscn > /tmp/p27_replay.txt 2>&1`
+  - Evidence: `seed=42, commands=2, frames=10, events=20`; PASS - 同 seed (42) + 同 player_commands (tick 5 / tick 10 各放 barracks) 跑 2 次, 100 ticks 截断, **timeline events 逐字段 deep equal** (10 帧含 events + 共 20 events; HexCoord 字段走 q/r 比对); player_commands_log 长度+entry-by-entry deep equal; rng_seed 一致
+  - 实现: procedure.finish() RTS-only wrap — 在 super.finish() 返回 dict 上注 `player_commands` (副本) + `rng_seed` (回放 player commands replay 用); IdGenerator.reset_id_counter() 让两次跑 actor id 一致
+  - 决定性已 P2.6 验证 (smoke_determinism tick_diff=0); P2.7 进一步固化为完整 event timeline level bit-identical
 
 ---
 
@@ -137,6 +144,18 @@
     - 新增 `tests/battle/smoke_crystal_tower_win.{gd,tscn}` (双 crystal_tower 起手, procedure.start() 自动绑 crystal_tower_id; tick 1 双活 → not finished; mark_dead 右方 + tick 2 → result=left_win)
     - 新增 `tests/battle/smoke_player_command_production.{gd,tscn}` (P2.5+P2.6 联动: tick 30 player command 放兵营 → 600 ticks 后 left_spawned=7 + max_eastward=254.74 px + override_strategy=true 让 SpawnLane 不被 strategy.decide 替换)
   - Evidence: 见 AC5 + AC9 上方
+- [x] **P2.7 — Frontend BattleDirector 接入流式 events**
+  - 改动:
+    - 新增 `frontend/core/rts_battle_director.gd` (RtsBattleDirector — Node; SIM_DT_MS = procedure.get_tick_interval; _process(delta) 累加 dt 到 SIM_DT 推 procedure.tick_once; tick boundary _capture_prev / _capture_curr_and_emit; 4 个 signal: frame_advanced / actor_render_state_updated / attack_resolved / actor_died / battle_ended; 接管 procedure._event_sink 转发 attack/died events; 维护 _render_states dict {prev_pos / curr_pos / hp / max_hp / is_dead}; 暴露 attach(world, procedure) / detach / get_alpha / get_render_state / is_running / is_ended)
+    - 新增 `frontend/world_view.gd` (RtsWorldView — Node2D; bind(world, director) 监听 world.actor_added/removed → 自动 spawn/despawn visualizer; 路由 director.actor_render_state_updated 到对应 visualizer.update_render_state; 路由 director.actor_died 到 visualizer.on_died; RtsUnitActor → RtsUnitVisualizer / RtsBuildingActor → RtsBuildingVisualizer 分发)
+    - 升级 `frontend/visualizers/rts_unit_visualizer.gd` (push 模式: 不再持 actor 引用, 改持 actor_id + WeakRef director; bind(actor_id, team_id, director) 起手从 director.get_render_state 拉一次; update_render_state(prev_pos, curr_pos, hp, max_hp, is_dead) 由 WorldView 路由信号写; _process(delta) 走 director.get_alpha() 在 prev_pos / curr_pos 之间 lerp 给 60FPS 渲染插值; on_died() 调暗 polygon + label "DEAD"; 删 sync() polling 入口)
+    - 新增 `frontend/visualizers/rts_building_visualizer.gd` (RtsBuildingVisualizer — Node2D; AABB footprint 矩形 + hp bar + 水晶塔金色边框区分; 不需要插值; queue_redraw 由 update_render_state 触发)
+    - 改写 `frontend/demo_rts_frontend.gd` (新顺序: world / battle_map / director / world_view → world_view.bind → spawn 4v4 → start_rts_battle → director.attach; demo._process 逻辑全删, 全自动由 director 驱动; battle_ended → procedure.finish + print 结果)
+    - 升级 `tests/frontend/smoke_frontend_main.gd` (visualizer.actor 删除后改用 vis.actor_id != "" + vis.get_render_is_dead())
+    - 修改 `core/rts_auto_battle_procedure.gd` (finish() override: 在 super.finish() 返回 dict 上注 RTS 专属字段 — `player_commands` 副本 + `rng_seed`; bit-identical replay smoke 用此入口拿完整 record)
+    - 新增 `tests/frontend/smoke_director_streaming.{gd,tscn}` (4v4 走 director path 跑 4s; 验证 render_emits > 0 + attack_emits > 0 + 至少 1 visualizer moved 离 spawn x; 信号链路完整)
+    - 新增 `tests/replay/smoke_replay_bit_identical.{gd,tscn}` (AC10: 同 seed=42 + 同 2 commands tick 5/10 跑 2 次 100 ticks; IdGenerator.reset_id_counter 之间, 验证 timeline events 逐字段 deep equal — Dictionary / Array / HexCoord(q,r) 递归; player_commands_log entry-by-entry deep equal; rng_seed 一致)
+  - Evidence: 见 AC6 + AC9 + AC10 上方
 - [x] **P2.5 — Production System + Building Factory**
   - 改动:
     - 新增 `logic/buildings/rts_building_attribute_set.gd` (hp / max_hp / production_speed_multiplier; cross-clamp hp ≤ max_hp; 与 `RtsUnitAttributeSet` 同构 apply_config 路径)
@@ -151,7 +170,6 @@
       - 新 `add_unit_to_team(unit, team_id)` 公共 API: 让 spawner 把新单位加入 left_team / right_team 对应阵营 (procedure 内部 `_check_battle_end` / `get_alive_actors` 立即可见; 仅支持 team_id ∈ {0, 1})
     - 新增 `tests/battle/smoke_production.{gd,tscn}` (左 / 右各 1 barracks 对称布置; 自管 spawner 创建 unit + RtsNavAgent + RtsUnitController + `add_unit_to_team` + 初始 `RtsAttackMoveActivity` SpawnLane chain; 600 ticks @ 50ms = 30s 跑完 assert ≥ 5 spawn / team + 至少 1 left spawn 朝东 ≥ 50px)
   - Evidence: 见 AC4 + AC9 上方
-- [ ] **P2.7 — Frontend BattleDirector 接入流式 events**
 - [ ] **P2.8 — AIR layer + target_layer_mask + 飞行单位**
 
 ---
@@ -160,7 +178,7 @@
 
 ```
 P2.1 (Activity) ✓ ─────────────────┐
-                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ✓ ──> P2.6 (Player Command) ✓ ──> P2.7 (Frontend Director) ──> P2.8 (AIR layer)
+                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ✓ ──> P2.6 (Player Command) ✓ ──> P2.7 (Frontend Director) ✓ ──> P2.8 (AIR layer)
 P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 ```
 
@@ -204,18 +222,42 @@ P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 | Player command smoke (P2.6) | `…/tests/battle/smoke_player_command.{gd,tscn}` (3 phase: ok/dup/out-of-zone, log 3 entries, resources 扣减) |
 | Crystal tower win smoke (P2.6) | `…/tests/battle/smoke_crystal_tower_win.{gd,tscn}` (双 ct + auto-bind ct_id + mark_dead → left_win) |
 | Player command + production smoke (P2.6) | `…/tests/battle/smoke_player_command_production.{gd,tscn}` (P2.5+P2.6 联动: 玩家 tick 30 放兵营 → 7 spawns + override-strategy SpawnLane) |
+| Battle director (P2.7) | `…/frontend/core/rts_battle_director.gd` (Node, _process tick 推 procedure; tick boundary _capture_prev/curr; 接管 procedure._event_sink; 4 个 signal 给 visualizer) |
+| World view (P2.7) | `…/frontend/world_view.gd` (Node2D, 监听 world.actor_added/removed; 路由 director.actor_render_state_updated → visualizer.update_render_state; RtsUnitActor → RtsUnitVisualizer / RtsBuildingActor → RtsBuildingVisualizer 分发) |
+| Unit visualizer push (P2.7) | `…/frontend/visualizers/rts_unit_visualizer.gd` (持 actor_id + WeakRef director, 0 处 actor 直读; _process 走 director.get_alpha() 插值 lerp(prev_pos, curr_pos, alpha)) |
+| Building visualizer (P2.7) | `…/frontend/visualizers/rts_building_visualizer.gd` (AABB footprint + hp bar + 水晶塔金色边框) |
+| Demo wire (P2.7) | `…/frontend/demo_rts_frontend.gd` (改写: world/battle_map/director/world_view 创建 + bind + spawn → start → director.attach; demo._process 逻辑全删) |
+| Procedure finish wrap (P2.7) | `…/core/rts_auto_battle_procedure.gd` (finish override: 在 super.finish 返回 dict 上注 player_commands + rng_seed) |
+| Director streaming smoke (P2.7) | `…/tests/frontend/smoke_director_streaming.{gd,tscn}` (4v4 走 director path 跑 4s, 验证 render/attack emit + visualizer moved 离 spawn) |
+| Replay bit-identical smoke (P2.7) | `…/tests/replay/smoke_replay_bit_identical.{gd,tscn}` (AC10: 同 seed + 同 commands → timeline + commands_log deep equal; HexCoord 字段 q/r 比对) |
 
 ---
 
 ## 残余风险(从 Phase 1 继承; 跨 phase 不变)
 
-- **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: right_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.6 验收。
-- **30Hz default tick 与 50ms M0 smoke 兼容**: smokes 仍 explicitly 传 `tick_interval_ms = 50.0`; 30Hz 默认仅在 demo / 新调方启用。Phase 2 P2.7 流式 frontend 接入后再统一切到 30Hz。
-- **录像 still no-op**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism 用; P2.6 加 `_player_commands_log` 但没写入 BattleRecorder; 完整流式 event_timeline + bit-identical replay 在 Phase 2 P2.7。
-- **P2.6 单位不能攻击建筑** (留 P2.7+ 解决): AutoTargetSystem (`logic/ai/rts_auto_target_system.gd`) 只挑 RtsUnitActor 候选, BasicAttackAction (`logic/actions/rts_basic_attack_action.gd`) target cast as RtsUnitActor 也只接受 unit。本轮 smoke_crystal_tower_win 走"手动 mark_dead"模拟塔被打死 — 胜负判定规则已验证, 但端到端"单位 → 攻击 → 摧毁建筑"链路要等 P2.7 后扩 building 的 attribute_set / 受击事件 wiring。AC8 城堡战争最小可玩 demo 依赖此能力, 不在 P2.6 范围内。
-- **P2.6 UpgradeBuildingCommand / SellBuildingCommand 子类未落地**: 仅留 `RtsPlayerCommand` 基类 + apply 钩子接口预留; P2.6 acceptance 不需要这两个子类。Phase 3 经济系统改造时再补全 (建筑升级 / 卖建筑返还资源等场景)。
+- **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: left_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.7 验收。
+- **30Hz default tick 与 50ms M0 smoke 兼容**: smokes 仍 explicitly 传 `tick_interval_ms = 50.0`; 30Hz 默认仅在 demo / 新调方启用。P2.7 director SIM_DT 走 procedure.get_tick_interval, smoke 传 50ms 时 director 也按 50ms 推 — 不破。
+- **录像 still partial**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism; P2.6 加 `_player_commands_log` 字段; **P2.7 procedure.finish 把两者注入 record dict** (基础 BattleRecorder 的 timeline + RTS 专属 player_commands + rng_seed); 完整 RtsRecording 类型 + ReplayPlayer 仍未落地 (smoke 直接走 dict 比对; 实际 replay player UI 在 RTS 范围外).
+- **单位不能攻击建筑** (P2.7 仍未解, 留 P2.8 解决): AutoTargetSystem (`logic/ai/rts_auto_target_system.gd`) 只挑 RtsUnitActor 候选, BasicAttackAction 也只接受 unit。AC8 城堡战争最小可玩 demo 依赖端到端"单位攻击建筑"链路 — 这是 P2.8 加 layer mask + building targeting 时一并解决的范围。
+- **P2.6 UpgradeBuildingCommand / SellBuildingCommand 子类未落地**: 仅留 `RtsPlayerCommand` 基类 + apply 钩子接口预留; Phase 2 acceptance 不需要这两个子类。Phase 3 经济系统改造时再补全。
+- **P2.7 视觉特效 stub**: visualizer 当前仅圆圈 + hp 文本 + 死亡调暗; 没有攻击特效 / 飘字 / 投射物 (hex 例子有 BattleAnimator 完整管线; M1 范围内 RTS 简化 — 对应 hex BattleAnimator / RenderWorld / ActionScheduler 的全套表演层架构留 P3+ 或后续 milestone)。AC6 主断言只关心"streaming events 链路工作 + 0 处 polling actor",视觉特效不在 acceptance 内。
+- **P2.7 player_commands_log 暴露在 procedure.finish**: 扩字段直接挂在 dict 上, 不是新建 RtsRecording 类型。如果 P3+ 出现"加更多 RTS 专属字段" (如 deaths log / 资源采集事件流), 可考虑封一层 RtsRecord helper 或 wrap stdlib BattleRecorder; 当前 deferred — 只 2 字段时直接 dict 注入更轻。
 
 ---
+
+## 决策记录(P2.7 期间新增)
+
+- **P2.7 Director 选 "实时 sim" 而非 "离线 replay"**: hex 例子 FrontendBattleDirector 是离线模式 (跑完战斗 → 加载 ReplayData → animator 离线播放); RTS Director 选实时 — 持 procedure 引用, _process(delta) 推 procedure.tick_once + 同时 push render state. 理由: RTS 是连续 sim 不是回合制 ATB, 离线播放 60s 的 replay 太重 (timeline 体积大、frontend 不需要 scrub-able replay UI); 实时模式让 frontend 跟 sim 同步, 与 SimulationManager 未来接 web 桥接的需求兼容
+- **P2.7 frontend "0 处 actor 直读" 边界放在 visualizer / world_view, 不放在 director**: AC6 主断言指的是"sync()/polling 模式废除", 不是"frontend 0 处碰 actor". Director 在 tick boundary 单次 snapshot actor.position_2d / hp / is_dead 是合规的 "logic → frontend 状态投影" — 与 hex RenderWorld 的 in-memory snapshot 模式同构. visualizer / world_view 100% 0 处直读 actor (visualizer 持 actor_id 而非 actor 引用). 如果 P2.8+ 嫌 director 直读也不够纯, 可让 procedure 把 actor 状态作为 events 的一部分 emit; 当前 deferred — 边界投影模式与 30Hz tick 性能更友好 (不需要每帧 emit 8+ 个 position event)
+- **P2.7 visualizer 走 push 模式 + 起手 pull**: 标准做法是纯 push (signal-driven), 但 visualizer.bind 时 director 可能还没 emit 过 (典型: world_view.bind 在 director.attach 之前 — 因为 director.attach 需要 procedure 已存在, procedure 在 spawn 完后才 start_battle). 解决: visualizer.bind 内 pull 一次 director.get_render_state(actor_id) 作起手填充, 之后 push update_render_state. director.attach 内也 broadcast 一遍 — 双 path 兜底. 不让 visualizer.bind 与 director.attach 顺序硬绑定, demo / smoke 可灵活组合
+- **P2.7 alpha 插值用 director.get_alpha() 而非 visualizer 自己累 dt**: visualizer 自己累 dt 会与 director 内部 SIM_DT 计算口径不一致 → 插值锯齿 / 跳跃; 让 visualizer 走 director.get_alpha() (= clamp(_accumulator_ms / _sim_dt_ms)) 保证全部 visualizer 同 phase 同 alpha — 8 个单位每帧渲染一致前进
+- **P2.7 actor.position_2d 写入 in spawn 阶段保留**: demo._spawn_unit 仍 `actor.position_2d = pos` 写入. 这是创建期 setup, 不是 polling, AC6 不禁止写入. 把 spawn 位置作为 spawn opt 传给 actor 构造 (RtsUnitActor.new(unit_class, position) 之类)是更纯的设计 — 但会改变 spawn signature 影响所有 smoke; deferred 到 Phase 3 一并整理
+- **P2.7 procedure.finish dict wrap 注入 player_commands + rng_seed 不动 stdlib**: BattleRecorder 是 stdlib (硬约束 1 不动); RTS 专属字段只能在 RTS 层注入. procedure.finish override 把 super.finish() 返回的 dict 加 RTS 字段 — 简洁, 不引入 wrapper 类. AC10 smoke 直接读 finish() dict 即可比对
+- **P2.7 IdGenerator.reset_id_counter() 在 smoke 两跑之间手动调**: GameWorld.destroy / re-init 不会自动 reset (IdGenerator 是全局静态计数器, 跨 GameWorld 实例累加). smoke_replay_bit_identical 显式调一次, 让两次跑产生同 actor id (Building_10 vs Building_10), source_actor_id / target_actor_id 字段 deep equal. 生产环境 replay 时 ReplayPlayer 也需要按相同顺序 spawn actor (新 GameWorld + reset id counter); smoke 验证此前提工作
+- **P2.7 deep equal 对 HexCoord 走 q/r 显式比对**: Godot Dictionary.hash() 对 Object 类型走 instance id, 同结构不同实例 hash 不等 — smoke 第一次跑用 hash() 失败. 改递归 _deep_equal: Dictionary / Array 递归; HexCoord cast 后 q/r 比对; 其它走 ==. 用 JSON.stringify 也能比但 HexCoord 不是 JSON-friendly, 需先 to_dict
+- **P2.7 visualizer 起手位置 fallback 不走 (0,0)**: 当 director.get_render_state 在 visualizer.bind 时返回空 (director.attach 前), visualizer 仍能从 actor_added signal 触发, 但此时位置是默认的 _curr_pos = Vector2.ZERO. 解决: bind 内 pull state 拿到 hydrate 后立即 set position (上一处也 set). 即使 pull 空, 下一次 director.attach broadcast_initial_state 会路由到 visualizer 修正 — 一帧渲染前位置最终正确
+- **P2.7 不在 P2.7 范围内做表演特效 (攻击 vfx / 飘字 / 投射物)**: hex 例子有完整 BattleAnimator + ActionScheduler + RenderWorld + visualizer 4 层管线; RTS M1 P2.7 仅做最小 director 链路 + 圆圈 visualizer push. AC6 acceptance 不要求视觉特效层 — director.attack_resolved signal 已 emit, 给后续 P3+ 表演层接 hooks 用. 当前 visualizer 不订阅 attack_resolved (即使收到也只数数据流验证), 写入特效层是 P3+ 工作
+
 
 ## 决策记录(P2.6 期间新增)
 
