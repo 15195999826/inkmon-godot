@@ -8,26 +8,28 @@
 
 ## Acceptance (本轮 6 条)
 
-- [ ] **AC1** 新 `RtsResourceNodeConfig`:
-  - 字段: `field_kind: int` (枚举 `GOLD=0 / WOOD=1` 或 String — 见 §设计决策 D1); `max_amount: int = 1500`; `harvest_per_tick: int = 0` (Phase B 不用, 占位 Phase C); `footprint_size: Vector2i = Vector2i(1, 1)`; `actor_tags: Array[String] = ["resource_node"]`
+- [x] **AC1** 新 `RtsResourceNodeConfig`:
+  - 字段: `field_kind: int` (枚举 `GOLD=0 / WOOD=1` 或 String — 见 §设计决策 D1); `max_amount: int = 1500`; `harvest_per_tick: int = 0` (Phase B 不用, 占位 Phase C); `footprint_size: Vector2i = Vector2i(1, 1)`; `actor_tags: Array[String]` 含 `"resource_node"` + 具体 kind 串 (gold node `["resource_node", "gold"]` / wood node `["resource_node", "wood"]`, 与 RTS 既有 unit_tags 双 tag pattern 一致 — `melee→["melee","ground"]`, `flying→["flying","air"]`)
   - 工厂 `static get_stats(field_kind) -> StatBlock` 与 `RtsBuildingConfig.get_stats` 同结构
-- [ ] **AC2** 新 `RtsResourceNode` actor 类:
+- [x] **AC2** 新 `RtsResourceNode` actor 类:
   - 继承 `RtsBattleActor` (与 `RtsBuildingActor` 平级, 都不是 `RtsUnitActor`); 不参战 — `target_layer_mask = MASK_NONE`, atk=0, attack_range=0
-  - 字段: `field_kind`, `amount: int` (起手 = config.max_amount, Phase C harvest 时减), `is_depleted() -> bool` 当 amount<=0
+  - 字段: `field_kind`, `amount: int` (起手 = config.max_amount, Phase C harvest 时减), `is_depleted() -> bool` 当 amount<=0; 缓存 `field_kind_key: String` (Phase C drop-off 时直接读)
   - 不阻挡 footprint (worker 可踩, 简化 path; 与 §设计决策 D2 一致); 不调 `grid.place_building` 注册 footprint
-- [ ] **AC3** 新 `RtsResourceNodes` 工厂 (类似 `RtsBuildings`):
+  - override `is_dead()` 返 `_is_dead or is_depleted()`; override `check_death()` 永远返 false (耗尽走 is_depleted, 不走 hp <= 0); override `can_attack()` 永远返 false
+- [x] **AC3** 新 `RtsResourceNodes` 工厂 (类似 `RtsBuildings`):
   - `static create_gold_node() -> RtsResourceNode` / `static create_wood_node() -> RtsResourceNode`; 各方便 demo / smoke 调用
-- [ ] **AC4** `RtsUnitClassConfig` 新 `UnitClass.WORKER` (枚举值 = 3, 与既有 MELEE=0/RANGED=1/FLYING_SCOUT=2 不冲突):
+- [x] **AC4** `RtsUnitClassConfig` 新 `UnitClass.WORKER` (枚举值 = 3 by 顺序声明位置, 与既有 MELEE=0/RANGED=1/FLYING_SCOUT=2 不冲突):
   - 字段: `max_hp: 50.0`, `move_speed: 80.0` (与 melee 同; 慢一点也行 — Phase C 启动时调), `atk: 0.0`, `attack_range: 0.0`, `attack_speed: 0.0`, `collision_radius: 12.0`, `movement_layer: GROUND`, `target_layer_mask: MASK_NONE` (不打人, 不被 default strategy 选作目标), `unit_tags: ["worker"]`
   - 新字段 (Phase B 仅声明, Phase C 用): `carry_capacity: int = 10` (worker 最多背 10 单位资源), `harvest_speed: float = 5.0` (每 tick harvest_progress)
-- [ ] **AC5** Worker idle 行为不被 default `RtsBasicAttackStrategy` 干扰:
-  - `RtsAIStrategyFactory.get_strategy(WORKER)` 返回 placeholder strategy (Phase B 用 `RtsHoldFireStrategy` / 同 stance=HOLD_FIRE 行为, decide 永远返 IdleActivity); Phase C 用 `RtsHarvestStrategy` 替代
+- [x] **AC5** Worker idle 行为不被 default `RtsBasicAttackStrategy` 干扰:
+  - `RtsAIStrategyFactory.get_strategy(WORKER)` 复用 `_basic_attack` 实例 (与 §设计决策 D4 一致 — placeholder strategy 不新建); worker `target_layer_mask=MASK_NONE` 让 AutoTargetSystem 在 mover 阶段 skip → `_cached_target_id` 永远空 → `RtsBasicAttackStrategy.decide` 返 `RtsIdleActivity`. Phase C 用 `RtsHarvestStrategy` 替代此分支.
   - Worker spawn 后 stance=AGGRESSIVE 也不会主动找敌 (因 target_layer_mask=NONE → AutoTargetSystem 不写 cached_target); 走 idle
-- [ ] **AC6** 新 `smoke_resource_nodes.tscn`:
-  - 起手 spawn: 5 worker (左方) + 1 gold node + 1 wood node (中央); 不放 enemy (避免 fallback 全灭判右胜)
+- [x] **AC6** 新 `smoke_resource_nodes.tscn`:
+  - 起手 spawn: 5 worker (左方 team 0) + 1 gold node + 1 wood node (中立 team_id=-1) + 右方 1 ct (hp=2000 永远不死, 让 _check_battle_end ct 模式右方不败 + 左方 fallback 全灭模式 worker alive 不败 → 战斗持续 200 tick; 与 §风险表第 4 行方案一致)
   - Procedure 跑 200 tick (50ms tick = 10 真实秒); 期间 worker idle 在 spawn 位置 ± 小 drift (允许 group_formation 互避微移); 验证:
     - Worker 5 个全 alive
     - Worker 位置距离 spawn ≤ 50 px (idle, 不主动远离)
+    - Worker `_cached_target_id` 始终空 (mask=NONE → AutoTargetSystem skip mover)
     - Gold node `amount` 不变 (= max_amount; Phase C 才会减)
     - Wood node `amount` 不变
     - 无 SCRIPT ERROR

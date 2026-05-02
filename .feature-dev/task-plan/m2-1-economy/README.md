@@ -11,8 +11,8 @@
 | Phase | 内容 | Status |
 |---|---|---|
 | **A** | Multi-Resource Foundation (config 迁移 + 既有 smoke 适配) | ✅ done (2026-05-02; 7/7 AC PASS, bit-identical replay 0 漂移) |
-| **B** | Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为) | 🚧 active (2026-05-02; Phase A 收口后启动) |
-| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | 🔒 pending |
+| **B** | Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为) | ✅ done (2026-05-02; 6/6 AC PASS, 11/11 validation 全过 0 漂移) |
+| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | 🔒 pending — 等待用户确认启动 |
 | **D** | Cost Rebalance + smoke_economy_demo (经济闭环 full cycle + F6 视觉) | 🔒 pending |
 
 ---
@@ -25,20 +25,20 @@
 
 ---
 
-## Phase B — Resource Nodes + Worker Class 🚧 active
+## Phase B — Resource Nodes + Worker Class ✅ done (2026-05-02)
 
-**详细 plan**: [`phase-b-resource-nodes.md`](phase-b-resource-nodes.md) (Phase A 收口时新写)。
+**详细 plan**: [`phase-b-resource-nodes.md`](phase-b-resource-nodes.md) (AC 全部 [x] 收口) + [`../../Progress.md`](../../Progress.md) §Phase B。
 
-**Scope 概要**:
-- 新 `RtsResourceNode` (extends RtsBattleActor 或独立 RtsResourceNode 基类; 字段 = field_kind: GOLD/WOOD, amount: int, position_2d)
-- 新 `RtsResourceNodeConfig` + `RtsResourceNodes` 工厂 (类似 RtsBuildings)
-- 新 `UnitClass.WORKER` (低 hp ~50, 无 attack, has carry_capacity ~10, harvest_speed ~5/sec)
-- `RtsUnitActor` worker 子类型 加 carrying: int + carrying_resource_kind: String (默认 "")
-- Worker 默认 movement_layer=GROUND, target_layer_mask=NONE (不接 attack 行为, 不被默认 strategy 选为目标)
-- ResourceNode 是否阻挡 footprint? **Phase B 启动时确认** — 倾向 不阻挡 (worker 可踩, 简化 path)
+**收口结论**: 6/6 AC PASS, 11/11 validation 全套 PASS, 0 行为漂移。
 
-**Acceptance 主旨**:
-- smoke_resource_nodes (5 worker + 1 gold node + 1 wood node, ticks=200 后 worker idle 在 spawn 位置 ± drift, ResourceNode amount 不变, worker 不被 attack 行为干扰)
+落地内容 (D1-D5 决策全沿用):
+- 新 `RtsResourceNode` actor (extends RtsBattleActor 平级独立子类, D5; 字段 field_kind / max_amount / amount / field_kind_key; team_id 默认 -1 中立; D2 不阻挡 footprint)
+- 新 `RtsResourceNodeConfig` (FieldKind enum GOLD=0/WOOD=1 — D1 决策 int enum + StatBlock + raw const + get_stats + field_kind_to_resource_key)
+- 新 `RtsResourceNodes` 工厂 (create_gold_node / create_wood_node)
+- `UnitClass.WORKER` (=3 by 顺序声明位置) + StatBlock 加 carry_capacity / harvest_speed (worker 10/5.0, 其它兵种默认 0)
+- `RtsAIStrategyFactory.get_strategy(WORKER)` 复用 `_basic_attack` (D4 决策 — worker mask=NONE 自然 idle)
+- 新 `smoke_resource_nodes.tscn` PASS (ticks=200 alive_workers=5 gold_amount=1500 wood_amount=1500 max_drift=0.00 cached_target_id 始终空)
+- 回归: LGF 73/73 + 既有 6 smoke + 2 replay smoke + frontend smoke 0 行为漂移 (与 Phase A 末态完全一致)
 
 ---
 
@@ -92,9 +92,11 @@
 
 ## 关键 design 待 phase 启动时确认
 
-| 决策 | 倾向 | 何时定 |
+| 决策 | 选定 / 倾向 | 何时定 / 已定 |
 |---|---|---|
-| ResourceNode 是否阻挡 footprint | 不阻挡 (worker 可踩) | Phase B |
+| ResourceNode 是否阻挡 footprint | ✅ 不阻挡 (worker 可踩) — D2 | Phase B 启动 (2026-05-02) |
+| Worker default strategy | ✅ 复用 RtsBasicAttackStrategy — D4 | Phase B 启动 (2026-05-02) |
+| RtsResourceNode 与 RtsBuildingActor 关系 | ✅ 平级独立子类 (都继承 RtsBattleActor) — D5 | Phase B 启动 (2026-05-02) |
 | Drop-off 建筑 | 复用 crystal_tower | Phase C |
 | Worker 出生方式 | hardcode demo / scenario spawn N 个 | Phase C |
 | Worker AI: GOLD/WOOD 平衡 vs round-robin vs 玩家手动指派 | autonomous round-robin (找最近) | Phase C |

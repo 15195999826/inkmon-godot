@@ -1,71 +1,57 @@
-# Next Steps — 2026-05-02 (RTS M2.1 Economy — Phase A ✅ 收口; Phase B 启动 — Resource Nodes + Worker Class)
+# Next Steps — 2026-05-02 (RTS M2.1 Economy — Phase A + B ✅ 收口; Phase C 启动等待用户确认)
 
 ## 当前目标
 
-**RTS Auto-Battle M2.1 — Economy (Worker Harvest, gold + wood) — Phase B: Resource Nodes + Worker Class**
+**RTS Auto-Battle M2.1 — Economy (Worker Harvest, gold + wood) — Phase B ✅ 收口**
 
-Phase A 已收口 (multi-resource cost 字段全链路 dict 化, 7/7 AC PASS, bit-identical replay 0 漂移). Phase B 在此基础上引入新 actor 类型 (`RtsResourceNode`) + 新单位类 (`UnitClass.WORKER`) + idle 行为 + 新 smoke (`smoke_resource_nodes`); **不接** harvest / drop-off / 任何经济闭环逻辑 (那些是 Phase C)。
+Phase A + B 已收口 (multi-resource cost dict 化 + RtsResourceNode actor + UnitClass.WORKER + idle 行为 + smoke_resource_nodes), 13/13 AC PASS, 11/11 validation 全套 PASS, 0 行为漂移。等待用户确认是否启动 **Phase C — Harvest Activity + Drop-off Loop** (经济闭环核心: HarvestActivity / ReturnAndDropActivity / HarvestStrategy / smoke_harvest_loop)。
 
 > M2.1 完整规划: [`task-plan/m2-1-economy/README.md`](task-plan/m2-1-economy/README.md)
-> Phase B 详细子任务: [`task-plan/m2-1-economy/phase-b-resource-nodes.md`](task-plan/m2-1-economy/phase-b-resource-nodes.md)
-> Phase A 已归档于 `task-plan/m2-1-economy/phase-a-multi-resource.md` + `Progress.md` §Phase A
+> Phase B 收口归档: [`task-plan/m2-1-economy/phase-b-resource-nodes.md`](task-plan/m2-1-economy/phase-b-resource-nodes.md) (AC 全部 [x]) + `Progress.md` §Phase B
+> Phase A 收口归档: [`task-plan/m2-1-economy/phase-a-multi-resource.md`](task-plan/m2-1-economy/phase-a-multi-resource.md) + `Progress.md` §Phase A
 > M2 整体路线图: [`task-plan/m2-roadmap.md`](task-plan/m2-roadmap.md)
 
-## 设计要点 (Phase B 启动时确认)
+## Phase B 收口结论 (2026-05-02)
 
-详见 `phase-b-resource-nodes.md` §设计决策:
-- **D1 — field_kind 类型**: int 枚举 `RtsResourceNodeConfig.FieldKind { GOLD=0, WOOD=1 }` (与 RTS 既有枚举风格一致); cost dict key 用 String, 通过 `field_kind_to_resource_key(kind: int) -> String` 映射
-- **D2 — ResourceNode 不阻挡 footprint** (worker 可踩, 简化 Phase C harvest nav)
-- **D3 — Worker 出生方式**: hardcode smoke 起手 spawn (Phase B 阶段); `SpawnWorkerCommand` 不加 (Phase C 视情况)
-- **D4 — Worker default strategy**: 复用 `RtsBasicAttackStrategy` (worker target_layer_mask=NONE 让其找不到敌 → 自然 IdleActivity); 若 side effect 出问题再启用 `RtsWorkerIdleStrategy`
-- **D5 — RtsResourceNode 与 RtsBuildingActor 关系**: 平级独立子类 (都继承 RtsBattleActor), 不复用 RtsBuildingActor
+- ✅ AC1-AC6 全过 (RtsResourceNodeConfig + RtsResourceNode actor + RtsResourceNodes 工厂 + UnitClass.WORKER + RtsAIStrategyFactory worker 路径 + smoke_resource_nodes)
+- ✅ 11/11 validation 全套 PASS (LGF 73/73 + 既有 6 smoke + 新 smoke_resource_nodes + 2 replay smoke + frontend smoke)
+- ✅ bit-identical replay 0 漂移 (frames=9 events=20 deep-equal); det tick_diff=0; 4v4 main smoke ticks=347 与 Phase A 末态完全一致
+- ✅ smoke_resource_nodes: ticks=200 alive_workers=5 gold_amount=1500 wood_amount=1500 max_drift=0.00 (worker 完全不动 — 因 mask=NONE → AutoTargetSystem skip → cached_target_id 始终空 → IdleActivity)
 
-## Phase B 验收准则 (本轮 6 条)
+## 下一步 — 等待用户确认
 
-- [ ] **AC1** 新 `RtsResourceNodeConfig` (field_kind / max_amount / harvest_per_tick (Phase C 用占位) / footprint_size / actor_tags + StatBlock + get_stats + field_kind_to_resource_key)
-- [ ] **AC2** 新 `RtsResourceNode` actor (extends RtsBattleActor; field_kind / amount / is_depleted; override is_dead; 不参战 — atk=0 / target_layer_mask=NONE)
-- [ ] **AC3** 新 `RtsResourceNodes` 工厂 (`create_gold_node()` / `create_wood_node()`)
-- [ ] **AC4** `RtsUnitClassConfig.UnitClass.WORKER` (max_hp=50, move_speed=80, atk=0, attack_range=0, movement_layer=GROUND, target_layer_mask=NONE, unit_tags=["worker"], + 新字段 carry_capacity=10 / harvest_speed=5.0 占位 Phase C)
-- [ ] **AC5** Worker idle 行为不被 default strategy 干扰 (`RtsAIStrategyFactory.get_strategy(WORKER)` 返 RtsBasicAttackStrategy 复用; worker 因 mask=NONE 自然 idle)
-- [ ] **AC6** 新 `smoke_resource_nodes.tscn` PASS:
-  - 起手: 5 worker (左 team 0) + 1 gold node + 1 wood node + 右方 1 ct (永远不死) 让战斗持续
-  - 跑 200 tick 后: worker 5 alive + 距 spawn ≤ 50 px + gold/wood node amount = max_amount + 无 SCRIPT ERROR
-  - 既有 6 smoke + replay smoke 双 + frontend 不退化 (regression gate)
-  - LGF 73/73 仍 PASS
+Phase B 已收口, 不在 `/autonomous-feature-runner` 自治范围内继续推进。等待用户:
 
-## 下一步
+1. **直接启动 Phase C** — 用户调 `/autonomous-feature-runner` 时如果 Next-Steps.md 已切到 Phase C 的 active goal + 写好 `phase-c-harvest-activity.md` 文档, 自治可继续
+2. **暂停 / 切其它 sub-feature** — 用户可调 `/next-feature-planner` 重写当前目标, 或在外部 commit / push 后再启动 Phase C
 
-按 `task-plan/m2-1-economy/phase-b-resource-nodes.md` 实施步骤逐步推进。最小可行第一步:
+> **Phase C 启动前要求** (用户确认后, 由 planner / 手动写入):
+> - 在 `task-plan/m2-1-economy/` 写 `phase-c-harvest-activity.md` (子任务清单 + AC + 设计决策 + 风险表)
+> - 更新本 `Next-Steps.md` 当前目标 → Phase C, 子任务 Step 1
+> - 更新 `Progress.md` 切到 Phase C 子任务 checklist
 
-**Step 1** — 新 `RtsResourceNodeConfig` (AC1; B.1 子任务)
-- 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/config/rts_resource_node_config.gd` (新)
-- 改动: class_name + 内嵌 StatBlock + enum FieldKind { GOLD=0, WOOD=1 } + raw const _GOLD_NODE_STATS / _WOOD_NODE_STATS + static get_stats / field_kind_to_resource_key
-- import 0 错误后做 B.2 (新 RtsResourceNode actor)
+Phase C 设计要点 (起草, 由 planner 在启动前细化):
+- 新 `RtsHarvestActivity` (worker → 资源节点 → harvest_progress 累积 → carrying = capacity → 切 ReturnAndDrop)
+- 新 `RtsReturnAndDropActivity` (worker → 最近 drop-off → 加 team_resources → 切回 Harvest)
+- 新 `RtsHarvestStrategy` (worker autonomous 行为, idle 时找最近 ResourceNode)
+- Drop-off 建筑: 倾向复用 crystal_tower (双 ct 起手就有, 不新加 town_hall)
+- 新 smoke_harvest_loop (5 worker + 1 gold + 1 wood + 跑 N tick → team_resources gold + wood 双增长 ≥ X)
 
-(Step 2-N 见 phase-b 文档 §子任务 6 步)
+## 非目标 (本轮 M2.1 后续 phase 仍不做)
 
-## 非目标 (本轮 Phase B 不做)
-
-- ❌ HarvestActivity / ReturnAndDropActivity (Phase C)
-- ❌ HarvestStrategy 自动找最近资源点 (Phase C)
-- ❌ Drop-off 建筑设计 (Phase C — 倾向复用 crystal_tower)
-- ❌ Worker 加入 team 列表参与 _check_battle_end (Phase B worker 仅占位 spawn, idle)
-- ❌ ResourceNode amount 减少逻辑 (Phase C harvest 时才减)
-- ❌ smoke_harvest_loop / smoke_economy_demo (Phase C/D 各自加)
-- ❌ Building cost 重平衡 (Phase D)
-- ❌ HUD 显示 worker carrying / harvest 状态 (Phase D 可选)
 - ❌ AI 对手 (computer player) 启动 (M2.2 sub-feature, deferred)
 - ❌ Build Panel UI / 多 building_kind 选择 (M2.3 sub-feature, deferred)
+- ❌ Headscale / 网络多人 (远期 M3+)
 
-## F6 视觉验证 (Phase B 不要求, Phase C/D 才有意义)
+## F6 视觉验证
 
-Phase B 仅 logic 层 + headless smoke 验证; demo 不动 (worker 不出现在 demo_rts_frontend 起手 spawn 列表)。
+Phase B 仅 logic 层 + headless smoke 验证; demo 不动 (worker 不出现在 demo_rts_frontend 起手 spawn 列表)。Phase D 启动 smoke_economy_demo 时再加视觉验证。
 
 ## 启动后续 Phase / 新 sub-feature
 
-本轮 Phase B 完成后:
+本轮 Phase B 已收口:
 
-- 下一轮: 启动 **Phase C** (Harvest Activity + Drop-off Loop) — 在 Next-Steps.md 切到 active, 写 `phase-c-harvest-activity.md`
+- 下一轮 (用户确认): 启动 **Phase C** (Harvest Activity + Drop-off Loop) — 在 Next-Steps.md 切到 active, 写 `phase-c-harvest-activity.md`
 - Phase C/D 完成后: M2.1 Economy 整体收口 → 归档至 `.feature-dev/archive/<YYYY-MM-DD>-rts-m2-1-economy/`
 - 整个 RTS M2.1 完成后用户决定是否启动 M2.2 (AI 对手) 或 M2.3 (UI HUD)
 

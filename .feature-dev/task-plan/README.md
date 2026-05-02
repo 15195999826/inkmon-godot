@@ -13,21 +13,21 @@
 | [`m2-roadmap.md`](m2-roadmap.md) | M2 整体路线图 (M2.1 economy / M2.2 AI 对手 / M2.3 UI 关卡) | 稳定 spec, 跨 sub-feature 不变 |
 | [`m2-1-economy/README.md`](m2-1-economy/README.md) | M2.1 4 phase 拆分概览 + 收口条件 | 稳定 spec |
 | [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md) | Phase A 详细子任务 A.1-A.6 | ✅ done (2026-05-02; 7/7 AC PASS) |
-| [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) | Phase B 详细子任务 B.1-B.6 | 🚧 **active** (2026-05-02) |
+| [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) | Phase B 详细子任务 B.1-B.6 | ✅ done (2026-05-02; 6/6 AC PASS) |
 
 > Phase C/D 详细文档待对应 phase 启动时添加。`m2-1-economy/README.md` 已列出每 phase 的 scope / acceptance 主旨。
 
 ---
 
-## 当前 Phase 总览 (M2.1 Phase B)
+## 当前 Phase 总览 (M2.1 Phase B 收口, 等待 Phase C 启动)
 
-**Phase B — Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为)**
+**Phase B ✅ 收口 (2026-05-02)** — Resource Nodes + Worker Class
 
-Phase A 收口后引入新 actor 类型 (`RtsResourceNode`) + 新单位类 (`UnitClass.WORKER`) + idle 行为 + 新 smoke (`smoke_resource_nodes`)。**不接** harvest / drop-off / 任何经济闭环逻辑 (那些是 Phase C)。
+13/13 AC (Phase A 7 + Phase B 6) 全过, 11/11 validation 全套 PASS, 0 行为漂移。详见 [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) (AC 全部 [x]) + `Progress.md` §Phase B。
 
-6 个子任务 (B.1-B.6): 新 ResourceNodeConfig + ResourceNode actor + 工厂 + UnitClass.WORKER + worker strategy 路径 + 新 smoke。风险点在 ResourceNode 不被 AutoTargetSystem 误选 + worker 不被默认 strategy 替换。
-
-**Acceptance**: 6 条 (详见 [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) §Acceptance)
+**Phase C 等待用户确认启动** (Harvest Activity + Drop-off Loop):
+- 经济闭环核心: HarvestActivity / ReturnAndDropActivity / HarvestStrategy / smoke_harvest_loop
+- 启动前由 `/next-feature-planner` 写 `phase-c-harvest-activity.md` + 切 Next-Steps.md 当前目标
 
 ---
 
@@ -37,17 +37,19 @@ Phase A 收口后引入新 actor 类型 (`RtsResourceNode`) + 新单位类 (`Uni
 
 详见 [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md)。7/7 AC PASS, bit-identical 0 漂移, 全 smoke 数字与 RTS M1 末态一致。
 
-### Phase B — Resource Nodes + Worker Class (本轮 active)
+### Phase B — Resource Nodes + Worker Class ✅ done (2026-05-02)
 
-详见上方 + [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md)。
+详见 [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) (AC 全部 [x] 收口) + `Progress.md` §Phase B。
 
-新基础设施: `RtsResourceNode` actor (extends RtsBattleActor 或独立类型; 字段 = GOLD/WOOD, amount, position) + `UnitClass.WORKER` (低 hp / 无 attack / has carry_capacity + harvest_speed)。Worker 起手 idle 不动, 不接 harvest 行为 (那是 Phase C)。
+落地内容 (D1-D5 决策全沿用):
+- 新 `RtsResourceNode` actor (extends RtsBattleActor 平级独立子类; 字段 field_kind / max_amount / amount / field_kind_key; team_id 默认 -1 中立; D2 不阻挡 footprint)
+- 新 `RtsResourceNodeConfig` (FieldKind enum GOLD=0/WOOD=1 + StatBlock + raw const + get_stats + field_kind_to_resource_key)
+- 新 `RtsResourceNodes` 工厂 (create_gold_node / create_wood_node)
+- `UnitClass.WORKER` (=3 by 顺序声明位置) + StatBlock 加 carry_capacity / harvest_speed (worker 10/5.0, 其它兵种默认 0)
+- `RtsAIStrategyFactory.get_strategy(WORKER)` 复用 _basic_attack (D4 决策 — worker mask=NONE 自然 idle)
+- 新 `smoke_resource_nodes.tscn` PASS (ticks=200 alive_workers=5 gold/wood amount=1500 max_drift=0.00)
 
-- Worker 默认 movement_layer=GROUND, target_layer_mask=NONE (不打人, 不被默认 strategy 选)
-- ResourceNode 是否阻挡 footprint? 倾向 不阻挡 (worker 可踩) — Phase B 启动时确认
-- Demo / scenario 起手 spawn 几个 ResourceNode + 几个 worker, smoke 验证 spawn 链路
-
-**Acceptance 主旨**: smoke_resource_nodes (5 worker + 1 gold node + 1 wood node, ticks=200 后 worker idle 在 spawn 位置 ± drift, ResourceNode amount 不变)
+回归验证: LGF 73/73 + 既有 6 smoke + 2 replay smoke + frontend smoke 0 行为漂移 (与 Phase A 末态完全一致)。
 
 ### Phase C — Harvest Activity + Drop-off Loop
 

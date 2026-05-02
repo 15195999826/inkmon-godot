@@ -1,11 +1,11 @@
 ## Progress — RTS Auto-Battle M2.1 Economy
 
-**Status**: ✅ **Phase A 收口** (2026-05-02) — Multi-Resource Foundation; **Phase B 启动中** — Resource Nodes + Worker Class
-- Phase A: ✅ 完成 (7/7 AC) — 详见下方 evidence
-- Phase B: 🚧 进行中 — 见 `task-plan/m2-1-economy/phase-b-resource-nodes.md`
-- Phase C-D: 🔒 等待 Phase B 收口
+**Status**: ✅ **Phase A + B 收口** (2026-05-02); **Phase C 启动等待用户确认**
+- Phase A: ✅ 完成 (7/7 AC) — Multi-Resource Foundation
+- Phase B: ✅ 完成 (6/6 AC) — Resource Nodes + Worker Class
+- Phase C-D: 🔒 等待用户确认是否启动 Phase C (Harvest Activity + Drop-off Loop)
 
-最近更新: 2026-05-02 (M2.1 Phase A 全 7 AC 收口, 切到 Phase B 启动)
+最近更新: 2026-05-02 (M2.1 Phase B 全 6 AC 收口, 11/11 smoke + LGF 73/73 全 PASS, 0 行为漂移)
 
 ---
 
@@ -60,13 +60,68 @@
 
 ---
 
-## Phase B — Resource Nodes + Worker Class (🚧 进行中)
+## Phase B — Resource Nodes + Worker Class (✅ 收口)
 
-详见 [`task-plan/m2-1-economy/phase-b-resource-nodes.md`](task-plan/m2-1-economy/phase-b-resource-nodes.md) (Phase A 收口时新写)。
+详见 [`task-plan/m2-1-economy/phase-b-resource-nodes.md`](task-plan/m2-1-economy/phase-b-resource-nodes.md) (Phase A 收口时新写; Phase B 收口时 AC checkbox 打勾 + 文档与代码对齐)。
 
-**Scope 概要** (Phase A 末态时启动): 新 `RtsResourceNode` actor + `UnitClass.WORKER` + idle 行为 + smoke_resource_nodes; 不接 harvest 行为 (那是 Phase C)。
+### Phase B 验收准则 checklist (✅ 全过)
 
-待启动: 见 Phase B 文档 §Acceptance + §子任务清单。
+- [x] **AC1** 新 `RtsResourceNodeConfig` (FieldKind enum + StatBlock + get_stats + field_kind_to_resource_key)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/config/rts_resource_node_config.gd` (新)
+  - 字段: GOLD=0 / WOOD=1; `max_amount=1500`; `harvest_per_tick=0`; `footprint_size=(1,1)`; `actor_tags=["resource_node","gold"]` 或 `["resource_node","wood"]` (双 tag pattern 与 melee/ranged unit_tags 一致)
+- [x] **AC2** 新 `RtsResourceNode` actor (extends RtsBattleActor)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/rts_resource_node.gd` (新)
+  - 字段: field_kind / max_amount / amount / field_kind_key (Phase C drop-off cache); override is_dead 返 `_is_dead or is_depleted()`; check_death/can_attack 永远 false
+- [x] **AC3** 新 `RtsResourceNodes` 工厂 (`create_gold_node` / `create_wood_node`)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/buildings/rts_resource_nodes.gd` (新)
+- [x] **AC4** `RtsUnitClassConfig.UnitClass.WORKER` + 新字段 carry_capacity / harvest_speed
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/config/rts_unit_class_config.gd` (改)
+  - WORKER 数值: max_hp=50, move_speed=80, atk=0, attack_speed=0, attack_range=0, collision_radius=12, movement_layer=GROUND, target_layer_mask=MASK_NONE, unit_tags=["worker"], carry_capacity=10, harvest_speed=5.0
+- [x] **AC5** RtsAIStrategyFactory worker 路径 (复用 `_basic_attack`)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_ai_strategy_factory.gd` (改)
+  - WORKER 复用 _basic_attack — worker mask=NONE → AutoTargetSystem 永不写 cached_target → decide 返 IdleActivity 自然 idle (设计决策 D4)
+- [x] **AC6** 新 `smoke_resource_nodes.tscn` PASS + 既有 smoke 不退化
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_resource_nodes.{gd,tscn}` (新)
+  - 起手: 5 worker (左 team 0) + 1 gold node + 1 wood node (中立 team_id=-1) + 右 1 ct (hp=2000 永远不死)
+  - PASS: ticks=200 alive_workers=5 gold_amount=1500 wood_amount=1500 max_drift=0.00 (`/tmp/m21_b_rn.txt`)
+  - 验证 worker `_cached_target_id` 始终空 (mask=NONE → AutoTargetSystem skip mover) ✓
+
+### Phase B Validation 全套 (11/11 PASS, 0 漂移)
+
+| smoke / 测试 | 结果 | 数字 vs Phase A 末态 | log |
+|---|---|---|---|
+| import 类型检查 | 0 错误, 新 class 注册 | 新加 RtsResourceNodes/Config/Node 出现 | `/tmp/m21_b_import.txt` |
+| LGF unit tests `run_tests.tscn` | **73/73 PASS** | 与 Phase A 一致 | `/tmp/m21_b_lgf_unit.txt` |
+| `smoke_resource_nodes.tscn` (新) | PASS | ticks=200 alive=5 gold=1500 wood=1500 drift=0 | `/tmp/m21_b_rn.txt` |
+| `smoke_player_command.tscn` | PASS | ticks=30 log=3 gold=100 wood=0 | `/tmp/m21_b_pc.txt` |
+| `smoke_castle_war_minimal.tscn` | PASS | ticks=193 left_win unit_to_building=4 archer_anti_air=1 | `/tmp/m21_b_cw.txt` |
+| `smoke_rts_auto_battle.tscn` | PASS | ticks=347 attacks=74(m32/r42) melee_max=24.00 (bit-id) | `/tmp/m21_b_main.txt` |
+| `smoke_player_command_production.tscn` | PASS | ticks=600 left_spawned=7 max_eastward=254.74 gold=100 | `/tmp/m21_b_pcp.txt` |
+| `smoke_production.tscn` | PASS | ticks=600 left=7 right=7 max_left_eastward=118.51 | `/tmp/m21_b_prod.txt` |
+| `smoke_crystal_tower_win.tscn` | PASS | ticks=2 left_win | `/tmp/m21_b_ct.txt` |
+| `smoke_replay_bit_identical.tscn` | PASS | seed=42 commands=2 frames=9 events=20 deep-equal | `/tmp/m21_b_replay.txt` |
+| `smoke_determinism.tscn` | PASS | seed=12345 run1=run2=(left_win,347) tick_diff=0 | `/tmp/m21_b_det.txt` |
+| `smoke_frontend_main.tscn` | PASS | visualizers=10 alive_after_3s=10 | `/tmp/m21_b_fe.txt` |
+
+**结论**: Phase B 加新 actor 类型 + 新 unit_class 0 行为漂移 — 既有 6 smoke + 2 replay smoke + frontend smoke 数字与 Phase A 末态完全一致 (bit-identical replay frames=9/events=20 deep-equal, det tick_diff=0)。
+
+## Phase B 子任务进度 (✅ 全过)
+
+- [x] **B.1 — RtsResourceNodeConfig** (新文件)
+- [x] **B.2 — RtsResourceNode actor** (新文件)
+- [x] **B.3 — RtsResourceNodes 工厂** (新文件)
+- [x] **B.4 — UnitClass.WORKER + carry_capacity / harvest_speed** (改 rts_unit_class_config.gd)
+- [x] **B.5 — RtsAIStrategyFactory worker 路径** (改 rts_ai_strategy_factory.gd)
+- [x] **B.6 — smoke_resource_nodes.{gd,tscn}** (新文件) + 11/11 validation 全套 PASS
+
+## Phase B 残余风险 (回顾, 全部 mitigated)
+
+- ✅ **新 UnitClass.WORKER 破既有 4v4 smoke**: enum 末尾加 (=3, 不挤掉 0/1/2); StatBlock 新字段 carry_capacity / harvest_speed 默认 0 / 0.0 — 既有兵种 raw 不含, 走 raw.get(key, default) 返默认值; 既有 4v4 main smoke 数字 ticks=347 attacks=74 完全一致。
+- ✅ **bit-identical replay 风险**: replay smoke 数字与 Phase A 末态完全一致 (frames=9 events=20 deep-equal); RtsResourceNode 不入 left_team/right_team, 不影响 procedure 主循环 actor 顺序; UnitClass enum 加新值不影响序列化 (smoke 不 spawn worker, replay 走 4v4 melee/ranged path)
+- ✅ **Worker idle 行为漂移**: smoke 验证 max_drift=0.00 (worker 完全不动); D4 决策正确 — RtsBasicAttackStrategy 在 cached_target_id 空时直接返 IdleActivity, 无副作用
+- 🔒 **未触发的 Phase C 风险**: ResourceNode 被 AutoTargetSystem 误选为 attack target — Phase B smoke 双方都没 attacker (worker mask=NONE, ct mask=NONE), AutoTargetSystem mover 阶段全 skip; Phase C 启动后若发现 ranged attacker 选 ResourceNode 当 target, 在 AutoTargetSystem 加 `is RtsResourceNode skip` 处理。
+
+---
 
 ## Phase C-D 待启 (Phase B 收口后)
 
