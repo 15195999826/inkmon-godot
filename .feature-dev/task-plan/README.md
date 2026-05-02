@@ -14,21 +14,20 @@
 | [`m2-1-economy/README.md`](m2-1-economy/README.md) | M2.1 4 phase 拆分概览 + 收口条件 | 稳定 spec |
 | [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md) | Phase A 详细子任务 A.1-A.6 | ✅ done (2026-05-02; 7/7 AC PASS) |
 | [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) | Phase B 详细子任务 B.1-B.6 | ✅ done (2026-05-02; 6/6 AC PASS) |
-| [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) | Phase C 详细子任务 C.1-C.7 + D6-D16 决策表 | 🚧 active (2026-05-02 启动; 0/7 AC) |
-
-> Phase D 详细文档待 Phase C 收口后添加。`m2-1-economy/README.md` 已列出每 phase 的 scope / acceptance 主旨。
+| [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) | Phase C 详细子任务 C.1-C.7 + D6-D16 决策表 + Simplify Pass 段 | ✅ done (2026-05-02; 7/7 AC PASS) |
+| [`m2-1-economy/phase-d-cost-rebalance.md`](m2-1-economy/phase-d-cost-rebalance.md) | Phase D 详细子任务 D.1-D.4 + D17/D18/D19 决策表 (skeleton) | 🔒 pending (Phase C 收口时落 skeleton, 等待用户启动) |
 
 ---
 
-## 当前 Phase 总览 (M2.1 Phase C 启动 active)
+## 当前 Phase 总览 (M2.1 Phase C ✅ 收口; Phase D 等待用户启动)
 
-**Phase A + B ✅ 收口 (2026-05-02)** — Multi-Resource Foundation + Resource Nodes + Worker Class
+**Phase A + B + C ✅ 收口 (2026-05-02)** — Multi-Resource Foundation + Resource Nodes + Worker Class + Harvest Activity + Drop-off Loop
 
-13/13 AC (Phase A 7 + Phase B 6) 全过, 11/11 validation 全套 PASS, 0 行为漂移。
+20/20 AC (Phase A 7 + Phase B 6 + Phase C 7) 全过, Phase C 13/13 validation 全套 PASS 0 行为漂移 + simplify pass clean。
 
-**Phase C 🚧 active (2026-05-02 启动)** — Harvest Activity + Drop-off Loop
+**Phase D 🔒 pending (2026-05-02)** — Cost Rebalance + smoke_economy_demo
 
-经济闭环核心。详细 plan: [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) (7 AC + 7 子任务 + D6-D16 决策表 + 风险表)。用户已确认 D6/D7/D8 (Drop-off=ct / 找最近未耗尽 / hardcode spawn);D9-D16 实现细节决策由执行者按文档落地。下一步 = Step 1 (C.1 World ↔ Procedure 通信打通)。
+经济闭环对外可观。详细 plan skeleton: [`m2-1-economy/phase-d-cost-rebalance.md`](m2-1-economy/phase-d-cost-rebalance.md) (5 AC + 4 子任务 + D17/D18/D19 决策表 skeleton)。等待用户在 phase-d-cost-rebalance.md 内 finalize D17/D18/D19 (cost 数值具体配方 / smoke_economy_demo 时长阈值 / demo_rts_frontend 起手 spawn 列表) 后启动。
 
 ---
 
@@ -52,22 +51,29 @@
 
 回归验证: LGF 73/73 + 既有 6 smoke + 2 replay smoke + frontend smoke 0 行为漂移 (与 Phase A 末态完全一致)。
 
-### Phase C — Harvest Activity + Drop-off Loop 🚧 active (2026-05-02)
+### Phase C — Harvest Activity + Drop-off Loop ✅ done (2026-05-02)
 
-详见 [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) — 7 AC + 7 子任务 (C.1-C.7) + D6-D16 决策表 + 风险表 + Validation 顺序。
+详见 [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) (AC 全部 [x] 收口 + Simplify Pass 段) + `Progress.md` §Phase C。
 
-**用户已确认决策** (2026-05-02):
-- **D6** Drop-off = 复用 crystal_tower (RtsBuildingActor 加 is_drop_off 字段, ct 起手设 true)
-- **D7** Worker AI = 找最近未耗尽 ResourceNode (round-robin tiebreak by actor_id)
-- **D8** Worker 出生 = hardcode smoke/demo (不加 SpawnWorkerCommand)
+落地内容 (D6-D16 决策全沿用 + simplify pass 抽象到位):
+- 新 RtsHarvestActivity / RtsReturnAndDropActivity (Activity 基类抽 nav refresh helper, 三 Activity 共用)
+- 新 RtsHarvestStrategy + factory WORKER 切换
+- RtsBuildingActor.is_drop_off + RtsBuildingConfig.StatBlock.is_drop_off (与 is_crystal_tower 同模式 工厂统一注入)
+- RtsUnitActor.carrying + get_carry_total() helper
+- RtsAutoBattleProcedure.add_team_resources 对称 spend_team_resources
+- RtsWorldGameplayInstance.bind_procedure 让 Activity 通过 world.procedure 改资源
+- 新 smoke_harvest_loop (5 worker + 1 gold + 1 wood + 双方 ct, 跑 600 tick → team_gold=140 team_wood=212 cycle_workers=5)
+- Phase B smoke_resource_nodes 重定位 (HarvestStrategy fallback to IdleActivity 找不到 node — 方案 A)
 
-**Acceptance 主旨**: smoke_harvest_loop (5 worker + 1 gold + 1 wood + 双方 ct 不死, 跑 600 tick → gold + wood 双增长 ≥ 100 + 至少 1 worker 完整 cycle) + 既有 6 RTS smoke + 2 replay smoke + frontend smoke 0 漂移 + LGF 73/73 不退化 (Phase B smoke_resource_nodes 因 strategy 切换可能需要调整, 见 phase-c §风险表)
+回归验证: 13 项 validation 全套 0 行为漂移 (4v4 ticks=347 attacks=74 melee_max_dist=24.00 bit-identical; replay frames=9 events=20 deep-equal; det tick_diff=0)。
 
-### Phase D — Cost Rebalance + smoke_economy_demo
+### Phase D — Cost Rebalance + smoke_economy_demo 🔒 pending (2026-05-02)
 
-经济闭环对外可观: 给 archer_tower / barracks 重定 multi-resource cost (例: barracks={"gold": 80, "wood": 50}, archer_tower={"gold": 60, "wood": 100}; 数值待 Phase D 启动时调) + smoke_economy_demo (full cycle: worker harvest → 资源到达 cost → enqueue PlaceBuildingCommand → 自动放下个建筑) + 编辑器 F6 视觉验证。
+详见 [`m2-1-economy/phase-d-cost-rebalance.md`](m2-1-economy/phase-d-cost-rebalance.md) (Phase C 收口时落 skeleton; AC1-AC5 + D17/D18/D19 决策表 + 4 子任务)。
 
-**Acceptance 主旨**: 经济闭环 full cycle smoke PASS + F6 demo 视觉链路 OK + RTS M2.1 Economy 整体收口
+经济闭环对外可观: 给 archer_tower / barracks 重定 multi-resource cost (例草案: barracks={"gold": 80, "wood": 50}, archer_tower={"gold": 60, "wood": 100}; 数值 D17 待用户启动 Phase D 时 finalize) + smoke_economy_demo (full cycle: worker harvest → 资源到达 cost → enqueue PlaceBuildingCommand → 自动放下个建筑) + 编辑器 F6 视觉验证 demo_rts_frontend 经济闭环。
+
+**Acceptance 主旨**: 经济闭环 full cycle smoke PASS + F6 demo 视觉链路 OK + RTS M2.1 Economy 整体收口 → archive
 
 ---
 

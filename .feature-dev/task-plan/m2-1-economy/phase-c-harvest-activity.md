@@ -6,57 +6,69 @@
 
 ---
 
-## Acceptance (本轮 7 条)
+## Acceptance (本轮 7 条 — ✅ 全过 2026-05-02)
 
-- [ ] **AC1** `RtsAutoBattleProcedure.add_team_resources(team_id: int, delta: Dictionary)` (新)
+- [x] **AC1** `RtsAutoBattleProcedure.add_team_resources(team_id: int, delta: Dictionary)` (新)
   - 对称 `spend_team_resources`; 逐 key 加; key 不在 bucket 内 → 视作当前 0 起加; value=0 跳过
   - Activity 通过 `world.procedure.add_team_resources(...)` 调 (见 §设计决策 D9)
-- [ ] **AC2** 新 `RtsHarvestActivity` (extends `RtsActivity`)
-  - 字段: `target_node_id: String`, `harvest_progress: float`, `_nav_agent: RtsNavAgent`
-  - on_first_run: nav_agent.set_target(node.position_2d)
+  - 实现: `addons/logic-game-framework/example/rts-auto-battle/core/rts_auto_battle_procedure.gd` add_team_resources
+- [x] **AC2** 新 `RtsHarvestActivity` (extends `RtsActivity`)
+  - 字段: `target_node_id: String`, `harvest_progress: float`, `_nav_agent: RtsNavAgent`, `_carry_capacity` / `_harvest_speed` cache (simplify pass 加 — 避免每 tick get_stats 分配)
+  - on_first_run: cache stats + `_refresh_nav_target(_nav_agent, node.position_2d)` (走基类 helper)
   - tick:
     - target_node 不存在 / `is_depleted()` → return false (DONE; strategy 下 tick 找新 node)
-    - 距离 ≤ HARVEST_RADIUS² → harvesting (累积 `harvest_progress += unit.harvest_speed * dt`; 累计 ≥ 1 单位 → `node.amount -= delta`, `worker.carrying[node.field_kind_key] += delta`); carrying 总和 ≥ carry_capacity → return false (worker 满载)
-    - 距离过远 → 接近 (set_target 限频, 与 RtsAttackActivity NAV_REFRESH_INTERVAL 一致)
+    - 距离 ≤ HARVEST_RADIUS² → harvesting (累积 `harvest_progress += _harvest_speed * dt`; 累计 ≥ 1 单位 → `node.amount -= actual`, `worker.carrying[node.field_kind_key] += actual`); carrying 总和 ≥ _carry_capacity → return false (worker 满载)
+    - 距离过远 → 接近 (`_refresh_nav_target` 限频, NAV_REFRESH_INTERVAL=0.2s 在基类)
   - on_last_run: nav_agent.clear_target
   - is_equivalent_to: 同 target_node_id 视为等价 (避免 strategy 提议每 tick 重建 nav)
   - get_intent_label: "harvest" (in-range 时) / "approach" (接近时)
-- [ ] **AC3** 新 `RtsReturnAndDropActivity` (extends `RtsActivity`)
-  - 字段: `drop_off_id: String` (空表示 on_first_run 找最近), `_nav_agent: RtsNavAgent`
-  - on_first_run: 找己方最近 RtsBuildingActor with `is_drop_off()` (Phase C 默认 ct 是 drop-off; 见 §设计决策 D6) → set_target(building.position_2d)
+  - 实现: `addons/logic-game-framework/example/rts-auto-battle/logic/activity/harvest_activity.gd`
+- [x] **AC3** 新 `RtsReturnAndDropActivity` (extends `RtsActivity`)
+  - 字段: `drop_off_id: String` (空表示 on_first_run 找最近), `_nav_agent: RtsNavAgent`, `_intent_arriving` (cosmetic for get_intent_label)
+  - on_first_run: 找己方最近 RtsBuildingActor with `is_drop_off=true` (Phase C 默认 ct 是 drop-off; 见 §设计决策 D6) → `_refresh_nav_target(_nav_agent, building.position_2d)`
   - tick:
-    - drop_off 不存在 / dead → on_first_run 重找; 仍找不到 → return false (DONE; strategy 下 tick 接管)
+    - drop_off 不存在 / dead → 重找最近 is_drop_off; 仍找不到 → return false (DONE; strategy 下 tick 接管)
     - 距离 ≤ DROP_OFF_RADIUS² → 调 `world.procedure.add_team_resources(team_id, worker.carrying)` → `worker.carrying.clear()` → return false (DONE)
-    - 距离过远 → 接近 (set_target 限频)
+    - 距离过远 → 接近 (`_refresh_nav_target` 限频)
   - on_last_run: nav_agent.clear_target
   - is_equivalent_to: 同 drop_off_id 视为等价
-  - get_intent_label: "drop_off" (抵达瞬间) / "return" (回程时)
-- [ ] **AC4** 新 `RtsHarvestStrategy` (extends `RtsAIStrategy`)
+  - get_intent_label: "return" (回程时); "drop_off" 抵达瞬间 Activity DONE, controller is_done 返 "idle" 实际不可观察
+  - 实现: `addons/logic-game-framework/example/rts-auto-battle/logic/activity/return_and_drop_activity.gd`
+- [x] **AC4** 新 `RtsHarvestStrategy` (extends `RtsAIStrategy`)
   - decide(actor, world):
     - actor null / dead / world null → IdleActivity
-    - worker.carrying 总和 ≥ 1 (上次 harvest 没 drop 完, 无论 carry_capacity 是否满) → ReturnAndDropActivity (`drop_off_id` 空让 Activity 自找)
-    - 否则: 找最近未耗尽 ResourceNode (D7 round-robin nearest) → HarvestActivity(node.id); 找不到 → IdleActivity
+    - `actor.get_carry_total() >= 1` (上次 harvest 没 drop 完, 无论 carry_capacity 是否满) → ReturnAndDropActivity (drop_off_id 空让 Activity 自找)
+    - 否则: 找最近未耗尽 ResourceNode (D7 round-robin nearest, actor_id 字典序 tiebreak) → HarvestActivity(node.id); 找不到 → IdleActivity
   - **不读** `_cached_target_id` (worker mask=NONE → AutoTargetSystem skip 不写 cache); 自己扫 world.get_alive_actors() 过滤 RtsResourceNode + not is_depleted
   - HOLD_FIRE / DEFENSIVE / AGGRESSIVE stance 都 harvest (worker 不参战, stance 不影响; 见 §设计决策 D14)
-- [ ] **AC5** `RtsAIStrategyFactory.get_strategy(WORKER)` 从 `_basic_attack` 切到 `_harvest_strategy`
+  - 实现: `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_harvest_strategy.gd`
+- [x] **AC5** `RtsAIStrategyFactory.get_strategy(WORKER)` 从 `_basic_attack` 切到 `_harvest_strategy`
   - 共享实例: `static var _harvest_strategy: RtsAIStrategy = RtsHarvestStrategy.new()`
   - WORKER 分支返 `_harvest_strategy`; MELEE/RANGED 仍返 `_basic_attack` (不动)
-- [ ] **AC6** 新 `smoke_harvest_loop.{gd,tscn}` PASS
-  - 起手 spawn (左 team 0): 5 worker @ ~ (100, 200) 簇; 双方 ct (不死, hp=2000) 防战斗终结
-  - 中立 (team_id=-1): 1 gold node @ (250, 200); 1 wood node @ (250, 300)
-  - 跑 N tick (default 600 tick @ 33.33ms ≈ 20 秒; 见 §设计决策 D13)
-  - 验证:
-    - gold_amount 增长 ≥ 100; wood_amount 增长 ≥ 100 (5 worker × 至少 1 cycle each × 10 capacity = 50 lower bound; 阈值 100 留余 5 worker 平均 2 cycle)
-    - 至少 1 个 worker 经历过 cycle (HarvestActivity → ReturnAndDropActivity → HarvestActivity)
-    - 资源节点 amount 减少 (gold_node.amount + wood_node.amount < 2 × max_amount)
-    - 5 worker 全 alive, 无 SCRIPT ERROR
-    - SMOKE_TEST_RESULT: PASS
-- [ ] **AC7** Validation 全套不退化 (13 项, 与 Phase B 末态一致 + 新 smoke_harvest_loop)
-  - LGF 73/73 PASS
-  - 既有 6 RTS smoke (player_command / player_command_production / castle_war_minimal / production / crystal_tower_win / rts_auto_battle 4v4 main) PASS, 数字与 Phase B 末态完全一致 (4v4 不含 worker → 应 0 漂移)
-  - smoke_resource_nodes (Phase B) PASS, 数字与 Phase B 末态一致 (worker idle → harvest strategy 切换不影响 200 tick 内没 ResourceNode 找的 idle smoke; 但 Phase C HarvestStrategy 找 node 时 spawn pos = node pos worker 会动 → 此 smoke 可能被 break, 见 §风险表)
-  - 2 replay smoke (replay_bit_identical + determinism) PASS, 数字与 Phase B 末态完全一致 (4v4 main path 不含 worker)
-  - frontend smoke (smoke_frontend_main) PASS
+  - 实现: `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_ai_strategy_factory.gd`
+- [x] **AC6** 新 `smoke_harvest_loop.{gd,tscn}` PASS
+  - Setup: 5 worker (左 team 0) + left_ct (drop-off, hp=2000) + 1 gold node + 1 wood node (中立) + right_ct (hp=2000 防右方全灭)
+  - 跑 600 tick @ 33.33ms ≈ 20 秒
+  - **实测**: ticks=600 alive_workers=5 team_gold=140 team_wood=212 gold_node=1360/1500 wood_node=1288/1500 cycle_workers=5 (`/tmp/m21_simplify_hl.txt`)
+  - SMOKE_TEST_RESULT: PASS
+- [x] **AC7** Validation 全套不退化 (13 项 — 12 RTS smoke + LGF 73/73 + smoke_harvest_loop)
+  - LGF: 73/73 PASS (`/tmp/m21_simplify_lgf.txt`)
+  - 既有 6 RTS smoke (player_command / player_command_production / castle_war_minimal / production / crystal_tower_win / rts_auto_battle 4v4 main) PASS, 数字与 Phase B 末态完全一致 (4v4 不含 worker → 0 漂移; ticks=347 attacks=74 melee_max=24.00 — `/tmp/m21_simplify_main.txt`)
+  - smoke_resource_nodes Phase C 重定位 (HarvestStrategy fallback to IdleActivity 找不到 node, 见 §风险表第 1 行方案 A): ticks=200 alive_workers=5 max_drift=0.00 (`/tmp/m21_simplify_rn.txt`)
+  - 2 replay smoke PASS, 数字与 Phase B 末态完全一致 (frames=9 events=20 deep-equal — `/tmp/m21_simplify_replay.txt`; tick_diff=0 — `/tmp/m21_simplify_det.txt`)
+  - frontend smoke (smoke_frontend_main) PASS (visualizers=10 alive=10 — `/tmp/m21_simplify_fe.txt`)
+
+## Simplify Pass (2026-05-02 SKILL.md §7a-7c)
+
+跑完 7 AC 后按 SKILL.md §7a-7c 做 simplify + AC-doc consistency review:
+
+1. **Nav refresh helper 抽取**: NAV_REFRESH_INTERVAL / `_time_since_nav_refresh` / `_last_set_target` / `_should_refresh_nav` / `_refresh_nav_target` 上推到 `RtsActivity` 基类 (`activity.gd`); attack/harvest/return 三 Activity 共用 — 减 ~30 行重复 + 一次写改 4v4 main 0 漂移 (replay bit-identical 仍 frames=9 events=20)。
+2. **`RtsUnitActor.get_carry_total()` helper**: 从 harvest_strategy + harvest_activity 两处局部 `_carry_total(unit)` 抽到 actor 上 — `carrying` 是 actor 字段, 总和 helper 同 actor 对齐。
+3. **`is_drop_off` into `RtsBuildingConfig.StatBlock`**: 与 `is_crystal_tower` 同模式 — 工厂 `_create_from_kind` 统一从 stats 写 actor; create_crystal_tower 不再单独 `b.is_drop_off=true` 特例。Phase D 加新 drop-off 建筑只需在 stats 翻 flag。
+4. **HarvestActivity stats cache**: `_carry_capacity` / `_harvest_speed` 在 `on_first_run` 缓存; 避免 `tick` 每帧调 `RtsUnitClassConfig.get_stats(unit_class)` 分配 StatBlock + Array (5 worker × 30 Hz = 150 alloc/sec → 0)。
+5. **Dead `_intent_arriving = true` write**: ReturnAndDrop tick 抵达 in-range 时设 `_intent_arriving=true` 紧接 return false → DONE → controller is_done 返 "idle", `_intent_arriving=true` 永远不可观察 — 删除。
+
+13 项 validation 全套 simplify 后再跑一次 0 漂移 (smoke_harvest_loop 仍 gold=140 wood=212 cycle_workers=5)。AC-doc consistency review: 7/7 AC 文档与代码 file:line 对齐 (本节 AC1-AC7 已加 "实现" 路径)。
 
 ---
 

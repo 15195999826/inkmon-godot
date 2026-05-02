@@ -12,8 +12,8 @@
 |---|---|---|
 | **A** | Multi-Resource Foundation (config 迁移 + 既有 smoke 适配) | ✅ done (2026-05-02; 7/7 AC PASS, bit-identical replay 0 漂移) |
 | **B** | Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为) | ✅ done (2026-05-02; 6/6 AC PASS, 11/11 validation 全过 0 漂移) |
-| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | 🚧 active (2026-05-02 启动; 0/7 AC) |
-| **D** | Cost Rebalance + smoke_economy_demo (经济闭环 full cycle + F6 视觉) | 🔒 pending |
+| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | ✅ done (2026-05-02; 7/7 AC PASS, 13/13 validation 全过 0 漂移, simplify clean) |
+| **D** | Cost Rebalance + smoke_economy_demo (经济闭环 full cycle + F6 视觉) | 🔒 pending (2026-05-02 等待用户确认启动) |
 
 ---
 
@@ -42,32 +42,32 @@
 
 ---
 
-## Phase C — Harvest Activity + Drop-off Loop 🚧 active
+## Phase C — Harvest Activity + Drop-off Loop ✅ done (2026-05-02)
 
-**详细 plan**: [`phase-c-harvest-activity.md`](phase-c-harvest-activity.md) (2026-05-02 启动时落地; 7 AC + 7 子任务 + D6-D16 决策表 + 风险表 + Validation 顺序)
+**详细 plan**: [`phase-c-harvest-activity.md`](phase-c-harvest-activity.md) (AC 全部 [x] 收口 + simplify pass 段)
 
-**用户已确认决策** (2026-05-02):
-- **D6** Drop-off = 复用 `crystal_tower` (RtsBuildingActor 加 `is_drop_off` 字段, ct 起手设 true)
-- **D7** Worker AI = 找最近未耗尽 ResourceNode (round-robin tiebreak by actor_id)
-- **D8** Worker 出生 = hardcode smoke/demo (不加 SpawnWorkerCommand)
+**收口结论**: 7/7 AC PASS, 13/13 validation 全套 PASS, 0 行为漂移; simplify pass 抽 nav refresh 到基类 + get_carry_total + is_drop_off StatBlock + stats cache + dead write 删除, 跑完 simplify 13/13 仍 PASS (bit-identical 4v4 ticks=347/replay frames=9 events=20)。
 
-**实现细节决策** (D9-D16, 详见 phase-c-harvest-activity.md §设计决策):
-- Activity ↔ procedure 通信走 `RtsWorldGameplayInstance.bind_procedure` (Activity sig 不动)
-- HarvestActivity = 单一 Activity 自管 nav (类似 RtsAttackActivity 模式)
-- 多 worker 同 node 无锁 (controller.tick 顺序决定性)
-- HARVEST_RADIUS = DROP_OFF_RADIUS = 32 px
-- harvest_progress per-tick 累积, floor(progress) 单位时刻 mutate node.amount + worker.carrying
+落地内容 (D6-D16 决策全沿用):
+- 新 `RtsHarvestActivity` (extends RtsActivity; 单 Activity 自管 nav 类似 AttackActivity, in-range 累 progress + transfer; on_first_run cache stats)
+- 新 `RtsReturnAndDropActivity` (extends RtsActivity; on_first_run 找己方最近 is_drop_off 建筑; 抵达调 procedure.add_team_resources + carrying.clear)
+- 新 `RtsHarvestStrategy` (extends RtsAIStrategy; carry > 0 → ReturnAndDrop; 否则找最近 ResourceNode → Harvest; 找不到 → Idle)
+- `RtsAIStrategyFactory.WORKER` 切到 `_harvest_strategy` (melee/ranged 不动)
+- `RtsBuildingActor.is_drop_off: bool` 字段 + `RtsBuildingConfig.StatBlock.is_drop_off` (crystal_tower 起手 true; 工厂统一注入)
+- `RtsUnitActor.carrying: Dictionary[String, int] = {}` + `get_carry_total()` helper
+- `RtsAutoBattleProcedure.add_team_resources(team_id, delta)` 对称 spend
+- `RtsWorldGameplayInstance.bind_procedure(p)` 让 Activity 通过 world.procedure 改资源
+- 基类 `RtsActivity` 抽 nav refresh helper (NAV_REFRESH_INTERVAL / _time_since_nav_refresh / _last_set_target / _should_refresh_nav / _refresh_nav_target) — attack/harvest/return 三 Activity 共用
+- 新 `smoke_harvest_loop.{gd,tscn}` PASS (ticks=600 alive_workers=5 team_gold=140 team_wood=212 gold_node=1360/1500 wood_node=1288/1500 cycle_workers=5)
+- Phase B `smoke_resource_nodes` 重定位 (HarvestStrategy fallback to IdleActivity 找不到 node — 方案 A): ticks=200 alive=5 max_drift=0.00
 
-**Acceptance 主旨**:
-- smoke_harvest_loop (5 worker + 1 gold + 1 wood + 双方 ct 不死, 跑 600 tick → gold + wood 双增长 ≥ 100 + 至少 1 worker 完整 cycle)
-- 既有 6 RTS smoke + 2 replay smoke + frontend smoke 0 漂移 (Phase B smoke_resource_nodes 因 strategy 切换可能需要调整, 见 phase-c §风险表第 1 行)
-- LGF 73/73 不退化
+回归验证: LGF 73/73 + 既有 6 RTS smoke + 2 replay smoke + frontend smoke + smoke_harvest_loop + smoke_resource_nodes (重定位) 全过 0 行为漂移 (4v4 main 数字与 Phase B 末态完全一致 ticks=347 attacks=74 melee_max_dist=24.00; bit-identical replay frames=9 events=20 deep-equal; det tick_diff=0)。
 
 ---
 
-## Phase D — Cost Rebalance + smoke_economy_demo 🔒 pending
+## Phase D — Cost Rebalance + smoke_economy_demo 🔒 pending (2026-05-02 等待用户确认启动)
 
-**详细 plan**: 待 Phase C 收口后写 `phase-d-cost-rebalance.md`。
+**详细 plan**: [`phase-d-cost-rebalance.md`](phase-d-cost-rebalance.md) (Phase C 收口时落地的 skeleton; Phase D 启动时用户 review + finalize 数值)
 
 **Scope 概要**:
 - Building cost 重平衡 (Phase A 仅迁字段, cost 数值都是 {"gold": 100} placeholder; Phase D 调到 multi-resource 有差异)
