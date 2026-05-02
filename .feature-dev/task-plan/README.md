@@ -1,10 +1,8 @@
-# Task Plan — RTS Auto-Battle M1 架构重构
+# Task Plan — RTS Auto-Battle M2.1 Economy
 
-> **Feature 总目标**：把 RTS M0（功能 spike）演进为遵守 LGF 根原则的、支持城堡战争玩法的、可流式 simulation + 决定性 replay 的工业级架构。
+> **Active feature**: RTS Auto-Battle M2.1 — Economy (Worker Harvest, gold + wood)
 >
-> **三 phase 串联**：Foundation（修根偏离 + 基础设施）→ Core Systems（玩法支柱）→ Advanced（高级特性）。
->
-> **执行模式**：一次只开发一个 phase。当前 phase 收口后才进下一 phase。
+> **执行模式**: 一次只开发一个 phase。当前 phase 收口后才进下一 phase。
 
 ---
 
@@ -12,108 +10,98 @@
 
 | 文档 | 角色 | 状态 |
 |---|---|---|
-| [`architecture-baseline.md`](architecture-baseline.md) | 锁定决策 + 总图（13 条决策 + 模块拓扑 + 基类骨架）| **稳定 spec**，跨 phase 不变 |
-| [`phase-1-foundation.md`](phase-1-foundation.md) | Phase 1 详细子任务 P1.1–P1.7 | ✅ **已完成 9/9 AC**（2026-05-01） |
-| [`phase-2-core-systems.md`](phase-2-core-systems.md) | Phase 2 详细子任务 P2.1–P2.8 | ✅ **已完成 10/10 AC**（2026-05-02）|
-| [`phase-3-advanced.md`](phase-3-advanced.md) | Phase 3 详细子任务 P3.1–P3.4（可选项）| 🚧 **active — 本轮选 P3.2 + P3.3 + 寻路 demo**（2026-05-02 用户授权）|
+| [`m2-roadmap.md`](m2-roadmap.md) | M2 整体路线图 (M2.1 economy / M2.2 AI 对手 / M2.3 UI 关卡) | 稳定 spec, 跨 sub-feature 不变 |
+| [`m2-1-economy/README.md`](m2-1-economy/README.md) | M2.1 4 phase 拆分概览 + 收口条件 | 稳定 spec |
+| [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md) | Phase A 详细子任务 A.1-A.6 | ✅ done (2026-05-02; 7/7 AC PASS) |
+| [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) | Phase B 详细子任务 B.1-B.6 | 🚧 **active** (2026-05-02) |
 
-> `architecture-baseline.md` 是稳定 spec，所有 phase 文档引用它而不重复决策。
-> 各 phase 文档自给自足，autonomous-feature-runner 一次只读当前 phase 的文档。
-
----
-
-## Phase 总览
-
-### Phase 1 — Foundation（M1 启动前不可妥协）
-
-修复 RTS M0 架构审查发现的**对 LGF 根原则的硬偏离**（S1/S2/S3/M4），铺好基础设施（fixed-tick + grid wrapper + actor 三层基类）。
-
-**核心承诺**：Phase 1 完成后，RTS 4v4 仍能跑到 winner，且代码骨架支持 Phase 2 平滑加入 Activity / Steering / Production / Player Command。
-
-7 个子任务：
-- P1.1 Actor 三层基类 / P1.2 Grid wrapper / P1.3 Procedure 内化（S1）
-- P1.4 Action 标准化（S2）/ P1.5 AI 拆分（S3）/ P1.6 Cooldown tag-duration（M4）
-- P1.7 Fixed-tick + RtsRng + light determinism
-
-**Acceptance**：9 条（详见 [phase-1-foundation.md §收口条件](phase-1-foundation.md)）
+> Phase C/D 详细文档待对应 phase 启动时添加。`m2-1-economy/README.md` 已列出每 phase 的 scope / acceptance 主旨。
 
 ---
 
-### Phase 2 — Core Systems（M1 期间核心玩法）
+## 当前 Phase 总览 (M2.1 Phase B)
 
-在 Phase 1 修好的骨架上，搭建**城堡战争核心玩法支柱**（含飞行单位）。
+**Phase B — Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为)**
 
-**核心承诺**：Phase 2 完成后，城堡战争最小可玩 demo 跑通 — 玩家放置兵营 → 兵营周期 spawn 单位 → 单位走 grid / 互避障 / 找最近敌人 / 攻击建筑 → 飞行 vs 防空对位 → 水晶塔被毁判胜负。
+Phase A 收口后引入新 actor 类型 (`RtsResourceNode`) + 新单位类 (`UnitClass.WORKER`) + idle 行为 + 新 smoke (`smoke_resource_nodes`)。**不接** harvest / drop-off / 任何经济闭环逻辑 (那些是 Phase C)。
 
-8 个子任务：
-- P2.1 Activity 系统（OpenRA 风）
-- P2.2 Spatial Hash + Steering（避障 1+2 层）
-- P2.3 Stuck Detection + Local Repath（避障第 3 层）
-- P2.4 AutoTargetSystem（Mindustry + OpenRA 合璧）
-- P2.5 Production System + Building Factory
-- P2.6 Player Command + Building Placement + 胜负判定改写
-- P2.7 Frontend BattleDirector 接入流式 events
-- **P2.8 AIR Layer + target_layer_mask + 飞行单位**（前移自原 P3.2，城堡战争一等公民）
+6 个子任务 (B.1-B.6): 新 ResourceNodeConfig + ResourceNode actor + 工厂 + UnitClass.WORKER + worker strategy 路径 + 新 smoke。风险点在 ResourceNode 不被 AutoTargetSystem 误选 + worker 不被默认 strategy 替换。
 
-**Acceptance**：10 条（详见 [phase-2-core-systems.md §收口条件](phase-2-core-systems.md)），含 bit-identical replay determinism + 飞行 vs 防空验证
+**Acceptance**: 6 条 (详见 [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) §Acceptance)
 
 ---
 
-### Phase 3 — Advanced（M2+ 高级特性，可选）
+## M2.1 Phase 总览 (4 phase)
 
-在 Phase 2 已完成的"功能可玩"城堡战争上加**高级 RTS 特性**：高低地形 / 群体队形 / 声明式 scenario / fog of war。
+### Phase A — Multi-Resource Foundation ✅ done (2026-05-02)
 
-**核心承诺**：Phase 3 各子任务**独立可选**；用户可按项目需要选做哪些。
+详见 [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md)。7/7 AC PASS, bit-identical 0 漂移, 全 smoke 数字与 RTS M1 末态一致。
 
-4 个子任务（独立可选）：
-- P3.1 离散 tile.height + LOS（D3-E）
-- P3.2 Group Formation（避障第 4 层）
-- P3.3 RtsScenarioHarness（声明式测试）
-- P3.4 Fog of War / Vision System
+### Phase B — Resource Nodes + Worker Class (本轮 active)
 
-**Acceptance**：用户认可的子任务集各自 PASS（不强制全做）
+详见上方 + [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md)。
 
-> 飞行单位已前移到 Phase 2 P2.8，不在 Phase 3 范围内。
+新基础设施: `RtsResourceNode` actor (extends RtsBattleActor 或独立类型; 字段 = GOLD/WOOD, amount, position) + `UnitClass.WORKER` (低 hp / 无 attack / has carry_capacity + harvest_speed)。Worker 起手 idle 不动, 不接 harvest 行为 (那是 Phase C)。
+
+- Worker 默认 movement_layer=GROUND, target_layer_mask=NONE (不打人, 不被默认 strategy 选)
+- ResourceNode 是否阻挡 footprint? 倾向 不阻挡 (worker 可踩) — Phase B 启动时确认
+- Demo / scenario 起手 spawn 几个 ResourceNode + 几个 worker, smoke 验证 spawn 链路
+
+**Acceptance 主旨**: smoke_resource_nodes (5 worker + 1 gold node + 1 wood node, ticks=200 后 worker idle 在 spawn 位置 ± drift, ResourceNode amount 不变)
+
+### Phase C — Harvest Activity + Drop-off Loop
+
+经济闭环核心: `RtsHarvestActivity` (worker → 资源点 → harvest_progress 累积 → carrying = capacity → switch) + `RtsReturnAndDropActivity` (worker → 最近 drop-off → 加 team_resources → switch back) + `RtsHarvestStrategy` (worker autonomous 行为, idle 时找最近 ResourceNode)。
+
+- Drop-off 建筑: 倾向 复用 crystal_tower (双 ct 起手就有, 不新加 town_hall) — Phase C 启动时确认
+- Worker 出生方式: 倾向 hardcode demo / scenario 起手 spawn N 个 (不加 SpawnWorkerCommand) — Phase C 启动时确认
+
+**Acceptance 主旨**: smoke_harvest_loop (5 worker + 1 gold node + 1 wood node, 跑 N tick 后 team_resources gold + wood 双增长 ≥ X; cycle 完整: worker → node → drop-off → team_resources)
+
+### Phase D — Cost Rebalance + smoke_economy_demo
+
+经济闭环对外可观: 给 archer_tower / barracks 重定 multi-resource cost (例: barracks={"gold": 80, "wood": 50}, archer_tower={"gold": 60, "wood": 100}; 数值待 Phase D 启动时调) + smoke_economy_demo (full cycle: worker harvest → 资源到达 cost → enqueue PlaceBuildingCommand → 自动放下个建筑) + 编辑器 F6 视觉验证。
+
+**Acceptance 主旨**: 经济闭环 full cycle smoke PASS + F6 demo 视觉链路 OK + RTS M2.1 Economy 整体收口
 
 ---
 
 ## 全局收口条件
 
-整个 RTS M1 架构重构 feature 完成 = **Phase 3 全过 OR 用户决定不做完 Phase 3 的剩余子任务**。
+整个 RTS M2.1 Economy 完成 = Phase A + B + C + D 全过 + 用户 F6 视觉认可经济闭环。
 
-完成时执行：
-1. 创建 `archive/<YYYY-MM-DD>-rts-m1-refactor/` 归档全部 phase 进度
+完成时执行:
+1. 创建 `archive/<YYYY-MM-DD>-rts-m2-1-economy/` 归档全部 phase 进度
 2. 主 `Next-Steps.md` 切回"等待用户确认下一个 feature"
-3. 主 `Current-State.md` 更新为 RTS M1 重构后的 baseline
+3. 主 `Current-State.md` 更新为 RTS M2.1 完成后的 baseline (worker / harvest / 经济闭环 已落地)
+4. M2 路线图 (`m2-roadmap.md`) 中 M2.1 status 标 "✅ done"
 
 ---
 
 ## Phase 间过渡协议
 
-### Phase 1 → Phase 2
-- Phase 1 acceptance 全过 → **不归档**（同一 feature 的早期 phase）
-- 更新 `Next-Steps.md` 当前目标 → Phase 2
-- 更新 `Progress.md` 切到 Phase 2 子任务清单
-- `task-plan/phase-2-core-systems.md` 已就位（无需重新规划）
+### Phase A → Phase B
+- Phase A acceptance 全过 → **不归档** (同一 feature 早期 phase)
+- 更新 `Next-Steps.md` 当前目标 → Phase B
+- 更新 `Progress.md` 切到 Phase B 子任务清单
+- 创建 `m2-1-economy/phase-b-resource-nodes.md` (Phase A 收口时再写, 不预先写)
 - 用户在新会话调 `/autonomous-feature-runner` 即可继续
 
-### Phase 2 → Phase 3
-- Phase 2 acceptance 全过 → 仍**不归档**
-- 用户**明确决定**是否启动 Phase 3（不像 Phase 1→2 自动衔接）
-- 若启动：更新 `Next-Steps.md / Progress.md` 切到 Phase 3
-- 若不启动：直接进归档流程（见下）
+### Phase B → Phase C, Phase C → Phase D
+- 同上, 不归档, 文档增量
 
-### Phase 3 完成 / 用户决定收尾
-- 创建 archive，主 docs 切回等待状态
+### Phase D 完成
+- M2.1 Economy 整体收口 → archive → 主 docs 切回等待状态
+- 用户决定是否启动 M2.2 (AI 对手) 或 M2.3 (UI HUD)
 
 ---
 
-## 实现纪律（贯穿三 phase）
+## 实现纪律 (跨 phase 不变)
 
-来自 `Autonomous-Work-Protocol.md`，Phase 期间不变：
+来自 `.feature-dev/Autonomous-Work-Protocol.md`:
 
-1. **不修改 LGF submodule core / stdlib**
-2. **测试入口规范**：`.tscn` 入口 + `> /tmp/*.txt 2>&1` redirect，不用 `--script` 不用 pipe
-3. **触发 stop 条件**：需要修改 `project.godot` autoload / `scripts/SimulationManager.gd` / LGF submodule 时要先确认
-4. **每 phase 完成 re-run validation 顺序**：import → LGF 73/73 → RTS smoke → hex demo
-5. **决策来自 architecture-baseline.md**：实现时如发现需要改决策，**先停下来跟用户对齐**再改 baseline
+1. **不修改 LGF submodule core / stdlib** (新代码进 `addons/logic-game-framework/example/rts-auto-battle/`)
+2. **测试入口规范**: `.tscn` 入口 + `> /tmp/*.txt 2>&1` redirect, 不用 `--script` 不用 pipe
+3. **触发 stop 条件**: 需要修改 `project.godot` autoload / `scripts/SimulationManager.gd` / LGF submodule 时要先确认
+4. **每 phase 完成 re-run validation 顺序**: import → LGF 73/73 → 全部 RTS smoke (含 replay bit-identical + frontend) → hex demo (sanity)
+5. **决策来自 m2-1-economy/ 文档**: 实现时若发现需要改决策, 先停下来跟用户对齐再改文档

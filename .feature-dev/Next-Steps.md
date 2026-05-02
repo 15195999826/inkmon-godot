@@ -1,77 +1,72 @@
-# Next Steps — 2026-05-02 (RTS M1 Phase 3 启动 — P3.2 + P3.3 + 寻路验证 demo)
+# Next Steps — 2026-05-02 (RTS M2.1 Economy — Phase A ✅ 收口; Phase B 启动 — Resource Nodes + Worker Class)
 
 ## 当前目标
 
-**RTS Auto-Battle M1 架构重构 — Phase 3 (Advanced) — 本轮选 P3.2 + P3.3 + 新增寻路验证 demo**
+**RTS Auto-Battle M2.1 — Economy (Worker Harvest, gold + wood) — Phase B: Resource Nodes + Worker Class**
 
-Phase 3 子任务独立可选;本轮经用户授权选定的 scope:
+Phase A 已收口 (multi-resource cost 字段全链路 dict 化, 7/7 AC PASS, bit-identical replay 0 漂移). Phase B 在此基础上引入新 actor 类型 (`RtsResourceNode`) + 新单位类 (`UnitClass.WORKER`) + idle 行为 + 新 smoke (`smoke_resource_nodes`); **不接** harvest / drop-off / 任何经济闭环逻辑 (那些是 Phase C)。
 
-- ✅ **P3.2** Group Formation + 玩家选单位 / 拖框 / 右键移动命令 (扩展原 phase-3 设计 — 用户明确要做"玩家操作单位移动"功能,formation 不再是伪需求)
-- ✅ **P3.3** RtsScenarioHarness (声明式 scenario 框架,**不重构**现有 4v4 主 smoke;仅服务新的寻路验证 scenario + 未来 P3.x)
-- ➕ **新增交付物**: 寻路验证 demo + 4 个寻路 scenario (P3.2 + P3.3 合体应用)
-- ❌ **P3.1** Terrain Height + LOS — 本轮 deferred (用户未选)
-- ❌ **P3.4** Fog of War + Vision — 本轮 deferred (依赖 P3.1)
+> M2.1 完整规划: [`task-plan/m2-1-economy/README.md`](task-plan/m2-1-economy/README.md)
+> Phase B 详细子任务: [`task-plan/m2-1-economy/phase-b-resource-nodes.md`](task-plan/m2-1-economy/phase-b-resource-nodes.md)
+> Phase A 已归档于 `task-plan/m2-1-economy/phase-a-multi-resource.md` + `Progress.md` §Phase A
+> M2 整体路线图: [`task-plan/m2-roadmap.md`](task-plan/m2-roadmap.md)
 
-> 完整决策与架构总图: [`task-plan/architecture-baseline.md`](task-plan/architecture-baseline.md)
-> Phase 3 详细子任务: [`task-plan/phase-3-advanced.md`](task-plan/phase-3-advanced.md) (本轮 P3.2 scope 已扩展, P3.3 scope 已收窄)
-> 实施 plan (按批准的 plan 文件): `C:\Users\Administrator\.claude\plans\spicy-enchanting-map.md`
+## 设计要点 (Phase B 启动时确认)
 
-## 设计要点 (用户已确认)
+详见 `phase-b-resource-nodes.md` §设计决策:
+- **D1 — field_kind 类型**: int 枚举 `RtsResourceNodeConfig.FieldKind { GOLD=0, WOOD=1 }` (与 RTS 既有枚举风格一致); cost dict key 用 String, 通过 `field_kind_to_resource_key(kind: int) -> String` 映射
+- **D2 — ResourceNode 不阻挡 footprint** (worker 可踩, 简化 Phase C harvest nav)
+- **D3 — Worker 出生方式**: hardcode smoke 起手 spawn (Phase B 阶段); `SpawnWorkerCommand` 不加 (Phase C 视情况)
+- **D4 — Worker default strategy**: 复用 `RtsBasicAttackStrategy` (worker target_layer_mask=NONE 让其找不到敌 → 自然 IdleActivity); 若 side effect 出问题再启用 `RtsWorkerIdleStrategy`
+- **D5 — RtsResourceNode 与 RtsBuildingActor 关系**: 平级独立子类 (都继承 RtsBattleActor), 不复用 RtsBuildingActor
 
-- **独立 scene** `frontend/demo_rts_pathfinding.{gd,tscn}` — 不动 castle-war demo,避免双 mode flag
-- **不重构** 现有 4v4 主 smoke `smoke_rts_auto_battle.tscn` — RtsScenarioHarness 仅服务新 scenario
-- **选中限制 team_id=0** — 玩家方单位才能选/下令
-- **双轨验证**: F6 可交互 demo + headless smoke
-- **4 个寻路验证点**:
-  - (a) 绕 building footprint
-  - (b) 8 单位互避障不卡 (pairwise_min_distance ≥ 2r-0.5)
-  - (c) Formation 保形 (offset 阈值内)
-  - (d) 动态 obstacle 重新规划 (stuck detector + local repath)
+## Phase B 验收准则 (本轮 6 条)
 
-## Phase 3 acceptance criteria (本轮 9 条)
-
-- [ ] **AC1** RtsScenarioHarness 框架 minimal scenario 跑通 (基类契约 + harness runner + assert context API 可用)
-- [ ] **AC2** RtsGroupFormation.assign_offsets 对 1/4/8/16 unit 给合法 formation (non-overlap + 围绕 centroid)
-- [ ] **AC3** smoke_move_units_command PASS — MoveUnitsCommand 走 player_command_queue + override_strategy 链路
-- [ ] **AC4** scenario_pathfind_around_building PASS — 单 unit 绕 barracks footprint 抵达
-- [ ] **AC5** scenario_8_units_no_overlap PASS — 8 单位同令抵达后 pairwise_min_distance ≥ 2r-0.5
-- [ ] **AC6** scenario_formation_preserved PASS — 4 单位长距移动后 formation offset 阈值内
-- [ ] **AC7** scenario_dynamic_obstacle_repath PASS — 中段动态障碍触发 stuck recovery
-- [ ] **AC8** LGF 73/73 + 现有所有 RTS smoke 不退化 (rts_auto_battle / castle_war_minimal / flying_units / replay_bit_identical 仍 bit-equal)
-- [ ] **AC9** F6 demo_rts_pathfinding 用户手动视觉验证: 拖框 → 右键 → 4 个寻路验证点眼见为实
+- [ ] **AC1** 新 `RtsResourceNodeConfig` (field_kind / max_amount / harvest_per_tick (Phase C 用占位) / footprint_size / actor_tags + StatBlock + get_stats + field_kind_to_resource_key)
+- [ ] **AC2** 新 `RtsResourceNode` actor (extends RtsBattleActor; field_kind / amount / is_depleted; override is_dead; 不参战 — atk=0 / target_layer_mask=NONE)
+- [ ] **AC3** 新 `RtsResourceNodes` 工厂 (`create_gold_node()` / `create_wood_node()`)
+- [ ] **AC4** `RtsUnitClassConfig.UnitClass.WORKER` (max_hp=50, move_speed=80, atk=0, attack_range=0, movement_layer=GROUND, target_layer_mask=NONE, unit_tags=["worker"], + 新字段 carry_capacity=10 / harvest_speed=5.0 占位 Phase C)
+- [ ] **AC5** Worker idle 行为不被 default strategy 干扰 (`RtsAIStrategyFactory.get_strategy(WORKER)` 返 RtsBasicAttackStrategy 复用; worker 因 mask=NONE 自然 idle)
+- [ ] **AC6** 新 `smoke_resource_nodes.tscn` PASS:
+  - 起手: 5 worker (左 team 0) + 1 gold node + 1 wood node + 右方 1 ct (永远不死) 让战斗持续
+  - 跑 200 tick 后: worker 5 alive + 距 spawn ≤ 50 px + gold/wood node amount = max_amount + 无 SCRIPT ERROR
+  - 既有 6 smoke + replay smoke 双 + frontend 不退化 (regression gate)
+  - LGF 73/73 仍 PASS
 
 ## 下一步
 
-按 plan 文件 `spicy-enchanting-map.md` 实施步骤逐步推进:
+按 `task-plan/m2-1-economy/phase-b-resource-nodes.md` 实施步骤逐步推进。最小可行第一步:
 
-**Step 2** — P3.3 RtsScenarioHarness 框架 (P3.2 验证依赖它,先做)
-- 新增 `addons/logic-game-framework/example/rts-auto-battle/logic/scenario/{rts_scenario, rts_scenario_harness, rts_scenario_assert_context}.gd`
-- 同构 hex `skill_scenario_harness` API,但用 RTS 类型重写 (不复用 hex CharacterActor / HexCoord / ATB)
+**Step 1** — 新 `RtsResourceNodeConfig` (AC1; B.1 子任务)
+- 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/config/rts_resource_node_config.gd` (新)
+- 改动: class_name + 内嵌 StatBlock + enum FieldKind { GOLD=0, WOOD=1 } + raw const _GOLD_NODE_STATS / _WOOD_NODE_STATS + static get_stats / field_kind_to_resource_key
+- import 0 错误后做 B.2 (新 RtsResourceNode actor)
 
-(后续 Step 3-7 见 plan 文件)
+(Step 2-N 见 phase-b 文档 §子任务 6 步)
 
-## 非目标 (本轮 Phase 3 不做)
+## 非目标 (本轮 Phase B 不做)
 
-- ❌ P3.1 Terrain Height + LOS (Phase 3 第二批,需用户再次确认启动)
-- ❌ P3.4 Fog of War (依赖 P3.1)
-- ❌ 重构现有 4v4 主 smoke 为 unit-level scenario (原 phase-3-advanced.md 计划,已收窄)
-- ❌ 其他玩家命令 (Patrol / AttackMove unit-targeted / Stop) — 本轮仅 MoveUnitsCommand
-- ❌ formation 形状选择 (line / circle / wedge) — 本轮仅 square 方阵
+- ❌ HarvestActivity / ReturnAndDropActivity (Phase C)
+- ❌ HarvestStrategy 自动找最近资源点 (Phase C)
+- ❌ Drop-off 建筑设计 (Phase C — 倾向复用 crystal_tower)
+- ❌ Worker 加入 team 列表参与 _check_battle_end (Phase B worker 仅占位 spawn, idle)
+- ❌ ResourceNode amount 减少逻辑 (Phase C harvest 时才减)
+- ❌ smoke_harvest_loop / smoke_economy_demo (Phase C/D 各自加)
+- ❌ Building cost 重平衡 (Phase D)
+- ❌ HUD 显示 worker carrying / harvest 状态 (Phase D 可选)
+- ❌ AI 对手 (computer player) 启动 (M2.2 sub-feature, deferred)
+- ❌ Build Panel UI / 多 building_kind 选择 (M2.3 sub-feature, deferred)
 
-## F6 视觉验证 (AC9 user sign-off)
+## F6 视觉验证 (Phase B 不要求, Phase C/D 才有意义)
 
-Phase 3 收口前用户应在编辑器中 F6 跑 `frontend/demo_rts_pathfinding.tscn`:
-- 鼠标左键拖框选 8 unit (selection_ring 黄色圈应亮)
-- 右键点远端目标 → 8 unit 排成方阵走过去,**不重叠 + 绕 barracks footprint + 抵达后保持 formation 间距**
-- (可选) 选中 1 unit 命令到远端,中途按 K 在 path 中段下兵营 → unit 应触发 local repath 绕过去
+Phase B 仅 logic 层 + headless smoke 验证; demo 不动 (worker 不出现在 demo_rts_frontend 起手 spawn 列表)。
 
-如视觉链路有 bug (而 headless smoke 没捕获), hotfix 后再收口本轮 Phase 3。
+## 启动后续 Phase / 新 sub-feature
 
-## 启动后续 Phase 3 子任务 / 新 feature
+本轮 Phase B 完成后:
 
-本轮 P3.2 + P3.3 + 寻路 demo 完成后:
+- 下一轮: 启动 **Phase C** (Harvest Activity + Drop-off Loop) — 在 Next-Steps.md 切到 active, 写 `phase-c-harvest-activity.md`
+- Phase C/D 完成后: M2.1 Economy 整体收口 → 归档至 `.feature-dev/archive/<YYYY-MM-DD>-rts-m2-1-economy/`
+- 整个 RTS M2.1 完成后用户决定是否启动 M2.2 (AI 对手) 或 M2.3 (UI HUD)
 
-- 用户可选: 启动 P3.1 (terrain height) / P3.4 (fog of war) — 走类似流程,在 Next-Steps.md 切到 active
-- 用户可选: 整体收尾 RTS M1 重构 → 归档至 `.feature-dev/archive/<YYYY-MM-DD>-rts-m1-refactor/`,切回"等待新 feature"状态
-
-要在 RTS M1 重构整体完成后开新的非延续 feature,调 `/next-feature-planner`。
+要在 RTS M2.1 完成后开新的非延续 feature, 调 `/next-feature-planner`。
