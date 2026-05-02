@@ -38,7 +38,22 @@ If `.feature-dev/` is missing, stop and ask the user to run `/next-feature-plann
 4. Update `.feature-dev/Progress.md` with checklist status, commands, evidence paths, session ids, or residual risks.
 5. Update `.feature-dev/Next-Steps.md` so `## 下一步` points to the next executable action.
 6. Continue to the next step in the same turn when feasible.
-7. When acceptance criteria are fully met, update:
+7. **Phase-close gate (BEFORE commit)** — when all phase AC are PASS and code-side work is done, run the two-step refinement loop **before** updating Current-State / writing closeout docs / committing:
+
+   **7a. Simplify pass** — invoke `/simplify` (the simplify skill) on the changed code. Scope = files touched in this phase (run `git diff --name-only HEAD` if unsure). The simplify pass may delete dead code, collapse duplication, remove premature abstractions, or rename for clarity.
+
+   **7b. If simplify modified any code, re-run the full Validation Standard (§ below)** — the same suite that proved the phase passed AC. This is mandatory; simplify can introduce regressions and the phase is not closed until the suite is green again. Do not commit between simplify and re-validation.
+
+   **7c. Doc-consistency review** — re-read the phase's task-plan AC document (e.g. `task-plan/<feature>/phase-X.md` §Acceptance) and walk each AC item against the actual code:
+   - For every AC, locate the implementation (file:line) that satisfies it; record any AC where the implementation drifted from the documented contract (signature, return shape, behavior).
+   - If code is right but the doc is stale → update the task-plan / Current-State / Progress entry to match reality.
+   - If doc is right but code drifted → fix the code (and re-run validation again per 7b).
+   - If both are right but evidence in `Progress.md` references a stale path / number → refresh evidence.
+   - The output of this review is either "all AC contracts and docs aligned" or a punch list of fixes that must land before commit.
+
+   **7d. Only after 7a-7c are clean** → proceed to commit (per `Autonomous-Work-Protocol.md` commit strategy) and the closeout sweep below.
+
+8. When acceptance criteria are fully met (the **whole feature**, not just a phase), update:
    - `.feature-dev/Current-State.md` with new facts;
    - `.feature-dev/Progress.md` with final evidence;
    - re-run `git status -sb` and ensure any worktree status written into docs reflects the final closeout state, not a transient mid-run state;
@@ -75,5 +90,7 @@ Prefer evidence in this order when relevant:
 
 The skill is done when either:
 
-- acceptance criteria are met, entry/reference docs no longer describe the previous checkpoint as current behavior, an archive entry exists under `.feature-dev/archive/`, and `.feature-dev/Next-Steps.md` is updated to the final waiting-for-next-feature state; or
+- acceptance criteria are met, the phase-close gate (§7a-7c: simplify → re-validate → AC-doc consistency review) is clean, entry/reference docs no longer describe the previous checkpoint as current behavior, an archive entry exists under `.feature-dev/archive/`, and `.feature-dev/Next-Steps.md` is updated to the final waiting-for-next-feature state; or
 - a documented blocker is written to `.feature-dev/Progress.md` and the user is asked for a specific decision.
+
+A phase commit without §7a-7c does not count as done — simplify and AC-doc consistency are commit blockers, not optional polish.
