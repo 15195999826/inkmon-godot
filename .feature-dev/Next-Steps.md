@@ -50,21 +50,23 @@
 
 ## 下一步
 
-**E.2 — Build 决策(barracks 1 cap, ct 偏移点)**
+**E.3 — Attack 决策(≥3 non-worker unit 后 attack-move 一次)**
 
-E.1 已收口 ✅(2026-05-02; sanity smoke 全过, 既有 12 项路径 0 漂移)
+E.2 已收口 ✅(2026-05-02; sanity 三件套 0 漂移)
 
 具体动作:
-1. 在 `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_computer_player.gd` 内实现 `_try_build_barracks(world, current_tick)`:
-   - 查 procedure.get_team_resources(team_id) — 必须 ≥ {gold: 80, wood: 50}
-   - 查己方 team 当前 barracks 数 — 走 world.get_alive_actors() 过滤 RtsBuildingActor + team_id == self.team_id + building_kind == BARRACKS; ≥ 1 直接 return
-   - 找己方 ct (team_config.crystal_tower_id 拿 actor.position_2d); 没 ct → return
-   - 计算 offset (左 +96, 右 -96) → enqueue PlaceBuildingCommand (tick_stamp = current_tick) 走 world.procedure.enqueue_player_command
-   - placement 校验失败 (out of build_zone / cells_occupied) 走 PlaceBuildingCommand.apply 内部失败链路, 失败 → 下个 1s 决策再试 (天然 retry)
+1. 在 `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_computer_player.gd` 内实现 `_try_attack(world, current_tick)`:
+   - 守卫: `_attack_dispatched == true` → return (only-once, M2.2 不做反复跟随)
+   - 收集己方 alive non-worker RtsUnitActor: `world.get_alive_units()` 过滤 team_id + unit_class != WORKER
+   - 数量 < ATTACK_DISPATCH_THRESHOLD (=3) → return
+   - 找敌方 ct.position_2d (team_config(1-team_id).crystal_tower_id); 没 ct → return
+   - enqueue MoveUnitsCommand (tick_stamp = current_tick, team_id, unit_ids = [all non-worker], target_pos = enemy_ct_pos)
+   - 设 `_attack_dispatched = true`
+   - 注: M2.2 不 attack_move=true (RtsMoveUnitsCommand 没有此字段; 走纯 move 即 unit 自身 AutoTargetSystem 在路上选近敌即时 engage; 验证 ai_unit_to_ct_attacks ≥ 1 充分)
 2. headless smoke sanity:
-   - LGF 73/73 不退化(`/tmp/m22_e2_lgf.txt`)
-   - smoke_rts_auto_battle 4v4 数字 bit-identical(`/tmp/m22_e2_main.txt`)
-   - smoke_replay_bit_identical 数字 deep-equal(`/tmp/m22_e2_replay.txt`)
+   - LGF 73/73 不退化(`/tmp/m22_e3_lgf.txt`)
+   - smoke_rts_auto_battle 4v4 数字 bit-identical(`/tmp/m22_e3_main.txt`)
+   - smoke_replay_bit_identical 数字 deep-equal(`/tmp/m22_e3_replay.txt`)
 3. 都过后 commit (submodule 内 commit + 主仓 bump pointer)
 
 ## 非下一步

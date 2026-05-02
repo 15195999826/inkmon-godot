@@ -1,6 +1,6 @@
 ## Progress — RTS Auto-Battle M2.2 AI 对手 (Computer Player)
 
-**Status**: 🚧 **E.1 done, E.2 进行中**(2026-05-02)
+**Status**: 🚧 **E.1 + E.2 done, E.3 进行中**(2026-05-02)
 
 - 上一个 sub-feature: M2.1 Economy ✅ done + archive 完成 (2026-05-02; archive `archive/2026-05-02-rts-m2-1-economy/`)
 - 本 sub-feature 模式: **1 phase 单线推进**(scope minimal); 子任务 E.1 → E.2 → E.3 → E.4
@@ -27,16 +27,19 @@
   - `/tmp/m22_e1_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max_dist=24.00 ranged_max_dist=125.75 (与 M2.1 末态 bit-identical)
   - `/tmp/m22_e1_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 (deep-equal)
 
-### AC2 — Build 决策 (place barracks @ ct 偏移点)
+### AC2 — Build 决策 (place barracks @ ct 偏移点) ✅ (E.2 done — 代码层; runtime 验证落 AC4)
 
-- [ ] **`_try_build_barracks` 实现** in `rts_computer_player.gd`
-  - decision tick (current_tick % 30 == 0)
-  - procedure team_id 当前 barracks 数 == 0 (查 procedure / world API; 不缓存)
-  - procedure.get_team_resources(team_id) ≥ {gold: 80, wood: 50}
-- [ ] **位置算法**:左 team offset = Vector2(96, 0); 右 team Vector2(-96, 0); 基准 = 己方 ct.position
-- [ ] **失败处理**:placement 校验失败(被占 / out of build_zone)就跳过本轮(下个 1s 重试)
-- [ ] **enqueue 接口**:走 `world.procedure.player_command_queue` 现有 push 接口(与玩家命令同链路)
-- [ ] Evidence: AC4 smoke 体现(ai_barracks ≥1)
+- [x] **`_try_build_barracks` 实现** in `rts_computer_player.gd`
+  - decision tick (think 入口已守 % 30 == 0)
+  - `_count_team_barracks(world)` 实时查 alive RtsBuildingActor 过滤 team_id + building_kind == BARRACKS, ≥ BARRACKS_CAP (=1) 直接 return (E5 — 不缓存)
+  - `_team_can_afford(procedure, cost)` 逐 key 对比 procedure.get_team_resources(team_id) 与 RtsBuildingConfig.get_stats(BARRACKS).cost = {gold: 80, wood: 50}; 任一不足 return
+- [x] **位置算法**: BARRACKS_OFFSET_X = 96.0; 左 team offset = Vector2(+96, 0); 右 team = Vector2(-96, 0); 基准 = `_find_team_ct_position(world, procedure)` (走 team_config.crystal_tower_id → world.get_actor → position_2d; 任一缺失 return Vector2.INF → 不放)
+- [x] **失败处理**: 不在 _try_build_barracks 内做 placement 校验; PlaceBuildingCommand.apply 内部 RtsBuildingPlacement.validate 失败 → 命令进 _failed_commands_log; AI 下个 30 tick 重新调用 → 天然 retry (stateless)
+- [x] **enqueue 接口**: `procedure.enqueue_player_command(RtsPlaceBuildingCommand.new(current_tick, team_id, KIND_BARRACKS, place_pos))` — 与玩家命令同链路
+- [x] Evidence (E10 — 既有 smoke 不 attach AI, 0 漂移; AI 实跑验证落 AC4):
+  - `/tmp/m22_e2_lgf.txt` — LGF 73/73 PASS
+  - `/tmp/m22_e2_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 (bit-identical M2.1 末态)
+  - `/tmp/m22_e2_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 deep-equal
 
 ### AC3 — Attack 决策 (出 ≥3 non-worker unit 后 attack-move 一次)
 
@@ -96,8 +99,8 @@
 ## 子任务进度 (E.1-E.4, 单 phase)
 
 - [x] **E.1 — RtsComputerPlayer module + procedure 注册 + tick 末调 .think()** ✅ (LGF 73/73 + 4v4 main + replay 三 sanity 全过, 0 漂移)
-- [ ] **E.2 — Build 决策(barracks 1 cap, ct 偏移点)** 🚧 进行中
-- [ ] **E.3 — Attack 决策(≥3 unit 后 attack-move 一次)**
+- [x] **E.2 — Build 决策(barracks 1 cap, ct 偏移点)** ✅ (代码层; sanity 三件套 0 漂移; AI 实跑验证落 AC4)
+- [ ] **E.3 — Attack 决策(≥3 unit 后 attack-move 一次)** 🚧 进行中
 - [ ] **E.4 — smoke_ai_vs_player_full_match + demo_rts_frontend 启用双 AI + Validation 全套 + Simplify pass + commit + archive**
 
 ---
