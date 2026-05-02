@@ -1,8 +1,23 @@
 # Phase 3 — Advanced（M2+ 高级特性）
 
-> **状态**：未启动（Phase 2 完成后启用，且需要用户明确启动）
-> **进入条件**：Phase 2 收口条件全过
+> **状态**：🚧 **active — 本轮 P3.2 + P3.3 + 寻路验证 demo**（2026-05-02 用户授权;P3.1 / P3.4 deferred）
+> **进入条件**：Phase 2 收口条件全过 ✅
 > **退出条件**：本文档 §收口条件 全过 → 整个 RTS M1 重构归档
+
+---
+
+## 🚧 本轮 active scope (2026-05-02)
+
+用户明确选定:
+- ✅ **P3.2 Group Formation** (scope **扩展** — 加入"玩家选单位 + 拖框 + 右键移动"完整链路 + F6 demo,formation 不再是伪需求)
+- ✅ **P3.3 RtsScenarioHarness** (scope **收窄** — 不重构现有 4v4 主 smoke,仅服务新 4 个寻路 scenario + 未来 P3.x)
+- ➕ **新增交付物**: 4 个寻路验证 scenario + `demo_rts_pathfinding.{gd,tscn}` (P3.2 + P3.3 合体应用,双轨 F6 demo + headless smoke)
+
+Deferred (本轮不做):
+- ❌ **P3.1** Terrain Height + LOS — 用户未选,需后续会话再次明确启动
+- ❌ **P3.4** Fog of War — 依赖 P3.1
+
+实施 plan: `C:\Users\Administrator\.claude\plans\spicy-enchanting-map.md` (已批准)。本文档 §Sub-tasks P3.2 / P3.3 描述维持原架构意图,本轮 scope 调整以 plan 文件 + Next-Steps.md 为准。
 
 ---
 

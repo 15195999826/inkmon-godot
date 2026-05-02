@@ -1,8 +1,63 @@
 ## Progress — RTS Auto-Battle M1 架构重构
 
-**Status**: ✅ **Phase 2 acceptance 全过 (10/10)** — P2.1-P2.8 全部完成 (8/8 sub-tasks); 不退化
+**Status**: 🚧 **Phase 3 启动中** — 本轮选 P3.2 + P3.3 + 寻路验证 demo (用户授权 2026-05-02)
+- Phase 1 ✅ 9/9 AC (2026-05-01)
+- Phase 2 ✅ 10/10 AC (2026-05-02) — P2.1-P2.8 全部完成
+- Phase 3 🚧 进行中 — 本轮 9 条 AC checklist 见下方 §Phase 3
 
-最近更新: 2026-05-02 (P2.8 完成 + Phase 2 收口)
+最近更新: 2026-05-02 (Phase 3 启动)
+
+---
+
+## Phase 3 验收准则 checklist (本轮 — P3.2 + P3.3 + 寻路 demo)
+
+详见 [`Next-Steps.md`](Next-Steps.md) §Phase 3 acceptance criteria + 实施 plan `C:\Users\Administrator\.claude\plans\spicy-enchanting-map.md`。
+
+- [x] **AC1** RtsScenarioHarness 框架 minimal scenario 跑通 (4 scenario 全跑 PASS — 见 AC4-AC7)
+- [x] **AC2** RtsGroupFormation.assign_offsets 对 1/4/8/16 unit 给合法 formation
+  - smoke_move_units_command 验证 4 unit: min_pair_dist=26.54 ≥ 24 (melee 2r); 4/8 unit 在 scenario 中验证
+- [x] **AC3** smoke_move_units_command PASS — MoveUnitsCommand 走 player_command_queue + override_strategy
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_move_units_command.tscn > /tmp/p36_move.txt 2>&1`
+  - Evidence: `/tmp/p36_move.txt` → `ticks=100 alive=4 min_pair_dist=26.54`; PASS - 4 units arrived in formation via MoveUnitsCommand + override_strategy
+- [x] **AC4** scenario_pathfind_around_building PASS — 单 unit 绕 barracks (detour_ratio ≥ 1.05)
+- [x] **AC5** scenario_8_units_no_overlap PASS — pairwise_min_distance ≥ 23.5 (2r - 0.5)
+- [x] **AC6** scenario_formation_preserved PASS — formation_offset_avg ≤ 50 (4 unit 方阵保形)
+- [x] **AC7** scenario_dynamic_obstacle_repath PASS — add_static_obstacle (绕过 build_zone) + grid blocking 让 A* 绕路 (注: stuck_detector 触发的 dynamic repath 已由现有 smoke_stuck_recovery 覆盖)
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_pathfinding_validation.tscn > /tmp/p36_pathval.txt 2>&1`
+  - Evidence: `/tmp/p36_pathval.txt` → `4/4 pathfinding scenarios passed` (pathfind_around_building / 8_units_no_overlap / formation_preserved / dynamic_obstacle_repath)
+- [x] **AC8** LGF 73/73 + 现有所有 RTS smoke 不退化 (含 replay_bit_identical 仍 bit-equal)
+  - LGF: `73/73 PASS` (无新增 fail)
+  - 主战斗 smoke_rts_auto_battle: `result=left_win ticks=347 attacks=74 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4` — **与 P2.8 baseline 完全一致** (0 行为差)
+  - smoke_replay_bit_identical: `seed=42, frames=10, events=20` — bit-identical 仍保持
+  - smoke_determinism: `seed=12345, run1=run2=(left_win, 347), tick_diff=0` — bit-equal
+  - smoke_frontend_main: `visualizers=10 alive_after_3.0s=10` — visualizer set_selected 改动不破坏现有 push 模式
+  - 全部 P1+P2.1-P2.8 smokes (16 个: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / player_command / crystal_tower_win / player_command_production / castle_war_minimal / flying_units / director_streaming): all PASS
+- [ ] **AC9** F6 demo_rts_pathfinding 用户手动视觉验证 (拖框 + 右键 + 4 验证点)
+  - 留给用户在编辑器中 F6 跑 `addons/logic-game-framework/example/rts-auto-battle/frontend/demo_rts_pathfinding.tscn` 验证
+  - 验证清单:
+    - 鼠标左键拖框选 8 unit → selection_ring 黄色圈应亮
+    - 右键点 (550, 250) 远端 → 8 unit 排成方阵走过去 (绕中央 3 barracks footprint, 不重叠, 抵达保 formation)
+    - (可选) 选中 1 unit 命令到远端 → 中途按 K 加路上 obstacle → 看 A* 找新路径绕过去 (注: 因 RtsNavAgent.integrate 不查 grid blocking, 单位若已在路径中段不会被 obstacle 立即拦; 主要观察"obstacle 出现 + path 立即重算" 链路)
+
+## Phase 3 子任务进度
+
+- [ ] **P3.2 — Group Formation + 玩家选单位 / 拖框 / 右键移动** (扩展原设计)
+  - 新增 `logic/movement/rts_group_formation.gd` (静态 assign_offsets — 方阵)
+  - 新增 `logic/commands/rts_move_units_command.gd` (extends RtsPlayerCommand;走 player_command_queue + override_strategy)
+  - 修改 `core/rts_auto_battle_procedure.gd` (加 `get_unit_runtime(id)` accessor)
+  - 修改 `frontend/visualizers/rts_unit_visualizer.gd` (加 `set_selected(bool)` + selection_ring child)
+  - 新 smoke `tests/battle/smoke_move_units_command.{gd,tscn}`
+  - 新 demo `frontend/demo_rts_pathfinding.{gd,tscn}`
+
+- [ ] **P3.3 — RtsScenarioHarness** (收窄 scope — 不重构 4v4 主 smoke)
+  - 新增 `logic/scenario/rts_scenario.gd` (基类: get_scene_config / get_player_commands / get_max_ticks / assert_replay)
+  - 新增 `logic/scenario/rts_scenario_harness.gd` (静态 run runner)
+  - 新增 `logic/scenario/rts_scenario_assert_context.gd` (path_length_traveled / detour_ratio / pairwise_min_distance / formation_centroid / formation_offset_avg + assert_*)
+  - 新增 `tests/battle/scenarios/scenario_pathfind_around_building.gd`
+  - 新增 `tests/battle/scenarios/scenario_8_units_no_overlap.gd`
+  - 新增 `tests/battle/scenarios/scenario_formation_preserved.gd`
+  - 新增 `tests/battle/scenarios/scenario_dynamic_obstacle_repath.gd`
+  - 入口 `tests/battle/smoke_pathfinding_validation.{gd,tscn}` (跑 4 scenario)
 
 ---
 

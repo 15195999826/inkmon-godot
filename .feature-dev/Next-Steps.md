@@ -1,86 +1,77 @@
-# Next Steps — 2026-05-02 (Phase 2 全部完成 — 8/8 sub-tasks; AC 10/10 全过)
+# Next Steps — 2026-05-02 (RTS M1 Phase 3 启动 — P3.2 + P3.3 + 寻路验证 demo)
 
 ## 当前目标
 
-**RTS Auto-Battle M1 架构重构 — Phase 2 (Core Systems) ✅ 已完成**
+**RTS Auto-Battle M1 架构重构 — Phase 3 (Advanced) — 本轮选 P3.2 + P3.3 + 新增寻路验证 demo**
 
-在 Phase 1 修好的骨架上,搭建**城堡战争核心玩法支柱**(含飞行单位)。
+Phase 3 子任务独立可选;本轮经用户授权选定的 scope:
 
-**Feature 总目标**: 把 RTS M0(功能 spike)演进为遵守 LGF 根原则的、支持城堡战争玩法的、流式 simulation + 决定性 replay 的工业级架构。
-**总目标分三个 phase**, Phase 1 ✅ 已完成(2026-05-01), Phase 2 ✅ 已完成(2026-05-02), Phase 3 待用户明确决定。
+- ✅ **P3.2** Group Formation + 玩家选单位 / 拖框 / 右键移动命令 (扩展原 phase-3 设计 — 用户明确要做"玩家操作单位移动"功能,formation 不再是伪需求)
+- ✅ **P3.3** RtsScenarioHarness (声明式 scenario 框架,**不重构**现有 4v4 主 smoke;仅服务新的寻路验证 scenario + 未来 P3.x)
+- ➕ **新增交付物**: 寻路验证 demo + 4 个寻路 scenario (P3.2 + P3.3 合体应用)
+- ❌ **P3.1** Terrain Height + LOS — 本轮 deferred (用户未选)
+- ❌ **P3.4** Fog of War + Vision — 本轮 deferred (依赖 P3.1)
 
 > 完整决策与架构总图: [`task-plan/architecture-baseline.md`](task-plan/architecture-baseline.md)
-> Phase 2 详细子任务: [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md)
-> Phase 3 已规划落盘([`task-plan/phase-3-advanced.md`](task-plan/phase-3-advanced.md)), 启动前需用户明确决定。
+> Phase 3 详细子任务: [`task-plan/phase-3-advanced.md`](task-plan/phase-3-advanced.md) (本轮 P3.2 scope 已扩展, P3.3 scope 已收窄)
+> 实施 plan (按批准的 plan 文件): `C:\Users\Administrator\.claude\plans\spicy-enchanting-map.md`
 
-## Phase 2 完成态 — 8/8 sub-tasks + 10/10 AC
+## 设计要点 (用户已确认)
 
-- ✅ P2.1 — Activity 系统(OpenRA 风, 替代 string FSM)
-- ✅ P2.2 — Spatial Hash + Steering(避障 1+2 层)
-- ✅ P2.3 — Stuck Detection + Local Repath(避障第 3 层)
-- ✅ P2.4 — AutoTargetSystem(Mindustry + OpenRA 合璧)
-- ✅ P2.5 — Production System + Building Factory
-- ✅ P2.6 — Player Command + Building Placement + 胜负判定改写
-- ✅ P2.7 — Frontend BattleDirector 接入流式 events
-- ✅ P2.8 — AIR Layer + target_layer_mask + 飞行单位 + 单位攻击建筑
+- **独立 scene** `frontend/demo_rts_pathfinding.{gd,tscn}` — 不动 castle-war demo,避免双 mode flag
+- **不重构** 现有 4v4 主 smoke `smoke_rts_auto_battle.tscn` — RtsScenarioHarness 仅服务新 scenario
+- **选中限制 team_id=0** — 玩家方单位才能选/下令
+- **双轨验证**: F6 可交互 demo + headless smoke
+- **4 个寻路验证点**:
+  - (a) 绕 building footprint
+  - (b) 8 单位互避障不卡 (pairwise_min_distance ≥ 2r-0.5)
+  - (c) Formation 保形 (offset 阈值内)
+  - (d) 动态 obstacle 重新规划 (stuck detector + local repath)
 
-详细 evidence 见 [`Progress.md`](Progress.md) 各 AC checklist (AC1-AC10 全 PASS)。
+## Phase 3 acceptance criteria (本轮 9 条)
 
-## Phase 2 关键交付
-
-- **Activity 系统**: OpenRA-风 actor.activity 链, 替代 string FSM
-- **完整避障管线**: spatial hash + steering separation/deflection + stuck local repath/abandon (避障 1+2+3 层; 第 4 层 group formation 留 Phase 3)
-- **AutoTargetSystem**: 集中扫敌 (20 tick rescan + 失效即时重扫), priority + stance, P2.8 扩到含建筑作 mover + candidates
-- **Production System**: 建筑周期 spawn 单位; 工厂模式建筑 (crystal_tower / barracks / archer_tower)
-- **Player Command + Crystal-tower 胜负**: PlaceBuildingCommand + RtsTeamConfig (build_zone / resources) + 胜负判定改 ct 死亡优先
-- **Frontend BattleDirector 流式**: visualizer 0 处 actor.position_2d 直读, push 模式 + alpha 插值
-- **Bit-identical Replay (AC10)**: 同 seed + 同 player_commands → timeline events + commands_log 全 bit-identical
-- **AIR Layer + Anti-Air (P2.8)**: target_layer_mask bitmask + RtsWeaponConfig; 飞行单位走 _direct_path 穿地面建筑; archer_tower 防空; 单位可攻击建筑 (城堡战争最小可玩 demo 完整链路)
-
-## 非目标(Phase 2 期间不做; Phase 3 范围)
-
-来自 [`task-plan/phase-2-core-systems.md`](task-plan/phase-2-core-systems.md) 的非目标 + Phase 3 的全部内容。
-
-- ❌ 离散 tile.height + LOS(Phase 3 P3.1)
-- ❌ Group formation(Phase 3 P3.2; 避障第 4 层)
-- ❌ RtsScenarioHarness(Phase 3 P3.3)
-- ❌ Fog of War(Phase 3 P3.4)
+- [ ] **AC1** RtsScenarioHarness 框架 minimal scenario 跑通 (基类契约 + harness runner + assert context API 可用)
+- [ ] **AC2** RtsGroupFormation.assign_offsets 对 1/4/8/16 unit 给合法 formation (non-overlap + 围绕 centroid)
+- [ ] **AC3** smoke_move_units_command PASS — MoveUnitsCommand 走 player_command_queue + override_strategy 链路
+- [ ] **AC4** scenario_pathfind_around_building PASS — 单 unit 绕 barracks footprint 抵达
+- [ ] **AC5** scenario_8_units_no_overlap PASS — 8 单位同令抵达后 pairwise_min_distance ≥ 2r-0.5
+- [ ] **AC6** scenario_formation_preserved PASS — 4 单位长距移动后 formation offset 阈值内
+- [ ] **AC7** scenario_dynamic_obstacle_repath PASS — 中段动态障碍触发 stuck recovery
+- [ ] **AC8** LGF 73/73 + 现有所有 RTS smoke 不退化 (rts_auto_battle / castle_war_minimal / flying_units / replay_bit_identical 仍 bit-equal)
+- [ ] **AC9** F6 demo_rts_pathfinding 用户手动视觉验证: 拖框 → 右键 → 4 个寻路验证点眼见为实
 
 ## 下一步
 
-**等待用户明确决定**:
+按 plan 文件 `spicy-enchanting-map.md` 实施步骤逐步推进:
 
-### 选项 A — 启动 Phase 3 (Advanced 高级特性)
+**Step 2** — P3.3 RtsScenarioHarness 框架 (P3.2 验证依赖它,先做)
+- 新增 `addons/logic-game-framework/example/rts-auto-battle/logic/scenario/{rts_scenario, rts_scenario_harness, rts_scenario_assert_context}.gd`
+- 同构 hex `skill_scenario_harness` API,但用 RTS 类型重写 (不复用 hex CharacterActor / HexCoord / ATB)
 
-> 详见 [`task-plan/phase-3-advanced.md`](task-plan/phase-3-advanced.md)
+(后续 Step 3-7 见 plan 文件)
 
-Phase 3 子任务**独立可选** (用户按项目需要选做哪些, 不强制全做):
-- P3.1 离散 tile.height + LOS
-- P3.2 Group Formation (避障第 4 层)
-- P3.3 RtsScenarioHarness (声明式测试)
-- P3.4 Fog of War / Vision System
+## 非目标 (本轮 Phase 3 不做)
 
-启动前用户需明确: 做哪几个? 优先级? 时间窗口?
+- ❌ P3.1 Terrain Height + LOS (Phase 3 第二批,需用户再次确认启动)
+- ❌ P3.4 Fog of War (依赖 P3.1)
+- ❌ 重构现有 4v4 主 smoke 为 unit-level scenario (原 phase-3-advanced.md 计划,已收窄)
+- ❌ 其他玩家命令 (Patrol / AttackMove unit-targeted / Stop) — 本轮仅 MoveUnitsCommand
+- ❌ formation 形状选择 (line / circle / wedge) — 本轮仅 square 方阵
 
-### 选项 B — RTS M1 重构整体收尾 (跳过 Phase 3)
+## F6 视觉验证 (AC9 user sign-off)
 
-直接把整个 RTS M1 重构 feature (Phase 1+2) 归档到 `.feature-dev/archive/<YYYY-MM-DD>-rts-m1-refactor/`, 切回 "等待用户确认下一个 feature" 状态。
+Phase 3 收口前用户应在编辑器中 F6 跑 `frontend/demo_rts_pathfinding.tscn`:
+- 鼠标左键拖框选 8 unit (selection_ring 黄色圈应亮)
+- 右键点远端目标 → 8 unit 排成方阵走过去,**不重叠 + 绕 barracks footprint + 抵达后保持 formation 间距**
+- (可选) 选中 1 unit 命令到远端,中途按 K 在 path 中段下兵营 → unit 应触发 local repath 绕过去
 
-Phase 2 的"功能可玩"已经满足 RTS M1 milestone 范围 (用户最初目标: 把 M0 功能 spike 演进为合规架构 + 支持城堡战争玩法), Phase 3 是"锦上添花"的高级特性, 不是 M1 必需。
+如视觉链路有 bug (而 headless smoke 没捕获), hotfix 后再收口本轮 Phase 3。
 
-## F6 视觉验证 (AC8 user sign-off)
+## 启动后续 Phase 3 子任务 / 新 feature
 
-Phase 2 收口前用户应在编辑器中 F6 跑 `demo_rts_frontend.tscn` 验证视觉效果:
-- 双方 crystal_tower + archer_tower + 4 ground unit + 1 flying_scout / 方
-- 玩家点击左方 build_zone (50,50)~(250,450) → 放置 barracks (HUD 显示 resources 扣减)
-- barracks 周期 spawn melee 朝右方 ct 进军
-- archer_tower (左方) 击退 right_scout 飞行单位
-- 战斗以一方 ct 死亡结束 (HUD 显示 ct hp 归 0)
+本轮 P3.2 + P3.3 + 寻路 demo 完成后:
 
-如果上述视觉链路有 bug (而 headless smoke 没捕获), 启动 hotfix 在 Phase 3 启动前修。
+- 用户可选: 启动 P3.1 (terrain height) / P3.4 (fog of war) — 走类似流程,在 Next-Steps.md 切到 active
+- 用户可选: 整体收尾 RTS M1 重构 → 归档至 `.feature-dev/archive/<YYYY-MM-DD>-rts-m1-refactor/`,切回"等待新 feature"状态
 
-## 启动新 feature 流程
-
-要在 RTS M1 重构整体完成后开新的 feature(非本 feature 的延续), 调 `/next-feature-planner`:
-- 整个 feature(含 Phase 1+2[+3])归档至 `.feature-dev/archive/<YYYY-MM-DD>-rts-m1-refactor/`
-- 重写本文件、`Current-State.md`、`Progress.md`、`task-plan/` 为新 feature
+要在 RTS M1 重构整体完成后开新的非延续 feature,调 `/next-feature-planner`。

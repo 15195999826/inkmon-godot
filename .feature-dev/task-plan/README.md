@@ -14,8 +14,8 @@
 |---|---|---|
 | [`architecture-baseline.md`](architecture-baseline.md) | 锁定决策 + 总图（13 条决策 + 模块拓扑 + 基类骨架）| **稳定 spec**，跨 phase 不变 |
 | [`phase-1-foundation.md`](phase-1-foundation.md) | Phase 1 详细子任务 P1.1–P1.7 | ✅ **已完成 9/9 AC**（2026-05-01） |
-| [`phase-2-core-systems.md`](phase-2-core-systems.md) | Phase 2 详细子任务 P2.1–P2.8 | **当前 active phase** |
-| [`phase-3-advanced.md`](phase-3-advanced.md) | Phase 3 详细子任务 P3.1–P3.5（可选项）| 待启动（且需用户明确启动）|
+| [`phase-2-core-systems.md`](phase-2-core-systems.md) | Phase 2 详细子任务 P2.1–P2.8 | ✅ **已完成 10/10 AC**（2026-05-02）|
+| [`phase-3-advanced.md`](phase-3-advanced.md) | Phase 3 详细子任务 P3.1–P3.4（可选项）| 🚧 **active — 本轮选 P3.2 + P3.3 + 寻路 demo**（2026-05-02 用户授权）|
 
 > `architecture-baseline.md` 是稳定 spec，所有 phase 文档引用它而不重复决策。
 > 各 phase 文档自给自足，autonomous-feature-runner 一次只读当前 phase 的文档。

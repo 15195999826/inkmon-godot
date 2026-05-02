@@ -1,6 +1,8 @@
-# Current State — 2026-05-02(RTS M1 Phase 2 ✅ 全部完成 — P2.1-P2.8 8/8 + AC 10/10 全过)
+# Current State — 2026-05-02(RTS M1 Phase 3 启动中 — P3.2 + P3.3 + 寻路 demo)
 
 inkmon-godot baseline 事实快照。开新 phase 前对齐用。
+
+> **Phase 状态**: Phase 1 ✅ + Phase 2 ✅ (8/8 + AC 10/10) — baseline 见下文; Phase 3 本轮选 P3.2 + P3.3 + 寻路验证 demo 启动中 (代码尚未改; 实施 plan 见 `C:\Users\Administrator\.claude\plans\spicy-enchanting-map.md`)。
 
 ## 工程结构
 
