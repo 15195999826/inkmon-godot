@@ -50,24 +50,28 @@
 
 ## 下一步
 
-**E.3 — Attack 决策(≥3 non-worker unit 后 attack-move 一次)**
+**E.4 — smoke_ai_vs_player_full_match + demo_rts_frontend 启用双 AI + Validation 全套 + Simplify pass + commit + archive**
 
-E.2 已收口 ✅(2026-05-02; sanity 三件套 0 漂移)
+E.3 已收口 ✅(2026-05-02; 代码层 _try_attack 落地, sanity 三件套 0 漂移)
 
 具体动作:
-1. 在 `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_computer_player.gd` 内实现 `_try_attack(world, current_tick)`:
-   - 守卫: `_attack_dispatched == true` → return (only-once, M2.2 不做反复跟随)
-   - 收集己方 alive non-worker RtsUnitActor: `world.get_alive_units()` 过滤 team_id + unit_class != WORKER
-   - 数量 < ATTACK_DISPATCH_THRESHOLD (=3) → return
-   - 找敌方 ct.position_2d (team_config(1-team_id).crystal_tower_id); 没 ct → return
-   - enqueue MoveUnitsCommand (tick_stamp = current_tick, team_id, unit_ids = [all non-worker], target_pos = enemy_ct_pos)
-   - 设 `_attack_dispatched = true`
-   - 注: M2.2 不 attack_move=true (RtsMoveUnitsCommand 没有此字段; 走纯 move 即 unit 自身 AutoTargetSystem 在路上选近敌即时 engage; 验证 ai_unit_to_ct_attacks ≥ 1 充分)
-2. headless smoke sanity:
-   - LGF 73/73 不退化(`/tmp/m22_e3_lgf.txt`)
-   - smoke_rts_auto_battle 4v4 数字 bit-identical(`/tmp/m22_e3_main.txt`)
-   - smoke_replay_bit_identical 数字 deep-equal(`/tmp/m22_e3_replay.txt`)
-3. 都过后 commit (submodule 内 commit + 主仓 bump pointer)
+1. 新建 `addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_ai_vs_player_full_match.{gd,tscn}`:
+   - setup: 双方 5 worker + 1 ct + 1 gold + 1 wood node; starting {gold:100, wood:100}
+   - 左 team(team_id=0) attach AI (procedure.attach_computer_player(0)); 右 team(team_id=1) NO attach
+   - 跑 600 tick @ 30Hz (TICK_INTERVAL_MS=33.333)
+   - 输出格式: `SMOKE_TEST_RESULT: PASS - ai_barracks=N1 ai_units_spawned=N2 ai_unit_to_ct_attacks=N3`
+   - 断言 ai_barracks ≥ 1 + ai_units_spawned ≥ 3 + ai_unit_to_ct_attacks ≥ 1
+2. 改 `addons/logic-game-framework/example/rts-auto-battle/frontend/demo_rts_frontend.gd`:
+   - procedure setup 后 `procedure.attach_computer_player(0)` + `procedure.attach_computer_player(1)`
+   - 起手 spawn 维持 M2.1 末态 (5 worker + 1 ct + 4 中立 node / 方); HUD 不动
+3. Validation 全套 13 项 0 漂移 (12 既有 smoke + 1 新 smoke):
+   - 见 task-plan/m2-2-ai-opponent/README.md §AC6 完整列表
+4. Phase-close gate (commit 之前):
+   - 7a. /simplify pass on changed files (rts_computer_player.gd / rts_auto_battle_procedure.gd / smoke_ai_vs_player_full_match.gd / demo_rts_frontend.gd)
+   - 7b. 若 simplify 改动代码, 重跑 13 项 validation 全套
+   - 7c. AC-doc consistency review (task-plan/m2-2-ai-opponent/README.md §6 AC ↔ 实际代码 一致性)
+5. commit (submodule + 主仓 bump) + archive (`archive/2026-05-02-rts-m2-2-ai-opponent/`)
+6. Current-State.md 更新为 M2.2 末态; m2-roadmap.md M2.2 标 ✅; 主 Next-Steps.md 切回"等待用户确认下一个 feature"
 
 ## 非下一步
 

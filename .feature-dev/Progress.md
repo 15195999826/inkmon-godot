@@ -1,6 +1,6 @@
 ## Progress — RTS Auto-Battle M2.2 AI 对手 (Computer Player)
 
-**Status**: 🚧 **E.1 + E.2 done, E.3 进行中**(2026-05-02)
+**Status**: 🚧 **E.1 + E.2 + E.3 done (代码层), E.4 进行中**(2026-05-02)
 
 - 上一个 sub-feature: M2.1 Economy ✅ done + archive 完成 (2026-05-02; archive `archive/2026-05-02-rts-m2-1-economy/`)
 - 本 sub-feature 模式: **1 phase 单线推进**(scope minimal); 子任务 E.1 → E.2 → E.3 → E.4
@@ -41,16 +41,19 @@
   - `/tmp/m22_e2_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 (bit-identical M2.1 末态)
   - `/tmp/m22_e2_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 deep-equal
 
-### AC3 — Attack 决策 (出 ≥3 non-worker unit 后 attack-move 一次)
+### AC3 — Attack 决策 (出 ≥3 non-worker unit 后 attack-move 一次) ✅ (E.3 done — 代码层; runtime 验证落 AC4)
 
-- [ ] **`_try_attack` 实现** in `rts_computer_player.gd`
-  - decision tick
-  - `_attack_dispatched == false`
-  - team alive non-worker unit count ≥ 3(查 procedure 兵种统计)
-- [ ] **目标 = 敌方 ct.position**(team_config.crystal_tower_id 查找)
-- [ ] **enqueue MoveUnitsCommand**(unit_ids = team 所有 alive non-worker; attack_move=true)
-- [ ] **Only-once**:派出后 `_attack_dispatched = true`(M2.2 不做反复跟随)
-- [ ] Evidence: AC4 smoke 体现(ai_unit_to_ct_attacks ≥1)
+- [x] **`_try_attack` 实现** in `rts_computer_player.gd`
+  - decision tick (think 入口已守 % 30 == 0)
+  - `_attack_dispatched == false` 守卫 (E6 — only-once)
+  - `_collect_team_non_worker_unit_ids(world)` 走 world.get_alive_units 过滤 team_id + unit_class != WORKER; 数量 < ATTACK_DISPATCH_THRESHOLD (=3) return
+- [x] **目标 = 敌方 ct.position**: `_find_team_ct_position_for(world, procedure, 1 - team_id)` (helper 重命名: 原 `_find_team_ct_position` 改 wrap, 加 `_find_team_ct_position_for(p_team_id)` 可指定查己方/敌方 team)
+- [x] **enqueue MoveUnitsCommand**(unit_ids = all alive non-worker; target_pos = enemy_ct_pos): RtsMoveUnitsCommand sig (current_tick, team_id, unit_ids, target_pos) — spacing 走 default 30; 没有 attack_move 字段, 走纯 RtsMoveToActivity, unit 抵达后 controller._player_command_active 自动清, RtsBasicAttackStrategy 接管 → AutoTargetSystem 写 cached_target_id → unit attack ct
+- [x] **Only-once**: `_attack_dispatched = true` 派出后 (M2.2 不做反复跟随)
+- [x] Evidence (E10 — 既有 smoke 不 attach AI, 0 漂移; AI 实跑验证落 AC4):
+  - `/tmp/m22_e3_lgf.txt` — LGF 73/73 PASS
+  - `/tmp/m22_e3_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 (bit-identical M2.1 末态)
+  - `/tmp/m22_e3_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 deep-equal
 
 ### AC4 — `smoke_ai_vs_player_full_match.{gd,tscn}` PASS (中等强度)
 
@@ -100,8 +103,8 @@
 
 - [x] **E.1 — RtsComputerPlayer module + procedure 注册 + tick 末调 .think()** ✅ (LGF 73/73 + 4v4 main + replay 三 sanity 全过, 0 漂移)
 - [x] **E.2 — Build 决策(barracks 1 cap, ct 偏移点)** ✅ (代码层; sanity 三件套 0 漂移; AI 实跑验证落 AC4)
-- [ ] **E.3 — Attack 决策(≥3 unit 后 attack-move 一次)** 🚧 进行中
-- [ ] **E.4 — smoke_ai_vs_player_full_match + demo_rts_frontend 启用双 AI + Validation 全套 + Simplify pass + commit + archive**
+- [x] **E.3 — Attack 决策(≥3 unit 后 attack-move 一次)** ✅ (代码层; sanity 三件套 0 漂移; AI 实跑验证落 AC4)
+- [ ] **E.4 — smoke_ai_vs_player_full_match + demo_rts_frontend 启用双 AI + Validation 全套 + Simplify pass + commit + archive** 🚧 进行中
 
 ---
 
