@@ -1,11 +1,12 @@
 ## Progress — RTS Auto-Battle M2.1 Economy
 
-**Status**: ✅ **Phase A + B 收口** (2026-05-02); **Phase C 启动等待用户确认**
+**Status**: ✅ **Phase A + B 收口** (2026-05-02); 🚧 **Phase C 启动 active** (2026-05-02)
 - Phase A: ✅ 完成 (7/7 AC) — Multi-Resource Foundation
 - Phase B: ✅ 完成 (6/6 AC) — Resource Nodes + Worker Class
-- Phase C-D: 🔒 等待用户确认是否启动 Phase C (Harvest Activity + Drop-off Loop)
+- Phase C: 🚧 active (0/7 AC) — Harvest Activity + Drop-off Loop
+- Phase D: 🔒 待 Phase C 收口后启动
 
-最近更新: 2026-05-02 (M2.1 Phase B 全 6 AC 收口, 11/11 smoke + LGF 73/73 全 PASS, 0 行为漂移)
+最近更新: 2026-05-02 (Phase C 启动: 用户确认 D6/D7/D8 决策, phase-c-harvest-activity.md plan 落地, 等待 /autonomous-feature-runner 进 Step 1 — C.1)
 
 ---
 
@@ -123,9 +124,78 @@
 
 ---
 
-## Phase C-D 待启 (Phase B 收口后)
+---
 
-详见 [`task-plan/m2-1-economy/README.md`](task-plan/m2-1-economy/README.md)。
+## Phase C — Harvest Activity + Drop-off Loop (🚧 active)
 
-- **Phase C** — Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off + HarvestStrategy; smoke_harvest_loop)
-- **Phase D** — Cost Rebalance + smoke_economy_demo (multi-resource cost 配方调整 + 经济闭环 full cycle smoke + 编辑器 F6 视觉验证)
+详见 [`task-plan/m2-1-economy/phase-c-harvest-activity.md`](task-plan/m2-1-economy/phase-c-harvest-activity.md)。
+
+### Phase C 验收准则 checklist (0/7)
+
+- [ ] **AC1** `RtsAutoBattleProcedure.add_team_resources(team_id, delta: Dictionary)` 对称 spend
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/core/rts_auto_battle_procedure.gd` (改)
+  - Evidence: 待实现
+- [ ] **AC2** 新 `RtsHarvestActivity` (extends RtsActivity)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/activity/harvest_activity.gd` (新)
+  - Evidence: 待实现 (字段 target_node_id / harvest_progress / _nav_agent; 钩子 on_first_run / tick / on_last_run / is_equivalent_to / get_intent_label)
+- [ ] **AC3** 新 `RtsReturnAndDropActivity` (extends RtsActivity)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/activity/return_and_drop_activity.gd` (新)
+  - Evidence: 待实现 (字段 drop_off_id / _nav_agent; on_first_run 找 is_drop_off 建筑; tick 抵达调 procedure.add_team_resources)
+- [ ] **AC4** 新 `RtsHarvestStrategy` (extends RtsAIStrategy)
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_harvest_strategy.gd` (新)
+  - Evidence: 待实现 (carrying 非空 → ReturnAndDrop; 否则找最近 ResourceNode → Harvest; 找不到 → Idle)
+- [ ] **AC5** `RtsAIStrategyFactory.get_strategy(WORKER)` 切到 `_harvest_strategy`
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_ai_strategy_factory.gd` (改)
+  - Evidence: 待实现 (新 `static var _harvest_strategy`; WORKER 分支返 `_harvest_strategy`)
+- [ ] **AC6** 新 `smoke_harvest_loop.{gd,tscn}` PASS
+  - 文件: `addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_harvest_loop.{gd,tscn}` (新)
+  - Evidence: 待跑 (`/tmp/m21_c_hl.txt`; 期望 ticks=600 alive_workers=5 gold_amount<1500 wood_amount<1500 team_gold≥100 team_wood≥100 cycle_completed≥1)
+- [ ] **AC7** Validation 全套不退化 (LGF 73/73 + 既有 6 RTS smoke + 2 replay smoke + frontend smoke 0 漂移; smoke_resource_nodes 见风险表)
+  - Evidence: 待跑 (`/tmp/m21_c_lgf_unit.txt` / `/tmp/m21_c_main.txt` / `/tmp/m21_c_replay.txt` / `/tmp/m21_c_det.txt` / `/tmp/m21_c_fe.txt` / `/tmp/m21_c_pc.txt` / `/tmp/m21_c_pcp.txt` / `/tmp/m21_c_cw.txt` / `/tmp/m21_c_prod.txt` / `/tmp/m21_c_ct.txt` / `/tmp/m21_c_rn.txt`)
+
+### Phase C 子任务进度 (0/7)
+
+- [ ] **C.1 — World ↔ Procedure 通信打通**
+  - World 加 `procedure: RtsAutoBattleProcedure` 字段 + `bind_procedure(p)` 方法
+  - Procedure._init 末尾调 `world.bind_procedure(self)`
+  - Procedure 加 `add_team_resources(team_id, delta: Dictionary)` (对称 spend)
+- [ ] **C.2 — `RtsUnitActor.carrying` 字段**
+  - 加 `carrying: Dictionary[String, int] = {}`; 既有兵种不读不写, 默认 {}
+- [ ] **C.3 — `RtsBuildingActor.is_drop_off` 字段 + ct 起手设 true**
+  - RtsBuildingActor 加 `is_drop_off: bool = false`
+  - RtsBuildings.create_crystal_tower 末尾设 `b.is_drop_off = true`
+- [ ] **C.4 — `RtsHarvestActivity` 新文件** (单一 Activity 自管 nav, 类似 RtsAttackActivity 模式)
+- [ ] **C.5 — `RtsReturnAndDropActivity` 新文件** (on_first_run 找己方最近 is_drop_off; 抵达调 add_team_resources)
+- [ ] **C.6 — `RtsHarvestStrategy` 新文件 + factory 切换** (worker → harvest_strategy, melee/ranged 不动)
+- [ ] **C.7 — `smoke_harvest_loop.{gd,tscn}` 新文件**
+  - 起手: 5 worker (左 team 0) + 1 gold node + 1 wood node (中立) + 双方 ct 不死
+  - 跑 600 tick, 验 gold/wood 双增长 ≥ 100 + 至少 1 worker 完整 cycle
+
+### Phase C 设计决策 (用户 2026-05-02 确认 + phase-c-harvest-activity.md §设计决策详)
+
+- **D6**: Drop-off = 复用 `crystal_tower` (用户已确认)
+- **D7**: Worker AI = 找最近未耗尽 ResourceNode (用户已确认; round-robin tiebreak by actor_id 字典序)
+- **D8**: Worker 出生 = hardcode smoke/demo (用户已确认; 不加 SpawnWorkerCommand)
+- **D9**: Activity ↔ procedure 通信 = `RtsWorldGameplayInstance.bind_procedure` + `world.procedure.add_team_resources(...)` (Activity sig 不动)
+- **D10**: HarvestActivity = 单一 Activity 自管 nav (类似 RtsAttackActivity, 不嵌套 child MoveTo)
+- **D11**: 多 worker 同 node 无锁 (controller.tick 顺序决定性, 后到 worker actual=0)
+- **D12**: HARVEST_RADIUS = 32 px; DROP_OFF_RADIUS = 32 px
+- **D13**: smoke 跑 600 tick @ 33.33ms ≈ 20s; 阈值 gold + wood 双 ≥ 100 (5 worker × 4 cycle × 10 cap = 200, 阈值留余)
+- **D14**: Stance 不影响 worker (mask=NONE 不参战)
+- **D15**: `RtsUnitActor.carrying: Dictionary[String, int] = {}` 字段
+- **D16**: harvest_progress per-tick 累积 + floor(progress) 单位时刻 mutate node.amount + worker.carrying
+
+### Phase C 风险占位 (详见 phase-c-harvest-activity.md §风险表)
+
+- 🔒 Phase B `smoke_resource_nodes` 被 break (worker 不再 idle 因 harvest_strategy 切换) — 实现 C.6 后跑此 smoke 决定方案 A (改 smoke 起手不放 node) vs 方案 B (删此 smoke, smoke_harvest_loop 已覆盖)
+- 🔒 Activity ↔ procedure 通信循环 (World ↔ Procedure 互 hold ref) — bind_procedure 后 ObjectDB leak 无变化即可
+- 🔒 Bit-identical replay 漂移 — factory `_harvest_strategy` 静态 init 不调 RtsRng, HarvestStrategy 找最近用 actor_id tiebreak (确定性), replay 应 0 漂移
+- 🔒 Drop-off 找不到 ct (ct 死亡) → carrying-locked-no-drop 死循环 — smoke 起手 ct 不死规避; Phase D smoke_economy_demo 加 fallback 测
+
+---
+
+## Phase D 待启 (Phase C 收口后)
+
+详见 [`task-plan/m2-1-economy/README.md`](task-plan/m2-1-economy/README.md) §Phase D。
+
+- **Phase D** — Cost Rebalance + smoke_economy_demo (multi-resource cost 配方调整 + 经济闭环 full cycle smoke + 编辑器 F6 视觉验证 + demo_rts_frontend worker spawn)

@@ -33,7 +33,7 @@
 
 **为何先做 M2.1**: M2.2 (AI 对手) 和 M2.3 (Build Panel) 都要决策"AI 该花什么资源 / Build Panel 该列哪些 building cost", 没有经济系统这俩都对着空气玩。M2.1 是 pre-requisite。
 
-**Status**: 🚧 active (Phase A 启动 2026-05-02)
+**Status**: 🚧 active (Phase A + B ✅ 收口 2026-05-02; Phase C 🚧 active 2026-05-02)
 
 ---
 

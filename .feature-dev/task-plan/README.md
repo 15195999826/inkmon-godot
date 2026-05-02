@@ -14,20 +14,21 @@
 | [`m2-1-economy/README.md`](m2-1-economy/README.md) | M2.1 4 phase 拆分概览 + 收口条件 | 稳定 spec |
 | [`m2-1-economy/phase-a-multi-resource.md`](m2-1-economy/phase-a-multi-resource.md) | Phase A 详细子任务 A.1-A.6 | ✅ done (2026-05-02; 7/7 AC PASS) |
 | [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) | Phase B 详细子任务 B.1-B.6 | ✅ done (2026-05-02; 6/6 AC PASS) |
+| [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) | Phase C 详细子任务 C.1-C.7 + D6-D16 决策表 | 🚧 active (2026-05-02 启动; 0/7 AC) |
 
-> Phase C/D 详细文档待对应 phase 启动时添加。`m2-1-economy/README.md` 已列出每 phase 的 scope / acceptance 主旨。
+> Phase D 详细文档待 Phase C 收口后添加。`m2-1-economy/README.md` 已列出每 phase 的 scope / acceptance 主旨。
 
 ---
 
-## 当前 Phase 总览 (M2.1 Phase B 收口, 等待 Phase C 启动)
+## 当前 Phase 总览 (M2.1 Phase C 启动 active)
 
-**Phase B ✅ 收口 (2026-05-02)** — Resource Nodes + Worker Class
+**Phase A + B ✅ 收口 (2026-05-02)** — Multi-Resource Foundation + Resource Nodes + Worker Class
 
-13/13 AC (Phase A 7 + Phase B 6) 全过, 11/11 validation 全套 PASS, 0 行为漂移。详见 [`m2-1-economy/phase-b-resource-nodes.md`](m2-1-economy/phase-b-resource-nodes.md) (AC 全部 [x]) + `Progress.md` §Phase B。
+13/13 AC (Phase A 7 + Phase B 6) 全过, 11/11 validation 全套 PASS, 0 行为漂移。
 
-**Phase C 等待用户确认启动** (Harvest Activity + Drop-off Loop):
-- 经济闭环核心: HarvestActivity / ReturnAndDropActivity / HarvestStrategy / smoke_harvest_loop
-- 启动前由 `/next-feature-planner` 写 `phase-c-harvest-activity.md` + 切 Next-Steps.md 当前目标
+**Phase C 🚧 active (2026-05-02 启动)** — Harvest Activity + Drop-off Loop
+
+经济闭环核心。详细 plan: [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) (7 AC + 7 子任务 + D6-D16 决策表 + 风险表)。用户已确认 D6/D7/D8 (Drop-off=ct / 找最近未耗尽 / hardcode spawn);D9-D16 实现细节决策由执行者按文档落地。下一步 = Step 1 (C.1 World ↔ Procedure 通信打通)。
 
 ---
 
@@ -51,14 +52,16 @@
 
 回归验证: LGF 73/73 + 既有 6 smoke + 2 replay smoke + frontend smoke 0 行为漂移 (与 Phase A 末态完全一致)。
 
-### Phase C — Harvest Activity + Drop-off Loop
+### Phase C — Harvest Activity + Drop-off Loop 🚧 active (2026-05-02)
 
-经济闭环核心: `RtsHarvestActivity` (worker → 资源点 → harvest_progress 累积 → carrying = capacity → switch) + `RtsReturnAndDropActivity` (worker → 最近 drop-off → 加 team_resources → switch back) + `RtsHarvestStrategy` (worker autonomous 行为, idle 时找最近 ResourceNode)。
+详见 [`m2-1-economy/phase-c-harvest-activity.md`](m2-1-economy/phase-c-harvest-activity.md) — 7 AC + 7 子任务 (C.1-C.7) + D6-D16 决策表 + 风险表 + Validation 顺序。
 
-- Drop-off 建筑: 倾向 复用 crystal_tower (双 ct 起手就有, 不新加 town_hall) — Phase C 启动时确认
-- Worker 出生方式: 倾向 hardcode demo / scenario 起手 spawn N 个 (不加 SpawnWorkerCommand) — Phase C 启动时确认
+**用户已确认决策** (2026-05-02):
+- **D6** Drop-off = 复用 crystal_tower (RtsBuildingActor 加 is_drop_off 字段, ct 起手设 true)
+- **D7** Worker AI = 找最近未耗尽 ResourceNode (round-robin tiebreak by actor_id)
+- **D8** Worker 出生 = hardcode smoke/demo (不加 SpawnWorkerCommand)
 
-**Acceptance 主旨**: smoke_harvest_loop (5 worker + 1 gold node + 1 wood node, 跑 N tick 后 team_resources gold + wood 双增长 ≥ X; cycle 完整: worker → node → drop-off → team_resources)
+**Acceptance 主旨**: smoke_harvest_loop (5 worker + 1 gold + 1 wood + 双方 ct 不死, 跑 600 tick → gold + wood 双增长 ≥ 100 + 至少 1 worker 完整 cycle) + 既有 6 RTS smoke + 2 replay smoke + frontend smoke 0 漂移 + LGF 73/73 不退化 (Phase B smoke_resource_nodes 因 strategy 切换可能需要调整, 见 phase-c §风险表)
 
 ### Phase D — Cost Rebalance + smoke_economy_demo
 

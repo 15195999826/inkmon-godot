@@ -12,7 +12,7 @@
 |---|---|---|
 | **A** | Multi-Resource Foundation (config 迁移 + 既有 smoke 适配) | ✅ done (2026-05-02; 7/7 AC PASS, bit-identical replay 0 漂移) |
 | **B** | Resource Nodes + Worker Class (新 actor + UnitClass.WORKER + idle 行为) | ✅ done (2026-05-02; 6/6 AC PASS, 11/11 validation 全过 0 漂移) |
-| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | 🔒 pending — 等待用户确认启动 |
+| **C** | Harvest Activity + Drop-off Loop (HarvestActivity + ReturnAndDropActivity + crystal_tower 兼 drop-off) | 🚧 active (2026-05-02 启动; 0/7 AC) |
 | **D** | Cost Rebalance + smoke_economy_demo (经济闭环 full cycle + F6 视觉) | 🔒 pending |
 
 ---
@@ -42,28 +42,26 @@
 
 ---
 
-## Phase C — Harvest Activity + Drop-off Loop 🔒 pending
+## Phase C — Harvest Activity + Drop-off Loop 🚧 active
 
-**详细 plan**: 待 Phase B 收口后写 `phase-c-harvest-activity.md`。
+**详细 plan**: [`phase-c-harvest-activity.md`](phase-c-harvest-activity.md) (2026-05-02 启动时落地; 7 AC + 7 子任务 + D6-D16 决策表 + 风险表 + Validation 顺序)
 
-**Scope 概要**:
-- 新 `RtsHarvestActivity` (extends RtsActivity)
-  - 阶段 1: worker 走 MoveTo 到 ResourceNode 旁
-  - 阶段 2: harvest_progress 每 tick += harvest_speed
-  - 阶段 3: progress 达到 carry_capacity → carrying = capacity, switch to ReturnAndDrop
-  - cancel: 走通用 RtsActivity cancel propagation (清 nav_agent target)
-- 新 `RtsReturnAndDropActivity`
-  - 阶段 1: worker 走 MoveTo 到最近 drop-off (crystal_tower)
-  - 阶段 2: 抵达后 carrying → procedure.add_team_resources(team_id, {kind: amount}); carrying = 0
-  - 阶段 3: switch back to Harvest (找新的 ResourceNode)
-- 新 `RtsHarvestStrategy` (worker 默认 strategy)
-  - decide(...) 返回 RtsHarvestActivity 包裹最近 ResourceNode (跨 GOLD/WOOD 平衡? 或 round-robin? Phase C 启动时定)
-  - idle 时 trigger; HOLD_FIRE stance 不 trigger
-- Drop-off 设计: **复用 crystal_tower** (双 ct 起手就有, 不新加 town_hall)
-- Worker 出生方式: **hardcode demo / scenario 起手 spawn N 个** (不加 SpawnWorkerCommand; 留给 M2.2 AI 时若需要再加)
+**用户已确认决策** (2026-05-02):
+- **D6** Drop-off = 复用 `crystal_tower` (RtsBuildingActor 加 `is_drop_off` 字段, ct 起手设 true)
+- **D7** Worker AI = 找最近未耗尽 ResourceNode (round-robin tiebreak by actor_id)
+- **D8** Worker 出生 = hardcode smoke/demo (不加 SpawnWorkerCommand)
+
+**实现细节决策** (D9-D16, 详见 phase-c-harvest-activity.md §设计决策):
+- Activity ↔ procedure 通信走 `RtsWorldGameplayInstance.bind_procedure` (Activity sig 不动)
+- HarvestActivity = 单一 Activity 自管 nav (类似 RtsAttackActivity 模式)
+- 多 worker 同 node 无锁 (controller.tick 顺序决定性)
+- HARVEST_RADIUS = DROP_OFF_RADIUS = 32 px
+- harvest_progress per-tick 累积, floor(progress) 单位时刻 mutate node.amount + worker.carrying
 
 **Acceptance 主旨**:
-- smoke_harvest_loop (5 worker + 1 gold node @ pos_a + 1 wood node @ pos_b, 跑 N tick 后 team_resources gold/wood 双增长 ≥ X; cycle 完整: worker → node → drop-off → team_resources)
+- smoke_harvest_loop (5 worker + 1 gold + 1 wood + 双方 ct 不死, 跑 600 tick → gold + wood 双增长 ≥ 100 + 至少 1 worker 完整 cycle)
+- 既有 6 RTS smoke + 2 replay smoke + frontend smoke 0 漂移 (Phase B smoke_resource_nodes 因 strategy 切换可能需要调整, 见 phase-c §风险表第 1 行)
+- LGF 73/73 不退化
 
 ---
 
