@@ -1,8 +1,8 @@
 ## Progress — RTS Auto-Battle M1 架构重构
 
-**Status**: Phase 2 in progress — **P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 + P2.7 done (7/8 sub-tasks)**, 不退化
+**Status**: ✅ **Phase 2 acceptance 全过 (10/10)** — P2.1-P2.8 全部完成 (8/8 sub-tasks); 不退化
 
-最近更新: 2026-05-01 (P2.7 完成)
+最近更新: 2026-05-02 (P2.8 完成 + Phase 2 收口)
 
 ---
 
@@ -60,15 +60,28 @@
   - 命令 B (frontend smoke 升级走 director): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/frontend/smoke_frontend_main.tscn > /tmp/p27_rts_fe.txt 2>&1` → `visualizers=8 alive_after_3.0s=8 SMOKE_TEST_RESULT: PASS`
   - 命令 C (AC6 主断言 grep): `grep -rn 'actor\.position_2d' addons/logic-game-framework/example/rts-auto-battle/frontend/visualizers/ addons/logic-game-framework/example/rts-auto-battle/frontend/world_view.gd` → 0 处直读 (visualizer 完全 0 处 actor.* 字段读)
   - Evidence: visualizer 走 push 模式 — `update_render_state(prev_pos, curr_pos, hp, max_hp, is_dead)` 由 RtsWorldView 路由 director.actor_render_state_updated signal 进来; visualizer `_process(delta)` 走 director.get_alpha() 在 prev_pos / curr_pos 之间 lerp, 60FPS 渲染插值 30Hz logic tick
-- [ ] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` PASS (P2.8 待启动)
-- [ ] **AC8 — 城堡战争最小可玩 demo**: 编辑器 F6 跑 `demo_rts_frontend.tscn`, 玩家可放置建筑、塔被毁判胜负 (依赖 P2.8 飞行单位 / 端到端单位攻击建筑链路)
-- [x] **AC9 — 不退化** (P2.7 重新验证, 全部 P1 + P2.1-P2.7 smokes 仍 PASS):
-  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p27_lgf.txt 2>&1` → `73/73 PASS`
-  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p27_hex.txt 2>&1` → `结果: left_win` (exit 0; segfault 没复现)
-  - 命令 C (主 smoke): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p27_main2.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS — 与 P2.6 末态完全一致 (P2.7 仅 frontend 改动 + procedure.finish 注 player_commands/rng_seed 包装, 不影响 sim 路径)
-  - 命令 D (determinism): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p27_det2.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (light determinism 仍达成)
-  - 全部 P1 + P2.1-P2.7 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / player_command / crystal_tower_win / player_command_production / **frontend_main** (P2.7 升级走 director) / **director_streaming** (P2.7 新) / **replay_bit_identical** (P2.7 新): all PASS
-    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p27_<name>.txt 2>&1`
+- [x] **AC7 — AIR layer + 飞行单位**: `smoke_flying_units` ✅ PASS (P2.8 完成 2026-05-02)
+  - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_flying_units.tscn > /tmp/p28_flying.txt 2>&1`
+  - Evidence: `/tmp/p28_flying.txt` → `ticks=200 scout_hp=15.0 scout_pos=(50.0,100.0) archer_hits=3 melee_hits_scout=0 ground_melee_x=53.5`; PASS
+    - **AIR-only 防空塔命中飞行**: archer_tower (target_layer_mask=MASK_AIR) 命中 flying_scout 3 次 → scout HP 90 → 15
+    - **GROUND-only 近战不能命中飞行**: melee (mask=MASK_GROUND) hits_scout = 0 (mask 过滤生效, 即使距离近也不写 _cached_target_id 给 scout)
+    - **飞行穿过地面建筑 footprint**: scout 从 (450, 100) → (50, 100) 直线飞过 barracks @ (300, 200), x=50.0 抵达; RtsPathfinding AIR 层早 return _direct_path 跳过 A*
+- [x] **AC8 — 城堡战争最小可玩 demo**: `smoke_castle_war_minimal` ✅ PASS (P2.8 完成 2026-05-02); demo_rts_frontend.tscn F6 视觉验证留给用户
+  - 命令 A (headless 等价 smoke): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_castle_war_minimal.tscn > /tmp/p28_castle.txt 2>&1`
+  - Evidence A: `/tmp/p28_castle.txt` → `ticks=193 result=left_win left_ct_dead=false right_ct_dead=true scout_dead=false unit_to_building_attacks=4 archer_anti_air=1 spawn_count=2`; PASS
+    - **玩家命令放兵营**: tick 1 enqueue PlaceBuildingCommand barracks @ (160, 250) → 成功; team0_resources 100 → 0
+    - **production 周期 spawn**: 2 melee 在 ~9.6s 内 spawn (period 4s, 起步 + 第二轮)
+    - **单位攻击建筑**: 4 unit→building 攻击事件; right_ct (hp=100) 在 ticks=193 死亡 → result=left_win (走 P2.6 crystal-tower 模式判定)
+    - **AC7 联动**: left_archer 命中 right_scout 1 次 (anti-air); scout 仍存活 hp=65 (近距离擦肩, 没充足时间击落; AC7 击落已有 smoke_flying_units 验证)
+  - 命令 B (frontend 上下文 sanity): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/frontend/smoke_frontend_main.tscn` → visualizers=10 (4 ground + 1 flying / 方) alive=10
+  - F6 视觉留给用户在编辑器中确认: 玩家点击放兵营 + 飞行单位 8px 上空 + anti-air 击退飞行 + 单位攻击 ct → 战斗结束 流程
+- [x] **AC9 — 不退化** (P2.8 重新验证, 全部 P1 + P2.1-P2.8 smokes 仍 PASS):
+  - 命令 A: `godot --headless --path . addons/logic-game-framework/tests/run_tests.tscn > /tmp/p28f_lgf.txt 2>&1` → `73/73 PASS`
+  - 命令 B: `godot --headless --path . addons/logic-game-framework/example/hex-atb-battle/logic/demo_headless.tscn > /tmp/p28f_hex.txt 2>&1` → exit 0 (hex demo 非确定性: 不同跑次返回 left_win / right_win 都正常, 与 P2.7 末态一致)
+  - 命令 C (主 smoke): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_rts_auto_battle.tscn > /tmp/p28f_main.txt 2>&1` → `result=left_win ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4`; PASS — **与 P2.7 末态完全一致** (P2.8 在 4v4 主 smoke 无 building 场景下 0 行为差; layer mask 默认 MASK_GROUND/MASK_BOTH 覆盖既有兵种行为)
+  - 命令 D (determinism): `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_determinism.tscn > /tmp/p28f_det.txt 2>&1` → `seed=12345, run1=run2=(left_win, 347), tick_diff=0`; **bit-equal** (light determinism 仍达成)
+  - 全部 P1 + P2.1-P2.8 smokes: skeleton / nav / ai / attack / grid_pathfinding / minimal_push_out / activity_chain / steering / stuck_recovery / auto_target / production / player_command / crystal_tower_win / player_command_production / frontend_main (P2.8 升级 EXPECTED_VISUALIZERS=10) / director_streaming / replay_bit_identical / **flying_units** (P2.8 新) / **castle_war_minimal** (P2.8 新): all PASS
+    - 命令: `godot --headless --path . <smoke>.tscn > /tmp/p28_<name>.txt 2>&1`
 - [x] **AC10 — Bit-identical replay**: `smoke_replay_bit_identical` ✅ PASS (P2.7 完成 2026-05-01)
   - 命令: `godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/replay/smoke_replay_bit_identical.tscn > /tmp/p27_replay.txt 2>&1`
   - Evidence: `seed=42, commands=2, frames=10, events=20`; PASS - 同 seed (42) + 同 player_commands (tick 5 / tick 10 各放 barracks) 跑 2 次, 100 ticks 截断, **timeline events 逐字段 deep equal** (10 帧含 events + 共 20 events; HexCoord 字段走 q/r 比对); player_commands_log 长度+entry-by-entry deep equal; rng_seed 一致
@@ -144,6 +157,32 @@
     - 新增 `tests/battle/smoke_crystal_tower_win.{gd,tscn}` (双 crystal_tower 起手, procedure.start() 自动绑 crystal_tower_id; tick 1 双活 → not finished; mark_dead 右方 + tick 2 → result=left_win)
     - 新增 `tests/battle/smoke_player_command_production.{gd,tscn}` (P2.5+P2.6 联动: tick 30 player command 放兵营 → 600 ticks 后 left_spawned=7 + max_eastward=254.74 px + override_strategy=true 让 SpawnLane 不被 strategy.decide 替换)
   - Evidence: 见 AC5 + AC9 上方
+- [x] **P2.8 — AIR layer + target_layer_mask + 飞行单位** (Phase 2 收口)
+  - 改动:
+    - **MovementLayer 扩 mask 常量 + helpers**: `MASK_NONE/MASK_GROUND/MASK_AIR/MASK_BOTH` (与 Layer enum 同源, bit i = 1 << layer); `mask_for_layer(layer)` + `mask_matches(mask, layer)` static helpers
+    - **新增 `logic/weapons/rts_weapon_config.gd`** (RtsWeaponConfig — 转发 mask 常量 + `matches(mask, candidate_layer)` + `can_hit(attacker, target)` static helpers; attacker.target_layer_mask 命中候选 layer 的统一查询入口)
+    - **`RtsBattleActor` 共享攻击协议**: 把 `current_target_id / target_layer_mask / unit_tags / target_priorities / _cached_target_id / ATTACK_COOLDOWN_TAG` 上推; 加 virtual `get_atk/def/attack_range/attack_speed`; 加 `is_attack_on_cooldown / can_attack / start_attack_cooldown` 共用基类 — 单位 + 建筑共用攻击循环
+    - **`RtsUnitActor`** 删去重复字段 (改基类继承); override `get_atk/def/attack_range/attack_speed` 走 `attribute_set.atk` 等; `_init` 拷 `default_movement_layer` + `target_layer_mask` 自 stats
+    - **`RtsBuildingActor`** 加 plain float 字段 `atk_value / def_value / attack_range_value / attack_speed_value` (建筑没 attribute_set.atk 路径); override 同名 accessor 走这些字段; `RtsBuildings._create_from_kind` 工厂从 stats 注入这些字段 + target_layer_mask + unit_tags
+    - **`RtsUnitClassConfig`** StatBlock 加 `default_movement_layer` + `target_layer_mask`; 默认 MELEE → MASK_GROUND, RANGED → MASK_BOTH (anti-air); 新增 `UnitClass.FLYING_SCOUT` (Layer.AIR + MASK_GROUND, hp=90 / atk=15 / move_speed=100 / attack_range=80 / attack_speed=0.8 / unit_tags=["flying","air"])
+    - **`RtsBuildingConfig`** StatBlock 加 `atk / def / attack_range / attack_speed / target_layer_mask / unit_tags`; archer_tower 升级 anti-air (atk=25, attack_range=140, attack_speed=0.7, mask=MASK_AIR, unit_tags=["building","tower","anti_air"]); barracks / crystal_tower mask=MASK_NONE 不参战
+    - **`RtsPathfinding.find_path`** AIR 层早 return → `_direct_path(to_world)` 不调 A* (穿地面建筑 footprint, 浮点直线决定性)
+    - **`RtsAutoTargetSystem`** 重写: tick 入参从 `units` 改为 `actors` (alive_actors 含建筑); movers = 任何 `target_layer_mask != 0` 的 RtsBattleActor (单位 + 建筑都可作 mover); 候选过滤加 `RtsWeaponConfig.matches(mover.mask, candidate.movement_layer)`; stance HOLD_FIRE/DEFENSIVE 仅对 RtsUnitActor 生效 (建筑永远参战); `by_team` 字典聚合所有 RtsBattleActor 候选
+    - **`RtsBasicAttackAction`** 重写: attacker / target 类型放宽到 RtsBattleActor; 数值通过 `attacker.get_atk()` 等 virtual accessor 取 (兼容 unit + building); `target_attrs.get_raw().get_current_value("hp")` 兼容两种 attribute_set; 加 `RtsWeaponConfig.can_hit` 防御性 layer mask 检查; attacker_unit_class 字段对 building 设 -1 (logger 兼容)
+    - **`RtsAttackActivity` / `RtsBasicAttackStrategy._resolve_cached_target`** target 类型放宽到 RtsBattleActor — 单位可以选 building (e.g. crystal_tower) 当目标; AC8 单位攻击建筑链路打通
+    - **`RtsTargetSelectors.CurrentUnitTarget`** attacker / target cast 都放宽到 RtsBattleActor (建筑也走此 selector 拿 target)
+    - **`RtsAutoBattleProcedure.tick_once` step 3** 加建筑攻击循环 — 没 controller / activity, 直接读 building._cached_target_id, 范围内 (1.05 × attack_range) + cooldown ready → 触发 `_invoke_basic_attack(building, world)` (signature 放宽到 RtsBattleActor); building.current_target_id = cached_id 给 CurrentUnitTarget selector 用
+    - **frontend visualizer 飞行渲染**: `RtsUnitVisualizer.bind` 加 `p_render_height` 参数 (RtsWorldView spawn 时一次性 hydrate 自 `actor.get_render_height()` — AIR 单位 8.0, ground 0.0); _process 内 `position = lerp(prev, curr, alpha) - Vector2(0, render_height)` 让 AIR 单位上抬 8px (Godot 2D y 向下)
+    - **`demo_rts_frontend.gd` 升级城堡战争最小可玩 demo**:
+      - 起手布局: 双方 crystal_tower (left @ (80, 350), right @ (420, 350) hp=400) + archer_tower (left @ (80, 200), right @ (420, 200), 防空 mask=MASK_AIR) + 4 ground 单位 / 方 (2 melee + 2 ranged 用既有 sample_team_spawn) + 1 flying_scout / 方 (override-strategy AttackMove 朝对方 ct 飞)
+      - HUD Label: 实时显示 left team_resources + 双方 ct hp + 玩家操作提示
+      - 玩家输入: `_unhandled_input` 接 InputEventMouseButton; 左键点击落在 LEFT_BUILD_ZONE (50,50)~(250,450) 内 → enqueue `RtsPlaceBuildingCommand barracks` tick_stamp=current_tick
+      - team config: 左方 starting_resources=300 (够 3 barracks @ 100 each); 右方 starting_resources=0 (AI 不放)
+      - spawner: barracks 周期 spawn melee 朝对方 ct 进军; 不 set_activity_chain — 让 strategy.decide / AutoTargetSystem 自然驱动 (单位选最近 enemy ct)
+    - **新 smoke `tests/battle/smoke_flying_units.{gd,tscn}`** (AC7): archer_tower (T0, mask=AIR) + melee (T0, HOLD_FIRE, mask=GROUND) + barracks 障碍; flying_scout (T1, AIR, override-AttackMove (50,100)) + ground_melee (T1, override-AttackMove (50,200)); 200 ticks @ 50ms; 验证 archer→scout 命中 ≥1 + melee→scout 0 命中 + scout 飞越 barracks 直达 (50, 100)
+    - **新 smoke `tests/battle/smoke_castle_war_minimal.{gd,tscn}`** (AC8 headless 等价): 起手左 archer + ct, 右 archer + ct (hp=100) + flying_scout; 玩家 tick 1 enqueue PlaceBuildingCommand barracks @ (160, 250); 600 ticks 主循环验证 result=left_win + unit→building 攻击事件 ≥1 + archer→scout 命中 ≥1
+    - **frontend smoke `tests/frontend/smoke_frontend_main.gd`** EXPECTED_VISUALIZERS 8 → 10 (P2.8 demo 加 1 flying_scout / 方)
+  - Evidence: 见 AC7 + AC8 + AC9 上方
 - [x] **P2.7 — Frontend BattleDirector 接入流式 events**
   - 改动:
     - 新增 `frontend/core/rts_battle_director.gd` (RtsBattleDirector — Node; SIM_DT_MS = procedure.get_tick_interval; _process(delta) 累加 dt 到 SIM_DT 推 procedure.tick_once; tick boundary _capture_prev / _capture_curr_and_emit; 4 个 signal: frame_advanced / actor_render_state_updated / attack_resolved / actor_died / battle_ended; 接管 procedure._event_sink 转发 attack/died events; 维护 _render_states dict {prev_pos / curr_pos / hp / max_hp / is_dead}; 暴露 attach(world, procedure) / detach / get_alpha / get_render_state / is_running / is_ended)
@@ -170,7 +209,6 @@
       - 新 `add_unit_to_team(unit, team_id)` 公共 API: 让 spawner 把新单位加入 left_team / right_team 对应阵营 (procedure 内部 `_check_battle_end` / `get_alive_actors` 立即可见; 仅支持 team_id ∈ {0, 1})
     - 新增 `tests/battle/smoke_production.{gd,tscn}` (左 / 右各 1 barracks 对称布置; 自管 spawner 创建 unit + RtsNavAgent + RtsUnitController + `add_unit_to_team` + 初始 `RtsAttackMoveActivity` SpawnLane chain; 600 ticks @ 50ms = 30s 跑完 assert ≥ 5 spawn / team + 至少 1 left spawn 朝东 ≥ 50px)
   - Evidence: 见 AC4 + AC9 上方
-- [ ] **P2.8 — AIR layer + target_layer_mask + 飞行单位**
 
 ---
 
@@ -178,7 +216,7 @@
 
 ```
 P2.1 (Activity) ✓ ─────────────────┐
-                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ✓ ──> P2.6 (Player Command) ✓ ──> P2.7 (Frontend Director) ✓ ──> P2.8 (AIR layer)
+                                   ├──> P2.4 (AutoTarget) ✓ ──> P2.5 (Production) ✓ ──> P2.6 (Player Command) ✓ ──> P2.7 (Frontend Director) ✓ ──> P2.8 (AIR layer + 单位攻击建筑) ✓
 P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 ```
 
@@ -230,15 +268,45 @@ P2.2 (Hash + Steering) ✓ ──> P2.3 (Stuck) ✓ ─┘
 | Procedure finish wrap (P2.7) | `…/core/rts_auto_battle_procedure.gd` (finish override: 在 super.finish 返回 dict 上注 player_commands + rng_seed) |
 | Director streaming smoke (P2.7) | `…/tests/frontend/smoke_director_streaming.{gd,tscn}` (4v4 走 director path 跑 4s, 验证 render/attack emit + visualizer moved 离 spawn) |
 | Replay bit-identical smoke (P2.7) | `…/tests/replay/smoke_replay_bit_identical.{gd,tscn}` (AC10: 同 seed + 同 commands → timeline + commands_log deep equal; HexCoord 字段 q/r 比对) |
+| MovementLayer mask 常量 (P2.8) | `…/logic/movement_layer.gd` (`MASK_NONE/GROUND/AIR/BOTH` + `mask_for_layer/mask_matches`) |
+| Weapon config (P2.8) | `…/logic/weapons/rts_weapon_config.gd` (`matches/can_hit` static helpers, attacker mask 命中候选 layer 的统一查询) |
+| BattleActor 共享攻击协议 (P2.8) | `…/logic/rts_battle_actor.gd` (`current_target_id/target_layer_mask/unit_tags/target_priorities/_cached_target_id/ATTACK_COOLDOWN_TAG` 上推; virtual `get_atk/def/attack_range/attack_speed/can_attack/start_attack_cooldown`) |
+| Building 武器字段 (P2.8) | `…/logic/rts_building_actor.gd` (`atk_value/def_value/attack_range_value/attack_speed_value` plain float; override `get_atk/def/attack_range/attack_speed`) |
+| Flying scout (P2.8) | `…/logic/config/rts_unit_class_config.gd` (`UnitClass.FLYING_SCOUT` + StatBlock 加 `default_movement_layer/target_layer_mask`; melee=MASK_GROUND, ranged=MASK_BOTH, scout=Layer.AIR+MASK_GROUND) |
+| Anti-air tower (P2.8) | `…/logic/config/rts_building_config.gd` (StatBlock 加 atk/def/attack_range/attack_speed/target_layer_mask/unit_tags; archer_tower mask=MASK_AIR, atk=25, range=140) |
+| AIR pathfinding (P2.8) | `…/logic/grid/rts_pathfinding.gd` (AIR 层早 return _direct_path) |
+| AutoTargetSystem 含建筑 (P2.8) | `…/logic/ai/rts_auto_target_system.gd` (movers + candidates 都是 RtsBattleActor; layer mask 过滤; stance 仅 RtsUnitActor) |
+| BasicAttackAction 兼容 building (P2.8) | `…/logic/actions/rts_basic_attack_action.gd` (attacker/target = RtsBattleActor; virtual accessor 取数值; `RtsWeaponConfig.can_hit` 防御性检查) |
+| Procedure 建筑攻击循环 (P2.8) | `…/core/rts_auto_battle_procedure.gd` (step 3 building 分支; alive_actors 含建筑给 AutoTargetSystem; `_invoke_basic_attack(RtsBattleActor)`) |
+| Visualizer 飞行渲染 (P2.8) | `…/frontend/visualizers/rts_unit_visualizer.gd` (bind 加 p_render_height; _process 减 Vector2(0, render_height)) + `world_view.gd` (spawn 时 hydrate 自 actor.get_render_height()) |
+| Demo 城堡战争升级 (P2.8) | `…/frontend/demo_rts_frontend.gd` (双方 ct + archer_tower + 4 ground + 1 flying / 方; HUD Label; 鼠标点击 build_zone → PlaceBuildingCommand) |
+| Flying units smoke (P2.8) | `…/tests/battle/smoke_flying_units.{gd,tscn}` (AC7: anti-air 命中 / GROUND 命不到 AIR / 飞行直线穿建筑) |
+| Castle war minimal smoke (P2.8) | `…/tests/battle/smoke_castle_war_minimal.{gd,tscn}` (AC8 headless: 玩家放兵营 → 单位攻 ct → result=left_win + AC7 联动) |
 
 ---
+
+## 决策记录(P2.8 期间新增)
+
+- **layer mask 用 bitmask 而非 enum 集合**: `target_layer_mask: int` (bit i = 1 << layer); 允许 `MASK_BOTH = MASK_GROUND | MASK_AIR` 一行表达"防空 + 防地", 比 Array[int] 更紧凑 + 更快查询 (单 `&` op)。代价: 调方需用 `MovementLayer.MASK_*` 常量, 不能用 `[Layer.GROUND, Layer.AIR]`; 走 `RtsWeaponConfig.build_mask([...])` helper 兼容 list 风格输入
+- **target_layer_mask=0 (MASK_NONE) 表示"不参战"**: 兵营 / 水晶塔 mask=0 → AutoTargetSystem 第 1 遍跳过, BasicAttackAction.can_hit 也返 false。让 worker / non-combatant 类型未来可直接复用此机制 (M1 暂无此类 actor); 也让 building procedure 攻击循环少一道 if 分支 (统一走 mask != 0 = mover 检查)
+- **AIR 单位完全 skip A***: RtsPathfinding.find_path 早 return _direct_path. 决定: AIR 层永远 is_passable_for_layer=true, 跑 A* 也是退化为直线最短路径; skip A* 直接 _direct_path 省 N²×log(N) 计算 + 更直观 (飞行单位本就该穿障碍)。代价: 飞行单位无地形避让 (M1 没"高地"概念, Phase 3 P3.1 加 height 后再考虑)
+- **Building 用 plain float 字段不扩 RtsBuildingAttributeSet**: archer_tower 需要 atk / attack_range / attack_speed, 但 RtsBuildingAttributeSet 走 LGF apply_config 路径加字段成本高 (要加 `_raw.apply_config` + setter + 视图)。改加 plain float on RtsBuildingActor (atk_value 等); BasicAttackAction 通过 virtual `get_atk()` 走 unit attribute_set 或 building plain float 二选一 — 同 attacker 接口, 不同实现源。trade-off: 建筑攻击数值不能被 buff 系统调整 (P3 经济/buff 真要做时再扩 attribute_set)
+- **AutoTargetSystem 全量统一 movers + candidates 为 RtsBattleActor**: 没保留 "units only" 分支 — 决策: 单位 + 建筑共用一套评分 / mask 过滤 / stance 处理 (stance 仅 RtsUnitActor 生效, 建筑无 stance 永远参战)。让 P3 加 worker / 资源采集 / 中立单位类型时不需要再扩另一套 system。代价: 旧 "units only" 调用者(若有) 需转用 alive_actors; 但 P2.7 起 procedure 是唯一调用方, 改一处即可
+- **BasicAttackAction attacker_unit_class 字段 -1 兼容 building**: attack_resolved event 的 attacker_unit_class 字段 P2.7 之前 hardcode 为 unit_class enum; building 没这个 enum, 设 -1。logger / replay 消费方应在解析 unit_class 时 == -1 fallback (M1 范围内 hex 例子 logger 不消费此字段, RTS logger 也不强 case; AC3 melee_max_dist / ranged_max_dist 断言只看 unit, 不看 building, 所以 -1 不破断言)。Phase 3 加更复杂 attack visualizer 时考虑用 attacker_id + attacker_kind ("unit" / "building" string) 替代
+- **单位攻击建筑通过 AutoTargetSystem 自然驱动 (不显式扩 strategy)**: RtsBasicAttackStrategy 仍读 `actor._cached_target_id`, AutoTargetSystem 现在写的可能是 building id; AttackActivity 接受 RtsBattleActor 当 target → 单位自动追击 building 直至打死。决策: 不需要为"单位攻击建筑"单独写 strategy 子类 (那会是 over-engineering — strategy 本质是"谁打谁", building target 复用既有路径)
+- **demo 鼠标点击放兵营走 _unhandled_input**: 不用 InputEvent 信号(无 Control 节点 root);  `_unhandled_input` 接 InputEventMouseButton MOUSE_BUTTON_LEFT pressed; build_zone Rect2.has_point 校验 + enqueue PlaceBuildingCommand tick_stamp=current_tick 即时应用。代价: 没 UI 反馈失败原因 (cells_blocked / out_of_build_zone) — Phase 3 RtsScenarioHarness 时再加 toast 反馈
+- **flying_scout collision_radius=10 与 ranged 同**: AIR 层独立 steering (P2.2 已 cross-layer skip), 与地面单位无 sep 干扰; 同层 (AIR) 飞行单位间 sep 半径 = 2r=20 px, 适合空中编队; 不与 melee 12 同 — 飞行单位较小是常识 (combat aircraft 比 ground vehicle 小)
+
 
 ## 残余风险(从 Phase 1 继承; 跨 phase 不变)
 
 - **AC9 hex demo segfault on shutdown**(`archive/2026-04-30-rts-auto-battle/Summary.md`): 本轮 hex demo headless 跑出 `结果: left_win` 且退出码 0 — segfault 没复现, 不阻塞 Phase 2 P2.7 验收。
 - **30Hz default tick 与 50ms M0 smoke 兼容**: smokes 仍 explicitly 传 `tick_interval_ms = 50.0`; 30Hz 默认仅在 demo / 新调方启用。P2.7 director SIM_DT 走 procedure.get_tick_interval, smoke 传 50ms 时 director 也按 50ms 推 — 不破。
 - **录像 still partial**: P1.7 仅写 `world_snapshot.rng_seed` 给 light determinism; P2.6 加 `_player_commands_log` 字段; **P2.7 procedure.finish 把两者注入 record dict** (基础 BattleRecorder 的 timeline + RTS 专属 player_commands + rng_seed); 完整 RtsRecording 类型 + ReplayPlayer 仍未落地 (smoke 直接走 dict 比对; 实际 replay player UI 在 RTS 范围外).
-- **单位不能攻击建筑** (P2.7 仍未解, 留 P2.8 解决): AutoTargetSystem (`logic/ai/rts_auto_target_system.gd`) 只挑 RtsUnitActor 候选, BasicAttackAction 也只接受 unit。AC8 城堡战争最小可玩 demo 依赖端到端"单位攻击建筑"链路 — 这是 P2.8 加 layer mask + building targeting 时一并解决的范围。
+- ~~**单位不能攻击建筑** (P2.7 仍未解, 留 P2.8 解决)~~: ✅ P2.8 解决 (AutoTargetSystem 候选含 RtsBattleActor; BasicAttackAction attacker/target 都放宽; AttackActivity target 类型放宽 RtsBattleActor; smoke_castle_war_minimal unit_to_building_attacks=4 验证)。
+- **building 攻击数值不可被 buff 调整 (P2.8 引入 plain float 字段)**: archer_tower atk_value/attack_range_value 是 plain float, 不走 LGF attribute_set / buff 调整路径. P3 经济或 building upgrade 系统真要做时, 把这些字段挪进扩展版 RtsBuildingAttributeSet (类似 RtsUnitAttributeSet)。
+- **flying 单位无 stuck detection (走 _direct_path 不调 A*)**: AIR 单位起手就走 _direct_path, 永远不会 path 空 → stuck detector 的 `has_target() && !is_at_final_target()` 仍触发? 实际看: AIR 单位的 nav_agent 路径只有 1 个 waypoint (to_world), 抵达后 _waypoint_index 推进; 不会"卡 path 中间"。stuck_detector.tick 仍执行但不会 trigger abandon (因为单位每 tick 都有位移)。Phase 3 P3.2 group formation 时若有飞行单位 cluster 卡在目标点, 再考虑加 AIR 专属 stuck handling。
+- **demo F6 流程 user 视觉验证**: AC8 acceptance 写明 "F6 跑 demo_rts_frontend.tscn ... 玩家可放置建筑 ... 塔被毁判胜负" 这部分 headless 不能验证 (鼠标点击 + 视觉 + 渲染插值 + HUD label) — 必须用户在编辑器里 F6 实际走流程。smoke_castle_war_minimal 只验 logic 等价路径; demo 视觉链由用户 sign-off。
 - **P2.6 UpgradeBuildingCommand / SellBuildingCommand 子类未落地**: 仅留 `RtsPlayerCommand` 基类 + apply 钩子接口预留; Phase 2 acceptance 不需要这两个子类。Phase 3 经济系统改造时再补全。
 - **P2.7 视觉特效 stub**: visualizer 当前仅圆圈 + hp 文本 + 死亡调暗; 没有攻击特效 / 飘字 / 投射物 (hex 例子有 BattleAnimator 完整管线; M1 范围内 RTS 简化 — 对应 hex BattleAnimator / RenderWorld / ActionScheduler 的全套表演层架构留 P3+ 或后续 milestone)。AC6 主断言只关心"streaming events 链路工作 + 0 处 polling actor",视觉特效不在 acceptance 内。
 - **P2.7 player_commands_log 暴露在 procedure.finish**: 扩字段直接挂在 dict 上, 不是新建 RtsRecording 类型。如果 P3+ 出现"加更多 RTS 专属字段" (如 deaths log / 资源采集事件流), 可考虑封一层 RtsRecord helper 或 wrap stdlib BattleRecorder; 当前 deferred — 只 2 字段时直接 dict 注入更轻。

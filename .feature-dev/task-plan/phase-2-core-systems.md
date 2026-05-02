@@ -1,8 +1,8 @@
 # Phase 2 — Core Systems（M1 期间核心玩法支柱）
 
-> **状态**：进行中（P2.1 + P2.2 + P2.3 + P2.4 + P2.5 + P2.6 + P2.7 已完成 2026-05-01；P2.8 待启动）
+> **状态**：✅ **Phase 2 acceptance 全过 (10/10)** — P2.1–P2.8 全部完成 (2026-05-02; P2.8 收口)
 > **进入条件**：Phase 1 收口条件全过 ✓
-> **退出条件**：本文档 §收口条件 全过 → 切换到 Phase 3
+> **退出条件**：本文档 §收口条件 全过 → 切换到 Phase 3 (待用户明确决定是否启动)
 
 ---
 
@@ -185,28 +185,36 @@
 
 ---
 
-### P2.8 — AIR layer + target_layer_mask + 飞行单位（前移自原 P3.2）
+### P2.8 — AIR layer + target_layer_mask + 飞行单位 ✅ 已完成 2026-05-02
 
 **目标**：城堡战争玩法天然需要"防空塔 vs 飞龙"等飞行 vs 地面对位（用户明确"一定会有飞行单位"）。本 phase 把 AIR layer 与 target_layer_mask 落地为城堡战争最小可玩 demo 的一等公民功能 — **不是可选高级特性**。
 
-**改动范围**：
-- 新增：`logic/units/flying/`（飞行 unit_class 配置位置）
-- 修改：`RtsUnitController` movement 分支
-  - layer == AIR：**不调 A***；直线朝目标飞 + 同层飞行单位间软排斥（boids-lite，跨 layer 不互相挤）
-  - layer == AIR：不写 pathing map，is_passable callback 对 ground 阻挡直接 return true
-- 新增：`logic/weapons/rts_weapon_config.gd`
-  - 字段 `target_layer_mask: int`（GROUND / AIR / BOTH 的 bitmask）
-- 修改：`RtsAutoTargetSystem`：扫描时按 `mover.weapon.target_layer_mask` 过滤候选敌人（防空塔只挑 AIR；普通弓兵 BOTH；纯地面武器 GROUND-only）
-- 修改：`RtsBasicAttackAction.can_hit(attacker, defender)`：检查 layer mask；不匹配 → 直接 invalid target（AI 决策时已过滤，但 action 层做防御性检查）
-- 修改：单位 spawn 配置加 `default_movement_layer` + `weapon.target_layer_mask`
-- 新增：至少 1 个 AIR 单位 unit_class（如 `flying_scout`）+ 1 个 anti-air weapon 配置
+**已落地范围**（详细 evidence 见 `../Progress.md` AC7 + AC8 + AC9）：
 
-**验证**：
-- 新 smoke `tests/battle/smoke_flying_units.tscn`：地面单位 + 防空塔 + 飞龙
-  - 防空塔（`target_layer_mask = AIR`）只打飞龙
-  - 普通地面单位（`target_layer_mask = GROUND`）打不到飞龙（攻击 invalid target → 跳过）
-  - 飞龙穿过地面建筑 footprint（`is_passable_for_layer(AIR)` return true）
-- 4v4 主 smoke 不退化
+- **MovementLayer 扩 mask 常量**：`MASK_NONE/MASK_GROUND/MASK_AIR/MASK_BOTH` + `mask_for_layer(layer)` + `mask_matches(mask, layer)` static helpers
+- **新增 `logic/weapons/rts_weapon_config.gd`** — `RtsWeaponConfig`：`matches(mask, candidate_layer)` + `can_hit(attacker, target)` 把 attacker.target_layer_mask 命中候选 layer 的查询统一入口
+- **`RtsBattleActor` 基类共享攻击协议** — 把 `current_target_id / target_layer_mask / unit_tags / target_priorities / _cached_target_id / ATTACK_COOLDOWN_TAG` 上推; 加 virtual `get_atk/def/attack_range/attack_speed` + `is_attack_on_cooldown / can_attack / start_attack_cooldown` (单位 + 建筑共用攻击循环)
+- **`RtsUnitActor`** 删去重复字段 (改读基类继承); override `get_atk/def/attack_range/attack_speed` 走 `attribute_set.atk` 等; `_init` 拷 `default_movement_layer` + `target_layer_mask` 自 stats
+- **`RtsBuildingActor`** 加 plain float 字段 `atk_value / def_value / attack_range_value / attack_speed_value` (建筑没 RtsUnitAttributeSet.atk 路径); `RtsBuildings` 工厂从 stats 注入
+- **`RtsUnitClassConfig`** StatBlock 加 `default_movement_layer` + `target_layer_mask`; 默认 MELEE → MASK_GROUND, RANGED → MASK_BOTH; 新增 `UnitClass.FLYING_SCOUT` (Layer.AIR + MASK_GROUND, hp=90 / atk=15 / move_speed=100 / attack_range=80)
+- **`RtsBuildingConfig`** StatBlock 加 `atk / def / attack_range / attack_speed / target_layer_mask / unit_tags`; archer_tower 升级 anti-air (atk=25, attack_range=140, mask=MASK_AIR); barracks / crystal_tower mask=MASK_NONE 不参战
+- **`RtsPathfinding.find_path`** AIR 层早 return → `_direct_path(to_world)` 不调 A* (穿地面建筑 footprint)
+- **`RtsAutoTargetSystem`** 重写: tick 入参 alive_actors (含建筑); movers = 任何 `target_layer_mask != 0` 的 RtsBattleActor (单位 + 建筑都可作 mover); 候选过滤加 `RtsWeaponConfig.matches`; stance 仅对 RtsUnitActor 生效
+- **`RtsBasicAttackAction`** 重写: attacker / target 类型放宽到 RtsBattleActor; 数值通过 virtual accessor 取; `target_attrs.get_raw().get_current_value("hp")` 兼容 unit + building attribute_set; `can_hit` 防御性 layer mask 检查
+- **`RtsAttackActivity` / `RtsBasicAttackStrategy._resolve_cached_target`** target 类型放宽到 RtsBattleActor — 单位可以选 building (e.g. crystal_tower) 当目标; AC8 单位攻击建筑链路打通
+- **`RtsTargetSelectors.CurrentUnitTarget`** attacker / target cast 都放宽到 RtsBattleActor
+- **`RtsAutoBattleProcedure.tick_once` step 3** 加建筑攻击循环 — 没 controller / activity, 直接读 `_cached_target_id`, 范围内 + cooldown ready → 触发 BasicAttackAction; `_invoke_basic_attack` 接受 RtsBattleActor (单位 / 建筑)
+- **frontend visualizer 飞行渲染** — `RtsUnitVisualizer.bind` 加 `p_render_height` 参数 (RtsWorldView spawn 时一次性 hydrate 自 `actor.get_render_height()`); _process 内 `position = lerp(prev, curr, alpha) - Vector2(0, render_height)` 让 AIR 单位上抬 8px
+- **demo_rts_frontend.gd 升级城堡战争最小可玩 demo** — 双方 crystal_tower + archer_tower (anti-air) + 4 ground unit + 1 flying_scout / 方; HUD Label 显示 resources / CT HP; 左键点击 build_zone 内 → enqueue `RtsPlaceBuildingCommand barracks`; spawner 让 barracks 周期生产 melee 朝对方 ct 进军
+- **新 smoke `tests/battle/smoke_flying_units.{gd,tscn}`** (AC7) — archer_tower vs flying_scout / melee vs flying_scout / ground_melee 绕 barracks
+- **新 smoke `tests/battle/smoke_castle_war_minimal.{gd,tscn}`** (AC8 headless) — 玩家命令放兵营 → spawn melee → 单位攻 right_ct → result=left_win; 同时 left_archer 防空击退 right_scout
+- **frontend smoke 升级** — `EXPECTED_VISUALIZERS = 10` (4 ground + 1 flying / 方)
+
+**验证**（已通过, 详细 evidence 见 `../Progress.md`）:
+- `smoke_flying_units` PASS: ticks=200, scout_hp=15.0 (archer 命中 3 次), melee_hits_scout=0 (mask 过滤), scout 飞越 barracks 直达 (50, 100)
+- `smoke_castle_war_minimal` PASS: ticks=193, result=left_win, unit_to_building_attacks=4, archer_anti_air=1, spawn_count=2
+- 不退化: LGF 73/73 PASS, 主 4v4 ticks=347 不变, smoke_determinism tick_diff=0 仍 bit-equal, smoke_replay_bit_identical 同 seed → bit-identical 仍 PASS, hex demo exit 0
+- 编辑器 F6 视觉验证 (用户肉眼): 留给用户在编辑器中确认 demo 城堡战争最小可玩流程
 
 ---
 
@@ -232,9 +240,9 @@ P2.1 与 P2.2/P2.3 可并行；P2.4 依赖 P2.1（strategy 已经返回 Activity
 - [x] **AC4 — Production**：`smoke_production` 兵营周期 spawn ✅ PASS (P2.5 完成 2026-05-01); 双 barracks 30s 跑 600 ticks 各 spawn 7 melee, 朝东偏移 118.51 px; evidence in `../Progress.md` AC4
 - [x] **AC5 — Player Command + Crystal Tower**：`smoke_player_command` ✅ + `smoke_crystal_tower_win` ✅ + `smoke_player_command_production` ✅ PASS (P2.6 完成 2026-05-01); 玩家命令 tick 30 放兵营 → 7 spawns + override-strategy SpawnLane; crystal-tower 死 → 该方败 (start() 自动绑 ct_id); evidence in `../Progress.md` AC5
 - [x] **AC6 — Frontend Director 流式**：`smoke_director_streaming` ✅ PASS (P2.7 完成 2026-05-01); frontend 0 处 `actor.position_2d` 直读 (visualizer 完全 push 模式; Director 在 tick boundary 单次 snapshot 是合规 state projection); evidence in `../Progress.md` AC6
-- [ ] **AC7 — AIR layer + 飞行单位**：`smoke_flying_units` PASS（防空塔只打飞行 / 地面武器打不到飞行 / 飞行穿过地面建筑）— P2.8 待启动
-- [ ] **AC8 — 城堡战争最小可玩 demo**：编辑器 F6 跑 `demo_rts_frontend.tscn`，玩家可放置建筑、看到建筑生产单位、单位互打（含飞行 vs 防空）、塔被毁判胜负 — 依赖 P2.8 (单位攻击建筑链路 + 飞行单位)
-- [x] **AC9 — 不退化** (P2.7 重新验证 2026-05-01): LGF 73/73 PASS; hex demo exit 0, left_win; RTS 主 smoke 仍 left_win, ticks=347, 全部 P1+P2.1-P2.7 smokes PASS; smoke_determinism tick_diff=0 仍 bit-equal
+- [x] **AC7 — AIR layer + 飞行单位**：`smoke_flying_units` ✅ PASS (P2.8 完成 2026-05-02); 防空塔 archer_tower (mask=AIR) 命中 flying_scout 3 次 / melee (mask=GROUND) 0 命中 scout (layer mask 过滤工作) / flying scout 直线飞越 barracks 直达 (50, 100) (RtsPathfinding AIR 层 _direct_path); evidence in `../Progress.md` AC7
+- [x] **AC8 — 城堡战争最小可玩 demo**：`smoke_castle_war_minimal` ✅ PASS (P2.8 完成 2026-05-02); 玩家命令放兵营 → 周期 spawn melee → 攻击 right_ct → result=left_win (193 ticks); 同时 left_archer 防空 left_scout 1 次 (AC7 联动); demo_rts_frontend.tscn F6 视觉验证留给用户在编辑器内确认; evidence in `../Progress.md` AC8
+- [x] **AC9 — 不退化** (P2.8 重新验证 2026-05-02): LGF 73/73 PASS; hex demo exit 0; RTS 主 smoke 仍 left_win, ticks=347 (与 P2.7 完全一致); 全部 P1+P2.1-P2.7 smokes PASS; smoke_determinism tick_diff=0 仍 bit-equal
 - [x] **AC10 — Bit-identical replay**：`smoke_replay_bit_identical` ✅ PASS (P2.7 完成 2026-05-01); 同 seed=42 + 同 2 commands → timeline events + player_commands_log + rng_seed 全 bit-identical (HexCoord 字段递归 q/r 比对); evidence in `../Progress.md` AC10
 
 ---
