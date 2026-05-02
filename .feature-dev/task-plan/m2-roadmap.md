@@ -35,29 +35,27 @@
 
 ---
 
-### M2.2 — AI 对手 (Computer Player) 🟢 active (2026-05-02 启动, Minimal AI)
+### M2.2 — AI 对手 (Computer Player) ✅ done (2026-05-02; Minimal AI)
 
 **详细规划**: [`m2-2-ai-opponent/README.md`](m2-2-ai-opponent/README.md) (含 E1-E10 决策表 + 6 AC + 子任务拆分 E.1-E.4)
 
-**目标**: 右侧不再依赖 player_command, AI 走 strategy 自动放 barracks + 出兵 + 进攻; 单机 1v1 玩家 vs CPU 可在 demo 里打完一局。
+**目标**: 右侧不再依赖 player_command, AI 走 RtsComputerPlayer 自动放 barracks + 出兵 + 进攻; 单机 1v1 玩家 vs CPU 可在 demo 里打完一局。
 
-**Minimal AI scope** (M2.2 第一轮; 后续轮可加难度 / 兵种偏好 / 防御阵型):
+**Minimal AI scope 落地** (后续轮可加难度 / 兵种偏好 / 防御阵型):
 - 1 档难度,无难度档位选项
 - 单跳 build order:只放 barracks (1 个 cap; 不管 archer_tower / 防空 / 兵种偏好)
-- AI 出 unit 走默认 melee
+- AI 出 unit 走默认 melee (barracks 默认 spawn melee)
 - worker harvest 沿用 M2.1 的 RtsHarvestStrategy(AI 不 override worker)
 - 不引入侦探 / 防御阵型
 
-**核心交付**:
-- `RtsComputerPlayer` (logic/ai/, team-level, RefCounted, procedure tick 驱动 — 每 30 tick 决策)
+**已交付** (单 phase 4 子任务全过, 6/6 AC PASS, 14/14 validation 全套 0 漂移):
+- `RtsComputerPlayer` (logic/ai/, team-level, RefCounted, procedure tick step 6.5 驱动 — 每 30 tick 决策)
 - AI 走 RtsPlayerCommandQueue 链路 (与玩家走同一接口, 保 bit-identical replay)
-- procedure._computer_players + attach_computer_player(team_id) (默认不 attach, smoke / demo 显式启用)
-- smoke_ai_vs_player_full_match (600 tick @ 30Hz, 中等强度: ≥1 barracks + ≥3 unit + ≥1 attack ct)
-- demo_rts_frontend 双方都启 AI (F6 看 AI vs AI 自跑链路)
+- procedure._computer_players + attach_computer_player(team_id) (默认不 attach, smoke / demo 显式启用 — E10 决策保旧 12 项 smoke 不破)
+- smoke_ai_vs_player_full_match (600 tick @ 30Hz, 实测 ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9, ≥ 阈值 {1,3,1} 全过)
+- demo_rts_frontend 双方都启 AI (F6 可看 AI vs AI 自跑 经济 → 出兵 → 攻 ct 完整链路)
 
-**为何先做 minimal**: M2.2 是"游戏感受"层入口, 第一轮先把"AI 周期决策 + 走 PlayerCommand + 走 attack-move 链路"打通, 后续轮再扩难度档 / 兵种 / 防御。
-
-**Status**: 🟢 active (E.1-E.4 单 phase 推进; 启动 2026-05-02; 待 /autonomous-feature-runner 推进)
+**Status**: ✅ done + archive 完成 2026-05-02 (archive `archive/2026-05-02-rts-m2-2-ai-opponent/`)
 
 ---
 
