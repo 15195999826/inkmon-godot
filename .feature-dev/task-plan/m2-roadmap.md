@@ -35,18 +35,29 @@
 
 ---
 
-### M2.2 — AI 对手 (Computer Player) 🔒 deferred
+### M2.2 — AI 对手 (Computer Player) 🟢 active (2026-05-02 启动, Minimal AI)
+
+**详细规划**: [`m2-2-ai-opponent/README.md`](m2-2-ai-opponent/README.md) (含 E1-E10 决策表 + 6 AC + 子任务拆分 E.1-E.4)
 
 **目标**: 右侧不再依赖 player_command, AI 走 strategy 自动放 barracks + 出兵 + 进攻; 单机 1v1 玩家 vs CPU 可在 demo 里打完一局。
 
-**预期交付** (Phase 拆分待 M2.2 启动时定):
-- `RtsComputerPlayer` (类似 RtsAIStrategy 但 team-level, 走"该建什么 / 何时建 / 何时攻")
-- AI 走 PlaceBuildingCommand 链路 (与玩家走同一接口, 走 player_command_queue 保 bit-identical replay 验证)
-- AI 难度 stub (低难度: 慢速建造; 高难度: 快速 + 兵种偏好)
-- 经济 (M2.1) AI 也参与 (worker 自动 harvest + 优先建 economy)
-- smoke_ai_vs_player_full_match (60s headless full game; 双方 ct 至少有一方死 = 决出胜负)
+**Minimal AI scope** (M2.2 第一轮; 后续轮可加难度 / 兵种偏好 / 防御阵型):
+- 1 档难度,无难度档位选项
+- 单跳 build order:只放 barracks (1 个 cap; 不管 archer_tower / 防空 / 兵种偏好)
+- AI 出 unit 走默认 melee
+- worker harvest 沿用 M2.1 的 RtsHarvestStrategy(AI 不 override worker)
+- 不引入侦探 / 防御阵型
 
-**为何延后**: M2.2 是"游戏感受"层, M2.1 经济先做完后 AI 才有"该花什么"。AI 不写好 demo 就只能"对着固定右侧"打。
+**核心交付**:
+- `RtsComputerPlayer` (logic/ai/, team-level, RefCounted, procedure tick 驱动 — 每 30 tick 决策)
+- AI 走 RtsPlayerCommandQueue 链路 (与玩家走同一接口, 保 bit-identical replay)
+- procedure._computer_players + attach_computer_player(team_id) (默认不 attach, smoke / demo 显式启用)
+- smoke_ai_vs_player_full_match (600 tick @ 30Hz, 中等强度: ≥1 barracks + ≥3 unit + ≥1 attack ct)
+- demo_rts_frontend 双方都启 AI (F6 看 AI vs AI 自跑链路)
+
+**为何先做 minimal**: M2.2 是"游戏感受"层入口, 第一轮先把"AI 周期决策 + 走 PlayerCommand + 走 attack-move 链路"打通, 后续轮再扩难度档 / 兵种 / 防御。
+
+**Status**: 🟢 active (E.1-E.4 单 phase 推进; 启动 2026-05-02; 待 /autonomous-feature-runner 推进)
 
 ---
 
