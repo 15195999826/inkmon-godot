@@ -1,4 +1,4 @@
-# Next Steps — 2026-05-03 (M3 Epic / M0.5 下一步)
+# Next Steps — 2026-05-03 (M3 Epic / M0.6 下一步)
 
 ## 当前目标
 
@@ -12,23 +12,21 @@
 
 ## 下一步
 
-按 M0.md §2 子任务顺序:**M0.1 - M0.4 全 done**(baseline + 3 data class + StatBlock 4 字段 + actor 加字段 / 改 get_footprint_cells 双路径分支 + sync_obstruction_shape 方法,smoke 0 漂移)→ 进 **M0.5 — `RtsBuildings` 工厂只填默认 shape + 6 个 sync_obstruction_shape() call sites + `RtsBuildingPlacement` 算法同步**:
+按 M0.md §2 子任务顺序:**M0.1 - M0.5 全 done**(baseline + data class + StatBlock 4 字段 + actor 字段 / 算法 + 工厂注入 + 6 sync sites + Placement core helper 抽取 + replay 0 漂移)→ 进 **M0.6 — Frontend visualizer 选择圈 / ghost 渲染对齐**:
 
-1. `RtsBuildings._create_from_kind` 注入 `RtsObstructionShapeStatic` + `RtsFootprintShape`(只填 size / type / offset,**不写 center**;codex P1 #2 工厂不知道最终 position,center 由 sync 时填)
-2. 6 个 sync_obstruction_shape() call sites(每处都在 `actor.position_2d = ...` 之后、`get_footprint_cells / place_building` 之前加 sync 调用 + `obstruction_shape.entity_id = actor.get_id()` + `control_group = str(team_id)`):
-   - `logic/commands/rts_place_building_command.gd:81-90` (玩家命令)
-   - `core/rts_auto_battle_procedure.gd:188` (procedure setup)
-   - `frontend/demo_rts_frontend.gd:164,170` (双 ct)
-   - `frontend/demo_rts_pathfinding.gd:115,121,269,274` (静态 + 动态障碍)
-   - `logic/scenario/rts_scenario_harness.gd:92,282-289,301`
-   - `frontend/preset/rts_match_preset.gd`(若 preset 内创建建筑)
-3. `RtsBuildingPlacement._compute_footprint_cells` 同步算法 — 现有签名保留 + 新增 `_compute_footprint_cells_from_shape(shape, grid)` 重载;抽 core helper `_compute_footprint_cells_core(center_cell, cells_w, cells_h)`,actor 和 placement 共享避免双份漂移
-4. **额外 grep**(R5/R6 反馈):`tests/**/*.gd` 找 `create_*` 后直调 `get_footprint_cells()` 的 diagnostics/smoke 路径,补上 sync(diag_pathfinding_trace 等可能有)
+1. `frontend/visualizers/rts_building_visualizer.gd`:
+   - sprite 锚点保持 `actor.position_2d` 不变(F4 决策 A,M2.3 既有逻辑不动)
+   - 选择圈渲染(P2.x M2.3 加的)切到用 `actor.footprint_shape.get_world_aabb(actor.position_2d)` 算外接矩形
+2. `frontend/visualizers/rts_unit_visualizer.gd`:
+   - sprite 锚点 = position_2d 不变(M0 单位无 footprint_shape;选择圈走 actor.collision_radius)
+3. ghost cells 高亮(可选 — 现 ghost 是 ColorRect 不是 cells,M0.5 已切到 obstruction_size,M0.6 看是否需进一步用 cells 高亮)
 
 **完成标志**:
-- 6 个 call sites 全部 grep 验证已加 sync;漏 sync 触发 M0.7 step 1 新 smoke 失败
-- placement 链路端到端通,放下建筑后 `actor.obstruction_shape.center == actor.position_2d + obstruction_offset`
-- 因 obstruction_offset = ZERO,M0.5 后 smoke 应仍 0 漂移(新算法跟旧算法 cells bit-identical)
+- demo_rts_frontend F6 跑(编辑器手验),sprite 渲染位置不变(玩家看不出移位)
+- 玩家鼠标点击 sprite 中心仍能选中建筑(footprint_shape.contains 正确)
+- ghost 占地高亮跟最终 obstruction 占地一致(M0.5 已通过 obstruction_size + offset 对齐)
+
+完整步骤见 M0.md §M0.6。M0.6 完成后接 M0.7(新 smoke + Validation 全套 14 项 + commit + 体验点 ✋1 录屏)。
 
 ## 验收准则
 

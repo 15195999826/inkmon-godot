@@ -1,6 +1,6 @@
 # Progress — RTS Pathfinding M3 Epic / M0 sub-feature
 
-**Status**: 🟡 active(M0.1 + M0.2 + M0.3 + M0.4 done,M0.5 下一步 — `RtsBuildings` 工厂注入 + 6 个 sync call sites)
+**Status**: 🟡 active(M0.1 - M0.5 done,M0.6 下一步 — Frontend visualizer 选择圈 / ghost 渲染对齐)
 
 **Active feature**: M0 — Footprint / Obstruction shape 拆分 + Bug 1 修复
 **完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md)
@@ -63,9 +63,25 @@ R1-R8 完整反馈记录见 `Handoff-2026-05-03-0ad-migration-planning.md` §11.
   - **Import**: exit=0,RtsBuildingActor 重新注册无 type error(LSP cache stale 报"找不到类型"是 UI cache 问题,实际编译通过)
   - **Regress**: LGF 73/73 + smoke_rts_auto_battle ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 deaths=6 detoured=4 **0 漂移** + smoke_castle_war_minimal PASS (player placed barracks / anti-air shot down flying / crystal tower died) + smoke_economy_demo PASS (full cycle harvest→cost→barracks→melee→attack ct) — **fallback 路径向后兼容 0 漂移**
   - **AC4 局部状态**: 新算法已就位等 M0.5 激活;现因 obstruction_shape == null 全走 fallback,M0.5 工厂注入后会切到新路径 (obstruction_offset=ZERO 时 cells 跟旧 bit-identical 由 M0.7 smoke 严格断言)
-- [ ] **M0.5** — `RtsBuildings` 工厂(只填默认字段)+ 6 个 sync_obstruction_shape() call sites + `RtsBuildingPlacement` 算法同步
-  - **Evidence**: 待 — 6 个 call sites 全部 grep 验证已加 sync(R2/R5 提醒列表):`rts_place_building_command.gd:81-90` / `rts_auto_battle_procedure.gd:188` / `demo_rts_frontend.gd:164,170` / `demo_rts_pathfinding.gd:115,121,269,274` / `rts_scenario_harness.gd:92,282-289,301` / `rts_match_preset.gd`
-  - **额外 grep**(R5/R6 反馈): `tests/**/*.gd` 找 `create_*` 后直调 `get_footprint_cells()` 的 diagnostics/smoke 路径
+- [x] **M0.5** — `RtsBuildings` 工厂(只填默认字段)+ 6 个 sync_obstruction_shape() call sites + `RtsBuildingPlacement` 算法同步 ✅ **2026-05-03 done**
+  - **工厂**: `RtsBuildings._create_from_kind` 注入 `RtsObstructionShapeStatic`(width/height/rotation_rad=0/flags=BLOCK_PATHFINDING)+ `RtsFootprintShape`(type/size/center_offset=ZERO),只填位置无关字段;center 由 sync 时填
+  - **6 个 production sync sites**:
+    - ✅ `rts_place_building_command.gd:apply` set position 后调 sync(玩家命令路径)
+    - ✅ `rts_auto_battle_procedure.gd:start` get_footprint_cells 前调 sync(procedure 起手)
+    - ✅ `demo_rts_frontend.gd` 双 ct(set position 后)
+    - ✅ `demo_rts_pathfinding.gd` 4 处(OBSTACLE_POSITIONS 循环 + dummy + 动态 spawn 通过 K)
+    - ✅ `rts_scenario_harness.gd` 2 处(scenario buildings + dynamic obstacle)
+    - ✅ `rts_match_preset.gd` 不调 RtsBuildings.create_*,无需改
+  - **Placement 同步**: `RtsBuildingPlacement` 加 `_compute_footprint_cells_core(center, cells_w, cells_h)` core helper + `_compute_footprint_cells_from_shape(shape, grid)` 重载;现有 `_compute_footprint_cells(center, footprint_size)` 内部调 core;**RtsBuildingActor.get_footprint_cells delegate 给 Placement core helper**,无双份算法漂移
+  - **Ghost preview**: `demo_rts_frontend._enter_placement_mode` ghost size 切到 `stats.obstruction_size`;`_update_placement_ghost` bbox center 加 `obstruction_offset` 让 ghost 跟最终 obstruction 占地完全对齐
+  - **Sync 自动填**: `sync_obstruction_shape()` 自动填 entity_id (来自 actor.get_id)+ control_group (来自 team_id),减少 site boilerplate
+  - **Lazy sync 兜底**: get_footprint_cells 在 obstruction_shape.center == ZERO 且 position_2d != ZERO 时自动 sync 一次,救场漏 sync 的 tests / diagnostics 路径
+  - **Verification**:
+    - `--import` exit=0,RtsAutoBattleProcedure / RtsBuildingPlacement / 共 7 个 class 重新注册无 type error
+    - LGF 73/73 PASS
+    - smoke_rts_auto_battle: ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 deaths=6 detoured=4 — **完全 baseline-aligned 0 漂移**
+    - smoke_castle_war_minimal PASS / smoke_economy_demo PASS / smoke_player_command_production PASS
+    - **smoke_replay_bit_identical PASS** — same seed + commands → bit-identical event_timeline + commands_log(determinism 关键测试)
 - [ ] **M0.6** — Frontend 选择圈 + ghost 渲染对齐(sprite 锚点保持 `actor.position_2d` 不变 — F4 决策 A)
   - **Evidence**: 待 — F6 demo 视觉验证 sprite 位置不变 + 选择圈用 footprint_shape AABB
 - [ ] **M0.7** — 新 smoke + Validation 全套 + commit
