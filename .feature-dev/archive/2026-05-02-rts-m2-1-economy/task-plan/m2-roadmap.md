@@ -31,7 +31,7 @@
 - crystal_tower 兼 drop-off (`RtsBuildingConfig.StatBlock.is_drop_off`; 与 is_crystal_tower 同模式)
 - 闭环 PASS: worker harvest → 资源到达 cost (80g+50w barracks / 60g+100w archer_tower) → 玩家 enqueue PlaceBuildingCommand → barracks spawn melee → melee 攻 ct (smoke_economy_demo 验证 melee_to_ct_attacks=31)
 
-**Status**: ✅ done (Phase A + B + C + D 全部收口 2026-05-02; M2.1 整体待 archive)
+**Status**: ✅ done + archive 完成 2026-05-02 (archive `archive/2026-05-02-rts-m2-1-economy/`)
 
 ---
 

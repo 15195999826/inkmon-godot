@@ -31,7 +31,9 @@ Before discussing or editing, run `git status -sb`, then read or create:
 
 If these files conflict, prefer newest explicit user instruction, then `Next-Steps.md`, then `Progress.md`, then `Current-State.md`. Report the conflict briefly before editing.
 
-If `Next-Steps.md` already says the previous feature completed system functional acceptance, check `.feature-dev/archive/` for a matching archive entry. If it is missing, create the archive before overwriting current planning docs for the next feature.
+If `Next-Steps.md` already says the previous feature completed system functional acceptance, check `.feature-dev/archive/` for a matching archive entry. If it is missing, create the archive before overwriting current planning docs for the next feature, and copy the complete `.feature-dev/task-plan/` tree into that archive entry before replacing the root task plan.
+
+If `Next-Steps.md` is in the final waiting-for-next-feature state, `.feature-dev/task-plan/README.md` must not still claim an older active feature. Before planning the next feature, normalize it into a waiting/index state or replace it with the new feature plan once the new target is confirmed.
 
 ## Workflow
 
@@ -50,7 +52,7 @@ After the feature is confirmed, update `.feature-dev/` docs before discussing ac
 
 - `.feature-dev/Next-Steps.md`: current goal, short goal description, immediate next step = define acceptance criteria.
 - `.feature-dev/Progress.md`: task name, status = planned / acceptance criteria pending, initial checklist.
-- `.feature-dev/task-plan/README.md`: task title, high-level phases, non-goals.
+- `.feature-dev/task-plan/README.md`: replace any stale previous active plan with the new task title, high-level phases, non-goals, and links to relevant archived baselines.
 - Phase docs under `.feature-dev/task-plan/` only if the feature is large enough to need staged execution.
 - `.feature-dev/Current-State.md` only if the active checkpoint or baseline facts changed.
 - Do not delete previous feature records until they are archived under `.feature-dev/archive/`.
@@ -101,10 +103,11 @@ Also summarize changed files and call out that implementation has not started.
 
 ## Editing Rules
 
-- Use the Edit/Write tools for manual edits.
+- In Codex, use `apply_patch` for manual edits.
 - Keep `.feature-dev/Next-Steps.md` as the execution cursor.
 - Keep `.feature-dev/Progress.md` as evidence and status.
 - Keep `.feature-dev/Current-State.md` as current facts only.
+- Keep `.feature-dev/task-plan/README.md` aligned with `Next-Steps.md`; it should be either the active plan for the current feature or a waiting/index page, never an old active plan.
 - Keep `reference/` for stable protocols and architecture, not active task progress.
 - Do not put future v2/v3 ideas into current task docs; put them in `docs/future/` only if the user asks to preserve them.
 
@@ -116,4 +119,5 @@ The skill is done when:
 - `.feature-dev/Next-Steps.md` names the current goal and next executable action.
 - Acceptance criteria are documented.
 - `Progress.md` and `task-plan/` have matching checklist/evidence/phase structure.
+- No root `.feature-dev/task-plan/README.md` content still names a previous completed feature as active.
 - The user has a ready-to-paste prompt for the next development conversation, and that prompt invokes `/autonomous-feature-runner`.

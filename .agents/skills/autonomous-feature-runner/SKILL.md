@@ -15,7 +15,7 @@ The job is to develop from the documented goal and acceptance criteria, keep the
 - Do not start if `.feature-dev/Next-Steps.md` has no current goal or no acceptance criteria.
 - Do not renegotiate the feature unless the documented goal is impossible or conflicts with the newest user instruction.
 - Preserve unrelated dirty worktree changes.
-- Do not commit, push, or create a PR unless the user explicitly asks.
+- Do not push or create a PR unless the user explicitly asks. Commit behavior is controlled by `.feature-dev/Autonomous-Work-Protocol.md`; if that file has no project-specific commit policy, do not commit unless the user explicitly asks.
 
 ## Required Reads
 
@@ -27,8 +27,11 @@ Start with `git status -sb`, then read:
 4. `.feature-dev/Progress.md`
 5. `.feature-dev/task-plan/README.md`
 6. `.feature-dev/Autonomous-Work-Protocol.md`
+7. `.feature-dev/archive/README.md`
 
 If `.feature-dev/` is missing, stop and ask the user to run `/next-feature-planner` first, unless the user explicitly asks this skill to create the baseline docs.
+
+If these files conflict, prefer newest explicit user instruction, then `Next-Steps.md`, then `Progress.md`, then `Current-State.md`. Stop and report the conflict before editing if the next executable step is unclear.
 
 ## Execution Loop
 
@@ -44,9 +47,10 @@ If `.feature-dev/` is missing, stop and ask the user to run `/next-feature-plann
    - re-run `git status -sb` and ensure any worktree status written into docs reflects the final closeout state, not a transient mid-run state;
    - sweep the entry/reference docs that should reflect the new baseline, at minimum `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/README.md`, and any relevant `docs/reference/*` files, so they do not still describe the previous checkpoint as current behavior;
    - create `.feature-dev/archive/<YYYY-MM-DD-feature-slug>/` following `.feature-dev/archive/README.md`;
-   - copy final `Current-State.md`, `Next-Steps.md`, `Progress.md`, and `task-plan/` into that archive entry;
+   - copy final `Current-State.md`, `Next-Steps.md`, `Progress.md`, and the complete `task-plan/` tree into that archive entry before replacing the root task plan; do not archive only `task-plan/README.md`;
    - write archive `Summary.md` with feature name, acceptance conclusion, commands, real-use evidence, important paths, and residual risks;
-   - update `.feature-dev/Next-Steps.md` to "已完成系统功能验收，接下来等待用户确认下一个 feature 开发" or equivalent wording.
+   - update `.feature-dev/Next-Steps.md` to "已完成系统功能验收，接下来等待用户确认下一个 feature 开发" or equivalent wording;
+   - replace root `.feature-dev/task-plan/README.md` with a waiting/index state that points to the archive entry and does not still claim the completed feature is active.
 
 ## When To Stop And Ask
 
@@ -75,5 +79,5 @@ Prefer evidence in this order when relevant:
 
 The skill is done when either:
 
-- acceptance criteria are met, entry/reference docs no longer describe the previous checkpoint as current behavior, an archive entry exists under `.feature-dev/archive/`, and `.feature-dev/Next-Steps.md` is updated to the final waiting-for-next-feature state; or
+- acceptance criteria are met, entry/reference docs no longer describe the previous checkpoint as current behavior, an archive entry exists under `.feature-dev/archive/`, `.feature-dev/Next-Steps.md` is updated to the final waiting-for-next-feature state, and root `.feature-dev/task-plan/README.md` is no longer a stale active plan; or
 - a documented blocker is written to `.feature-dev/Progress.md` and the user is asked for a specific decision.

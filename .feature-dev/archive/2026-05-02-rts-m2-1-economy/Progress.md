@@ -1,6 +1,6 @@
 ## Progress — RTS Auto-Battle M2.1 Economy
 
-**Status**: ✅ **Phase A + B + C + D 全部收口** (2026-05-02); M2.1 Economy 整体完成, 待 archive
+**Status**: ✅ **Phase A + B + C + D 全部收口** (2026-05-02); M2.1 Economy 整体完成并归档
 - Phase A: ✅ 完成 (7/7 AC) — Multi-Resource Foundation
 - Phase B: ✅ 完成 (6/6 AC) — Resource Nodes + Worker Class
 - Phase C: ✅ 完成 (7/7 AC) — Harvest Activity + Drop-off Loop

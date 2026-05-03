@@ -1,8 +1,8 @@
-# Current State — 2026-05-02 (RTS M2.1 Economy ✅ 完整收口; 待 archive)
+# Current State — 2026-05-02 (RTS M2.1 Economy ✅ 完整收口并归档)
 
 inkmon-godot baseline 事实快照。开新 phase / sub-feature 前对齐用。
 
-> **Active feature**: 无 (RTS M2.1 Economy 完整收口待 archive; 等待用户确认下一个 feature)
+> **Active feature**: 无 (RTS M2.1 Economy 完整收口并归档; 等待用户确认下一个 feature)
 > **RTS M2.1 Economy ✅ done** (2026-05-02): 4 phase 全过 (A 7/7 + B 6/6 + C 7/7 + D 5/5 = 25/25 AC PASS); Phase D 收口时 18/18 validation 全套 PASS, 0 行为漂移 (除 4 fixture cost/starting 数字漂); simplify pass clean
 > **Phase A** (Multi-Resource Foundation): cost / starting_resources 全链路 dict 化, bit-identical replay 0 漂移
 > **Phase B** (Resource Nodes + Worker Class): RtsResourceNode / RtsResourceNodeConfig / UnitClass.WORKER + StatBlock carry_capacity/harvest_speed
@@ -37,7 +37,7 @@ inkmon-godot baseline 事实快照。开新 phase / sub-feature 前对齐用。
 - Frontend BattleDirector (流式 push 模式, 0 处 actor 直读, alpha 插值)
 - RtsScenarioHarness (声明式测试框架; 已 4 个寻路 scenario)
 
-### RTS M2.1 — Economy ✅ done (2026-05-02; 待 archive)
+### RTS M2.1 — Economy ✅ done + archived (2026-05-02)
 
 **4 phase 全部收口** — 25/25 AC PASS, 18/18 validation 全套 PASS
 

@@ -4,7 +4,7 @@
 >
 > **目标**: 把 RTS demo 现有的"starting_resources 一次性 100 gold"演进为"worker harvest 资源闭环 + 双资源 cost"。
 >
-> **收口结论**: 4 phase 全过 (A 7/7 + B 6/6 + C 7/7 + D 5/5 = 25/25 AC PASS); Phase D 收口时 18/18 validation 全套 PASS, 0 行为漂移; M2.1 整体待 archive。
+> **收口结论**: 4 phase 全过 (A 7/7 + B 6/6 + C 7/7 + D 5/5 = 25/25 AC PASS); Phase D 收口时 18/18 validation 全套 PASS, 0 行为漂移; M2.1 已归档。
 
 ---
 

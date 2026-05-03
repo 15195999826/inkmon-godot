@@ -1,6 +1,6 @@
 ## Progress — RTS Auto-Battle M2.2 AI 对手 (Computer Player)
 
-**Status**: ✅ **6/6 AC PASS + 14/14 validation 全过 + simplify pass clean + AC-doc consistency aligned**(2026-05-02; 待 archive)
+**Status**: ✅ **6/6 AC PASS + 14/14 validation 全过 + simplify pass clean + AC-doc consistency aligned**(2026-05-02; archived `archive/2026-05-02-rts-m2-2-ai-opponent/`)
 
 - 上一个 sub-feature: M2.1 Economy ✅ done + archive 完成 (2026-05-02; archive `archive/2026-05-02-rts-m2-1-economy/`)
 - 本 sub-feature 模式: **1 phase 单线推进**(scope minimal); 子任务 E.1 → E.2 → E.3 → E.4
