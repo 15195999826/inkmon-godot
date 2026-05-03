@@ -4,18 +4,9 @@
 > 数据结构: [`../data-structures.md`](../data-structures.md) §1 (Grid 层)
 > API: [`../interfaces.md`](../interfaces.md) §7 (PassabilityRegistry) + §8 (NavcellGrid)
 >
-> Status: ✅ **done** (2026-05-04 archived → [`archive/2026-05-04-rts-m3-m1-navcell-grid/`](../../../archive/2026-05-04-rts-m3-m1-navcell-grid/))
+> Status: 🔒 pending(M0 完成后启动)
 > 依赖: M0(obstruction_shape 已落地,但 M1 暂不用 它的 rasterize)
-> 阻塞: M2 (M2 已可启动)
->
-> **完成进度**:
-> - ✅ M1.1 PassabilityClassConfig + Registry — 已落地
-> - ✅ M1.2 RtsNavcellGrid (PackedInt32Array) — 已落地
-> - ✅ M1.3 RtsBattleGrid 改 facade — 已落地(dual-write 协议)
-> - ✅ M1.4 Procedure 启动链路 + attach sync 已有 obstacle — 已落地
-> - ✅ M1.5 smoke_navcell_grid_passability + Validation 全套 0 漂移 + simplify pass — 已落地
->
-> **完整 evidence + commit hash + 残余风险** 见 [`archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md`](../../../archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md)。
+> 阻塞: M2 (M2 ObstructionManager 写到 grid 上需要 navcell + passability class 数据)
 
 ---
 
