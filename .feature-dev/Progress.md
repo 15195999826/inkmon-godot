@@ -1,6 +1,6 @@
 # Progress — RTS Pathfinding M3 Epic / M0 sub-feature
 
-**Status**: 🟡 active(M0.1 + M0.2 done,M0.3 下一步 — `RtsBuildingConfig.StatBlock` 加 4 字段)
+**Status**: 🟡 active(M0.1 + M0.2 + M0.3 done,M0.4 下一步 — `RtsBuildingActor` 加字段 + 改 get_footprint_cells)
 
 **Active feature**: M0 — Footprint / Obstruction shape 拆分 + Bug 1 修复
 **完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md)
@@ -49,8 +49,15 @@ R1-R8 完整反馈记录见 `Handoff-2026-05-03-0ad-migration-planning.md` §11.
   - **Import**: `godot --headless --path . --import` exit=0,update_scripts_classes 注册 3 个新 class_name(RtsFootprintShape / RtsObstructionShape / RtsObstructionShapeStatic),无 type error
   - **Regress**: LGF 73/73 PASS;`smoke_rts_auto_battle` ticks=347 attacks=74 (melee=32 ranged=42) melee_max=24.00 deaths=6 detoured=4 — **完全对齐 baseline,0 漂移**
   - **F2 决策落地**: 不引入 RtsObstructionFlags 完整枚举,M0 阶段 flags 字段注释里说明 `1<<3 = BLOCK_PATHFINDING` 单 bit,M2 引入完整枚举
-- [ ] **M0.3** — `RtsBuildingConfig.StatBlock` 加 4 个新字段(`obstruction_size / obstruction_offset / footprint_shape_type / selection_footprint_size`,⚠️ 名字不能跟旧 `footprint_size: Vector2i` 冲突)
-  - **Evidence**: 待 — config fallback 测试 + 现有 smoke 不漂(向后兼容)
+- [x] **M0.3** — `RtsBuildingConfig.StatBlock` 加 4 个新字段 ✅ **2026-05-03 done**
+  - **Evidence**: `addons/.../logic/config/rts_building_config.gd` StatBlock 新增 4 字段 + `_CELL_SIZE_FALLBACK = 32.0` 内部常量 + `get_stats` 加 fallback 派生 (raw 没显式时从旧 footprint_size × cell_size 派生 obstruction_size, selection 派生 = max(w,h)*0.5)
+  - **三建筑 fallback 数字** (raw config 未显式新字段,全走 fallback):
+    - crystal_tower (footprint=(2,2)): obstruction_size=(64,64), selection=Vector2(32,0), offset=ZERO, shape_type=0(CIRCLE)
+    - barracks (footprint=(2,2)): obstruction_size=(64,64), selection=Vector2(32,0)
+    - archer_tower (footprint=(1,1)): obstruction_size=(32,32), selection=Vector2(16,0)
+  - **Import**: exit=0,update_scripts_classes RtsBuildingConfig + InputHelper 注册,无 type error
+  - **Regress**: LGF 73/73 + smoke_rts_auto_battle ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 deaths=6 detoured=4 **0 漂移** + smoke_resource_nodes PASS (5 workers idle near spawn) + smoke_economy_demo PASS (full cycle harvest → cost → barracks → melee → attack ct) — **向后兼容验证通过**
+  - **旧字段**: `footprint_size: Vector2i` 保留,M2 引入 ObstructionManager 后才删
 - [ ] **M0.4** — `RtsBuildingActor` 加 `obstruction_shape` / `footprint_shape` 字段 + 改 `get_footprint_cells` 算法 + 加 `sync_obstruction_shape()` 方法
   - **Evidence**: 待 — `obstruction_offset = ZERO` 时 cells 跟旧实现 bit-identical(单元 test)
 - [ ] **M0.5** — `RtsBuildings` 工厂(只填默认字段)+ 6 个 sync_obstruction_shape() call sites + `RtsBuildingPlacement` 算法同步

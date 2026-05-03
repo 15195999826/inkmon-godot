@@ -1,4 +1,4 @@
-# Next Steps — 2026-05-03 (M3 Epic / M0.3 下一步)
+# Next Steps — 2026-05-03 (M3 Epic / M0.4 下一步)
 
 ## 当前目标
 
@@ -12,14 +12,17 @@
 
 ## 下一步
 
-按 M0.md §2 子任务顺序:**M0.1 done**(baseline csv + smoke PASS)→ **M0.2 done 2026-05-03**(3 个 data class 落地 + import 通过 + LGF 73/73 + smoke_rts_auto_battle 0 漂移)→ 进 **M0.3 — `RtsBuildingConfig.StatBlock` 加 4 个新字段**:
+按 M0.md §2 子任务顺序:**M0.1 done**(baseline)→ **M0.2 done**(3 data class)→ **M0.3 done 2026-05-03**(StatBlock 4 字段 + fallback 派生 + LGF/smoke 0 漂移)→ 进 **M0.4 — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` 算法**:
 
-- `obstruction_size: Vector2`(默认 = `footprint_size * cell_size`)
-- `obstruction_offset: Vector2`(默认 = ZERO)
-- `footprint_shape_type: int`(0=CIRCLE / 1=SQUARE,默认 CIRCLE)
-- `selection_footprint_size: Vector2`(默认 = `max(obstruction.w, obstruction.h) * 0.5`,**新名,不能跟旧 `footprint_size: Vector2i` 冲突**)
+1. `RtsBuildingActor` 加 `obstruction_shape: RtsObstructionShapeStatic` + `footprint_shape: RtsFootprintShape` 字段(默认 null,工厂填)
+2. 改 `get_footprint_cells(grid)` 算法 — 用 `obstruction_shape.center` 算 cells,**不再** 用 `position_2d`(spec §M0.4 给了完整代码,严格保留旧"左上偏置"方向不能改);用 `obstruction_shape.width / height` 推 cells_w / cells_h,而不是 `footprint_size: Vector2i`
+3. 新增 `sync_obstruction_shape()` 方法 — `obstruction_shape.center = position_2d + stats.obstruction_offset`
+4. 旧 `footprint_size: Vector2i` 保留(frontend 仍读)
 
-旧 `footprint_size: Vector2i` 保留(M2 才删)。完成标志:smoke_resource_nodes / smoke_economy_demo 等现有 smoke PASS(向后兼容);新字段 fallback 从旧 footprint_size 派生。完整步骤见 M0.md §M0.3。
+**完成标志**:
+- `obstruction_offset = ZERO` 时(M0.3 默认),`get_footprint_cells()` 返回 cells 跟旧实现 **bit-identical**(关键!所有现有 smoke 数字必须 0 漂移)
+- `obstruction_offset` 非零时,cells 中心跟 obstruction.center 走
+- 但是 M0.4 还没接入工厂(M0.5 才),所以单纯 actor 字段加完后 smoke 应保持 baseline(此时 actor.obstruction_shape 仍 null,get_footprint_cells 走 null-check fallback 到旧路径或保留旧逻辑)。**实施细节**: get_footprint_cells 入口判断 obstruction_shape 是否 null,null 时走旧 footprint_size 路径(向后兼容)。
 
 ## 验收准则
 
