@@ -5,119 +5,138 @@ description: Use when the user invokes /next-feature-planner or wants to choose 
 
 # Next Feature Planner
 
-Use this project-local skill to turn a loose next-feature conversation into a ready-to-execute `.feature-dev/` checkpoint.
+Turn a loose next-feature conversation into a ready-to-execute `.feature-dev/` checkpoint.
 
-The output of this skill is a documented feature target plus agreed acceptance criteria. The next conversation should be able to start by invoking `/autonomous-feature-runner` against `.feature-dev/Next-Steps.md`.
+Output = documented feature target + agreed acceptance criteria. Next conversation starts with `/autonomous-feature-runner`.
 
 ## Scope
 
-- Work in the current project root. If `.feature-dev/` is missing, create it with the standard files before continuing.
+- Work in current project root. Create `.feature-dev/` if missing.
 - Default to Chinese explanations and Chinese docs.
-- Do not implement product code while using this skill unless the user explicitly pivots from planning to implementation.
-- Do not commit, push, or create a PR unless the user explicitly asks.
+- Do not implement product code unless user explicitly pivots.
+- Do not commit / push / open PR unless user asks.
 - Preserve unrelated dirty worktree changes.
 
-## Required Reads
+## Required Reads (token-conscious)
 
-Before discussing or editing, run `git status -sb`, then read or create:
+Run `git status -sb` first. Then read by tier — **do not read everything up front**.
 
-1. `.feature-dev/README.md`
-2. `.feature-dev/Current-State.md`
-3. `.feature-dev/Next-Steps.md`
-4. `.feature-dev/Progress.md`
-5. `.feature-dev/task-plan/README.md`
-6. `.feature-dev/Autonomous-Work-Protocol.md`
-7. `.feature-dev/archive/README.md`
+**Tier 1 — always read** (启动必读, ~3 files):
 
-If these files conflict, prefer newest explicit user instruction, then `Next-Steps.md`, then `Progress.md`, then `Current-State.md`. Report the conflict briefly before editing.
+1. `.feature-dev/README.md` — index / file roles
+2. `.feature-dev/Next-Steps.md` — execution cursor (current goal / 下一步 / 验收准则)
+3. `.feature-dev/task-plan/README.md` — current active plan or waiting/index page
 
-If `Next-Steps.md` already says the previous feature completed system functional acceptance, check `.feature-dev/archive/` for a matching archive entry. If it is missing, create the archive before overwriting current planning docs for the next feature, and copy the complete `.feature-dev/task-plan/` tree into that archive entry before replacing the root task plan.
+**Tier 2 — read on trigger** (按需读, do NOT read unless triggered):
 
-If `Next-Steps.md` is in the final waiting-for-next-feature state, `.feature-dev/task-plan/README.md` must not still claim an older active feature. Before planning the next feature, normalize it into a waiting/index state or replace it with the new feature plan once the new target is confirmed.
+| File | Read when |
+|---|---|
+| `.feature-dev/Current-State.md` | 用户提到上次 baseline / Next-Steps 与代码现状疑似冲突 / 准备写新 feature 的 baseline 章节 |
+| `.feature-dev/Progress.md` | 用户问"上次做到哪" / 准备复用上次的 evidence / Next-Steps 不清晰需要交叉对照 |
+| `.feature-dev/Autonomous-Work-Protocol.md` | 仅在准备讨论 commit 策略 / phase-close 流程 / 项目特有约束时读;planner 阶段通常**不需要** |
+| `.feature-dev/archive/README.md` | 仅在准备新建 archive 入口 / 用户问归档规则时读;planner 阶段通常**不需要** |
+| `.feature-dev/archive/<slug>/Summary.md` | 仅在新 feature 显式继承前一 sub-feature 的 baseline 时读对应那一份 |
+| `.feature-dev/task-plan/<feature>/phase-X.md` | 仅在该 phase 即将启动 / 用户要修改其 AC 时读 |
+
+冲突优先级:newest explicit user instruction > `Next-Steps.md` > `Progress.md` > `Current-State.md`. Report conflict before editing.
+
+If `Next-Steps.md` says previous feature completed, check `archive/` for matching entry. If missing, create archive **before** overwriting current planning docs; copy the complete `task-plan/` tree into archive entry before replacing the root task plan.
+
+If `Next-Steps.md` is in waiting state, `task-plan/README.md` must NOT still claim an older active feature. Normalize to waiting/index state before planning the next.
 
 ## Workflow
 
 ### 1. Clarify the next feature
 
-If the next feature is already clear from the user or `Next-Steps.md`, summarize it in one short paragraph and ask for confirmation only if the scope is ambiguous or risky.
+If clear from user or `Next-Steps.md`, summarize in one paragraph; ask only if scope is ambiguous.
 
-If no feature is clear, discuss with the user. Keep this focused:
+If unclear, discuss focused:
+- What feature next? Workflow / capability changed?
+- Non-goals (do not pull in)?
+- Avoid re-opening old completed milestones unless user wants.
 
-- Ask what feature they want next.
-- Identify the user-facing workflow or backend capability it changes.
-- Name non-goals that should not be pulled into this checkpoint.
-- Avoid re-opening old completed milestones unless the user explicitly wants that.
+After feature confirmed, update `.feature-dev/`:
+- `Next-Steps.md`: current goal / next executable step = "define acceptance criteria"
+- `Progress.md`: task name / status=planned / initial checklist (keep terse — full AC checklist comes after step 3)
+- `task-plan/README.md`: replace stale active plan with new title + phases + non-goals + links to archived baselines
+- `task-plan/<feature>/` phase docs only if feature is large (see step 3 doc structure)
+- `Current-State.md` only if active checkpoint or baseline facts changed
+- Do NOT delete previous feature records until archived under `archive/`
 
-After the feature is confirmed, update `.feature-dev/` docs before discussing acceptance:
+### 2. Define acceptance criteria with user
 
-- `.feature-dev/Next-Steps.md`: current goal, short goal description, immediate next step = define acceptance criteria.
-- `.feature-dev/Progress.md`: task name, status = planned / acceptance criteria pending, initial checklist.
-- `.feature-dev/task-plan/README.md`: replace any stale previous active plan with the new task title, high-level phases, non-goals, and links to relevant archived baselines.
-- Phase docs under `.feature-dev/task-plan/` only if the feature is large enough to need staged execution.
-- `.feature-dev/Current-State.md` only if the active checkpoint or baseline facts changed.
-- Do not delete previous feature records until they are archived under `.feature-dev/archive/`.
+Discuss "what proves this is really done" before implementation.
 
-### 2. Define acceptance criteria with the user
+Cover when relevant: functional behavior / regression coverage / evidence (test commands, smoke, browser ops, manifest paths) / user simulation / stop condition (exact `Next-Steps.md` wording = feature accepted).
 
-Discuss "what proves this is really done" before implementation starts.
-
-Cover these categories when relevant:
-
-- Functional behavior: what new mode, route, workflow, UI path, or contract must work.
-- Regression coverage: what old mode or baseline must still work.
-- Evidence: test commands, fake-runtime smoke, real runtime pilot, browser operation, manifest/report paths, room/session ids.
-- User simulation: whether the AI must use the built-in browser and a test project.
-- Stop condition: what exact `Next-Steps.md` wording means the feature is fully accepted.
-
-Do not invent heavy acceptance criteria by default. Propose a small practical set, then let the user tighten it.
+Propose small practical set, let user tighten. Don't invent heavy criteria by default.
 
 ### 3. Write the agreed acceptance contract
 
-After acceptance criteria are confirmed, update:
+After AC confirmed:
 
-- `.feature-dev/Next-Steps.md`
-  - Add or refresh `## 验收准则`.
-  - Keep `## 下一步` as the next executable action, not a history log.
-  - Keep `## 非下一步` tight.
-- `.feature-dev/Progress.md`
-  - Add checklist items that mirror the acceptance criteria.
-  - Add evidence placeholders for commands, browser runs, room/session ids, manifests, reports, and known residual risks.
-- `.feature-dev/task-plan/README.md`
-  - Add or refresh phase list and `## 收口条件`.
-  - Split phase docs only when the work is too large for a single plan.
+- `Next-Steps.md`
+  - Add/refresh `## 验收准则`
+  - `## 下一步` = next executable action (not history)
+  - `## 非下一步` tight
+- `Progress.md`
+  - Checklist mirrors AC
+  - Evidence placeholders for commands / browser runs / room-session ids / manifests / reports / residual risks
+- `task-plan/README.md`
+  - Phase list + `## 收口条件`
+  - Split phase docs only when work is too large for single plan
 
-When the feature target changes, also sweep `AGENTS.md`, `CLAUDE.md`, `README.md`, and project docs indexes only if their active-checkpoint wording would become misleading.
+#### Phase doc structure (token-conscious, mandatory)
+
+When you split into `task-plan/<feature>/phase-X.md`, the phase doc MUST be lean:
+
+**Required in `phase-X.md` (≤ 2K char target):**
+- Scope (1-2 sentences)
+- AC list (numbered, one line each + measurable evidence path)
+- Invariants this phase must NOT break (validation suite baseline numbers / replay bit-identical / etc)
+- Sub-task checklist (X.1, X.2, ...)
+
+**Optional in `phase-X.design.md` (separate file, not loaded by runner):**
+- Design rationale (why this approach)
+- Option comparisons (A vs B, decision来源)
+- User Q&A excerpts (AskUserQuestion 答复)
+- Implementation hints / API exploration notes
+
+`autonomous-feature-runner` reads `phase-X.md` only. `.design.md` is for planner / human reference. If you don't need design notes, don't create `.design.md`.
+
+When the feature target changes, sweep `AGENTS.md`, `CLAUDE.md`, `README.md`, project doc indexes only if their active-checkpoint wording would become misleading.
 
 ### 4. Prepare the development handoff
 
-End with a concise handoff prompt the user can paste into a new conversation. The prompt must explicitly invoke `/autonomous-feature-runner`; do not end with a generic "start developing from Next-Steps" prompt.
+Concise handoff prompt the user pastes into a new conversation. MUST invoke `/autonomous-feature-runner`:
 
 ```text
 使用 /autonomous-feature-runner，根据 .feature-dev/Next-Steps.md 开发新 feature。
-先读 .feature-dev/Current-State.md、.feature-dev/Next-Steps.md、.feature-dev/Progress.md、.feature-dev/task-plan/ 和 .feature-dev/Autonomous-Work-Protocol.md。
+先读 .feature-dev/README.md、.feature-dev/Next-Steps.md、.feature-dev/task-plan/README.md（Tier 1 必读）。
+其余文件按 skill 的 Tier 2 触发条件按需读。
 确认 Next-Steps 已有当前目标和验收准则；按当前目标、非目标和验收准则推进。
-每完成一步，更新 Next-Steps 的"下一步"和 Progress 的 evidence；持续执行直到达到系统功能验收，并按 archive 规则归档后，把 Next-Steps 改为等待用户确认下一个 feature。
+每完成一步，更新 Next-Steps 的"下一步"和 Progress 的 evidence；持续执行直到达到系统功能验收，并按 archive 规则归档（包含 Progress / Current-State 清场）后，把 Next-Steps 改为等待用户确认下一个 feature。
 ```
 
-Also summarize changed files and call out that implementation has not started.
+Summarize changed files; call out implementation has not started.
 
 ## Editing Rules
 
-- Use the Edit/Write tools for manual edits.
-- Keep `.feature-dev/Next-Steps.md` as the execution cursor.
-- Keep `.feature-dev/Progress.md` as evidence and status.
-- Keep `.feature-dev/Current-State.md` as current facts only.
-- Keep `.feature-dev/task-plan/README.md` aligned with `Next-Steps.md`; it should be either the active plan for the current feature or a waiting/index page, never an old active plan.
-- Keep `reference/` for stable protocols and architecture, not active task progress.
-- Do not put future v2/v3 ideas into current task docs; put them in `docs/future/` only if the user asks to preserve them.
+- Use Edit/Write tools.
+- `Next-Steps.md` = execution cursor.
+- `Progress.md` = current feature evidence + status. **At feature archive time it gets reset to a waiting template** (see autonomous-feature-runner archive step).
+- `Current-State.md` = current baseline facts only — capability bullets + test-baseline table + cross-feature constraints. **Phase implementation details belong in archive, NOT here.**
+- `task-plan/README.md` aligned with `Next-Steps.md`: either active plan or waiting/index, never stale active.
+- `task-plan/<feature>/phase-X.md` ≤ 2K char (AC + invariants + checklist). Design notes go to `phase-X.design.md`.
+- `reference/` for stable protocols / architecture, not active task progress.
+- Future v2/v3 ideas → `docs/future/` only if user asks to preserve.
 
 ## Done Criteria For This Skill
 
-The skill is done when:
-
-- The next feature is confirmed.
-- `.feature-dev/Next-Steps.md` names the current goal and next executable action.
-- Acceptance criteria are documented.
-- `Progress.md` and `task-plan/` have matching checklist/evidence/phase structure.
-- No root `.feature-dev/task-plan/README.md` content still names a previous completed feature as active.
-- The user has a ready-to-paste prompt for the next development conversation, and that prompt invokes `/autonomous-feature-runner`.
+- Next feature confirmed.
+- `Next-Steps.md` names current goal + next executable action.
+- AC documented.
+- `Progress.md` and `task-plan/` have matching checklist / evidence / phase structure.
+- Phase docs (if any) are lean per the structure above.
+- No root `task-plan/README.md` content still names a previous completed feature as active.
+- User has ready-to-paste prompt invoking `/autonomous-feature-runner`.

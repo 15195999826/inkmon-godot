@@ -18,7 +18,7 @@
 | [`../archive/2026-05-02-rts-m2-1-economy/`](../archive/2026-05-02-rts-m2-1-economy/) | M2.1 Economy 完整归档 | ✅ done |
 | [`../archive/2026-05-02-rts-m1-refactor/`](../archive/2026-05-02-rts-m1-refactor/) | RTS M1 重构归档 | ✅ done |
 
-> M2.1 / M2.2 / M2.3 task-plan 子目录 (m2-1-economy / m2-2-ai-opponent / m2-3-ui-hud) 是历史 phase 拆分快照, 完整快照已随 archive 拷贝; 主目录保留供查阅, 不再更新.
+> M2.1 / M2.2 / M2.3 phase 拆分快照已 100% 拷贝进各自 archive 目录, 根 task-plan/ 子目录已清理 (2026-05-03); 历史 phase doc 见 archive/<feature>/task-plan/<feature>/ 路径.
 
 ---
 

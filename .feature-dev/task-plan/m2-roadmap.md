@@ -23,7 +23,7 @@
 
 **目标**: 把"starting_resources 一次性 100 gold"演进为"worker harvest 资源闭环 + 多资源 cost"。
 
-**详细规划**: [`m2-1-economy/README.md`](m2-1-economy/README.md)
+**详细规划**: [`../archive/2026-05-02-rts-m2-1-economy/task-plan/m2-1-economy/README.md`](../archive/2026-05-02-rts-m2-1-economy/task-plan/m2-1-economy/README.md)
 
 **已交付** (4 phase 全过, 25/25 AC PASS):
 - `RtsResourceNode` actor + `UnitClass.WORKER` + `RtsHarvestActivity` / `RtsReturnAndDropActivity` / `RtsHarvestStrategy`
@@ -37,7 +37,7 @@
 
 ### M2.2 — AI 对手 (Computer Player) ✅ done (2026-05-02; Minimal AI)
 
-**详细规划**: [`m2-2-ai-opponent/README.md`](m2-2-ai-opponent/README.md) (含 E1-E10 决策表 + 6 AC + 子任务拆分 E.1-E.4)
+**详细规划**: [`../archive/2026-05-02-rts-m2-2-ai-opponent/task-plan/m2-2-ai-opponent/README.md`](../archive/2026-05-02-rts-m2-2-ai-opponent/task-plan/m2-2-ai-opponent/README.md) (含 E1-E10 决策表 + 6 AC + 子任务拆分 E.1-E.4)
 
 **目标**: 右侧不再依赖 player_command, AI 走 RtsComputerPlayer 自动放 barracks + 出兵 + 进攻; 单机 1v1 玩家 vs CPU 可在 demo 里打完一局。
 
@@ -61,7 +61,7 @@
 
 ### M2.3 — UI / HUD / Build Panel / 关卡 ✅ done (2026-05-03; Full scope, 4 phase)
 
-**详细规划**: [`m2-3-ui-hud/README.md`](m2-3-ui-hud/README.md) (含 用户决策表 + 4 phase 概览 + 收口条件)
+**详细规划**: [`../archive/2026-05-03-rts-m2-3-ui-hud/task-plan/m2-3-ui-hud/README.md`](../archive/2026-05-03-rts-m2-3-ui-hud/task-plan/m2-3-ui-hud/README.md) (含 用户决策表 + 4 phase 概览 + 收口条件)
 
 **已交付** (4 phase 全过, 24 AC PASS, 15/15 validation 全套 0 漂移):
 - **Phase A** — `RtsBuildPanel` (frontend/ui/build_panel.{gd,tscn}); BuildPanel.signal `building_selected(kind: String)` → demo 进 placement mode → 半透 ColorRect ghost 跟鼠标 + grid snap (绿=可放 / 红=不可放, RtsBuildingPlacement.validate 同步预检) → 左键放下 / ESC / 右键取消; HUD 升级为 VBox(icon + 数字) × 2 (gold + wood)

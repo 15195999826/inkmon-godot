@@ -5,98 +5,119 @@ description: Use when the user invokes /autonomous-feature-runner or asks to sta
 
 # Autonomous Feature Runner
 
-Use this skill for the execution phase after `/next-feature-planner` has prepared `.feature-dev/`.
+Execution phase after `/next-feature-planner` has prepared `.feature-dev/`.
 
-The job is to develop from the documented goal and acceptance criteria, keep the docs current after each step, and continue until the acceptance contract is satisfied.
+Develop from documented goal + AC, keep docs current after each step, continue until AC contract satisfied.
 
 ## Scope
 
-- Work in the current project root.
-- Do not start if `.feature-dev/Next-Steps.md` has no current goal or no acceptance criteria.
-- Do not renegotiate the feature unless the documented goal is impossible or conflicts with the newest user instruction.
+- Work in current project root.
+- Do not start if `Next-Steps.md` has no current goal or no AC.
+- Do not renegotiate feature unless documented goal is impossible / conflicts with newest user instruction.
 - Preserve unrelated dirty worktree changes.
-- Do not push or create a PR unless the user explicitly asks.
-- Make a local commit after each completed phase or independent completed task once the phase-close gate is clean and verification passed, following `.feature-dev/Autonomous-Work-Protocol.md`.
-- If `.feature-dev/Autonomous-Work-Protocol.md` has no project-specific commit policy, do not commit unless the user explicitly asks.
+- Do not push / open PR unless user asks.
+- Local commit after each completed phase or independent task once phase-close gate is clean and verification passed, per `Autonomous-Work-Protocol.md`.
+- If `Autonomous-Work-Protocol.md` has no project-specific commit policy, do not commit unless user asks.
 
-## Required Reads
+## Required Reads (token-conscious)
 
-Start with `git status -sb`, then read:
+Run `git status -sb` first. Read by tier — **do not read everything up front**.
 
-1. `.feature-dev/README.md`
-2. `.feature-dev/Current-State.md`
-3. `.feature-dev/Next-Steps.md`
-4. `.feature-dev/Progress.md`
-5. `.feature-dev/task-plan/README.md`
-6. `.feature-dev/Autonomous-Work-Protocol.md`
-7. `.feature-dev/archive/README.md`
+**Tier 1 — always read on start** (启动必读, ~3 files):
 
-If `.feature-dev/` is missing, stop and ask the user to run `/next-feature-planner` first, unless the user explicitly asks this skill to create the baseline docs.
+1. `.feature-dev/README.md` — index / file roles
+2. `.feature-dev/Next-Steps.md` — current goal / 下一步 / 验收准则
+3. `.feature-dev/Progress.md` — current feature checklist / evidence / residual risks
 
-If these files conflict, prefer newest explicit user instruction, then `Next-Steps.md`, then `Progress.md`, then `Current-State.md`. Stop and report the conflict before editing if the next executable step is unclear.
+**Tier 2 — read on trigger** (按需读):
+
+| File | Read when |
+|---|---|
+| `.feature-dev/Current-State.md` | Tier 1 不足以判断 baseline / Next-Steps 与代码现状疑似冲突 / 准备 sweep entry-doc 时核对当前 baseline |
+| `.feature-dev/task-plan/README.md` | 准备启动新 phase / 需要 phase 列表 / 需要"收口条件"原文 |
+| `.feature-dev/task-plan/<feature>/phase-X.md` | **每次进入新 phase 时读这一份**(只读这一份,不读全部 phase docs) |
+| `.feature-dev/task-plan/<feature>/phase-X.design.md` | **不读**(planner 阶段的设计附录,runner 不需要);仅当 phase-X.md 的 AC 与代码冲突且 phase-X.md 没说清来源时才读 |
+| `.feature-dev/Autonomous-Work-Protocol.md` | 准备 commit / 进入 phase-close gate / 跑 validation suite 前需要确认顺序 |
+| `.feature-dev/archive/README.md` | 准备新建 archive 入口时(全 feature AC 都过、收口阶段) |
+
+If `.feature-dev/` is missing, stop and ask user to run `/next-feature-planner` first, unless user explicitly asks to create baseline docs.
+
+Conflict priority: newest explicit user instruction > `Next-Steps.md` > `Progress.md` > `Current-State.md`. Stop and report if next executable step unclear.
 
 ## Execution Loop
 
-1. Confirm the current goal, non-goals, acceptance criteria, and current `Next-Steps.md` action.
-2. Implement the next documented step.
-3. Run the narrowest meaningful verification for that step.
-4. Update `.feature-dev/Progress.md` with checklist status, commands, evidence paths, session ids, or residual risks.
-5. Update `.feature-dev/Next-Steps.md` so `## 下一步` points to the next executable action.
-6. Continue to the next step in the same turn when feasible.
-7. **Phase-close gate (BEFORE commit)** — when all phase AC are PASS and code-side work is done, run the two-step refinement loop **before** updating Current-State / writing closeout docs / committing:
+1. Confirm current goal, non-goals, AC, and `Next-Steps.md` 下一步.
+2. Implement next documented step.
+3. Run narrowest meaningful verification.
+4. Update `Progress.md`: checklist status, commands, evidence paths, session ids, residual risks.
+5. Update `Next-Steps.md` so `## 下一步` points to next executable action.
+6. Continue to next step in same turn when feasible.
+7. **Phase-close gate (BEFORE commit)** — when all phase AC are PASS and code-side work done, run two-step refinement loop **before** updating Current-State / writing closeout docs / committing:
 
-   **7a. Simplify pass** — invoke `/simplify` (the simplify skill) on the changed code. Scope = files touched in this phase (run `git diff --name-only HEAD` if unsure). The simplify pass may delete dead code, collapse duplication, remove premature abstractions, or rename for clarity.
+   **7a. Simplify pass** — invoke `/simplify` on changed code. Scope = files touched in this phase (`git diff --name-only HEAD` if unsure). May delete dead code, collapse duplication, remove premature abstractions, rename for clarity.
 
-   **7b. If simplify modified any code, re-run the full Validation Standard (§ below)** — the same suite that proved the phase passed AC. This is mandatory; simplify can introduce regressions and the phase is not closed until the suite is green again. Do not commit between simplify and re-validation.
+   **7b. If simplify modified any code, re-run full Validation Standard (§ below)** — same suite that proved phase passed AC. Mandatory; simplify can introduce regressions. Phase not closed until suite green again. Do not commit between simplify and re-validation.
 
-   **7c. Doc-consistency review** — re-read the phase's task-plan AC document (e.g. `task-plan/<feature>/phase-X.md` §Acceptance) and walk each AC item against the actual code:
-   - For every AC, locate the implementation (file:line) that satisfies it; record any AC where the implementation drifted from the documented contract (signature, return shape, behavior).
-   - If code is right but the doc is stale → update the task-plan / Current-State / Progress entry to match reality.
-   - If doc is right but code drifted → fix the code (and re-run validation again per 7b).
-   - If both are right but evidence in `Progress.md` references a stale path / number → refresh evidence.
-   - The output of this review is either "all AC contracts and docs aligned" or a punch list of fixes that must land before commit.
+   **7c. Doc-consistency review** — re-read the phase's `task-plan/<feature>/phase-X.md` §AC and walk each AC item against actual code:
+   - For every AC, locate implementation (file:line) that satisfies it; record any AC where implementation drifted from documented contract (signature, return shape, behavior).
+   - Code right but doc stale → update task-plan / Current-State / Progress entry to match reality.
+   - Doc right but code drifted → fix code (re-run validation per 7b).
+   - Both right but `Progress.md` evidence references stale path / number → refresh evidence.
+   - Output: "all AC contracts and docs aligned" or punch list of fixes that must land before commit.
 
-   **7d. Only after 7a-7c are clean** → create the phase/local commit (per `Autonomous-Work-Protocol.md` commit strategy), then continue to the closeout sweep below.
+   **7d. Only after 7a-7c clean** → create phase/local commit (per `Autonomous-Work-Protocol.md`), then continue closeout sweep.
 
-8. When acceptance criteria are fully met (the **whole feature**, not just a phase), update:
-   - `.feature-dev/Current-State.md` with new facts;
-   - `.feature-dev/Progress.md` with final evidence;
-   - re-run `git status -sb` and ensure any worktree status written into docs reflects the final closeout state, not a transient mid-run state;
-   - sweep the entry/reference docs that should reflect the new baseline, at minimum `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/README.md`, and any relevant `docs/reference/*` files, so they do not still describe the previous checkpoint as current behavior;
-   - create `.feature-dev/archive/<YYYY-MM-DD-feature-slug>/` following `.feature-dev/archive/README.md`;
-   - copy final `Current-State.md`, `Next-Steps.md`, `Progress.md`, and the complete `task-plan/` tree into that archive entry before replacing the root task plan; do not archive only `task-plan/README.md`;
-   - write archive `Summary.md` with feature name, acceptance conclusion, commands, real-use evidence, important paths, and residual risks;
-   - update `.feature-dev/Next-Steps.md` to "已完成系统功能验收，接下来等待用户确认下一个 feature 开发" or equivalent wording;
-   - replace root `.feature-dev/task-plan/README.md` with a waiting/index state that points to the archive entry and does not still claim the completed feature is active.
+8. **When AC fully met (whole feature, not just phase)** — closeout + archive + clean-slate sweep:
+
+   **8a. Update active docs**:
+   - `Current-State.md` with new baseline facts (capability bullets + test-baseline table + cross-feature constraints only — **phase implementation detail goes to archive, not here**).
+   - `Progress.md` with final evidence (right before reset in 8e).
+   - Re-run `git status -sb` so any worktree status written into docs reflects final state, not transient mid-run.
+
+   **8b. Sweep entry/reference docs** that should reflect new baseline:
+   - `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/README.md`, relevant `docs/reference/*` files.
+   - They must not still describe previous checkpoint as current behavior.
+
+   **8c. Create archive entry** under `.feature-dev/archive/<YYYY-MM-DD-feature-slug>/` per `.feature-dev/archive/README.md`:
+   - Copy final `Current-State.md` (the new-baseline version), `Next-Steps.md`, `Progress.md`, complete `task-plan/` tree into archive entry **before** replacing root task plan.
+   - Do not archive only `task-plan/README.md` — archive the whole tree.
+   - Write archive `Summary.md`: feature name, AC conclusion, commands, real-use evidence, important paths, residual risks.
+
+   **8d. Replace root task plan with waiting state**:
+   - `task-plan/README.md` → waiting/index page pointing to archive entry; not still claiming completed feature is active.
+
+   **8e. CLEAN-SLATE SWEEP (token-conscious, mandatory)** — archive is now the authoritative copy of feature history. Reset active docs:
+   - `Progress.md` → reset to waiting template (≤ 15 lines): `## Progress` heading + `Status: 无 active feature` + 1 line linking to last archive entry. Drop all phase AC checklists / evidence / sub-task progress from previous feature.
+   - `Current-State.md` → keep only baseline-relevant content (capability bullets, test-baseline table, key cross-feature constraints, Git status, decision-source links to archive). Drop per-phase implementation detail of the just-archived feature; if reader needs phase detail they read archive `Summary.md`.
+   - `Next-Steps.md` → "已完成系统功能验收，接下来等待用户确认下一个 feature 开发" or equivalent.
+   - Verify: `Progress.md` and `Current-State.md` post-reset together fit in ~3K char total. If they don't, you copied too much.
 
 ## When To Stop And Ask
 
 Stop before continuing if:
-
-- Acceptance criteria are missing or contradictory.
-- The next step would expand beyond documented non-goals.
-- Verification requires credentials, production systems, or user-visible browsers that the user has not allowed.
-- The worktree has unrelated changes in files you must edit and the merge boundary is unclear.
-- A blocker changes the intended feature contract.
+- AC missing or contradictory.
+- Next step would expand beyond documented non-goals.
+- Verification needs credentials / production systems / user-visible browsers user has not allowed.
+- Worktree has unrelated changes in files you must edit and merge boundary unclear.
+- Blocker changes intended feature contract.
 
 ## Validation Standard
 
-Do not treat compile success as feature acceptance unless the acceptance criteria say so.
+Don't treat compile success as feature acceptance unless AC says so.
 
 Prefer evidence in this order when relevant:
-
 - unit/typecheck for local contracts;
 - fake-runtime smoke for workflow behavior;
 - real runtime pilot for CLI / agent orchestration;
 - built-in browser operation for user-facing workflows;
 - manifest / report / artifact paths for durable evidence;
-- final docs consistency sweep for entry docs, reference docs, archive snapshot, and `git status -sb` facts.
+- final docs consistency sweep for entry docs, reference docs, archive snapshot, `git status -sb` facts.
 
 ## Done Criteria For This Skill
 
-The skill is done when either:
-
-- acceptance criteria are met, the phase-close gate (§7a-7c: simplify → re-validate → AC-doc consistency review) is clean, the completed phase or task has a local commit when project protocol requires one, entry/reference docs no longer describe the previous checkpoint as current behavior, an archive entry exists under `.feature-dev/archive/`, `.feature-dev/Next-Steps.md` is updated to the final waiting-for-next-feature state, and root `.feature-dev/task-plan/README.md` is no longer a stale active plan; or
-- a documented blocker is written to `.feature-dev/Progress.md` and the user is asked for a specific decision.
+Done when EITHER:
+- AC met, phase-close gate (§7a-7c: simplify → re-validate → AC-doc consistency review) clean, completed phase/task has local commit when project protocol requires, entry/reference docs no longer describe previous checkpoint as current behavior, archive entry exists, **clean-slate sweep §8e completed (`Progress.md` + `Current-State.md` reset to baseline-only state)**, `Next-Steps.md` updated to waiting-for-next-feature, root `task-plan/README.md` no longer a stale active plan;
+- OR documented blocker written to `Progress.md` and user asked for specific decision.
 
 A phase commit without §7a-7c does not count as done — simplify and AC-doc consistency are commit blockers, not optional polish.
+A feature archive without §8e clean-slate sweep does not count as done — leaving phase detail in `Progress.md` / `Current-State.md` after archive defeats the whole purpose (next feature's planner/runner has to read 14K char of stale history).
