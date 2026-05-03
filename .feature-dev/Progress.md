@@ -1,126 +1,108 @@
-## Progress — RTS Auto-Battle M2.2 AI 对手 (Computer Player)
+## Progress — RTS Auto-Battle M2.3 UI / HUD / Build Panel / 关卡
 
-**Status**: ✅ **6/6 AC PASS + 14/14 validation 全过 + simplify pass clean + AC-doc consistency aligned**(2026-05-02; archived `archive/2026-05-02-rts-m2-2-ai-opponent/`)
+**Status**: 🔄 **Phase A done; Phase B 待启动** (2026-05-03)
 
-- 上一个 sub-feature: M2.1 Economy ✅ done + archive 完成 (2026-05-02; archive `archive/2026-05-02-rts-m2-1-economy/`)
-- 本 sub-feature 模式: **1 phase 单线推进**(scope minimal); 子任务 E.1 → E.2 → E.3 → E.4
-- 详细 plan: [`task-plan/m2-2-ai-opponent/README.md`](task-plan/m2-2-ai-opponent/README.md) (含 E1-E10 决策表 + 6 AC + 子任务拆分)
-
----
-
-## 验收准则 checklist (6 AC, 待 /autonomous-feature-runner 推进)
-
-### AC1 — RtsComputerPlayer module 存在 + procedure 注册并 tick 驱动 ✅ (E.1 done)
-
-- [x] **新文件** `addons/logic-game-framework/example/rts-auto-battle/logic/ai/rts_computer_player.gd`
-  - `class_name RtsComputerPlayer extends RefCounted`
-  - 字段: `team_id: int = -1`, `_attack_dispatched: bool = false`
-  - 常量: `DECISION_INTERVAL_TICKS: int = 30` (E3)
-  - 接口: `func think(world: RtsWorldGameplayInstance, current_tick: int) -> void`(决策 tick % 30 == 0 才动作)
-  - 占位: `_try_build_barracks` / `_try_attack` (E.2 / E.3 实现)
-- [x] **改** `addons/logic-game-framework/example/rts-auto-battle/core/rts_auto_battle_procedure.gd`
-  - `_computer_players: Array[RtsComputerPlayer] = []`
-  - `func attach_computer_player(p_team_id: int) -> void` (含 team_id 校验 0/1)
-  - tick 流程 step 6.5 (record_current_frame_events 后, 胜负判定前): `for cp in _computer_players: cp.think(world, _current_tick)`
-- [x] Evidence (E10 — procedure 默认不 attach AI, 既有路径 0 漂移):
-  - `/tmp/m22_e1_lgf.txt` — LGF 73/73 PASS (总计: 73 通过: 73 失败: 0)
-  - `/tmp/m22_e1_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max_dist=24.00 ranged_max_dist=125.75 (与 M2.1 末态 bit-identical)
-  - `/tmp/m22_e1_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 (deep-equal)
-
-### AC2 — Build 决策 (place barracks @ ct 偏移点) ✅ (E.2 done — 代码层; runtime 验证落 AC4)
-
-- [x] **`_try_build_barracks` 实现** in `rts_computer_player.gd`
-  - decision tick (think 入口已守 % 30 == 0)
-  - `_count_team_barracks(world)` 实时查 alive RtsBuildingActor 过滤 team_id + building_kind == BARRACKS, ≥ BARRACKS_CAP (=1) 直接 return (E5 — 不缓存)
-  - `_team_can_afford(procedure, cost)` 逐 key 对比 procedure.get_team_resources(team_id) 与 RtsBuildingConfig.get_stats(BARRACKS).cost = {gold: 80, wood: 50}; 任一不足 return
-- [x] **位置算法**: BARRACKS_OFFSET_X = 96.0; 左 team offset = Vector2(+96, 0); 右 team = Vector2(-96, 0); 基准 = `_find_team_ct_position_for(world, procedure, team_id)` (走 team_config.crystal_tower_id → world.get_actor → position_2d; 任一缺失 return Vector2.INF → 不放)
-- [x] **失败处理**: 不在 _try_build_barracks 内做 placement 校验; PlaceBuildingCommand.apply 内部 RtsBuildingPlacement.validate 失败 → 命令进 _failed_commands_log; AI 下个 30 tick 重新调用 → 天然 retry (stateless)
-- [x] **enqueue 接口**: `procedure.enqueue_player_command(RtsPlaceBuildingCommand.new(current_tick, team_id, KIND_BARRACKS, place_pos))` — 与玩家命令同链路
-- [x] Evidence (E10 — 既有 smoke 不 attach AI, 0 漂移; AI 实跑验证落 AC4):
-  - `/tmp/m22_e2_lgf.txt` — LGF 73/73 PASS
-  - `/tmp/m22_e2_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 (bit-identical M2.1 末态)
-  - `/tmp/m22_e2_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 deep-equal
-
-### AC3 — Attack 决策 (出 ≥3 non-worker unit 后 attack-move 一次) ✅ (E.3 done — 代码层; runtime 验证落 AC4)
-
-- [x] **`_try_attack` 实现** in `rts_computer_player.gd`
-  - decision tick (think 入口已守 % 30 == 0)
-  - `_attack_dispatched == false` 守卫 (E6 — only-once)
-  - `_collect_team_non_worker_unit_ids(world)` 走 world.get_alive_units 过滤 team_id + unit_class != WORKER; 数量 < ATTACK_DISPATCH_THRESHOLD (=3) return
-- [x] **目标 = 敌方 ct.position**: `_find_team_ct_position_for(world, procedure, 1 - team_id)` (Build 决策查己方 / Attack 决策查敌方均走此 helper 单入口)
-- [x] **enqueue MoveUnitsCommand**(unit_ids = all alive non-worker; target_pos = enemy_ct_pos): RtsMoveUnitsCommand sig (current_tick, team_id, unit_ids, target_pos) — spacing 走 default 30; 没有 attack_move 字段, 走纯 RtsMoveToActivity, unit 抵达后 controller._player_command_active 自动清, RtsBasicAttackStrategy 接管 → AutoTargetSystem 写 cached_target_id → unit attack ct
-- [x] **Only-once**: `_attack_dispatched = true` 派出后 (M2.2 不做反复跟随)
-- [x] Evidence (E10 — 既有 smoke 不 attach AI, 0 漂移; AI 实跑验证落 AC4):
-  - `/tmp/m22_e3_lgf.txt` — LGF 73/73 PASS
-  - `/tmp/m22_e3_main.txt` — `SMOKE_TEST_RESULT: PASS - left_win` ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 (bit-identical M2.1 末态)
-  - `/tmp/m22_e3_replay.txt` — `SMOKE_TEST_RESULT: PASS` seed=42 commands=2 frames=9 events=20 deep-equal
-
-### AC4 — `smoke_ai_vs_player_full_match.{gd,tscn}` PASS (中等强度) ✅ (E.4 done)
-
-- [x] **新文件** `addons/logic-game-framework/example/rts-auto-battle/tests/battle/smoke_ai_vs_player_full_match.{gd,tscn}`
-  - setup: 双方 5 worker + 1 ct + 1 gold + 1 wood node; starting {gold:100, wood:100} 双方
-  - 左 team(team_id=0) attach AI; 右 team(team_id=1) NO attach (站桩)
-  - 跑 600 tick @ 30Hz (TICK_INTERVAL_MS = 33.33; RNG_SEED = 31415)
-- [x] 输出格式: `SMOKE_TEST_RESULT: PASS - ai_barracks=N1 ai_units_spawned=N2 ai_unit_to_ct_attacks=N3`(N3 = 敌方 ct 收到的攻击次数)
-- [x] 断言全过: ai_barracks ≥ 1 ✅, ai_units_spawned ≥ 3 ✅, ai_unit_to_ct_attacks ≥ 1 ✅
-- [x] Evidence: `/tmp/m22_e4_ai_match.txt` — `SMOKE_TEST_RESULT: PASS - ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9` (total_attack_events=15)
-
-### AC5 — demo_rts_frontend 双方都启 AI + F6 视觉验证 ✅ (E.4 done — headless 验证)
-
-- [x] **改** `addons/logic-game-framework/example/rts-auto-battle/frontend/demo_rts_frontend.gd`
-  - procedure setup 后 (line ~171-176) `procedure.attach_computer_player(0)` + `procedure.attach_computer_player(1)` (E9)
-  - 起手 spawn 维持 M2.1 末态 (5 worker + 1 ct + 4 中立 node / 方); HUD 不动
-  - 头注释更新到 M2.2 — 经济闭环 + AI vs AI demo, 玩家鼠标 click 仍可 enqueue (M2.2 不做 override 模式)
-- [x] frontend smoke 不崩: `tests/frontend/smoke_frontend_main.tscn` (visualizers=10 alive_after_3.0s=10)
-  - Evidence: `/tmp/m22_e4_fe.txt` — `SMOKE_TEST_RESULT: PASS - frontend stub renders 4v4 via director without script error`
-- [ ] F6 用户视觉验证(留给用户; 不阻塞 headless): 双方 AI 起跑后, 各自采集 → 放 barracks → 出 unit → 攻 ct
-
-### AC6 — Validation 全套 0 行为漂移 (13 项 + 1 新 = 14 项) ✅ (E.4 done — 全过, 数字 bit-identical M2.1 末态)
-
-| smoke / 测试 | 预期 | 实测 (post-simplify 重跑) | Evidence |
-|---|---|---|---|
-| `addons/logic-game-framework/tests/run_tests.tscn` | 73/73 PASS | 73/73 PASS ✅ | `/tmp/m22_e4_lgf.txt` |
-| `tests/battle/smoke_rts_auto_battle.tscn` | bit-identical: ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 | ticks=347 attacks=74 melee=32 ranged=42 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4 ✅ | `/tmp/m22_e4_main.txt` |
-| `tests/battle/smoke_castle_war_minimal.tscn` | ticks=193 left_win unit_to_building=4 archer_anti_air=1 | ticks=193 left_win unit_to_building=4 archer_anti_air=1 spawn_count=2 ✅ | `/tmp/m22_e4_cw.txt` |
-| `tests/battle/smoke_player_command.tscn` | gold_remaining=20 wood_remaining=50 log=3 | log=3 gold=20 wood=50 ✅ | `/tmp/m22_e4_pc.txt` |
-| `tests/battle/smoke_player_command_production.tscn` | ticks=600 left_spawned=7 max_eastward=254.74 gold_remaining=20 | ticks=600 left_spawned=7 max_eastward=254.74 gold=20 ✅ | `/tmp/m22_e4_pcp.txt` |
-| `tests/battle/smoke_production.tscn` | ticks=600 left=7 right=7 max_left_eastward=118.51 | ticks=600 left_spawned=7 right_spawned=7 max_left_eastward=118.51 ✅ | `/tmp/m22_e4_prod.txt` |
-| `tests/battle/smoke_crystal_tower_win.tscn` | ticks=2 left_win | ticks=2 left_win ✅ | `/tmp/m22_e4_ct.txt` |
-| `tests/battle/smoke_resource_nodes.tscn` | ticks=200 alive=5 max_drift=0 | ticks=200 alive_workers=5 max_drift=0.00 ✅ | `/tmp/m22_e4_rn.txt` |
-| `tests/battle/smoke_harvest_loop.tscn` | ticks=600 alive=5 team_gold=140 team_wood=212 cycle=5 | ticks=600 alive=5 team_gold=140 team_wood=212 cycle_workers=5 ✅ | `/tmp/m22_e4_hl.txt` |
-| `tests/battle/smoke_economy_demo.tscn` | ticks=900 melee_to_ct=31 | ticks=900 melee_spawned=4 melee_to_ct=31 final_gold=138 final_wood=196 ✅ | `/tmp/m22_e4_econ.txt` |
-| `tests/replay/smoke_replay_bit_identical.tscn` | seed=42 frames=9 events=20 deep-equal | seed=42 commands=2 frames=9 events=20 ✅ | `/tmp/m22_e4_replay.txt` |
-| `tests/replay/smoke_determinism.tscn` | tick_diff=0 | seed=12345 run1=(left_win, 347) run2=(left_win, 347) tick_diff=0 ✅ | `/tmp/m22_e4_det.txt` |
-| `tests/frontend/smoke_frontend_main.tscn` | visualizers=10 alive_after_3.0s=10 | visualizers=10 alive_after_3.0s=10 ✅ | `/tmp/m22_e4_fe.txt` |
-| **`tests/battle/smoke_ai_vs_player_full_match.tscn` (新)** | PASS, ai_barracks ≥1, ai_units_spawned ≥3, ai_unit_to_ct_attacks ≥1 | ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9 total_attack_events=15 ✅ | `/tmp/m22_e4_ai_match.txt` |
-
-**关键不漂移点**:
-- E10 决策 — procedure 默认不 attach AI; 既有 12 项 smoke 全部走"右侧不发 command 就死站"路径不变
-- bit-identical replay (seed=42, 既有 smoke 不 attach AI): 数字与 M2.1 末态完全一致
+- 上一个 sub-feature: M2.2 AI 对手 ✅ done + archived (2026-05-02; archive `archive/2026-05-02-rts-m2-2-ai-opponent/`)
+- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap 🔄 next → Phase C Main menu + ≤3 预设 → Phase D smoke + 收口 + archive)
+- 详细 plan: [`task-plan/m2-3-ui-hud/README.md`](task-plan/m2-3-ui-hud/README.md) (含 4 phase 概览 + 用户决策表 + 收口条件)
+- Phase A 详细: [`task-plan/m2-3-ui-hud/phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) (4 子任务 + 7 AC + F1-F4 决策表) ✅ done
 
 ---
 
-## 子任务进度 (E.1-E.4, 单 phase)
+## Phase A 验收准则 checklist (7 AC ✅ 全过)
 
-- [x] **E.1 — RtsComputerPlayer module + procedure 注册 + tick 末调 .think()** ✅ (LGF 73/73 + 4v4 main + replay 三 sanity 全过, 0 漂移)
-- [x] **E.2 — Build 决策(barracks 1 cap, ct 偏移点)** ✅ (代码层; sanity 三件套 0 漂移; AI 实跑验证落 AC4)
-- [x] **E.3 — Attack 决策(≥3 unit 后 attack-move 一次)** ✅ (代码层; sanity 三件套 0 漂移; AI 实跑验证落 AC4)
-- [x] **E.4 — smoke_ai_vs_player_full_match + demo_rts_frontend 启用双 AI + Validation 全套 + Simplify pass + commit + archive** ✅ (新 smoke PASS ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9; 14/14 validation 全套 0 漂移; simplify 删 _find_team_ct_position wrapper + 精简注释 后重跑 14/14 仍 bit-identical M2.1 末态; AC-doc consistency aligned)
+### AC1 — RtsBuildPanel 控件存在 + 列出可建造 kind ✅ done
+
+- [x] **新文件** `addons/logic-game-framework/example/rts-auto-battle/frontend/ui/build_panel.gd`
+  - `class_name RtsBuildPanel extends Control`
+  - emit `signal building_selected(kind: String)` (kind = RtsBuildingConfig.KIND_*)
+  - hardcode `_ALL_KINDS` (含 barracks / archer_tower / crystal_tower) + filter cost.is_empty() 自动排 crystal_tower
+- [x] **新文件** `addons/logic-game-framework/example/rts-auto-battle/frontend/ui/build_panel.tscn`
+- [x] Evidence: 编译通过 (`/tmp/m23_simplify_import.txt`); frontend smoke `/tmp/m23_a4_fe.txt` PASS — demo_rts_frontend.tscn 加载 BuildPanel + visualizers=10 alive=10 不崩
+
+### AC2 — Button hover 显示 cost dict tooltip ✅ done
+
+- [x] Button.tooltip_text = "Cost: %s" % _format_cost(stats.cost) (e.g. "Cost: gold 80, wood 50")
+- [x] 字典 → 字符串 helper (build_panel.gd `_format_cost` static, 内联未抽出)
+- [x] Evidence: build_panel.gd:67-72 + tooltip_text 由 Godot Button 原生托管 (hover 自动显示); F6 视觉验证留给用户
+
+### AC3 — 点 Button → 进入 placement mode (光标变预览) ✅ done
+
+- [x] BuildPanel emit `signal building_selected(kind: String)` → demo `_on_building_selected` → `_enter_placement_mode`
+- [x] demo_rts_frontend `_setup_placement_ghost` 创建半透明 ColorRect (M2.1 demo 无现成 ghost, A.2 从零实现)
+- [x] grid snap = `grid.coord_to_world(grid.world_to_coord(mouse_world))`; ghost size = footprint × cell_size; bbox 偏置由 `_bbox_center_offset` 静态算 (与 RtsBuildingPlacement 同算法, 进 mode 时缓存)
+- [x] Evidence: demo_rts_frontend.gd:404-418 + frontend smoke `/tmp/m23_a4_fe.txt` PASS
+
+### AC4 — placement mode 鼠标点地图 → enqueue + 退出 mode ✅ done
+
+- [x] 鼠标左键 → `_try_place_at` → `_validate_player_placement` 同步预检 → 通过则 `procedure.enqueue_player_command(RtsPlaceBuildingCommand.new(tick, 0, kind, world_pos))` → `_exit_placement_mode("placed")` (ghost 消失)
+- [x] F1 default A: validate 失败时 print 后 return, 不调 _exit_placement_mode → 留 mode 让玩家重选
+- [x] ghost tint 同帧由 `_update_placement_ghost` 用 `_validate_player_placement` 预检, 绿=可放 / 红=不可放
+- [x] Evidence: demo_rts_frontend.gd:236-262 + smoke_player_command.tscn `/tmp/m23_a4_pc.txt` 验证 enqueue + validate 链路 PASS (gold_remaining=20 wood_remaining=50)
+
+### AC5 — ESC / 右键取消 placement mode ✅ done
+
+- [x] _unhandled_input MOUSE_BUTTON_RIGHT → _exit_placement_mode("right_click") (不 enqueue, ghost.visible = false)
+- [x] _unhandled_input KEY_ESCAPE → _exit_placement_mode("escape") (同上)
+- [x] Evidence: demo_rts_frontend.gd:218-231 (`match` 分支拍平; 既 mouse 也 key)
+
+### AC6 — HUD label → icon + 数字 (gold + wood) ✅ done
+
+- [x] _setup_hud 创建 VBoxContainer + 2 行 (HBox(ColorRect icon + Label name + Label value)) + hint Label + hp Label
+- [x] _process 实时刷新 _gold_label.text / _wood_label.text 从 procedure.get_team_resources(0)
+- [x] icon = ColorRect 占位 (黄=gold #FFDA33, 棕=wood #80522F); 后续可替换 sprite
+- [x] Evidence: demo_rts_frontend.gd:319-377 + frontend smoke 跑 demo 3 秒 visualizers=10 alive=10 不崩
+
+### AC7 — Validation 全套 0 漂移 (M2.2 末态 14 项) ✅ done
+
+simplify 前 + simplify 后 各跑一轮 14 项, 全过且数字 100% 一致 (0 漂移). 详细数字与 `task-plan/m2-3-ui-hud/phase-a-build-panel.md` §AC7 表完全 match.
+
+- [x] LGF 73/73 PASS — `/tmp/m23_a4_lgf.txt` (总计: 73 | 通过: 73 | 失败: 0)
+- [x] `tests/battle/smoke_rts_auto_battle.tscn` left_win ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 — `/tmp/m23_a4_main.txt`
+- [x] `tests/battle/smoke_castle_war_minimal.tscn` ticks=193 left_win unit_to_building=4 archer_anti_air=1 — `/tmp/m23_a4_cw.txt`
+- [x] `tests/battle/smoke_player_command.tscn` log_entries=3 gold_remaining=20 wood_remaining=50 — `/tmp/m23_a4_pc.txt`
+- [x] `tests/battle/smoke_player_command_production.tscn` ticks=600 left_spawned=7 max_eastward=254.74 gold_remaining=20 — `/tmp/m23_a4_pcp.txt`
+- [x] `tests/battle/smoke_production.tscn` ticks=600 left_spawned=7 right_spawned=7 max_left_eastward=118.51 — `/tmp/m23_a4_prod.txt`
+- [x] `tests/battle/smoke_crystal_tower_win.tscn` ticks=2 left_win — `/tmp/m23_a4_ct.txt`
+- [x] `tests/battle/smoke_resource_nodes.tscn` ticks=200 alive_workers=5 max_drift=0.00 — `/tmp/m23_a4_rn.txt`
+- [x] `tests/battle/smoke_harvest_loop.tscn` ticks=600 alive_workers=5 team_gold=140 team_wood=212 cycle_workers=5 — `/tmp/m23_a4_hl.txt`
+- [x] `tests/battle/smoke_economy_demo.tscn` ticks=900 melee_to_ct_attacks=31 — `/tmp/m23_a4_econ.txt`
+- [x] `tests/battle/smoke_ai_vs_player_full_match.tscn` ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9 — `/tmp/m23_a4_ai_match.txt`
+- [x] `tests/replay/smoke_replay_bit_identical.tscn` seed=42 commands=2 frames=9 events=20 deep-equal — `/tmp/m23_a4_replay.txt`
+- [x] `tests/replay/smoke_determinism.tscn` tick_diff=0 — `/tmp/m23_a4_det.txt`
+- [x] `tests/frontend/smoke_frontend_main.tscn` visualizers=10 alive_after_3.0s=10 — `/tmp/m23_a4_fe.txt`
 
 ---
 
-## 残余风险 (验收时 mitigated)
+## 子任务进度 (Phase A: A.1-A.4)
 
-- ✅ **bit-identical replay 漂移风险**(新 module 入 procedure tick): E10 决策落地 — procedure 默认不 attach AI, 既有 smoke 12 项不进 think() 路径; smoke_replay_bit_identical 数字 frames=9 events=20 deep-equal M2.1 末态。
-- ✅ **AI 决策非决定性**(if AI 内部 cache 状态破 replay): E5/E6 决策落地 — barracks 数 _count_team_barracks 每决策 tick 重新计数 (不缓存); _attack_dispatched 是 procedure-attached object 字段, 决定性来源 = 同 game state → 同决策; smoke_ai_vs_player_full_match 600 tick 单跑稳定 PASS。
-- ✅ **placement 在 ct 偏移点失败**(E4 决策 — 跳过本轮): smoke 起手 starting 100/100 ≥ cost 80/50, 第一个 decision tick (=30) 立即放下 (实测 ai_barracks=1 peak); 天然 retry 路径无需 hit。
-- ✅ **AI 出 unit 后跑反方向**(unit 不主动找路): unit MoveUnitsCommand 走纯 RtsMoveToActivity, 抵达后 controller._player_command_active 自然清, RtsBasicAttackStrategy + AutoTargetSystem 接管, 写 cached_target_id → unit 在 ct 范围内即 attack ct; 实测 ai_unit_to_ct_attacks=9 (≥1 阈值 9 倍) 充分验证可达。
+- [x] **A.1 — BuildPanel 控件 + cost tooltip** ✅ done (build_panel.gd / build_panel.tscn 新建)
+- [x] **A.2 — Placement mode (从零实现 ghost; M2.1 没有现成)** ✅ done (demo `_setup_placement_ghost` / `_enter_/_exit_/_update_placement_ghost` / `_try_place_at` / `_validate_player_placement`)
+- [x] **A.3 — HUD label → icon + 数字** ✅ done (demo `_setup_hud` 改 VBox + 2 HBox + hint + hp)
+- [x] **A.4 — Validation 全套 + commit** ✅ done — 14/14 0 漂移 (simplify 前/后各一轮); F6 视觉验证留给用户
+
+---
+
+## 残余风险 (Phase A 启动前预判)
+
+1. **demo_rts_frontend 现有 placement ghost 实现可能不存在 / 残缺** — Phase A 启动 A.2 时先 grep 现有 demo placement 链路, 若没有现成 ghost 则 A.2 先实现 ghost 再接 BuildPanel
+2. **Button tooltip 显示 cost dict 时格式化** — Godot Button.tooltip_text 是纯字符串; 字典 → 字符串需要 helper, Phase A 内联
+3. **HUD 升级时 ColorRect icon 视觉占位简陋** — Phase A 接受 ColorRect 占位 (后续可替换 sprite); 不阻塞收口
+4. **F1 placement 失败 callback 缺失** — PlaceBuildingCommand.apply 失败仅进 _failed_commands_log, frontend 不直接知道; 实现时可能需要轮询 _failed_commands_log 或加 signal (若加 signal 算 logic 改动需停下来确认)
+
+---
+
+## 后续 phase (skeleton, 上一 phase 收口时落详细)
+
+- **Phase B — Minimap (可见 + 双向交互)** 🔒 pending — Phase A 收口时落 `task-plan/m2-3-ui-hud/phase-b-minimap.md`
+- **Phase C — Main menu + ≤3 预设 setup** 🔒 pending — Phase B 收口时落 `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
+- **Phase D — smoke_ui_main_menu + 全套 validation + 收口 + archive** 🔒 pending — Phase C 收口时落 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md`
 
 ---
 
 ## 决策来源
 
-- 2026-05-02 用户答复 4 轮 AskUserQuestion(/next-feature-planner): 接口=PlayerCommandQueue / scope=minimal / module=team-level procedure tick / build 粒度=30 tick + ct 偏移 / smoke=中等 / phase=1 phase / demo=双方都 AI
-- 决策表 E1-E10 锁定: `task-plan/m2-2-ai-opponent/README.md` §设计决策表
+- 2026-05-03 用户答复 6 轮 AskUserQuestion (/next-feature-planner): scope=Full / build_panel=placement_mode / 关卡=≤3 预设 / minimap=可见+双向 / hud=icon+数字 / phase=4 phase
+- M2.3 路线图: `task-plan/m2-roadmap.md` §M2.3
+- M2.2 末态 baseline: `archive/2026-05-02-rts-m2-2-ai-opponent/Summary.md`
 - M2.1 末态 baseline: `archive/2026-05-02-rts-m2-1-economy/Summary.md`
-- M2 整体路线图: `task-plan/m2-roadmap.md`

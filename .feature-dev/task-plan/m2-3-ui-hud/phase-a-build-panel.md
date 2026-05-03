@@ -23,7 +23,7 @@
   - VBox / HBox 列 Button (动态扫描 RtsBuildingConfig 所有 buildable kind, F3 决策)
   - Button 上显示 building_kind icon (ColorRect 占位; 后续可替换成 sprite)
   - Button hover → tooltip 显示 cost dict (e.g. "Cost: gold 80, wood 50")
-  - emit `signal building_selected(kind: int)` 给 controller
+  - emit `signal building_selected(kind: String)` 给 controller (kind 走 RtsBuildingConfig.KIND_* 字符串常量)
 - 新文件 `addons/logic-game-framework/example/rts-auto-battle/frontend/ui/build_panel.tscn`
 - 数据来源 = `RtsBuildingConfig.get_stats(kind).cost` (动态读)
 
@@ -58,7 +58,7 @@
 
 ### AC1 — RtsBuildPanel 控件存在 + 列出可建造 kind 🔒 pending
 - `frontend/ui/build_panel.gd` + `build_panel.tscn` 存在
-- `class_name RtsBuildPanel extends Control` + emit `signal building_selected(kind: int)`
+- `class_name RtsBuildPanel extends Control` + emit `signal building_selected(kind: String)` (kind = RtsBuildingConfig.KIND_*)
 - 动态扫描 RtsBuildingConfig, 列出所有 cost != {} 的 kind (默认 barracks + archer_tower; crystal_tower 不可建造排除)
 - 每个 Button 显示 building_kind 名称 + ColorRect icon
 

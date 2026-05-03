@@ -59,19 +59,26 @@
 
 ---
 
-### M2.3 — UI / HUD / Build Panel / 关卡 🔒 deferred
+### M2.3 — UI / HUD / Build Panel / 关卡 🔄 active (2026-05-03; Phase A 待启动)
 
-**目标**: 玩家不再"只能放 barracks", build panel 让玩家选 building_kind; 资源 HUD 升级 icon + 数字; minimap; 关卡 selector 让玩家选地图 + 双方 setup。
+**详细规划**: [`m2-3-ui-hud/README.md`](m2-3-ui-hud/README.md) (含 用户决策表 + 4 phase 概览 + 收口条件)
+**Phase A 详细**: [`m2-3-ui-hud/phase-a-build-panel.md`](m2-3-ui-hud/phase-a-build-panel.md) (7 AC + 4 子任务 + F1-F4 决策表)
 
-**预期交付** (Phase 拆分待 M2.3 启动时定):
-- `Frontend BuildPanel` (Button 列 building_kind, hover 显示 cost dict)
-- 鼠标点 BuildPanel → 进入 placement 模式 → 鼠标点地图放下
-- HUD icon bar (Gold icon + 数字, Wood icon + 数字) 替代 plain Label
-- Minimap (camera viewport ↔ minimap 双向)
-- Main menu / Scenario selector — 复用 P3.3 RtsScenarioHarness 框架, 让 scenario 可玩 (而不只是 smoke)
-- smoke_ui_main_menu (用户在 selector 选关卡 → 进 demo → build panel 可点)
+**目标**: 玩家不再"只能放 barracks", build panel 让玩家选 building_kind; 资源 HUD 升级 icon + 数字; minimap; 关卡 selector 让玩家选预设 setup。
 
-**为何延后**: M2.3 是"可玩感受"层, M2.1 经济 + M2.2 AI 都做完后, 玩家才有"该建什么 / 该选什么 scenario"的决策空间。前两步没做, 单纯加 UI 是空壳。
+**Full scope 落地** (用户 2026-05-03 锁定; 4 phase 串行):
+- **Phase A** — `Frontend BuildPanel` (Button 列 building_kind + hover cost dict) + 鼠标点 BuildPanel → 复用 M2.1 placement mode → 点地图放下 + ESC/右键取消 + HUD label → icon + 数字 (gold + wood)
+- **Phase B** — Minimap (固定屏幕角落, 可见 + 双向交互, 无战雾, 点 minimap → 主 camera 跳)
+- **Phase C** — Main menu + ≤3 预设 setup (PresetMatchSetup Resource: 经典 1v1 / 资源紧 1v1 / AI vs AI 观战)
+- **Phase D** — smoke_ui_main_menu (headless: 点预设 → BuildPanel 点 → enqueue 成功) + F6 全链路视觉 + 全套 validation (M2.2 末态 14 项 + 新 smoke 1-2 项, 0 漂移) + archive
+
+**用户决策** (2026-05-03 锁定):
+- BuildPanel 交互 = 复用 placement_mode (与 demo 现有放 barracks 同链路)
+- 关卡 = ≤3 预设 setup (不做完整 scenario harness 可玩化)
+- Minimap = 可见 + 双向 (无战雾)
+- HUD = icon + 数字 (最小; 不加增量动画 / 不加红色)
+
+**为何 deferred 至今**: M2.3 是"可玩感受"层, M2.1 经济 + M2.2 AI 都做完后, 玩家才有"该建什么 / 该选什么 scenario"的决策空间; 前两步没做, 单纯加 UI 是空壳。M2.1 / M2.2 都已 done + archived → 现在启动 M2.3 完成 M2 milestone 整体收口。
 
 ---
 
