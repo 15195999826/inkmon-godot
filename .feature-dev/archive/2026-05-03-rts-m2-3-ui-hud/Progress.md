@@ -1,17 +1,13 @@
 ## Progress — RTS Auto-Battle M2.3 UI / HUD / Build Panel / 关卡
 
-**Status**: ✅ **M2.3 全部 done + archived** (2026-05-03; archive `archive/2026-05-03-rts-m2-3-ui-hud/`)
-
-**M2 milestone**: ✅ 整体完成 (M2.1 + M2.2 + M2.3 三 sub-feature 全 done + archived)
+**Status**: 🔄 **Phase A + B + C done; Phase D 待启动 (smoke + 收口 + archive)** (2026-05-03)
 
 - 上一个 sub-feature: M2.2 AI 对手 ✅ done + archived (2026-05-02; archive `archive/2026-05-02-rts-m2-2-ai-opponent/`)
-- 本 sub-feature 模式: **4 phase 串行** (全 ✅ done)
+- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap ✅ → Phase C Main menu ✅ → Phase D smoke + 收口 + archive 🔄)
 - 详细 plan: [`task-plan/m2-3-ui-hud/README.md`](task-plan/m2-3-ui-hud/README.md)
-- Phase A: [`phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) ✅ done (7 AC PASS)
-- Phase B: [`phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) ✅ done (5 AC PASS)
-- Phase C: [`phase-c-main-menu.md`](task-plan/m2-3-ui-hud/phase-c-main-menu.md) ✅ done (6 AC PASS)
-- Phase D: [`phase-d-smoke-and-archive.md`](task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md) ✅ done (5 AC PASS)
-- 总 23 AC 全过 + 15/15 validation 0 漂移
+- Phase A: [`phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) ✅ done
+- Phase B: [`phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) ✅ done
+- Phase C: [`phase-c-main-menu.md`](task-plan/m2-3-ui-hud/phase-c-main-menu.md) ✅ done
 
 ---
 
@@ -172,42 +168,11 @@ simplify 前 + simplify 后 各跑一轮 14 项, 全过且数字 100% 一致 (0 
 
 ---
 
-## Phase D 验收准则 checklist (5 AC ✅ 全过)
+## 后续 phase
 
-### AC1 — smoke_ui_main_menu PASS ✅ done
-- [x] `tests/frontend/smoke_ui_main_menu.{gd,tscn}` 新建; instantiate main_menu → emit 第一 Button.pressed → 验 demo 加 child + demo._preset 不空
-- [x] Evidence: `/tmp/m23_d_uimenu.txt` SMOKE_TEST_RESULT: PASS - main_menu → demo apply_preset chain works (demo=RtsFrontendDemo preset=Classic 1v1)
-
-### AC2 — Validation 全套 14 + 1 = 15 项 0 漂移 ✅ done
-- [x] LGF 73/73 + 11 RTS smoke + replay + determinism + frontend + 新 ui_main_menu = 15/15 PASS
-- [x] 数字逐项 match Phase A/B/C/M2.2 baseline
-
-### AC3 — archive 完整 ✅ done
-- [x] `archive/2026-05-03-rts-m2-3-ui-hud/` 含 Summary.md / Current-State.md / Next-Steps.md / Progress.md / task-plan/ 全套快照
-- [x] Summary.md 概括 M2.3 + M2 milestone 收口章节 (M2.1 + M2.2 + M2.3 总结)
-
-### AC4 — m2-roadmap M2.3 / M2 标 done ✅ done
-- [x] `task-plan/m2-roadmap.md` M2.3 status ✅; M2 整体加完成节点
-
-### AC5 — Next-Steps + task-plan/README 切回 waiting ✅ done
-- [x] `Next-Steps.md` "已完成系统功能验收, 等待用户确认下一个 feature 开发"
-- [x] `task-plan/README.md` 切回 waiting/index 状态
-
----
-
-## Phase D 子任务进度 (D.1-D.5 ✅ 全过)
-
-- [x] **D.1 — smoke_ui_main_menu.{gd,tscn}** ✅ done
-- [x] **D.2 — 全套 15 项 validation 0 漂移** ✅ done
-- [x] **D.3 — 主仓 + 入口文档 sweep** ✅ done (Current-State / m2-roadmap / 主仓 CLAUDE.md)
-- [x] **D.4 — archive 快照** ✅ done
-- [x] **D.5 — Next-Steps + task-plan/README 切回 waiting + final commit** ✅ done
-
----
-
-## M2.3 整体收口
-
-23 AC 全过 + 15 validation 0 漂移 + archive 完整 + M2 milestone 整体完成. 详见 `archive/2026-05-03-rts-m2-3-ui-hud/Summary.md`.
+- **Phase B — Minimap (可见 + 双向交互)** ✅ done — `task-plan/m2-3-ui-hud/phase-b-minimap.md`
+- **Phase C — Main menu + ≤3 预设 setup** ✅ done — `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
+- **Phase D — smoke_ui_main_menu + 全套 validation + 收口 + archive** 🔄 active — Phase C 收口时落 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md`
 
 ---
 
