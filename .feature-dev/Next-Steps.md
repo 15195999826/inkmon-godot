@@ -1,4 +1,4 @@
-# Next Steps — 2026-05-04 (M4 待启动 / M3 已 archived)
+# Next Steps — 2026-05-04 (M4a done / M4b 待启动)
 
 ## 当前目标
 
@@ -10,14 +10,20 @@
 
 **当前 active sub-feature = M4**(完整 spec: [`task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md))。
 
+**M4a sub-phase ✅ done**(2026-05-04):RtsRegionIdHelper packed int64 + RtsHierarchicalChunk + RtsHierarchicalPathfinder.recompute / _build_chunk / _flood_fill_chunk(cursor+PackedInt32Array O(N) BFS)/ _build_edges 拆 vertical+horizontal helpers / _compute_global_regions(R5 P1 #3 修订:起点全量 packed RID 含 isolated)+ wire 进 `world.hierarchical_pathfinder` + procedure step 6.7 lazy recompute。Production code M4a 阶段不消费 → 0 baseline 漂移(LGF 73 + replay deep-equal + baseline CSV byte-identical 829520 bytes + 5 RTS smoke spot-check baseline-identical + 3 新 hierarchical smoke 全 PASS)。详见 Progress.md §5 evidence。
+
 ## 下一步
 
-启动 **M4 — HierarchicalPathfinder**(由 runner 读 M4-hierarchical.md 后按 spec §M4a / M4b / M4c sub-phase 推进):
+启动 **M4b — MakeGoalReachable canonicalization**(spec §M4b):
 
-1. M4a — Region 数据结构 + initial recompute(全图 BFS 划分 region per pass_class)
-2. M4b — Canonicalize 算法(region edge 内/外切换边界点 deterministic 选择)
-3. M4c — Incremental update(消费 M3 dirty 集合,只重算 dirty regions)
-4. ✋2 体验点 — 用户跑 demo 验证 hierarchical 寻路启用后表现正确
+1. **M4b.1** 实现 `get_region` / `get_global_region` / `is_goal_reachable` + `_navcell_in_goal`(暴力扫 goal 包围盒)
+2. **M4b.2** 实现 `make_goal_reachable`(canonicalize goal — 可达 → 替换为区内最近 navcell POINT;不可达 → 全图最近)
+3. **M4b.3** Wire 进 `RtsMoveUnitsCommand` / `RtsPlaceBuildingCommand`(启动寻路前调 facade.make_goal_reachable);**注意接受 baseline CSV 改变**(P1,M4b 改路径是预期算法变化)
+4. **M4b.4** Smoke `smoke_hierarchical_unreachable`(点建筑内部 → canonicalize 到外缘最近 navcell,单位走到那里停,不死循环)
+
+M4b 收口后:
+- M4-perf-gate 测 100 unit / 16 building 规模 full recompute 时间;> 30 ms / tick 才启动 M4c
+- M4 整 milestone validation + ✋2 用户体验点 → 整体 archive M4 + 启动 M5
 
 后续 M5-M8 → 见 Progress.md §1。
 
