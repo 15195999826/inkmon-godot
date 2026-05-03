@@ -1,4 +1,4 @@
-# Next Steps — 2026-05-04 (M3 Epic / M1 archived; M2 active 等 runner 启动)
+# Next Steps — 2026-05-04 (M3 Epic / M2 active;M2.4 done,推 M2.5)
 
 ## 当前目标
 
@@ -10,15 +10,51 @@
 
 **当前 active sub-feature = M2**(完整 spec: [`task-plan/m3-0ad-pathfinding-migration/milestones/M2-obstruction-manager.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M2-obstruction-manager.md))。
 
+**M2 进度**: M2.1 ✅ + M2.2 ✅ + M2.3 ✅ + M2.4 ✅ + M2.5 ✅ done(2026-05-04 — 数据结构 + Manager 单例 + Building / Unit 链路全接 manager;dual-write 兼容;Death unregister deferred 到 M5;Validation 0 漂移)。
+
 ## 下一步
 
-启动 **M2.1 — RtsObstructionFlags + Filter 基础设施**:
+启动 **M2.6 — 新 smoke 3 个 + Validation 全套 + commit**(spec: [`M2-obstruction-manager.md §M2.6`](task-plan/m3-0ad-pathfinding-migration/milestones/M2-obstruction-manager.md#m26--新-smoke--validation-全套--commit)):
 
-1. 新建 `addons/.../logic/obstruction/rts_obstruction_flags.gd`(6 flag 常量:BLOCK_MOVEMENT / BLOCK_FOUNDATION / BLOCK_CONSTRUCTION / BLOCK_PATHFINDING / MOVING / DELETE_UPON_CONSTRUCTION)
-2. 新建 `addons/.../logic/obstruction/rts_obstruction_test_filter.gd`(RefCounted 抽象基类 + 3 静态工厂:by_class / exclude_self / merging_friendly_units)
-3. M0 阶段 `RtsObstructionShape` 基类的 `flags` 字段从硬编码 `1<<3` 切换到 `RtsObstructionFlags.BLOCK_PATHFINDING` 常量
+### M2.6 步骤
 
-后续 M2.2 → M2.6 见 Progress.md §1。
+1. **`smoke_obstruction_manager_register.tscn/.gd`**:
+   - 创建 ObstructionManager + grid + registry(独立, 不走 procedure)
+   - `add_unit_shape` × 5 + `add_static_shape` × 3 → 验证 tag 1..8 单调递增
+   - 验证 `manager.size() == 8`
+   - `get_obstructions_in_range(中心, 大半径)` 返回 8 shape, 按 tag 升序
+
+2. **`smoke_obstruction_manager_query.tscn/.gd`**:
+   - 加 unit + 建筑各若干, 含同 group / 异 group 测试用例
+   - `test_unit_shape(only_blocking_movement(), pos, clearance)` 检验单位想走到某点是否撞建筑 / 单位
+   - `test_static_shape(skip_control_group("0"), ...)` 检验同队建筑不算冲突
+   - **完整 SAT 4 case 单元覆盖** (R1 缓解):轴对齐 / 旋转 45° / 边接触 / 角接触 OBB-OBB
+
+3. **`smoke_obstruction_manager_remove.tscn/.gd`**:
+   - add → remove → 验证 _shapes / _spatial_index 都清掉(`manager.size() == 0`)
+   - remove 不存在的 tag 不 crash(幂等)
+
+4. **跑 17 项 baseline + 3 新 smoke** = 20 项;期望 0 漂移(M2.6 不动 production code)
+
+5. **baseline CSV byte-identical** spot 检 (882882 bytes)
+
+6. **submodule commit + LGF CHANGELOG + 主仓 bump**:
+   - submodule commit message: `feat(rts-m3): M2 done — ObstructionManager (Shape 数据库 + Spatial Index)`
+   - LGF CHANGELOG.md 加 M2 段(Unreleased / 2026-05-04 / Added 段下列 4 个 obstruction 文件 + 1 spatial_index + 1 manager + 字段加项 + procedure tick step 4f)
+   - 主仓 bump submodule pointer + commit `feat(rts-m3): M2 done — bump submodule → <new sha>`
+
+### M2.6 完成后
+
+按 milestone-chain 协议(README §收口条件)— 直接 archive M2 + 启动 M3,**不**逐 milestone reset Progress/Current-State,Epic 级 reset 留到 M8 完成后:
+
+- archive entry `.feature-dev/archive/2026-05-04-rts-m3-m2-obstruction-manager/`
+- 主仓目录 docs reset 到 M3 active:Progress.md / Next-Steps.md / Current-State.md / task-plan/README.md / m3 README progress 行
+- 不开 M3 实施,等用户 / codex 确认
+
+## 期间踩坑提醒
+
+- M2.2 期间 bash cwd 漂到 submodule → godot 静默 hang。**已解**;后续严禁 cd 不回。
+- M2.3 期间新加 class_name (`RtsObstructionManager`) 后第一波 4 godot 并行,GDScript class_name cache race — 先启动的进程读旧 cache → Parse Error → smoke FAIL;后启动的进程拿到 refresh 后 cache → PASS。**Lesson**: M2.4+ 后续若再加 class_name (M2.4 不加,M2.5 也不应加;M2.6 smoke .gd 文件不算),首次跑 baseline 先单跑 1 个 smoke 让 cache stabilize 再批量并行。
 
 ## 验收准则
 
