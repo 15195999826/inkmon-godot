@@ -1,11 +1,11 @@
 # M3 — RTS Pathfinding 全面迁移到 0 A.D. 方案
 
-> Status: 🟢 **executing** — Step A + Step B 完成,codex Round 1-8 全 APPROVE,**M0 + M1 + M2 已 done + archived**(2026-05-04 → [M0 archive](../../archive/2026-05-04-rts-m3-m0-footprint-split/) + [M1 archive](../../archive/2026-05-04-rts-m3-m1-navcell-grid/) + [M2 archive](../../archive/2026-05-04-rts-m3-m2-obstruction-manager/)),**M3 active 待 runner 启动**
+> Status: 🟢 **executing** — Step A + Step B 完成,codex Round 1-8 全 APPROVE,**M0 + M1 已 done + archived**(2026-05-04 → [M0 archive](../../archive/2026-05-04-rts-m3-m0-footprint-split/) + [M1 archive](../../archive/2026-05-04-rts-m3-m1-navcell-grid/)),**M2 active 待 runner 启动**
 > Sub-feature: 第三个 RTS 大版本 milestone (前两个: M1 重构, M2 单人可玩 demo)
 > Scope: 寻路 / 障碍 / 移动 / 单兵避让 全栈替换为 0 A.D. 风格 (long+short pathfinder + ObstructionManager + Hierarchical 可达性 + Clearance 外扩 + Footprint/Obstruction 拆分)
 > 不含: Formation 实现 (有独立 design 文档作为 handoff,留给 M4 Epic)
 >
-> **进度**:M0 ✅ done | M1 ✅ done | M2 ✅ done | M3 🟡 active | M4-M8 🔒 pending
+> **进度**:M0 ✅ done | M1 ✅ done | M2 🟡 active | M3-M8 🔒 pending
 
 ---
 

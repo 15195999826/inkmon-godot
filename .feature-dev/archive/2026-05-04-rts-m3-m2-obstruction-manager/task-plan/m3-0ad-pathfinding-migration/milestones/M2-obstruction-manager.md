@@ -4,7 +4,7 @@
 > 数据结构: [`../data-structures.md`](../data-structures.md) §2
 > API: [`../interfaces.md`](../interfaces.md) §2
 >
-> Status: ✅ **done — 2026-05-04** → [archive](../../../archive/2026-05-04-rts-m3-m2-obstruction-manager/)
+> Status: 🔒 pending(M1 完成后启动)
 > 依赖: M1 (NavcellGrid 数据存储 + PassabilityRegistry)
 > 阻塞: M3 (Clearance 外扩需要 ObstructionManager.rasterize)
 
