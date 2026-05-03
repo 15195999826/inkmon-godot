@@ -3,16 +3,17 @@
 > 父 plan: [`../README.md`](../README.md)
 > 数据结构定义: [`../data-structures.md`](../data-structures.md) §3 (Footprint), §2 (Obstruction shape data class)
 >
-> Status: 🟡 **active** (Step A + Step B 完成,codex Round 1-8 全 APPROVE,`/next-feature-planner` 已接入;**M0.1 + M0.2 + M0.3 已 done**,runner 从 M0.4 起步)
+> Status: 🟡 **active** (Step A + Step B 完成,codex Round 1-8 全 APPROVE;**M0.1-M0.4 已 done**,runner 从 M0.5 起步)
 > 依赖: 无 (M0 是 Epic 起点)
 > 阻塞: M1 (M0 完成后 M1 可启动)
 >
 > **当前进度** (详见 §5 + `.feature-dev/Progress.md`):
 > - ✅ M0.1 Trace utility + baseline replay 准备 — 已落地
 > - ✅ M0.2 引入 3 个 data class — 已落地 (2026-05-03)
-> - ✅ M0.3 RtsBuildingConfig.StatBlock 加 4 字段 + fallback 派生 — 已落地 (2026-05-03;LGF 73/73 + smoke 0 漂移)
-> - ⏭️ M0.4 RtsBuildingActor 加字段 + 改 get_footprint_cells 算法 — **下一步**
-> - 🔒 M0.5 - M0.7 — pending
+> - ✅ M0.3 RtsBuildingConfig.StatBlock 加 4 字段 + fallback — 已落地 (2026-05-03)
+> - ✅ M0.4 RtsBuildingActor 加字段 + 改 get_footprint_cells 双路径 + sync 方法 — 已落地 (2026-05-03;LGF + 3 smoke 0 漂移)
+> - ⏭️ M0.5 RtsBuildings 工厂 + 6 个 sync call sites + Placement 同步 — **下一步**
+> - 🔒 M0.6 - M0.7 — pending
 
 ---
 
@@ -434,10 +435,10 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 - ✅ `--import` 通过 (exit=0),update_scripts_classes 注册 3 个 class_name,无 type error
 - ✅ LGF 73/73 + smoke_rts_auto_battle 0 漂移(byte-identical baseline)
 
-### AC2 — `RtsBuildingActor` 持有新字段 🔒 pending
-- 字段 `obstruction_shape: RtsObstructionShapeStatic` + `footprint_shape: RtsFootprintShape` 存在,默认 null
-- 工厂 `RtsBuildings._create_from_kind` 调用后,这两字段非 null
-- 字段值跟 `RtsBuildingConfig.StatBlock` 配置一致
+### AC2 — `RtsBuildingActor` 持有新字段 🟡 partial (M0.4 字段加完,M0.5 工厂注入待)
+- ✅ 字段 `obstruction_shape: RtsObstructionShapeStatic` + `footprint_shape: RtsFootprintShape` 存在,默认 null (M0.4 done)
+- 🔒 工厂 `RtsBuildings._create_from_kind` 调用后,这两字段非 null (M0.5 pending)
+- 🔒 字段值跟 `RtsBuildingConfig.StatBlock` 配置一致 (M0.5 pending)
 
 ### AC3 — `RtsBuildingConfig.StatBlock` 字段扩展 ✅ **done 2026-05-03**
 - ✅ 新增 4 个字段 (`obstruction_size / obstruction_offset / footprint_shape_type / selection_footprint_size`),按 M0.3 步骤
@@ -445,11 +446,11 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 - ✅ 没显式配置新字段时,fallback 从旧 `footprint_size` 派生 (`obstruction_size = footprint_size × _CELL_SIZE_FALLBACK(=32)`,`selection_footprint_size = Vector2(max(w,h)*0.5, 0)`)
 - ✅ `--import` exit=0 + LGF 73/73 + smoke_rts_auto_battle/resource/economy 全 PASS 0 漂移 (向后兼容验证通过)
 
-### AC4 — `get_footprint_cells` 用新算法 + 当 offset=0 时 bit-identical 旧行为 🔒 pending
-- `RtsBuildingActor.get_footprint_cells(grid)` 内部用 `obstruction_shape.center` 算 cells (不再用 `position_2d`)
-- 当 `obstruction_offset = ZERO` 时,返回 cells 跟旧算法 bit-identical
-- 当 `obstruction_offset` 非零时,返回 cells 中心跟着 obstruction.center 走
-- `RtsBuildingPlacement._compute_footprint_cells_from_shape` 同步,跟 actor 共享 helper (无双份算法漂移)
+### AC4 — `get_footprint_cells` 用新算法 + 当 offset=0 时 bit-identical 旧行为 🟡 partial (M0.4 算法已就位,M0.5 placement 同步 + bit-identical 严格验证 待)
+- ✅ `RtsBuildingActor.get_footprint_cells(grid)` 双路径分支:obstruction_shape != null 时用 obstruction_shape.center (新路径), null 时 fallback footprint_size + position_2d (旧路径,M0.5 工厂注入前) (M0.4 done)
+- 🟡 当 `obstruction_offset = ZERO` 时,返回 cells 跟旧算法 bit-identical — M0.4 阶段因 obstruction_shape == null 走 fallback 已 0 漂移 PASS;M0.5 工厂注入后切新路径仍需验证 (留给 M0.5/M0.7 smoke 严格断言)
+- 🔒 当 `obstruction_offset` 非零时,返回 cells 中心跟着 obstruction.center 走 (M0.7 新 smoke 验证)
+- 🔒 `RtsBuildingPlacement._compute_footprint_cells_from_shape` 同步,跟 actor 共享 helper (M0.5 pending)
 
 ### AC5 — `smoke_obstruction_footprint_split` PASS 🔒 pending
 - 新 smoke 文件 (`tests/battle/smoke_obstruction_footprint_split.tscn` + `.gd`) 存在
@@ -543,7 +544,8 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 - [x] **M0.1** — Trace utility + baseline replay 准备 ✅ **done** (Step C 之前由 Agent 落地;evidence 见 §AC7)
 - [x] **M0.2** — 引入 3 个 data class ✅ **done 2026-05-03** (3 文件落地;`--import` 通过 + 3 class_name 注册;LGF 73/73 + smoke_rts_auto_battle ticks=347 attacks=74 melee_max=24.00 0 漂移)
 - [x] **M0.3** — `RtsBuildingConfig.StatBlock` 加新字段 ✅ **done 2026-05-03** (4 字段 + fallback 派生 + 三建筑 raw 全走 fallback;`--import` exit=0;LGF 73/73 + smoke_rts_auto_battle/smoke_resource_nodes/smoke_economy_demo 全 PASS 0 漂移,向后兼容)
-- [ ] **M0.4** — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` ⏭️ **下一步**
+- [x] **M0.4** — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` ✅ **done 2026-05-03** (obstruction_shape / footprint_shape 字段加完;get_footprint_cells 双路径分支(obstruction_shape != null 新路径,null fallback 旧路径);sync_obstruction_shape 方法添加;LGF 73/73 + smoke_rts_auto_battle/castle_war_minimal/economy_demo 全 PASS 0 漂移,fallback 向后兼容)
+- [ ] **M0.5** — `RtsBuildings` 工厂 + 6 个 sync call sites + Placement 算法同步 ⏭️ **下一步**
 - [ ] **M0.4** — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` 🔒 pending
 - [ ] **M0.5** — `RtsBuildings` 工厂 + `RtsBuildingPlacement` 算法同步 🔒 pending
 - [ ] **M0.6** — Frontend 渲染锚点对齐 🔒 pending

@@ -1,4 +1,4 @@
-# Next Steps — 2026-05-03 (M3 Epic / M0.4 下一步)
+# Next Steps — 2026-05-03 (M3 Epic / M0.5 下一步)
 
 ## 当前目标
 
@@ -12,17 +12,23 @@
 
 ## 下一步
 
-按 M0.md §2 子任务顺序:**M0.1 done**(baseline)→ **M0.2 done**(3 data class)→ **M0.3 done 2026-05-03**(StatBlock 4 字段 + fallback 派生 + LGF/smoke 0 漂移)→ 进 **M0.4 — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` 算法**:
+按 M0.md §2 子任务顺序:**M0.1 - M0.4 全 done**(baseline + 3 data class + StatBlock 4 字段 + actor 加字段 / 改 get_footprint_cells 双路径分支 + sync_obstruction_shape 方法,smoke 0 漂移)→ 进 **M0.5 — `RtsBuildings` 工厂只填默认 shape + 6 个 sync_obstruction_shape() call sites + `RtsBuildingPlacement` 算法同步**:
 
-1. `RtsBuildingActor` 加 `obstruction_shape: RtsObstructionShapeStatic` + `footprint_shape: RtsFootprintShape` 字段(默认 null,工厂填)
-2. 改 `get_footprint_cells(grid)` 算法 — 用 `obstruction_shape.center` 算 cells,**不再** 用 `position_2d`(spec §M0.4 给了完整代码,严格保留旧"左上偏置"方向不能改);用 `obstruction_shape.width / height` 推 cells_w / cells_h,而不是 `footprint_size: Vector2i`
-3. 新增 `sync_obstruction_shape()` 方法 — `obstruction_shape.center = position_2d + stats.obstruction_offset`
-4. 旧 `footprint_size: Vector2i` 保留(frontend 仍读)
+1. `RtsBuildings._create_from_kind` 注入 `RtsObstructionShapeStatic` + `RtsFootprintShape`(只填 size / type / offset,**不写 center**;codex P1 #2 工厂不知道最终 position,center 由 sync 时填)
+2. 6 个 sync_obstruction_shape() call sites(每处都在 `actor.position_2d = ...` 之后、`get_footprint_cells / place_building` 之前加 sync 调用 + `obstruction_shape.entity_id = actor.get_id()` + `control_group = str(team_id)`):
+   - `logic/commands/rts_place_building_command.gd:81-90` (玩家命令)
+   - `core/rts_auto_battle_procedure.gd:188` (procedure setup)
+   - `frontend/demo_rts_frontend.gd:164,170` (双 ct)
+   - `frontend/demo_rts_pathfinding.gd:115,121,269,274` (静态 + 动态障碍)
+   - `logic/scenario/rts_scenario_harness.gd:92,282-289,301`
+   - `frontend/preset/rts_match_preset.gd`(若 preset 内创建建筑)
+3. `RtsBuildingPlacement._compute_footprint_cells` 同步算法 — 现有签名保留 + 新增 `_compute_footprint_cells_from_shape(shape, grid)` 重载;抽 core helper `_compute_footprint_cells_core(center_cell, cells_w, cells_h)`,actor 和 placement 共享避免双份漂移
+4. **额外 grep**(R5/R6 反馈):`tests/**/*.gd` 找 `create_*` 后直调 `get_footprint_cells()` 的 diagnostics/smoke 路径,补上 sync(diag_pathfinding_trace 等可能有)
 
 **完成标志**:
-- `obstruction_offset = ZERO` 时(M0.3 默认),`get_footprint_cells()` 返回 cells 跟旧实现 **bit-identical**(关键!所有现有 smoke 数字必须 0 漂移)
-- `obstruction_offset` 非零时,cells 中心跟 obstruction.center 走
-- 但是 M0.4 还没接入工厂(M0.5 才),所以单纯 actor 字段加完后 smoke 应保持 baseline(此时 actor.obstruction_shape 仍 null,get_footprint_cells 走 null-check fallback 到旧路径或保留旧逻辑)。**实施细节**: get_footprint_cells 入口判断 obstruction_shape 是否 null,null 时走旧 footprint_size 路径(向后兼容)。
+- 6 个 call sites 全部 grep 验证已加 sync;漏 sync 触发 M0.7 step 1 新 smoke 失败
+- placement 链路端到端通,放下建筑后 `actor.obstruction_shape.center == actor.position_2d + obstruction_offset`
+- 因 obstruction_offset = ZERO,M0.5 后 smoke 应仍 0 漂移(新算法跟旧算法 cells bit-identical)
 
 ## 验收准则
 
