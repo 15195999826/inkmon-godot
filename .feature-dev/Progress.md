@@ -1,12 +1,13 @@
 ## Progress — RTS Auto-Battle M2.3 UI / HUD / Build Panel / 关卡
 
-**Status**: 🔄 **Phase A + B done; Phase C 待启动** (2026-05-03)
+**Status**: 🔄 **Phase A + B + C done; Phase D 待启动 (smoke + 收口 + archive)** (2026-05-03)
 
 - 上一个 sub-feature: M2.2 AI 对手 ✅ done + archived (2026-05-02; archive `archive/2026-05-02-rts-m2-2-ai-opponent/`)
-- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap ✅ → Phase C Main menu + ≤3 预设 🔄 next → Phase D smoke + 收口 + archive)
-- 详细 plan: [`task-plan/m2-3-ui-hud/README.md`](task-plan/m2-3-ui-hud/README.md) (含 4 phase 概览 + 用户决策表 + 收口条件)
-- Phase A 详细: [`task-plan/m2-3-ui-hud/phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) ✅ done
-- Phase B 详细: [`task-plan/m2-3-ui-hud/phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) ✅ done
+- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap ✅ → Phase C Main menu ✅ → Phase D smoke + 收口 + archive 🔄)
+- 详细 plan: [`task-plan/m2-3-ui-hud/README.md`](task-plan/m2-3-ui-hud/README.md)
+- Phase A: [`phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) ✅ done
+- Phase B: [`phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) ✅ done
+- Phase C: [`phase-c-main-menu.md`](task-plan/m2-3-ui-hud/phase-c-main-menu.md) ✅ done
 
 ---
 
@@ -129,11 +130,49 @@ simplify 前 + simplify 后 各跑一轮 14 项, 全过且数字 100% 一致 (0 
 
 ---
 
-## 后续 phase (skeleton, 上一 phase 收口时落详细)
+## Phase C 验收准则 checklist (6 AC ✅ 全过)
+
+### AC1 — RtsMainMenu 控件存在 ✅ done
+- [x] `frontend/main_menu.{gd,tscn}` 新建; `class_name RtsMainMenu extends Control` (anchor preset 15 全屏)
+- [x] VBox 居中, 标题 Label "Inkmon RTS — Skirmish Setup" + N Button (RtsMatchPreset.all_presets() = 3 项)
+
+### AC2 — RtsMatchPreset Resource ✅ done
+- [x] `frontend/preset/rts_match_preset.gd` 新建; `class_name RtsMatchPreset extends Resource`
+- [x] 字段: name / description / starting_resources_left / starting_resources_right / num_workers_per_team / attach_left_ai / attach_right_ai / show_build_panel
+- [x] 静态工厂 `create_classic_1v1` / `create_resource_scarce_1v1` / `create_ai_vs_ai_observe` + `all_presets()` 列表
+
+### AC3 — demo_rts_frontend 接 preset ✅ done
+- [x] demo._preset 字段 + apply_preset(p) helper (main_menu 在 instantiate + add_child 之间调用)
+- [x] demo._ready 头部 read preset 字段 (eff_resources_left / eff_num_workers / eff_attach_*_ai / eff_show_build_panel) → 替换原 hardcode
+- [x] _preset = null 时 fallback 走原 hardcode (frontend smoke headless 路径不破)
+- [x] show_build_panel = false 时 _setup_build_panel + _setup_placement_ghost 跳过 (AI vs AI observe mode)
+
+### AC4 — main_menu 点 Button → 进 demo ✅ done
+- [x] main_menu._make_preset_button 每 preset 1 个 Button + connect pressed
+- [x] _start_match: 实例化 demo + apply_preset + parent.add_child(demo) + queue_free(self) (demo 替换 main_menu)
+
+### AC5 — main_menu.tscn 作为新 demo 入口 ✅ done
+- [x] `frontend/main_menu.tscn` 存在, F6 打开看到菜单 (用户编辑器视觉验证)
+- [x] `frontend/demo_rts_frontend.tscn` 仍能 F6 直接跑 (走 fallback hardcode, frontend smoke 入口)
+
+### AC6 — Validation 全套 0 漂移 (M2.2 末态 14 项) ✅ done
+- [x] LGF 73/73 + 11 RTS smoke + replay/determinism + frontend = 14/14 PASS, 数字逐项 match Phase A/B baseline (0 漂移)
+
+---
+
+## Phase C 子任务进度 (C.1-C.4 ✅ 全过)
+
+- [x] **C.1+C.2 — RtsMatchPreset Resource + 3 预设静态工厂** ✅ done
+- [x] **C.3 — demo apply_preset (eff_* fallback)** ✅ done (Dictionary[String, int] typed fix)
+- [x] **C.4 — main_menu + Validation + commit** ✅ done — 14/14 0 漂移
+
+---
+
+## 后续 phase
 
 - **Phase B — Minimap (可见 + 双向交互)** ✅ done — `task-plan/m2-3-ui-hud/phase-b-minimap.md`
-- **Phase C — Main menu + ≤3 预设 setup** 🔄 active — Phase B 收口时落 `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
-- **Phase D — smoke_ui_main_menu + 全套 validation + 收口 + archive** 🔒 pending — Phase C 收口时落 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md`
+- **Phase C — Main menu + ≤3 预设 setup** ✅ done — `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
+- **Phase D — smoke_ui_main_menu + 全套 validation + 收口 + archive** 🔄 active — Phase C 收口时落 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md`
 
 ---
 

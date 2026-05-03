@@ -1,32 +1,32 @@
-# Next Steps — 2026-05-03 (RTS M2.3 — Phase A + B done; Phase C next)
+# Next Steps — 2026-05-03 (RTS M2.3 — Phase A + B + C done; Phase D 收口 next)
 
 ## 当前目标
 
-**RTS Auto-Battle M2.3 — UI / HUD / Build Panel / 关卡 (Full scope, 4 phase, Phase A+B done)**
+**RTS Auto-Battle M2.3 — UI / HUD / Build Panel / 关卡 (Full scope, 4 phase, A+B+C done)**
 
-让 demo 从"AI vs AI 自动跑"演进为"玩家可通过 BuildPanel 选建筑 + 关卡 selector + minimap 全局观战"的完整可玩 skirmish, 收口 M2 milestone。
+最后一步: 写 smoke_ui_main_menu 验 main_menu → demo headless 链, 跑全套 14+1 项 validation, 整体 archive M2.3 + M2 milestone 收口。
 
 ## 下一步
 
-启动 **Phase C — Main menu + ≤3 预设 setup**:
+启动 **Phase D — smoke_ui_main_menu + 全套 validation + archive**:
 
-1. **C.1** 写 `frontend/ui/main_menu.{gd,tscn}` (Control + 3 Button 列预设, 屏幕居中)
-2. **C.2** 写 `frontend/preset/match_preset.gd` (Resource 子类: name/description/starting_resources/starting_units/ai_attached/build_zone)
-3. **C.3** 写 3 预设: 经典 1v1 (M2.2 当前 demo) / 资源紧 1v1 (起手少资源 + 多中立 node) / AI vs AI 观战 (双 AI no human input)
-4. **C.4** main_menu 点预设 → instantiate demo_rts_frontend.tscn + apply preset (将原 demo._ready 内 hardcode 改为 apply_preset(preset)) + Validation 全套 + commit
+1. **D.1** 写 `tests/frontend/smoke_ui_main_menu.{gd,tscn}` (headless 实例化 main_menu + 模拟点 Button → 验 demo 子节点存在 + apply_preset 字段被读)
+2. **D.2** 跑 全套 14 + 1 = 15 项 validation 0 漂移 (新 smoke 加入)
+3. **D.3** 主仓 + .feature-dev 文档收口 — Current-State.md 更新 baseline / m2-roadmap.md M2.3 标 done / README/AGENTS/CLAUDE/docs 入口文档同步
+4. **D.4** archive `archive/2026-05-03-rts-m2-3-ui-hud/` (Summary/Current-State/Next-Steps/Progress/task-plan 全套快照) + Next-Steps 切回 "等待用户确认下一个 feature"
+5. **D.5** Phase D 不单独 commit — 与 archive 一起 final commit
 
-详细 plan + AC + 决策表见 `task-plan/m2-3-ui-hud/phase-c-main-menu.md` (Phase B 收口时落)
+详细 plan 见 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md` (Phase C 收口时落)
 
-## 验收准则 (Phase C 预期 AC)
+## 验收准则 (Phase D 预期 AC)
 
-- AC1 — RtsMainMenu 控件存在 + 列出 3 预设 Button
-- AC2 — RtsMatchPreset Resource (name/description/starting_resources/starting_units/ai_attached/build_zone)
-- AC3 — 3 预设分别配置不同起手 (经典 1v1 / 资源紧 1v1 / AI vs AI 观战)
-- AC4 — 点预设 → 加载 demo_rts_frontend + apply 起手 (worker 数 / 资源 / AI 是否 attach)
-- AC5 — Main menu 作为 demo 入口 (F6 打开 `frontend/main_menu.tscn` 而非 demo_rts_frontend.tscn; 不动主仓 scenes/Simulation.tscn)
-- AC6 — Validation 全套 0 漂移 (14 项 + 纯 frontend 改动)
+- AC1 — smoke_ui_main_menu.tscn headless PASS (main_menu 加载 → 模拟点 → demo apply_preset 路径)
+- AC2 — Validation 全套 14 + 1 = 15 项 PASS (0 漂移)
+- AC3 — archive entry `archive/2026-05-03-rts-m2-3-ui-hud/` 存在 + Summary.md 概括 M2.3 + M2 milestone
+- AC4 — m2-roadmap M2.3 / M2 整体标 ✅ done; Current-State 更新到 M2.3 末态 baseline
+- AC5 — Next-Steps 切回 "等待用户确认下一个 feature" + task-plan/README.md 切回 waiting/index 状态
 
-**Phase A + B 验收已过**; Phase C 收口 = M2.3 整体收口的第 3/4 步。
+**Phase A + B + C 验收已过**; Phase D 完成 = M2.3 + M2 milestone 整体结束。
 
 ## 非下一步 (M2.3 scope 外)
 
