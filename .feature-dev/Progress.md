@@ -1,53 +1,44 @@
-# Progress — RTS Pathfinding M3 Epic / M3 sub-feature
+# Progress — RTS Pathfinding M3 Epic / 当前 milestone
 
-**Status**: 🟡 M3 active(M0 + M1 + M2 已 done + archived 2026-05-04;runner 起步 M3.1)。
+**Status**: 🟡 M4 待启动(M0 + M1 + M2 + M3 done + archived 2026-05-04)。
 
-**Active feature**: M3 — Clearance + 外扩(per-class buffer)
-**完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M3-clearance.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M3-clearance.md)
-
----
-
-## 0. M0 + M1 + M2 收口
-
-✅ **M0 done + archived**(2026-05-04)— [`archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md`](archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md)
-✅ **M1 done + archived**(2026-05-04)— [`archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md`](archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md)
-✅ **M2 done + archived**(2026-05-04)— [`archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md`](archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md)
-
-M2 末态 baseline(M3 出发点):5 个 obstruction 数据/算法类(Flags + TestFilter + ShapeUnit + SpatialIndex + Manager)+ 完整 SAT 4 轴 OBB-OBB(R1)+ Building / Unit 链路接 manager(dual-write 兼容;Death unregister deferred 到 M5);17 项 RTS smoke + LGF 73 + replay seed=42 deep-equal + baseline CSV byte-identical(882882 bytes)+ 3 新 obstruction_manager smoke 全过。
+**Active feature**: M4 — HierarchicalPathfinder
+**完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md)
 
 ---
 
-## 1. M3 子任务 checklist (M3.1 → M3.X)
+## 0. 已完成 milestones
 
-完整定义见 [`M3-clearance.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M3-clearance.md) §2。
+✅ M0 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md`](archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md)
+✅ M1 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md`](archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md)
+✅ M2 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md`](archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md)
+✅ **M3 done + archived**(2026-05-04)— [`archive/2026-05-04-rts-m3-m3-clearance/Summary.md`](archive/2026-05-04-rts-m3-m3-clearance/Summary.md)
 
-子任务由 runner 启动 M3.1 时按 spec 拆分;预期主轴包含:
-- per-class clearance buffer 注入 RtsPassabilityClassConfig
-- ObstructionManager.rasterize 启用 dirty_only=true 增量(M2 已 ready)
-- EDT 或 brute-force inflate 算法选型
-- 切 pathfinder 走 manager 数据(M2 deferred 的 baseline 漂在此 milestone 一次性接受)
-
----
-
-## 2. AC1-ACN 验收(完整定义见 M3.md §3)
-
-由 runner 读 M3-clearance.md 后镜像填入。
+M3 末态 baseline(M4 出发点):ObstructionManager.rasterize 两步(原 cell 占用 + clearance 外扩 inflate, brute-force / 圆形 buffer / `buffer_px = ceilf(clearance/cell)*cell`)+ procedure.tick_once `rasterize_if_dirty` 走 manager._shapes 单一数据源增量重写 NavcellGrid + R5 P1-2 dirty lifecycle invariant 落地 + NavcellGrid `_origin_world` 修坐标系错位 + 装饰 obstacle 自动注册到 manager + RtsPassabilityClassConfig.affects_pathfinding 替字符串比较;LGF 73/73 + 17 RTS smoke 全 PASS + replay seed=42 frames=11 events=20 deep-equal + baseline CSV byte-identical 829520 bytes(M2 882882 → M3 inflate 让单位绕路 path 偏移,P1 接受新 baseline)+ `smoke_clearance_inflate` 4 sub-test 全过。
 
 ---
 
-## 3. 残余风险(M3 启动前预判,详见 M3.md §6)
+## 1. M4 子任务 checklist
 
-- **R1** Clearance inflate brute-force 跟 building 数量平方增长(perf)
-- **R2** baseline CSV 漂(M3 引入 path 变化预期 P1,详见 risks-and-rollback §1.3)
-- **R3** Multi-class rasterize 时 default + air 两 class 都要 inflate
+完整定义见 [`M4-hierarchical.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md) §2 子任务拆分。runner 启动 M4 时按 spec 镜像填入(M4a / M4b / M4c sub-phase 拆分,体验点 ✋2 用户审 — risks-and-rollback §1.1 + §3 重点关注 replay bit-identical)。
 
 ---
 
-## 4. 下一步动作(给 runner)
+## 2. AC1-ACN 验收
 
-1. 读 [`M3-clearance.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M3-clearance.md)(完整 spec)
-2. **必读** [`risks-and-rollback.md §3`](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md) stop runner 9 条触发条件
-3. 顺手过 [`data-structures.md §1`](task-plan/m3-0ad-pathfinding-migration/data-structures.md)(NavcellGrid + per-class clearance)
-4. 按 M3.1 → M3.X 顺序推进
-5. 每子任务 done 时 update 本文件(checkbox + AC 状态)
-6. M3 全 AC 通过后:milestone-chain 协议 → archive M3 + 启动 M4(详见 task-plan/README §收口条件)
+由 runner 读 M4-hierarchical.md 后镜像填入。
+
+---
+
+## 3. 残余风险
+
+完整列表见 M4-hierarchical.md §6 + risks-and-rollback.md;主要:
+- HierarchicalPathfinder 增量更新触发逻辑跟 M3 dirty lifecycle 接口对齐
+- regions Dictionary 迭代序 / GlobalRegion BFS 起点顺序 deterministic(replay 漂 P0 风险)
+- canonicalize 算法路径选(spec §M4b)+ ✋2 体验点用户验收
+
+---
+
+## 4. 下一步动作
+
+由 `/autonomous-feature-runner` 接 M4 起步。详见 Next-Steps.md。

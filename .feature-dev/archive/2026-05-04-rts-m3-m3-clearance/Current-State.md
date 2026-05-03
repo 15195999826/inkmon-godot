@@ -1,16 +1,15 @@
-# Current State — 2026-05-04 baseline (M3 Epic / M0+M1+M2+M3 done; M4 待启动)
+# Current State — 2026-05-04 baseline (M3 Epic / M0 + M1 + M2 done; M3 active)
 
-inkmon-godot baseline 事实快照. M3 Epic / M4 启动用.
+inkmon-godot baseline 事实快照. M3 Epic / M3 启动用.
 
-> **Active feature**: M3 Epic / M4 (HierarchicalPathfinder) — 等用户授权 runner.
+> **Active feature**: M3 Epic / M3 (Clearance + 外扩).
 >
-> **M0 + M1 + M2 + M3 sub-feature**: ✅ 整体完成 + archived
+> **M0 + M1 + M2 sub-feature**: ✅ 整体完成 + archived
 > - M0 (Footprint 拆分) → `archive/2026-05-04-rts-m3-m0-footprint-split/`
 > - M1 (Navcell Grid + Passability) → `archive/2026-05-04-rts-m3-m1-navcell-grid/`
 > - M2 (ObstructionManager + Spatial Index) → `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
-> - M3 (Clearance + 外扩 per-class buffer) → `archive/2026-05-04-rts-m3-m3-clearance/`
 >
-> **M3 Epic 状态**: codex Round 1-8 APPROVE + M0+M1+M2+M3 done + 17 项 RTS smoke 全 PASS + LGF 73/73 + replay seed=42 deep-equal + baseline CSV byte-identical(829520 bytes,M3 inflate 接受新 baseline)+ `smoke_clearance_inflate` 4 sub-test 全过.
+> **M3 Epic 状态**: codex Round 1-8 APPROVE + M0 + M1 + M2 done + 17 项 baseline 0 漂移 + replay deep-equal + baseline CSV byte-identical + 3 新 obstruction_manager smoke 全过.
 >
 > phase 实现细节 / 决策来源 → 见对应 archive 的 `Summary.md` 或 `task-plan/m3-0ad-pathfinding-migration/`.
 
@@ -23,65 +22,72 @@ inkmon-godot baseline 事实快照. M3 Epic / M4 启动用.
 - 主仓 entry:`scenes/Simulation.tscn` + `scripts/SimulationManager.gd` (Web/headless 桥接)
 - `project.godot` autoload:`Log` / `IdGenerator` / `GameWorld` / `TimelineRegistry` / `WaitGroupManager` / `ItemSystem` / `UGridMap` / `RtsRng`
 
-## 当前 baseline 能力 (M3 末态 = M4 出发点)
+## 当前 baseline 能力 (M2 末态 = M3 出发点)
 
-M3 末态 RTS 完整可玩 1v1 skirmish + AI vs AI 观战 demo + ObstructionManager 单一数据源 inflate-aware 寻路。M0 / M1 / M2 / M3 增量(详见对应 archive Summary.md):
+M2 末态 RTS 完整可玩 1v1 skirmish + AI vs AI 观战 demo 之上,M0 + M1 + M2 增量:
 
-- **M0**(footprint 拆分): obstruction shape 数据类 + building footprint sync 链路
-- **M1**(NavcellGrid + Passability): `RtsPassabilityClassConfig/Registry` + `RtsNavcellGrid` 16-bit 位掩码 multi-class + `RtsBattleGrid` dual-write facade
-- **M2**(ObstructionManager + Spatial Index): 5 个 obstruction 数据/算法类 + 完整 SAT 4 轴 OBB-OBB + Building/Unit shape 链路接 manager(dual-write 兼容)
-- **M3**(Clearance + 外扩 per-class buffer):
-  - `RtsObstructionManager.rasterize` 改两步: 原 cell 占用 + clearance 外扩 inflate(brute-force / 圆形 buffer Euclidean / `buffer_px = ceilf(clearance/cell)*cell` 至少 1 cell)
-  - `procedure.tick_once` step 6.6 `rasterize_if_dirty` 走 manager._shapes 单一数据源增量重写 NavcellGrid + step 7.5 末端统一 `clear_dirty`(R5 P1-2 dirty lifecycle invariant)
-  - `RtsNavcellGrid._origin_world` 字段 + `set_origin_world / world_to_navcell_i/j / has_any_dirty / collect_dirty_cells` helpers — 修 RtsBattleGrid HexCoord+half_offset vs 直接 world/cell 索引坐标系错位(M2 阶段 rasterize 没 caller 调没暴露)
-  - `RtsPassabilityClassConfig.affects_pathfinding: bool = true` 字段(air class 设 false 留 wiring)替 `class_name_id == "air"` 字符串比较
-  - 装饰 obstacle 自动注册 manager(`procedure._init._register_decorative_obstacles_to_manager` 扫 `grid.model.is_tile_blocking` cells, sort by (q, r),每 cell 1 cell × cell OBB shape;否则 `rasterize_if_dirty` 第一次清掉 frontend `mark_obstacle_cell` 写的 cells)
-  - Unit shape (BLOCK_MOVEMENT) 不 mark navcell dirty(perf-critical 修正,避免 100 unit × 30 Hz 全图重 rasterize)
-  - Registry 加 `get_classes()` + `get_class_by_mask()`(spec §M3.1 步骤 2 要求,M4+ 用)
-  - `_collect_blocking_shapes` / `_rasterize_class` / `_inflate_one_shape` / `_clear_dirty_with_buffer` / `_shape_world_aabb` 内部 helpers(simplify pass hoist:dirty_cells / sorted tags 跨 class 共享)
+### M0 增量(2026-05-04)
+
+- 3 obstruction shape data class:`RtsObstructionShape` 基类 + `Static` 子类(width/height/rotation_rad + get_corners + get_axes)+ `RtsFootprintShape`(CIRCLE/SQUARE + contains + get_world_aabb)
+- `RtsBuildingActor` 双路径 `get_footprint_cells` + `sync_obstruction_shape`
+- `RtsBuildingConfig.StatBlock` 4 新字段(obstruction_size / obstruction_offset / footprint_shape_type / selection_footprint_size)+ fallback 派生
+- `RtsBuildings` 工厂 + 6 个 sync sites + Placement core helper + frontend visualizer 选择圈走 footprint_shape
+
+### M1 增量(2026-05-04)
+
+- 3 个 grid 数据类:`RtsPassabilityClassConfig`(Resource, 6 字段)+ `RtsPassabilityClassRegistry`(RefCounted, PASS_CLASS_BITS=16, register / get_pass_class / get_mask / max_clearance / size)+ `RtsNavcellGrid`(RefCounted, `_data: PackedInt32Array` + `_dirtiness: PackedByteArray`;or_data/and_data/is_passable/边界外 false / dirty lifecycle)
+- `RtsBattleGrid` 改 facade:`_navcell_grid` + `_passability_registry` + `_default_class_mask` + `_half_cols`/`_half_rows` 字段;`attach_passability_registry` + `is_blocking` + `mark_obstacle_cell` + `_coord_to_ij` helper;dual-write model + NavcellGrid
+- procedure._init 末按固定顺序 `register("default", clearance=14.0)` → `register("air", clearance=8.0)`(R5 决策:顺序固化让 mask 数字 0x1/0x2 跨 run 不漂);`attach_passability_registry` 到 grid
+
+### M2 增量(2026-05-04)
+
+- 5 个 obstruction 数据 / 算法类:`RtsObstructionFlags`(6 flag 常量)+ `RtsObstructionTestFilter`(抽象 + 3 inner class + 3 静态工厂;R6 mitigation)+ `RtsObstructionShapeUnit`(Unit 圆子类)+ `RtsSpatialIndex`(uniform grid bucket 256 px;query_circle 末 sort 保 tag 升序 §12.4)+ `RtsObstructionManager`(9+ 公开 API + 完整 SAT 4 轴 OBB-OBB R1 缓解 + circle-OBB / point-in-OBB / rasterize;R5 P1-2 dirty lifecycle)
+- `rts_buildings.gd:85` 硬编码 `1 << 3` → `RtsObstructionFlags.BLOCK_PATHFINDING`
+- `RtsBuildingActor` + `RtsUnitActor` 加 `obstruction_tag: int = 0` 字段
+- `RtsPlaceBuildingCommand.apply` step 3.5 + `procedure.start` 起手 loop 都补 `add_static_shape` 注册(dual-write 兼容)
+- `procedure.tick` step 4f `_sync_unit_obstruction_shapes`(alive_units lazy register + per-tick move_shape;Death unregister deferred 到 M5)
+- 3 个新 smoke:obstruction_manager_register / _query / _remove(覆盖 AC4+AC7+R1 SAT 4-case)
 
 ## M3 Epic 已落地的基础设施
 
 - **完整规划文档** (`.feature-dev/task-plan/m3-0ad-pathfinding-migration/`):README + data-structures + interfaces + validation-strategy + risks-and-rollback + 9 milestone (M0-M8 含 sub-phase 拆分) + deferred/0ad-formation-design
 - **Trace 基础设施** (M0.1):
   - `addons/.../tools/path_trace_v2.gd` (24 字段 CSV writer)
-  - `addons/.../tests/battle/smoke_pathfinding_baseline.{tscn,gd}` (PASS 900 ticks / 5769 rows / 97 events;M3 末态)
-  - `addons/.../tests/baselines/0ad-baseline-master.csv` (829520 bytes,byte-identical 跨 run + M3 末态接受新 baseline)
-  - `addons/.../tests/baselines/0ad-baseline-master.replay.json` (30 KB)
+  - `addons/.../tests/battle/smoke_pathfinding_baseline.{tscn,gd}` (PASS 900 ticks / 6155 rows / 111 events)
+  - `addons/.../tests/baselines/0ad-baseline-master.csv` (882 KB,byte-identical 跨 run + M2 末态 byte-identical)
+  - `addons/.../tests/baselines/0ad-baseline-master.replay.json` (34 KB)
 - **0 A.D. 本地参考副本**: `addons/.../docs/references/0ad-source/` (sparse `source/simulation2/`,9.2 MB,git ignore)
 - **acceptance smoke**:
   - M0 `tests/battle/smoke_obstruction_footprint_split.{tscn,gd}` (footprint shape 拆分验收)
   - M1 `tests/battle/smoke_navcell_grid_passability.{tscn,gd}` (Registry + NavcellGrid + multi-class isolation)
   - M2 `tests/battle/smoke_obstruction_manager_{register,query,remove}.{tscn,gd}` (3 smoke 覆盖 ObstructionManager AC4/AC7/SAT R1)
-  - M3 `tests/battle/smoke_clearance_inflate.{tscn,gd}` (4 sub-test: AC1 inflate basic / AC2+AC8 air independent / AC3 dirty lifecycle / rasterize_if_dirty noop+triggered)
 
-## 测试基线 (M3 末态 = 17 项 + LGF 73 + 3 obstruction_manager + 1 clearance_inflate smoke)
+## 测试基线 (M2 末态 = 17 项 + LGF 73 + 3 新 obstruction_manager smoke)
 
 | 入口 | 末态 |
 |---|---|
 | `addons/logic-game-framework/tests/run_tests.tscn` | **73/73 PASS** |
-| `tests/battle/smoke_rts_auto_battle.tscn` | left_win, ticks=264, attacks=65, melee=33, ranged=32, melee_max=24.16, deaths=4, detoured=4 |
+| `tests/battle/smoke_rts_auto_battle.tscn` | left_win, ticks=347, attacks=74, melee=32, ranged=42, melee_max=24.00, deaths=6, detoured=4 |
 | `tests/battle/smoke_castle_war_minimal.tscn` | left_win, ticks=193, unit_to_building_attacks=4, archer_anti_air=1 |
-| `tests/battle/smoke_player_command.tscn` | placement applied + dup/zone reject |
+| `tests/battle/smoke_player_command.tscn` | gold=20 wood=50 |
 | `tests/battle/smoke_player_command_production.tscn` | ticks=600 left_spawned=7 max_eastward=254.74 |
-| `tests/battle/smoke_production.tscn` | ticks=600 left=7 right=7 max_left_eastward=132.25 |
+| `tests/battle/smoke_production.tscn` | ticks=600 left=7 right=7 max_left_eastward=118.51 |
 | `tests/battle/smoke_crystal_tower_win.tscn` | ticks=2 left_win |
-| `tests/battle/smoke_resource_nodes.tscn` | 5 workers idle (HarvestStrategy fallback) |
-| `tests/battle/smoke_harvest_loop.tscn` | ticks=600 gold=140 wood=213 |
-| `tests/battle/smoke_economy_demo.tscn` | ticks=900 melee_spawned=4 final_gold=134 final_wood=249 |
-| `tests/battle/smoke_ai_vs_player_full_match.tscn` | ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct=7 |
+| `tests/battle/smoke_resource_nodes.tscn` | ticks=200 alive=5 |
+| `tests/battle/smoke_harvest_loop.tscn` | ticks=600 gold=140 wood=212 |
+| `tests/battle/smoke_economy_demo.tscn` | ticks=900 melee_spawned=4 final_gold=138 final_wood=196 |
+| `tests/battle/smoke_ai_vs_player_full_match.tscn` | ai_units_spawned=4 ai_unit_to_ct_attacks=9 |
 | `tests/battle/smoke_flying_units.tscn` | archer_hits=3 PASS |
-| `tests/replay/smoke_replay_bit_identical.tscn` | seed=42 frames=11 events=20 deep-equal |
-| `tests/replay/smoke_determinism.tscn` | tick_diff=0 (run1=run2 ticks=264 winner=left_win) |
+| `tests/replay/smoke_replay_bit_identical.tscn` | seed=42 frames=9 events=20 deep-equal |
+| `tests/replay/smoke_determinism.tscn` | tick_diff=0 |
 | `tests/frontend/smoke_frontend_main.tscn` | visualizers=10 |
 | `tests/frontend/smoke_ui_main_menu.tscn` | demo=RtsFrontendDemo |
-| `tests/battle/smoke_pathfinding_baseline.tscn` | ticks=900 trace=5769 events=97 + baseline CSV byte-identical **829520 bytes** |
+| `tests/battle/smoke_pathfinding_baseline.tscn` | ticks=900 trace=6155 events=111 + baseline CSV byte-identical 882882 bytes |
 | `tests/battle/smoke_obstruction_footprint_split.tscn` | (M0)set_b=4 set_c=10 (B ∩ C)=∅ |
 | `tests/battle/smoke_navcell_grid_passability.tscn` | (M1)AC1+AC2+AC8 13 项断言全过 |
-| `tests/battle/smoke_obstruction_manager_register.tscn` | (M2)8 shapes tags 1..8, sorted query OK |
-| `tests/battle/smoke_obstruction_manager_query.tscn` | (M2)filter + test_*_shape + SAT 4-case + distance OK |
-| `tests/battle/smoke_obstruction_manager_remove.tscn` | (M2)basic + idempotent + query-consistent + readd OK |
-| `tests/battle/smoke_clearance_inflate.tscn` | (M3 新)15 default-blocked + 25 air-passable + dirty cleanup |
+| `tests/battle/smoke_obstruction_manager_register.tscn` | (M2 新)8 shapes tags 1..8, sorted query OK |
+| `tests/battle/smoke_obstruction_manager_query.tscn` | (M2 新)filter + test_*_shape + SAT 4-case + distance OK |
+| `tests/battle/smoke_obstruction_manager_remove.tscn` | (M2 新)basic + idempotent + query-consistent + readd OK |
 
 ## M3 Epic 关键决策(D 系列,详见 `task-plan/m3-0ad-pathfinding-migration/README.md` §0.3)
 
@@ -118,14 +124,13 @@ M3 Epic 新增约束:
 
 ## Git 状态
 
-- 主仓 master ahead of origin/master(M3 Epic + M0 + M1 + M2 + M3 实施期间累积 commit 待推)
-- submodule `addons/logic-game-framework` HEAD=bbaac16(M3 末态)
-- M3 archive sweep 待 commit(本文件 + Progress / Next-Steps + Summary.md + task-plan snapshot)
+- 主仓 master ahead of origin/master(M3 Epic + M0 + M1 + M2 实施期间累积 commit 待推)
+- submodule `addons/logic-game-framework` HEAD=86020b0(M2 末态)
+- M2 archive sweep 待 commit(本文件 + Progress / Next-Steps / m3 README / M2.md status 修订 + Summary.md)
 
 ## 决策来源 (历史 sub-feature → archive)
 
-- **M3 Clearance + 外扩** (2026-05-04): `archive/2026-05-04-rts-m3-m3-clearance/` ← **最近**
-- **M2 ObstructionManager** (2026-05-04): `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
+- **M2 ObstructionManager** (2026-05-04): `archive/2026-05-04-rts-m3-m2-obstruction-manager/` ← **最近**
 - **M1 Navcell Grid + Passability** (2026-05-04): `archive/2026-05-04-rts-m3-m1-navcell-grid/`
 - **M0 Footprint 拆分 + Bug 1** (2026-05-04): `archive/2026-05-04-rts-m3-m0-footprint-split/`
 - M2.3 UI/HUD/BuildPanel/关卡 (2026-05-03): `archive/2026-05-03-rts-m2-3-ui-hud/`
