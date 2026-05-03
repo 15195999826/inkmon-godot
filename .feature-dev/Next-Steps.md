@@ -1,31 +1,32 @@
-# Next Steps — 2026-05-03 (RTS M2.3 — UI / HUD / Build Panel / 关卡 — Phase A done; Phase B next)
+# Next Steps — 2026-05-03 (RTS M2.3 — Phase A + B done; Phase C next)
 
 ## 当前目标
 
-**RTS Auto-Battle M2.3 — UI / HUD / Build Panel / 关卡 (Full scope, 4 phase, Phase A done)**
+**RTS Auto-Battle M2.3 — UI / HUD / Build Panel / 关卡 (Full scope, 4 phase, Phase A+B done)**
 
 让 demo 从"AI vs AI 自动跑"演进为"玩家可通过 BuildPanel 选建筑 + 关卡 selector + minimap 全局观战"的完整可玩 skirmish, 收口 M2 milestone。
 
 ## 下一步
 
-启动 **Phase B — Minimap (可见 + 双向交互)**:
+启动 **Phase C — Main menu + ≤3 预设 setup**:
 
-1. **B.1** 写 `addons/logic-game-framework/example/rts-auto-battle/frontend/ui/minimap.{gd,tscn}` (Control 固定屏幕角落 + 实时画 unit / building 点)
-2. **B.2** Minimap 实时刷新 — _process 内 director.get_render_state 拉所有 actor pos / team_id, 画到 minimap 内坐标 (world_to_minimap)
-3. **B.3** Camera viewport 画框 — minimap 上叠白色矩形显示主 camera 当前可见区域
-4. **B.4** 点 minimap → 主 camera 跳 (minimap_pos_to_world → camera.position); F6 视觉验证 + Validation 全套 14 项 + commit
+1. **C.1** 写 `frontend/ui/main_menu.{gd,tscn}` (Control + 3 Button 列预设, 屏幕居中)
+2. **C.2** 写 `frontend/preset/match_preset.gd` (Resource 子类: name/description/starting_resources/starting_units/ai_attached/build_zone)
+3. **C.3** 写 3 预设: 经典 1v1 (M2.2 当前 demo) / 资源紧 1v1 (起手少资源 + 多中立 node) / AI vs AI 观战 (双 AI no human input)
+4. **C.4** main_menu 点预设 → instantiate demo_rts_frontend.tscn + apply preset (将原 demo._ready 内 hardcode 改为 apply_preset(preset)) + Validation 全套 + commit
 
-详细 plan + AC 表 + 决策表见 [`task-plan/m2-3-ui-hud/phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) (Phase A 收口时落 skeleton)
+详细 plan + AC + 决策表见 `task-plan/m2-3-ui-hud/phase-c-main-menu.md` (Phase B 收口时落)
 
-## 验收准则 (Phase B 预期 AC)
+## 验收准则 (Phase C 预期 AC)
 
-- AC1 — RtsMinimap 控件存在 + 实时画 unit/building (按 team color)
-- AC2 — Camera viewport 画框 (主 camera 缩放 / 平移时 minimap 框同步)
-- AC3 — 点 minimap → 主 camera 中心跳到对应 world_pos
-- AC4 — Minimap 不动逻辑 + 不破 replay (走 director.get_render_state, 不读 actor)
-- AC5 — Validation 全套 0 漂移 (14 项 + 纯 frontend 改动)
+- AC1 — RtsMainMenu 控件存在 + 列出 3 预设 Button
+- AC2 — RtsMatchPreset Resource (name/description/starting_resources/starting_units/ai_attached/build_zone)
+- AC3 — 3 预设分别配置不同起手 (经典 1v1 / 资源紧 1v1 / AI vs AI 观战)
+- AC4 — 点预设 → 加载 demo_rts_frontend + apply 起手 (worker 数 / 资源 / AI 是否 attach)
+- AC5 — Main menu 作为 demo 入口 (F6 打开 `frontend/main_menu.tscn` 而非 demo_rts_frontend.tscn; 不动主仓 scenes/Simulation.tscn)
+- AC6 — Validation 全套 0 漂移 (14 项 + 纯 frontend 改动)
 
-**Phase A 验收已过** (7 AC 全 ✅); Phase B 收口 = M2.3 整体收口的第 2/4 步。
+**Phase A + B 验收已过**; Phase C 收口 = M2.3 整体收口的第 3/4 步。
 
 ## 非下一步 (M2.3 scope 外)
 

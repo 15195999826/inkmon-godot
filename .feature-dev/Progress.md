@@ -1,11 +1,12 @@
 ## Progress — RTS Auto-Battle M2.3 UI / HUD / Build Panel / 关卡
 
-**Status**: 🔄 **Phase A done; Phase B 待启动** (2026-05-03)
+**Status**: 🔄 **Phase A + B done; Phase C 待启动** (2026-05-03)
 
 - 上一个 sub-feature: M2.2 AI 对手 ✅ done + archived (2026-05-02; archive `archive/2026-05-02-rts-m2-2-ai-opponent/`)
-- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap 🔄 next → Phase C Main menu + ≤3 预设 → Phase D smoke + 收口 + archive)
+- 本 sub-feature 模式: **4 phase 串行** (Phase A 核心 build 闭环 ✅ → Phase B Minimap ✅ → Phase C Main menu + ≤3 预设 🔄 next → Phase D smoke + 收口 + archive)
 - 详细 plan: [`task-plan/m2-3-ui-hud/README.md`](task-plan/m2-3-ui-hud/README.md) (含 4 phase 概览 + 用户决策表 + 收口条件)
-- Phase A 详细: [`task-plan/m2-3-ui-hud/phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) (4 子任务 + 7 AC + F1-F4 决策表) ✅ done
+- Phase A 详细: [`task-plan/m2-3-ui-hud/phase-a-build-panel.md`](task-plan/m2-3-ui-hud/phase-a-build-panel.md) ✅ done
+- Phase B 详细: [`task-plan/m2-3-ui-hud/phase-b-minimap.md`](task-plan/m2-3-ui-hud/phase-b-minimap.md) ✅ done
 
 ---
 
@@ -92,10 +93,46 @@ simplify 前 + simplify 后 各跑一轮 14 项, 全过且数字 100% 一致 (0 
 
 ---
 
+## Phase B 验收准则 checklist (5 AC ✅ 全过)
+
+### AC1 — RtsMinimap 控件存在 + 实时画 unit/building ✅ done
+- [x] `frontend/ui/minimap.{gd,tscn}` 新建; `class_name RtsMinimap extends Control`
+- [x] `_draw` 渲染 BattleMap 边框 + 各 alive actor 点 (team color: 0=蓝 / 1=红 / -1=黄, _UNKNOWN=灰); building (max_hp ≥ 400) 4×4 / unit 2×2
+- [x] team_id 走 `director._render_states["team_id"]` (新加字段, _seed_render_state 写入)
+
+### AC2 — Camera viewport 画框 ✅ done
+- [x] minimap._draw 末尾画白色矩形 = camera.global_position ± (viewport.size / 2 / camera.zoom) 投到 minimap 坐标
+- [x] WASD 移 camera → minimap 框跟随 (demo._process queue_redraw)
+
+### AC3 — Minimap 点击 → 主 camera 跳 ✅ done
+- [x] minimap._gui_input 左键 → emit world_position_clicked(world_pos)
+- [x] demo._on_minimap_clicked → _camera.position = world_pos (Camera2D limit_* 自动 clamp)
+
+### AC4 — WASD 主 camera 移动 ✅ done
+- [x] demo._process 内 (非 placement mode) `Input.get_vector("ui_left/right/up/down")` × 200 px/s
+- [x] `_register_camera_keys` 注册 WASD 到 ui_* action (默认只绑 arrow keys)
+- [x] Camera2D limit_* (0..500) 自动 clamp 边界
+
+### AC5 — Validation 全套 0 漂移 (M2.2 末态 14 项) ✅ done
+- [x] LGF 73/73 PASS — `/tmp/m23_b4_lgf.txt`
+- [x] 11 RTS smoke 数字逐项 match Phase A baseline (0 漂移)
+- [x] frontend smoke visualizers=10 alive=10 — `/tmp/m23_b4_fe.txt`
+
+---
+
+## Phase B 子任务进度 (B.1-B.4 ✅ 全过)
+
+- [x] **B.1 — Minimap 控件 + Camera2D** ✅ done (minimap.gd / minimap.tscn 新; demo Camera2D zoom=3 居中 + limit_*)
+- [x] **B.2 — Minimap 实时画 actor** ✅ done (_draw 走 director.get_actor_ids → render_state, team color)
+- [x] **B.3 — Camera viewport 框 + WASD** ✅ done (_draw_viewport_frame + _update_camera_from_input + _register_camera_keys)
+- [x] **B.4 — 点跳 + Validation + commit** ✅ done — 14/14 0 漂移; F6 视觉验证留给用户
+
+---
+
 ## 后续 phase (skeleton, 上一 phase 收口时落详细)
 
-- **Phase B — Minimap (可见 + 双向交互)** 🔒 pending — Phase A 收口时落 `task-plan/m2-3-ui-hud/phase-b-minimap.md`
-- **Phase C — Main menu + ≤3 预设 setup** 🔒 pending — Phase B 收口时落 `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
+- **Phase B — Minimap (可见 + 双向交互)** ✅ done — `task-plan/m2-3-ui-hud/phase-b-minimap.md`
+- **Phase C — Main menu + ≤3 预设 setup** 🔄 active — Phase B 收口时落 `task-plan/m2-3-ui-hud/phase-c-main-menu.md`
 - **Phase D — smoke_ui_main_menu + 全套 validation + 收口 + archive** 🔒 pending — Phase C 收口时落 `task-plan/m2-3-ui-hud/phase-d-smoke-and-archive.md`
 
 ---
