@@ -3,20 +3,18 @@
 > 父 plan: [`../README.md`](../README.md)
 > 数据结构定义: [`../data-structures.md`](../data-structures.md) §3 (Footprint), §2 (Obstruction shape data class)
 >
-> Status: ✅ **done** (2026-05-04 archived → [`archive/2026-05-04-rts-m3-m0-footprint-split/`](../../../archive/2026-05-04-rts-m3-m0-footprint-split/))
+> Status: 🟡 **active** (Step A + Step B 完成,codex Round 1-8 全 APPROVE;**M0.1 - M0.5 已 done**,runner 从 M0.6 起步)
 > 依赖: 无 (M0 是 Epic 起点)
-> 阻塞: M1 (M1 已可启动)
+> 阻塞: M1 (M0 完成后 M1 可启动)
 >
-> **完成进度**:
+> **当前进度** (详见 §5 + `.feature-dev/Progress.md`):
 > - ✅ M0.1 Trace utility + baseline replay 准备 — 已落地
-> - ✅ M0.2 引入 3 个 data class
-> - ✅ M0.3 RtsBuildingConfig.StatBlock 加 4 字段 + fallback
-> - ✅ M0.4 RtsBuildingActor 加字段 + 改 get_footprint_cells 双路径 + sync 方法
-> - ✅ M0.5 RtsBuildings 工厂注入 + 6 sync sites + Placement core helper + ghost preview 对齐 + replay 0 漂移
-> - ✅ M0.6 Frontend visualizer 选择圈 / ghost 渲染对齐
-> - ✅ M0.7 新 smoke + Validation 全套 + commit
->
-> **完整 evidence + commit hash + 期间 hotfix** 见 [`archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md`](../../../archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md)。
+> - ✅ M0.2 引入 3 个 data class — 已落地 (2026-05-03)
+> - ✅ M0.3 RtsBuildingConfig.StatBlock 加 4 字段 + fallback — 已落地 (2026-05-03)
+> - ✅ M0.4 RtsBuildingActor 加字段 + 改 get_footprint_cells 双路径 + sync 方法 — 已落地 (2026-05-03)
+> - ✅ M0.5 RtsBuildings 工厂注入 + 6 sync sites + Placement core helper + ghost preview 对齐 + replay 0 漂移 — 已落地 (2026-05-03)
+> - ⏭️ M0.6 Frontend visualizer 选择圈 / ghost 渲染对齐 — **下一步**
+> - 🔒 M0.7 — pending
 
 ---
 
