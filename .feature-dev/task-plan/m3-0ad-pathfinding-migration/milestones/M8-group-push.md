@@ -106,18 +106,18 @@ func push_pass(world: RtsWorld) -> void:
         obstr_mgr.move_shape(_actor.obstruction_tag, _actor.position_2d)
 ```
 
-**RtsWorld.tick 内**(M7c.2 已定义 6 步,M8 加一个 step 在 motion tick 后):
+**RtsWorld.tick 内**(M7c.2 已定义,M8 加 push pass step 3,共 7 步;M7 R5 P1 #1 + P2 修订后真实顺序):
 
 ```
-1. RtsPlayerCommandQueue.flush()
-2. for actor in sorted_by_id(motion-bearing):
+1. RtsPlayerCommandQueue.apply_due(procedure, world, current_tick)    ← 真实 API (不是 flush)
+2. for actor in sort_by_(kind, spawn_seq)(motion-bearing):           ← (kind, spawn_seq) 数值复合 key, 不字典序 (R5 P1 #1)
      actor.motion.tick(delta, world, facade)
-3. for actor in sorted_by_id(motion-bearing):       ← M8 新增 push pass
+3. for actor in sort_by_(kind, spawn_seq)(motion-bearing):           ← M8 加: push pass, 排序同 step 2
      actor.motion.push_pass(world)
 4. RtsActivity.tick(delta)
-5. ObstructionManager.flush_dirty()
-6. HierarchicalPathfinder.update()
-7. EventProcessor.flush()
+5. ObstructionManager.rasterize_if_dirty(grid, registry)             ← 不 clear_dirty 在 rasterize 内(M3 R5 P1 #2)
+6. RtsHierarchicalPathfinder.update(grid, dirty_snapshot)            ← 拿 step 5 的 dirty snapshot
+7. grid.clear_dirty() + GameWorld.event_collector.flush()            ← 末端统一清 dirty + 落事件
 ```
 
 **完成标志**: 两单位强行 spawn 在同一坐标 → push pass 后被推开;FLAG_BLOCK_MOVEMENT off 的单位不参与 push。
@@ -204,7 +204,7 @@ func push_pass(world: RtsWorld) -> void:
 
 | # | 风险 | 缓解 |
 |---|---|---|
-| R1 | push pass 引入 replay 漂(同 tick 处理顺序) | 严格按 actor.get_id() 字典序 push(同 §12.5);smoke 跑双倍验证 |
+| R1 | push pass 引入 replay 漂(同 tick 处理顺序) | 严格按 `(kind, spawn_seq)` 数值复合 key push(同 §12.5,R5 P1 #1 修订);smoke 跑双倍验证 |
 | R2 | push 力度过大 → 单位被弹离 path | push_factor = 0.5 + 阈值 0.1 阻 微抖;若仍弹太远,M8 末调小 push_factor |
 | R3 | M8 跟 M7 边界:push_pass 在哪一 step | 严格 step 3(motion.tick step 2 后,activity step 4 前);保证 activity 看到 push 后位置 |
 

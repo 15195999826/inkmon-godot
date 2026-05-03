@@ -102,7 +102,10 @@ addons/.../tests/battle/
        # 第二步: 外扩 (M3 新)
        _inflate(grid, class_mask, clearance_cells, dirty_only)
        
-       grid.clear_dirty()
+       # ⚠️ R5 P1 #2: 不再在 rasterize 内 clear_dirty
+       # 因为 hierarchical_pathfinder.update(grid, dirtinessGrid) 还需要这个 dirty 集合做增量
+       # caller (RtsWorld.tick / facade.tick) 在 step 7 末端统一清
+       # grid.clear_dirty()  ← 删除
 
    func _shape_blocks_class(s: RtsObstructionShape, pass_class: RtsPassabilityClassConfig) -> bool:
        # 默认: BLOCK_PATHFINDING shape 对 default class 生效
@@ -218,20 +221,29 @@ addons/.../tests/battle/
        ...
        obstruction_manager.rasterize_if_dirty(_navcell_grid, passability_registry)
    ```
-3. ObstructionManager 加这个方法:
+3. ObstructionManager 加这个方法(⚠️ R5 P1 #2 修订:**不**在内部 clear_dirty,留给 caller 用 dirty snapshot 做 hierarchical update 后统一清):
    ```gdscript
-   func rasterize_if_dirty(grid: RtsNavcellGrid, registry: RtsPassabilityClassRegistry) -> void:
+   ## 检查是否有 dirty navcell, 有则对每个 class rasterize.
+   ## 不 clear dirty — caller 在 hierarchical update 完成后, RtsWorld.tick step 7 末端统一清.
+   func rasterize_if_dirty(grid: RtsNavcellGrid, registry: RtsPassabilityClassRegistry) -> bool:
        var has_dirty: bool = false
        for k in range(grid._dirtiness.size()):
            if grid._dirtiness[k] == 1:
                has_dirty = true
                break
        if not has_dirty:
-           return
+           return false
        # 对所有注册的 class 都重 rasterize (M3 阶段只 default 实际有 BLOCK_PATHFINDING shape)
        for c in registry._classes:
            rasterize(grid, c, true)
+       return true   # 返回 "需要后续 hierarchical update + clear dirty" 信号
    ```
+
+4. **dirty lifecycle ownership**(关键 R5 P1 #2 invariant):
+   - **ObstructionManager.rasterize**:**读** dirty + **不**清 dirty
+   - **RtsHierarchicalPathfinder.update(grid, dirty)**:**读** dirty + **不**清 dirty(可读多次,M3/M4 分别用)
+   - **RtsWorld.tick step 7**:`grid.clear_dirty()` 末端统一清
+   - 任何中途 `clear_dirty()` 调用 = bug → M3.4 + M4 smoke 必须验证 dirty 在 hierarchical.update 时仍非空
 
 **完成标志**: 建筑 placement / removal 时 rasterize 自动触发;空 dirty 时 noop。
 

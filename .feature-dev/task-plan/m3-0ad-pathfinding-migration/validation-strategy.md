@@ -70,7 +70,10 @@
 - 字段顺序固定 (本节表格顺序),**不准重排**
 - 浮点用 `%.6f` 格式化(避免跨平台 6+ 位小数序列化差异)
 - string 字段用 CSV 标准引号转义(逗号 / 引号)
-- 一个 unit 一个 tick 一行;tick 内 unit 顺序按 `actor.get_id()` 字典序(Determinism §12.5)
+- 一个 unit 一个 tick 一行;tick 内 unit 顺序:
+  - **M0-M6 阶段**: 按 actor registry insertion 序(GameWorld 内现有 deterministic 顺序)
+  - **M7+ 阶段**: 按 **`(kind: String, spawn_seq: int)` 数值复合 key** ⚠️ R5 P1 #1 修订(不再用 `actor.get_id()` 字典序,因 IdGenerator 真实输出 `Character_10 < Character_2` 漂移)
+  - 详见 [data-structures §12.5](data-structures.md#125-unitmotion-m7--r5-p1-1-修订)
 - 文件第一行 = header(字段名,Tab/逗号都接受,本 Epic 用逗号)
 
 ### 1.4 不写入 trace 的情形
@@ -125,31 +128,45 @@ diff /tmp/run1.csv /tmp/run2.csv  # must be empty
 
 ## 3. Performance Baseline (perf-trace.csv)
 
-### 3.1 字段
+### 3.1 字段 (R5 反馈修订)
 
 `tools/perf_trace.gd` 每 milestone 末自动产出:
 
-| 字段 | 含义 |
-|---|---|
-| `milestone` | M0/M1/M2/.../M8 |
-| `smoke_name` | smoke 文件名 |
-| `wall_clock_ms` | godot 进程总壁钟 |
-| `tick_count` | 跑了多少 sim tick |
-| `tick_avg_ms` | 平均每 tick 耗时 |
-| `tick_p99_ms` | 99 分位 tick 耗时 |
-| `pathfinder_total_ms` | 寻路耗时累计(从 M5 开始有意义) |
-| `obstruction_total_ms` | obstruction 查询累计(从 M2 开始) |
-| `memory_peak_mb` | 进程峰值内存 |
+| 字段 | 含义 | 主辅 |
+|---|---|---|
+| `milestone` | M0/M1/M2/.../M8 | meta |
+| `smoke_name` | smoke 文件名 | meta |
+| **`tick_avg_ms`** | 平均每 tick 耗时 (主指标) | ✅ 主 |
+| **`tick_p50_ms`** | 中位 tick 耗时 | ✅ 主 |
+| **`tick_p99_ms`** | 99 分位 tick 耗时 (尾延迟,30Hz 下不掉帧需 ≤ 30 ms) | ✅ 主 |
+| **`tick_max_ms`** | 单 tick 最大耗时 | ✅ 主 |
+| `pathfinder_total_ms` | 寻路耗时累计(从 M5 开始有意义) | ✅ 主 |
+| `obstruction_total_ms` | obstruction 查询累计(从 M2 开始) | ✅ 主 |
+| `memory_peak_mb` | 进程峰值内存 | ✅ 主 |
+| `tick_count` | 跑了多少 sim tick | meta |
+| `wall_clock_ms` | godot 进程总壁钟 — ⚠️ 跨 run 受系统负载 / background 影响,**仅作辅助参考** | 🟡 辅 |
 
-### 3.2 验收规则 (AC-EPIC-7)
+⚠️ **R5 反馈**: 原版只列 `wall_clock_ms` 不稳定,加了 `tick_avg / p50 / p99 / max` 4 个统计作为**主指标**,`wall_clock` 降级为辅助。判定 perf 退化看 `tick_p99 / tick_max`(尾延迟)+ `pathfinder_total / obstruction_total`(总寻路开销),不依赖 `wall_clock`。
 
-每 milestone 跑这 14 项 smoke + 新加的本 milestone smoke,对比上一 milestone:
+### 3.2 验收规则 (AC-EPIC-7) — R6 P2 修订
 
-- ✅ `wall_clock_ms` 增长 ≤ 50%(允许慢一倍内,GDScript vs C++ 差距)
-- ✅ `tick_p99_ms` 不超过 30 ms(30 Hz 下不掉帧)
-- ⚠️ 任一项超 50% 增长 → flag 给用户(可能进 perf 优化轮 / 也可能接受)
+每 milestone 跑这 14 项 smoke + 新加的本 milestone smoke,对比上一 milestone。**主验收指标 = `tick_p99_ms` / `tick_max_ms` / `pathfinder_total_ms` / `obstruction_total_ms`**,`wall_clock_ms` 仅作辅助参考(跨 run 受系统负载影响,不稳定)。
 
-超出 100% 的(2× 慢)→ stop runner,做针对性优化。不预先 GDExtension 化(D8 推论)。
+**主验收**(必过):
+- ✅ `tick_p99_ms` ≤ 30 ms(30 Hz 下不掉帧硬约束,绝对值非相对)
+- ✅ `tick_max_ms` ≤ 60 ms(单 tick 尾延迟不刺破 2 帧)
+- ✅ `pathfinder_total_ms`(per-smoke 累计)增长 ≤ 50%(M5+ 起)
+- ✅ `obstruction_total_ms`(per-smoke 累计)增长 ≤ 50%(M2+ 起)
+
+**辅助参考**(不阻塞,只供调试):
+- 🟡 `wall_clock_ms` — 跨 run 受系统负载 / background process / cache 状态影响,看趋势不看绝对值
+- 🟡 `tick_avg_ms` / `tick_p50_ms` — 看分布形态参考
+
+**触发 stop runner**(主指标任一):
+- 🟡 `pathfinder_total_ms` 或 `obstruction_total_ms` 增长 ≥ 100% (2×) → stop runner 调优
+- 🟡 `tick_p99_ms > 30 ms` 或 `tick_max_ms > 60 ms` → stop runner 调优
+
+不预先 GDExtension 化(D8 推论)。
 
 ---
 

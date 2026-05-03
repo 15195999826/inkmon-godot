@@ -391,7 +391,13 @@ return _reconstruct(vertices, came_from, start_idx, best_idx)
 - 路径终点应该在 CIRCLE 边缘,不是 center
 - 验证:terrain edges 处理水陆交界(若有)
 
-### M6c — Dynamic Units + Group Filter (1.5 周)
+### M6c — Dynamic Units + Group Filter + Prototype 退役 (1.5 周)
+
+⚠️ **R5 反馈**: M6c 末必须**显式删除 prototype 资产**,避免双实现漂移:
+- 删除 `tests/prototype/proto_vertex_obb.tscn` 文件
+- 删除 prototype 阶段在 RtsVertexPathfinder 内的简化分支(M6a 阶段为 prototype 加的 `if simplified_mode:` 这种)
+- M6c 验收前 grep 整个 RtsVertexPathfinder 确认无 prototype-only 路径
+
 
 **M6c.1 — Moving unit square proxy (细节 #7)**
 
@@ -532,7 +538,7 @@ func compute_short_path_immediate(req: RtsShortPathRequest) -> RtsWaypointPath:
 | R3 | A* lazy visibility 性能(每 expand 测 N 个 vertex 可见性 — O(V²) worst case) | M6 搜索框内 vertex 数通常 ≤ 50,O(V²) = 2500 次 segment_clear,每次 segment_clear ~ O(obstacles) ~10 → 25K op/path,GDScript 撑得住 |
 | R4 | Replay 漂:vertex 候选生成顺序若依赖 nearby 数组迭代序 | get_obstructions_in_range 内 sort by tag 已保;新增 candidate (terrain / range boundary / virtual goal) 必须按 enum 固定顺序追加 |
 | R5 | Best-so-far fallback 引入新代码路径 → 可能 replay 漂 | smoke_replay_bit_identical 跑双倍 epoch 验证 |
-| R6 | M6a prototype 跟 production VertexPathfinder 漂移(prototype 简化版 vs 完整版) | M6c 末端把 prototype 退役,完整版替换 + smoke 全跑一遍 |
+| R6 | M6a prototype 跟 production VertexPathfinder 漂移(prototype 简化版 vs 完整版) | **M6c 末端必须删除 `tests/prototype/proto_vertex_obb.tscn` + 配套 prototype-only 简化代码**(R5 反馈强调避免"双实现漂移");完整版替换后跑全套 smoke 验证 |
 
 ---
 

@@ -288,7 +288,7 @@ var _classes: RtsPassabilityClassRegistry
 
 ### 6.3 调用约定
 
-- **每 sim tick 必须调 `tick()` 一次**,顺序按 `actor.get_id()` 字典序(§12.5 determinism)
+- **每 sim tick 必须调 `tick()` 一次**,顺序按 **`(kind: String, spawn_seq: int)` 数值复合 key**(§12.5 determinism, R5 P1 #1 修订;**不**用 `actor.get_id()` 字典序,因 IdGenerator 真实输出 `Character_10 < Character_2` 漂移)
 - **同 tick 内 unit_A.tick() 先于 unit_B.tick()** → unit_A 移动后 obstr_mgr 已更新 → unit_B 看到 unit_A 新位置(synchronous + ordered)
 - **`set_clearance` 必须同步通知 obstr_mgr**: clearance ≡ obstruction_shape.radius 是不变量(D2)
 - **失败累积 (`_failed_movements`)**: 35 次后认死路 → activity 层 abort
@@ -389,22 +389,37 @@ var _classes: RtsPassabilityClassRegistry
 - **核心约束**: 同 sim tick 内,先调用方对 ObstructionManager / Grid 的 mutation **立即对后调用方可见**
 - 这意味着 unit_B.tick() 看到 unit_A 已 move_shape 后的位置,而不是 tick 开始时的快照
 - 跨平台 Dictionary 迭代序如果不固定,unit 处理顺序漂移 → bit-identical 漂
-- 解法: §12.5 显式按 `actor.get_id()` 字典序排序
+- 解法: §12.5 显式按 **`(kind: String, spawn_seq: int)` 数值复合 key** 排序(R5 P1 #1 修订;**不**用 `actor.get_id()` 字典序,因 IdGenerator 真实输出 `Character_10 < Character_2` 漂移)
 
-### 10.3 Tick 顺序 (M7+)
+### 10.3 Tick 顺序 (M7+ 含 R5 P1 #1/#2 + P2 修订)
+
+⚠️ **R5 P1 #1**: tick 排序 key 改为 **`(kind: String, spawn_seq: int)` 数值复合 key**,不用 `actor.get_id()` 字典序(`IdGenerator.generate_id` 真实输出 `"%s_%d"` 无 zero-pad,`Character_10 < Character_2` 漂移)。
+⚠️ **R5 P1 #2**: `rasterize` 不再内部 `clear_dirty()`,改成 caller 末端统一清(让 hierarchical update 能拿到 dirty snapshot)。
+⚠️ **R5 P2**: 真实 API 名:`RtsPlayerCommandQueue.apply_due(...)` / `GameWorld.event_collector.flush()` / `event_collector.record_current_frame_events()`;**EventProcessor** 没有 `flush`。
 
 ```
 sim tick:
-  1. RtsPlayerCommandQueue.flush()       # 处理玩家命令(可能 add/remove shape)
-  2. for actor in sorted_by_id(motion-bearing):
+  1. RtsPlayerCommandQueue.apply_due(procedure, world, current_tick)
+                                         # 处理玩家命令(可能 add/remove shape)
+  2. for actor in sort_by_(kind, spawn_seq)(motion-bearing):
        actor.motion.tick(delta, world, facade)
        # 内部: path_update_needed → request_long_path → step → handle_obstructed
        # 同步立即更新 obstr_mgr (move_shape / set_unit_moving_flag)
-  3. RtsActivity.tick(delta)             # attack / gather / build (使用刚更新的位置)
-  4. ObstructionManager.flush_dirty()    # 标记本 tick dirty navcells
-  5. RtsHierarchicalPathfinder.update()  # 增量更新 (M4c 后)
-  6. EventProcessor.flush()              # post events / replay record
+  3. for actor in sort_by_(kind, spawn_seq)(motion-bearing):       ← M8 加: push pass
+       actor.motion.push_pass(world)
+  4. RtsActivity.tick(delta)             # attack / gather / build (使用刚更新位置)
+  5. ObstructionManager.rasterize_if_dirty(grid, registry)
+                                         # rasterize 不 clear dirty (R5 P1 #2)
+  6. RtsHierarchicalPathfinder.update(grid, dirty_snapshot)
+                                         # 拿 step 5 同一个 dirty snapshot 增量更新
+  7. grid.clear_dirty()                  # 末端统一清
+     GameWorld.event_collector.flush()   # post events / replay record (真实 API)
 ```
+
+**`(kind, spawn_seq)` 数值复合 key 的稳定性**:
+- `kind` 是固定 String(`"Character"` / `"Worker"` / `"Archer"` 等),字典序对 kind 名稳定(种类 ≤ 10 个,跨平台 deterministic)
+- `spawn_seq: int` 由 actor 创建时从 `IdGenerator._counter` 取值并冻结(actor field),**整数比较跨平台稳定**
+- 同 kind 内 spawn_seq 严格单调递增 → 数值序唯一
 
 ### 10.4 Determinism Contract
 

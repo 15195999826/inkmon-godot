@@ -27,7 +27,7 @@
 - M4: HierarchicalPathfinder edges Dictionary 迭代序错误 / GlobalRegion BFS 起点顺序错误
 - M5: LongPath A* heap 5 元组比较 bug(未严格按 lex 顺序)
 - M6: VertexPath candidates 生成顺序错(漏了 obstruction.tag, corner_index 字典序)
-- M7: Motion tick 顺序非按 actor.get_id() 字典序
+- M7: Motion tick 顺序非按 `(kind, spawn_seq)` 数值复合 key(R5 P1 #1 修订;不再走 `actor.get_id()` 字典序)
 
 **定位流程**:
 1. 跑 `tools/oos_log.gd`(M5 启动前置):master vs current branch 各跑一遍 → 第一个 hash 不同的 (tick, entity) 即漂移源
@@ -186,9 +186,11 @@ git commit -m "rollback to M0-stable"
 2. **🔴 14 项 smoke 任一项数字漂**(已实填字段 byte diff)
 3. **🔴 LGF 73 unit test 任一 FAIL**(M3 Epic 不该影响 LGF core)
 4. **🔴 LGF submodule core/ 或 stdlib/ 内文件被改**(违反 D4)
-5. **🟡 perf wall_clock 增长 ≥ 100% (2×)**(超 AC-EPIC-7 上限)
+5. **🟡 perf `tick_p99` / `tick_max` 增长 ≥ 100% (2×)**(超 AC-EPIC-7 上限,以新主指标为准 — R5 反馈,不再用 `wall_clock_ms`)
 6. **🟡 baseline CSV diff 包含 已实填字段值变化** 但**不在预期算法变化范围**(M3 inflate / M5 LongPath 算法变化是预期;M2 / M4 / M7 / M8 不应改路径)
 7. **🟡 体验点 ✋N 用户跑 demo 反馈不通过** (功能性问题,非视觉小毛病)
+8. **🔴 R5 P1 #2 dirty lifecycle invariant 违反**(任一路径在 RtsWorld.tick step 5-6 中间清 dirty,导致 hierarchical update 拿不到完整 dirty 集合)— M3.4 + M4 smoke 必须验证此 invariant
+9. **🔴 R5 P1 #1 actor sort 用了字符串字典序而非 `(kind, spawn_seq)` 数值复合 key**(M7 引入 sort 时漂)— `smoke_motion_tick_order_with_10plus_units` 必跑且 ≥ 10 unit 排序正确
 
 Stop 后流程:
 1. runner 写 stop reason 到 `.feature-dev/Progress.md`

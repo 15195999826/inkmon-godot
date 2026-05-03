@@ -30,7 +30,13 @@
 
 ## 1. Scope
 
-### 1.1 必做(M4a + M4b + M4c)
+⚠️ **R5 反馈**: M4c 是否 over-engineering 降级为 P2 — **建议 M4a full recompute 先落, M4c 作为 perf 触发项**:
+- M4a + M4b 是 M4 默认必做(全图重建 + canonicalize)
+- **M4c 改为可选**: 只在 M4a full recompute perf > 30 ms / tick(性能监控触发)时才启动 M4c sub-phase
+- 100 unit / 16 building 规模 full recompute 单次估算 ≤ 30 ms,不一定需要 M4c
+- 若启动 M4c,严格按 R5 P1 #2 dirty snapshot 协议(本文档已修)
+
+### 1.1 必做(M4a + M4b)+ 可选(M4c)
 
 - 引入 `RtsRegionId` packed int64 helper(constants + pack/unpack)— [data-structures §4.1](../data-structures.md#41-rtsregionid--packed-int64不是-refcounted)
 - 引入 `RtsHierarchicalChunk`(96×96 navcells per chunk,固定 CHUNK_SIZE)
@@ -237,26 +243,38 @@ func _add_undirected_edge(edges: Dictionary, a: int, b: int) -> void:
         edges[hi] = hi_arr
 ```
 
-**M4a.5** — GlobalRegionID 计算
+**M4a.5** — GlobalRegionID 计算 (⚠️ R5 P1 #3 修订)
 
-对 edges graph 做 BFS,起点按 packed RID 升序;每个连通分量分配单调递增 GlobalID:
+⚠️ **R5 P1 #3**: 原实现只从 `edges.keys()` 取起点,**漏了"无跨 chunk edge 的 isolated passable region"** — 这种 region 不在 edges 表里,但仍是合法可通行区域(整个 region 完全在某 chunk 内,没邻接 chunk 接壤)。漏算导致 `get_global_region` 返回 0,`is_goal_reachable` 把合法 isolated region 当不可达。
+
+**修订**: 起点必须**枚举所有 chunk.regions_id 生成全量 packed RegionID**(包括没在 edges 里的 isolated region),再用 edges 做连通扩展。
 
 ```gdscript
 func _compute_global_regions(pass_mask: int) -> void:
     var edges: Dictionary = _edges[pass_mask]
-    var rids: Array = edges.keys()
-    rids.sort()       # 起点字典序 (§12.2)
+    var chunks: Array = _chunks[pass_mask]
+    
+    # ⚠️ R5 P1 #3: 起点 = 全量 packed RegionID, 不是 edges.keys()
+    # 否则 isolated region (无跨 chunk edge) 不会进 global 表 → is_goal_reachable false 误判
+    var all_rids: Array[int] = []
+    for ch in chunks:
+        for local_r in ch.regions_id:    # local_r 不含 0 (impassable)
+            all_rids.append(RtsRegionIdHelper.pack(ch.ci, ch.cj, local_r))
+    all_rids.sort()       # 起点 packed RID 升序 (§12.2)
+    
     var global: Dictionary = {}
     var next_global: int = 1
-    for rid in rids:
+    for rid in all_rids:
         if global.has(rid):
             continue
+        # BFS 起点 rid, 通过 edges 扩展整个连通分量
         var queue: Array = [rid]
         while not queue.is_empty():
             var r := queue.pop_front()
             if global.has(r):
                 continue
             global[r] = next_global
+            # 没有 edge 的 region: edges.get(r, []) = [], 这里 BFS 直接结束 — 但 rid 已分配到 next_global, isolated region 也拿到 GlobalID
             for n in edges.get(r, []):
                 if not global.has(n):
                     queue.append(n)
@@ -264,6 +282,11 @@ func _compute_global_regions(pass_mask: int) -> void:
     _global_regions[pass_mask] = global
     _next_global_region[pass_mask] = next_global
 ```
+
+**新 smoke `smoke_hierarchical_isolated_region`** (M4a 验):
+- 创 grid,4 个完全围闭的 passable 区域(各 ≤ 1 chunk,跟其他区域无 edge)
+- recompute → 验证 4 个 isolated region 都拿到 unique GlobalRegionID(不是 0)
+- `is_goal_reachable(isolated_region 内 navcell, 同 region goal, mask) == true`
 
 **M4a.6** — Smoke + AC
 
@@ -408,14 +431,32 @@ func update(grid: RtsNavcellGrid, dirty: PackedByteArray) -> void:
         _compute_global_regions(cls_mask)
 ```
 
-**M4c.2** — Procedure tick 接 update
+**M4c.2** — Procedure tick 接 update (⚠️ R5 P1 #2 dirty snapshot 协议)
+
+⚠️ **R5 P1 #2**: rasterize 不再 clear dirty,update 仍能拿到 dirty 集合;末端统一清。
 
 ```gdscript
-# rts_world.tick 末
-if _navcell_grid_has_dirty():
-    obstruction_manager.rasterize_if_dirty(...)   # M3 已有
-    hierarchical_pathfinder.update(_navcell_grid, _navcell_grid._dirtiness)
+# RtsWorld.tick step 5-7:
+func tick(delta: float) -> void:
+    ...   # step 1-4 (commands / motion / push / activity)
+    
+    # step 5: rasterize (rasterize 内部不 clear, R5 P1 #2)
+    var did_rasterize: bool = obstruction_manager.rasterize_if_dirty(_navcell_grid, _passability_registry)
+    
+    # step 6: hierarchical update — 拿同一个 dirty 集合 (snapshot 已经在 grid 里, 不变)
+    if did_rasterize:
+        hierarchical_pathfinder.update(_navcell_grid, _navcell_grid._dirtiness)
+    
+    # step 7: 末端统一清 + 落事件 (R5 P2 真实 API)
+    _navcell_grid.clear_dirty()
+    GameWorld.event_collector.flush()    # 真实 API: event_collector, 不是 EventProcessor
 ```
+
+**dirty 一致性 invariant** (R5 P1 #2 落地):
+- step 5 期间 grid._dirtiness 保持不变(rasterize 只读)
+- step 6 期间 grid._dirtiness 仍保持不变(update 只读)
+- step 7 末端 `clear_dirty()` 之后下一 tick 起 dirty 集合空(干净起点)
+- 任何路径在 step 5-6 中间清 dirty = bug → M4c smoke 验证 update 拿到的 dirty 集合**等于** rasterize 看到的
 
 **M4c.3** — Smoke
 

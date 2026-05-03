@@ -3,9 +3,15 @@
 > 父 plan: [`../README.md`](../README.md)
 > 数据结构定义: [`../data-structures.md`](../data-structures.md) §3 (Footprint), §2 (Obstruction shape data class)
 >
-> Status: 🔒 pending (等待 codex 审查 + Step B 完成 + `/next-feature-planner` 接入)
+> Status: 🟡 **active** (Step A + Step B 完成,codex Round 1-8 全 APPROVE,`/next-feature-planner` 已接入;**M0.1 + M0.2 已 done**,runner 从 M0.3 起步)
 > 依赖: 无 (M0 是 Epic 起点)
 > 阻塞: M1 (M0 完成后 M1 可启动)
+>
+> **当前进度** (详见 §5 + `.feature-dev/Progress.md`):
+> - ✅ M0.1 Trace utility + baseline replay 准备 — 已落地(Step C 之前由 Agent 完成)
+> - ✅ M0.2 引入 3 个 data class — 已落地(2026-05-03;`logic/obstruction/{rts_obstruction_shape,_static,rts_footprint_shape}.gd` 三文件;import 通过 + LGF 73/73 + smoke_rts_auto_battle 0 漂移)
+> - ⏭️ M0.3 RtsBuildingConfig.StatBlock 加 4 字段 — **下一步**
+> - 🔒 M0.4 - M0.7 — pending
 
 ---
 
@@ -421,10 +427,11 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 
 ## 3. 验收准则 (10 AC)
 
-### AC1 — 3 个 data class 落地 🔒 pending
-- `logic/obstruction/rts_obstruction_shape.gd` (基类) + `rts_obstruction_shape_static.gd` (OBB) + `rts_footprint_shape.gd` (UI) 文件存在
-- `class_name` + 字段定义按 [`data-structures.md`](../data-structures.md) §2 §3
-- `--import` 通过,无 type error
+### AC1 — 3 个 data class 落地 ✅ **done 2026-05-03**
+- ✅ `logic/obstruction/rts_obstruction_shape.gd` (基类) + `rts_obstruction_shape_static.gd` (OBB) + `rts_footprint_shape.gd` (UI) 文件存在
+- ✅ `class_name` + 字段定义按 [`data-structures.md`](../data-structures.md) §2 §3 (基类 type/entity_id/center/flags/control_group/control_group_2/tag;static 子类 width/height/rotation_rad + get_corners + get_axes;footprint type/center_offset/size + contains + get_world_aabb)
+- ✅ `--import` 通过 (exit=0),update_scripts_classes 注册 3 个 class_name,无 type error
+- ✅ LGF 73/73 + smoke_rts_auto_battle 0 漂移(byte-identical baseline)
 
 ### AC2 — `RtsBuildingActor` 持有新字段 🔒 pending
 - 字段 `obstruction_shape: RtsObstructionShapeStatic` + `footprint_shape: RtsFootprintShape` 存在,默认 null
@@ -452,9 +459,12 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 - LGF 73/73 PASS
 - replay seed=42 deep-equal
 
-### AC7 — Trace utility 落地 🔒 pending
-- `tools/path_trace_v2.gd` 存在,实现 §M0.1 schema
-- `smoke_pathfinding_baseline.tscn` 存在,跑后产出 `tests/baselines/0ad-baseline-master.csv`
+### AC7 — Trace utility 落地 ✅ **done** (Step C 之前由 Agent 落地)
+- ✅ `addons/.../tools/path_trace_v2.gd` (7910 B,24 字段 CSV writer)
+- ✅ `addons/.../tests/battle/smoke_pathfinding_baseline.{tscn,gd}` PASS (900 ticks / 6155 trace rows / 111 replay events / exit code 0)
+- ✅ `addons/.../tests/baselines/0ad-baseline-master.csv` (882 KB / 6156 行,byte-identical 跨 run)
+- ✅ `addons/.../tests/baselines/0ad-baseline-master.replay.json` (34 KB)
+- ✅ Regress 验证 `smoke_rts_auto_battle` 0 漂移(left_win ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 完全对齐 CLAUDE.md baseline)
 - baseline 文件可被未来 M5/M7 用作 bit-identical 参照
 
 ### AC8 — Frontend 视觉一致性: ghost cells == placed cells == unit path cells (体验点 1, 客观化) 🔒 pending
@@ -528,9 +538,9 @@ addons/logic-game-framework/example/rts-auto-battle/tests/battle/
 
 ## 5. 子任务进度 (M0.1 - M0.7)
 
-- [ ] **M0.1** — Trace utility + baseline replay 准备 🔒 pending
-- [ ] **M0.2** — 引入 3 个 data class 🔒 pending
-- [ ] **M0.3** — `RtsBuildingConfig.StatBlock` 加新字段 🔒 pending
+- [x] **M0.1** — Trace utility + baseline replay 准备 ✅ **done** (Step C 之前由 Agent 落地;evidence 见 §AC7)
+- [x] **M0.2** — 引入 3 个 data class ✅ **done 2026-05-03** (3 文件落地;`--import` 通过 + 3 class_name 注册;LGF 73/73 + smoke_rts_auto_battle ticks=347 attacks=74 melee_max=24.00 0 漂移)
+- [ ] **M0.3** — `RtsBuildingConfig.StatBlock` 加新字段 ⏭️ **下一步**
 - [ ] **M0.4** — `RtsBuildingActor` 加字段 + 改 `get_footprint_cells` 🔒 pending
 - [ ] **M0.5** — `RtsBuildings` 工厂 + `RtsBuildingPlacement` 算法同步 🔒 pending
 - [ ] **M0.6** — Frontend 渲染锚点对齐 🔒 pending

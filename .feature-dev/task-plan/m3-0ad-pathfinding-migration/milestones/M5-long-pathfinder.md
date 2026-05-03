@@ -251,6 +251,12 @@ func _octile(a: Vector2i, b: Vector2i) -> int:
 func _pack_cell(v: Vector2i) -> int:
     return v.x * 65536 + v.y    # 16-bit each, 1024x1024 grid 够用
 
+func _init(grid: RtsNavcellGrid) -> void:
+    _grid = grid
+    # ⚠️ R5 反馈: _pack_cell 假设 grid < 65536, 显式 assert 让未来扩 16K² grid 时立即 crash 而非 silent collision
+    Log.assert_crash(grid.width() < 65536 and grid.height() < 65536,
+        "RtsLongPathfinder._pack_cell limit: grid must be < 65536 per side (current: %d × %d)" % [grid.width(), grid.height()])
+
 func _reconstruct(came_from: Dictionary, start_pack: int, goal_pack: int) -> RtsWaypointPath:
     var path := RtsWaypointPath.new()
     var cur := goal_pack

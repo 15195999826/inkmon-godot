@@ -21,7 +21,7 @@
 - Failed movements 累计 (`MAX_FAILED_MOVEMENTS = 35`),活动失败后 abort
 - m_FollowKnownImperfectPathCountdown(`= 12 ticks`)在 best-so-far short path 完后触发 long path retry
 - group filter 在 short path req 已是 API 输入(M6 wired,M7 真正赋值 control_group = team_id)
-- Tick 顺序按 actor.get_id() 字典序(§12.5 Determinism)
+- Tick 顺序按 **`(kind: String, spawn_seq: int)` 数值复合 key**(§12.5 Determinism, R5 P1 #1 修订;不再走 `actor.get_id()` 字典序)
 
 **M7 拆 4 sub-phase**:
 - **M7a**: Path storage(MoveRequest + WaypointPath 双持 + Ticket)
@@ -268,14 +268,44 @@ func _step(delta: float, world: RtsWorld) -> void:
 
 **M7c.2 — RtsWorld.tick 严格顺序(§interfaces.md §10.3)**
 
+⚠️ **R5 P1 #1 修订**:tick 排序 key 改为 **`(kind: String, spawn_seq: int)` 数值复合 key**,**不再** 用 `actor.get_id()` 字符串字典序。
+
+**理由**: `IdGenerator.generate_id` 真实实现是 `"%s_%d" % [prefix, _counter]`(`addons/.../core/utils/id_generator.gd`),无 zero-pad → `Character_10` 字典序 < `Character_2`(`'1' < '2'`),只要 spawn ≥ 10 个同 kind 单位就会漂。本 Epic 实际场景 ≥ 10 unit 是常态(M2.3 末态 castle_war = 16 unit),所以**字典序方案不可用**。
+
+**改为数值 key 协议**:
+
+每个 RtsActor 加 `var spawn_seq: int = 0` 字段(M7a 引入 motion 时一起加,赋值 = 当前 IdGenerator._counter)。RtsWorld.tick step 2 的排序:
+
+```gdscript
+# M7c.2 真实排序逻辑
+var motion_actors: Array = world.get_motion_bearing_actors()
+motion_actors.sort_custom(func(a, b):
+    var ka: String = a.get_kind()       # e.g. "Character" / "Worker" / "Archer"
+    var kb: String = b.get_kind()
+    if ka != kb:
+        return ka < kb                   # kind 字典序 (kind 名固定且短, 不会漂)
+    return a.spawn_seq < b.spawn_seq     # 同 kind 内按数值 spawn_seq 升序
+)
+for actor in motion_actors:
+    actor.motion.tick(delta, world, facade)
 ```
-1. RtsPlayerCommandQueue.flush()
-2. for actor in sorted_by_id(motion-bearing):
+
+⚠️ **真实 API 名 (R5 P2)**:
+- `RtsPlayerCommandQueue.apply_due(procedure, world, current_tick)` (不是 `.flush()`)
+- `GameWorld.event_collector.flush()` / `.record_current_frame_events()` (`EventProcessor` **没有** `flush`,事件落盘通过 `event_collector`)
+
+**RtsWorld.tick 7 步**(M8 加 push pass step 3,共 7 步):
+
+```
+1. RtsPlayerCommandQueue.apply_due(procedure, world, current_tick)    ← 真实 API
+2. for actor in sort_by_(kind, spawn_seq)(motion-bearing):
      actor.motion.tick(delta, world, facade)
-3. RtsActivity.tick(delta) — 走刚更新位置
-4. ObstructionManager.flush_dirty()
-5. HierarchicalPathfinder.update()
-6. EventProcessor.flush()
+3. for actor in sort_by_(kind, spawn_seq)(motion-bearing):              ← M8 加: push pass
+     actor.motion.push_pass(world)
+4. RtsActivity.tick(delta) — 走刚更新位置
+5. ObstructionManager.rasterize_if_dirty(grid, registry)               ← 不 clear_dirty(M3 R5 修订, 见 M3.md)
+6. RtsHierarchicalPathfinder.update(grid, dirty_snapshot)              ← 拿 step 5 的 dirty snapshot
+7. grid.clear_dirty() + GameWorld.event_collector.flush()              ← 末端统一清 dirty + 落事件
 ```
 
 **M7c.3 — RtsMotionComponent obstruction sync**
@@ -362,8 +392,9 @@ motion 在 abort 时 emit MoveFailed event(`actor.emit_event("motion_move_failed
 - 体验点 ✋4:demo F6 完整 1 局,attack/gather/build 全正常 + 整体寻路换装
 
 ### AC9 — Determinism §12.5 严格遵守 🔒
-- Tick 顺序按 actor.get_id() 字典序
+- Tick 顺序按 **`(kind: String, spawn_seq: int)` 数值复合 key** (R5 P1 #1) — **不**用 actor.get_id() 字典序
 - 同 tick 内 unit_A → unit_B 立即可见
+- 新 smoke `smoke_motion_tick_order_with_10plus_units` 验证 ≥ 10 unit (Character_2 vs Character_10) 排序正确(数值序而非字典序)
 
 ### AC10 — Perf ≤ 100% (M7 是大重构,允许放宽到 2×) 🔒
 - 若 ≥3× 慢则 stop runner 调优

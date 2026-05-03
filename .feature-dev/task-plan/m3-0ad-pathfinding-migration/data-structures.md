@@ -971,19 +971,35 @@ priority = (
 - 单调递增 int,从 1 开始 (0 = invalid)
 - 同 sim tick 内多个 add_*_shape 调用按调用顺序分配 tag — 调用顺序由 procedure / activity 系统决定,本身要 deterministic (这一层在 LGF EventProcessor 已保证)
 
-### 12.5 UnitMotion (M7)
+### 12.5 UnitMotion (M7) — R5 P1 #1 修订
 
-**Motion update 顺序** (deterministic 关键, codex R2 要求显式定义):
-- 一个 sim tick 内, 所有 motion-bearing actors 用 **`String.casecmp_to`** (字典序, deterministic) 排序后逐个 tick
-- 排序键 = `actor.get_id()` (这是 String, 由 IdGenerator 单调递增分配, fixed seed 下序列固定)
-- 同步实现下, unit_A.tick() 先于 unit_B.tick() 时, **unit_A 在自己 tick 内对 ObstructionManager 的修改 (move_shape / set_unit_moving_flag) 对 unit_B 立刻可见**
-- 这意味着 unit_B 的 short path 看到的 unit_A 位置是"unit_A 刚 step 完之后"的,而不是 tick 开始时
-- M7 实现时这一条必须写成 unit test (smoke 跑两个 unit 同 tick 内交错),否则跨平台 GDScript Dictionary 迭代顺序不同会立刻漂
+**Motion update 顺序** (deterministic 关键, codex R2 要求显式定义, R5 修订排序 key):
 
-**`actor_id` 排序的 deterministic 保证**:
-- IdGenerator 在 procedure 起始 reset (跟 RtsRng 一样),fixed seed 下 ID 序列固定
-- ID 是 `<world>:<kind>_<seq>` 格式 (如 `rts_world_0:Character_3`),seq 单调递增
-- 字典序排序对这种格式 deterministic (即使跨平台)
+⚠️ **R5 P1 #1 拍板**: 排序 key 改为 **`(kind: String, spawn_seq: int)` 数值复合 key**,**不再**用 `actor.get_id()` 字符串字典序。
+
+**为什么不能用 `actor.get_id()` 字典序**:
+- `IdGenerator.generate_id` 真实实现是 `"%s_%d" % [prefix, _counter]`(`addons/.../core/utils/id_generator.gd:6`)— **无 zero-pad**
+- `Character_10` 字典序 < `Character_2`(因为 `'1' < '2'`)
+- 本 Epic 实际场景 ≥ 10 unit 是常态(M2.3 castle_war = 16 unit;M7 体验点完整 demo ≥ 30 unit),只要同 kind spawn ≥ 10 个就漂
+
+**正确排序协议**:
+- 一个 sim tick 内,所有 motion-bearing actors 用 `(kind, spawn_seq)` 数值复合 key 排序后逐个 tick
+- `kind`: actor 的 String 种类名(`"Character"` / `"Worker"` / `"Archer"`),跨 kind 字典序(种类 ≤ 10 个,种类名固定不变,跨平台稳定)
+- `spawn_seq: int`: actor field,创建时从 `IdGenerator._counter` 取并冻结(每个 actor 一个 unique int)
+- 同步实现下,unit_A.tick() 先于 unit_B.tick() 时,**unit_A 在自己 tick 内对 ObstructionManager 的修改(move_shape / set_unit_moving_flag)对 unit_B 立刻可见**
+- 这意味着 unit_B 的 short path 看到的 unit_A 位置是 "unit_A 刚 step 完之后" 的,而不是 tick 开始时
+- M7 实现时必须写专项 smoke `smoke_motion_tick_order_with_10plus_units`(跑 ≥ 10 同 kind unit,对比 `Character_2` 跟 `Character_10` 的处理顺序是数值序而非字典序)
+
+**`(kind, spawn_seq)` 排序的 deterministic 保证**:
+- `IdGenerator._counter` 在 procedure 起始 reset(`reset_id_counter()`),fixed seed 下 spawn_seq 序列固定
+- spawn_seq 跨 kind 共享(全局单调递增),但**只在同 kind 内比较**(跨 kind 走 kind 字典序)
+- 整数比较跨平台稳定(GDScript int 是 64-bit signed)
+- ID 串 `"%s_%d"` 仍存在(供日志 / debug),只是不参与 sort
+
+**对 trace 排序 / replay contract 的影响 (R5 反馈)**:
+- trace CSV 行内 unit 顺序按 `(kind, spawn_seq)` 数值序写,跟 tick 顺序一致
+- baseline 重生成:M7 引入 spawn_seq 字段后,trace 行排序会从字典序变数值序 → **接受新 baseline**
+- M0-M6 期间还没 spawn_seq 字段时,trace 行顺序按现有 actor registry insertion 序(deterministic 仍保);M7 引入 spawn_seq 时一并改 trace writer 排序逻辑
 
 **Ticket 分配**:
 - 单调递增 int,从 1 开始 (0 = no ticket)
