@@ -1,6 +1,6 @@
 # Progress — RTS Pathfinding M3 Epic / M0 sub-feature
 
-**Status**: 🟡 active(M0.1 - M0.5 done,M0.6 下一步 — Frontend visualizer 选择圈 / ghost 渲染对齐)
+**Status**: 🟢 M0.1 - M0.7 全 done,所有 10 AC 通过(AC1-AC4 落地,AC5/AC6/AC7/AC8/AC10 验证 PASS),等用户 ✋1 体验点录屏反馈才 archive M0 + 启动 M1。
 
 **Active feature**: M0 — Footprint / Obstruction shape 拆分 + Bug 1 修复
 **完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md)
@@ -82,10 +82,38 @@ R1-R8 完整反馈记录见 `Handoff-2026-05-03-0ad-migration-planning.md` §11.
     - smoke_rts_auto_battle: ticks=347 attacks=74 melee=32 ranged=42 melee_max=24.00 deaths=6 detoured=4 — **完全 baseline-aligned 0 漂移**
     - smoke_castle_war_minimal PASS / smoke_economy_demo PASS / smoke_player_command_production PASS
     - **smoke_replay_bit_identical PASS** — same seed + commands → bit-identical event_timeline + commands_log(determinism 关键测试)
-- [ ] **M0.6** — Frontend 选择圈 + ghost 渲染对齐(sprite 锚点保持 `actor.position_2d` 不变 — F4 决策 A)
-  - **Evidence**: 待 — F6 demo 视觉验证 sprite 位置不变 + 选择圈用 footprint_shape AABB
-- [ ] **M0.7** — 新 smoke + Validation 全套 + commit
-  - **Evidence**: 待 — `smoke_obstruction_footprint_split.tscn` PASS(5 项断言)+ 14 项 + LGF 73 + replay 0 漂移 + ✋1 体验点录屏
+- [x] **M0.6** — Frontend 选择圈 + ghost 渲染对齐 ✅ **2026-05-03 done**
+  - **Evidence**: `frontend/visualizers/rts_building_visualizer.gd` 加 `_footprint_shape` 字段 + `bind()` 加 `p_footprint_shape: RtsFootprintShape` 参数(在 `p_footprint_size` 之后);`_draw()` 优先用 `_footprint_shape.get_world_aabb(Vector2.ZERO)` 算外接矩形,null 时 fallback 走旧 `_footprint_size × CELL_SIZE`(防御非 factory 路径)。`frontend/world_view.gd` `bld_vis.bind` 调点 同步加 `bld_actor.footprint_shape`。
+  - **F4-A 决策落地**: sprite 锚点 = position_2d 不变(_draw 在 local 空间, owner_pos 传 ZERO);默认 fallback (selection_footprint_size = max(w,h)*0.5 for CIRCLE) → AABB 跟旧 `_footprint_size × CELL_SIZE` byte-identical, 无视觉回归。
+  - **Regress**: smoke_frontend_main visualizers=10 alive_after_3.0s=10 PASS;`--import` exit=0 + RtsBuildingVisualizer / RtsWorldView 重新注册无 type error。
+- [x] **M0.7** — 新 smoke + Validation 全套 + commit ✅ **2026-05-03 done**
+  - **新 smoke**: `tests/battle/smoke_obstruction_footprint_split.{tscn,gd}` PASS,5 项断言 + AC8 客观验证全过:
+    - position_2d unchanged after mutate (sprite 锚点 F4-A 不动)
+    - obstruction.center == position_2d + (32, 32) = (192, 192) (mutate 模拟非默认 offset)
+    - get_footprint_cells 中心在 obstruction.center 所在 cell(6,6) 而非 position_2d 所在 cell(5,5)
+    - footprint.contains(原位置, 原位置) == true (玩家点 sprite 中心能选中)
+    - AC8 part 1: Set A (ghost preview cells) == Set B (placed cells, 4 cells [(5,5),(6,5),(5,6),(6,6)])
+    - AC8 part 2: (Set B ∩ Set C unit_path 10 cells) == ∅ (A* 绕开 obstruction cells, unit 走 row 6/7)
+  - **assert_crash 兜底**: `RtsBuildingActor.get_footprint_cells` 入口加 `Log.assert_crash(obstruction_shape.center != ZERO or stats.obstruction_offset == ZERO)`;抓 factory 注入后调方漏 set position_2d 但 stats 配了非默认 offset 的 bug(lazy sync 救不回的边界条件)。
+  - **Code reuse 收口** (simplify pass): 把 `RtsBuildingPlacement._compute_footprint_cells_from_shape` / `_compute_footprint_cells_core` (cross-file static helper, 被 actor + ghost preview + smoke 共用) 重命名为 public `compute_footprint_cells_from_shape` / `compute_footprint_cells_core`(去掉 `_` 前缀, 跟 GDScript 命名规范一致); smoke 的 `_cell_key` 删除改用 `HexCoord.to_key()`(与主仓 grid 反向索引格式一致), `_cells_contain` 改用 `HexCoord.equals()`,合并 `_cells_to_str` / `_cells_dict_to_str`(后者直接 `set_c.values()` 转 Array 调前者)。
+  - **Validation 全套 PASS** (M2.3 末态 baseline 0 漂移 + 新 smoke):
+    - `run_tests.tscn`: **73/73 PASS**
+    - `smoke_rts_auto_battle`: ticks=347 attacks=74 (melee=32 ranged=42) deaths=6 melee_max_dist=24.00 ranged_max_dist=125.75 detoured=4
+    - `smoke_castle_war_minimal`: ticks=193 left_win unit_to_building=4 archer_anti_air=1
+    - `smoke_player_command`: gold=20 wood=50 log=3
+    - `smoke_player_command_production`: ticks=600 left_spawned=7 max_eastward=254.74 gold=20
+    - `smoke_production`: ticks=600 left=7 right=7 max_left_eastward=118.51
+    - `smoke_crystal_tower_win`: ticks=2 left_win
+    - `smoke_resource_nodes`: ticks=200 alive=5 max_drift=0
+    - `smoke_harvest_loop`: ticks=600 alive=5 team_gold=140 team_wood=212 cycle=5
+    - `smoke_economy_demo`: ticks=900 melee_to_ct=31
+    - `smoke_ai_vs_player_full_match`: ai_barracks=1 ai_units_spawned=4 ai_unit_to_ct_attacks=9
+    - `smoke_replay_bit_identical`: seed=42 frames=9 events=20 deep-equal
+    - `smoke_determinism`: tick_diff=0
+    - `smoke_frontend_main`: visualizers=10 alive_after_3.0s=10
+    - `smoke_flying_units`: PASS (anti-air / ground / flying)
+    - **`smoke_obstruction_footprint_split` (NEW)**: set_b=4 set_c=10 (B ∩ C)=∅
+  - **commit**: 待 — submodule + 主仓 bump pointer (M0.7 末)
 
 ---
 
