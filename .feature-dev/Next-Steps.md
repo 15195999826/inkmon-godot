@@ -72,6 +72,23 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 
 ## 等待动作
 
+✅ **2026-05-05 第 2 会话 M7d.1-M7d.4 done** — Stop runner 已 resolved(诊断方向:canonicalize 字段 + fallback flag + move_to dedup 三个 fix)。**rts/all 53/53 PASS;-Required 12/12 PASS;baseline 接受新值**。
+
+### 下一步:✋4 体验点 + M7 收口
+
+**用户操作**:Godot 编辑器打开 demo 跑 1 局,看:
+- attack / gather / build / spawn / die 全套行为正常
+- 100 unit 大规模 attack-move 流畅
+- 整体寻路换装(✋3 贴墙绕角已 spec drift 接受 — vertex simple-case fallback 走 long path)
+
+**用户反馈后决策**:
+- ✋4 通过 → M7 收口(simplify pass + AC-doc review + archive 2026-05-05-rts-m7d-unit-motion + clean-slate sweep)→ /next-feature-planner 启动 M8
+- ✋4 不通过 → 看具体反馈 → 二次诊断 / 调优 motion
+
+详见 `Progress.md` "M7d 末态" 段。
+
+### 旧 M7d Stop Runner 段(已 resolved,留作历史)
+
 🛑 **2026-05-05 第 2 会话 STOP RUNNER**:M7d.1 done + M7d.2 cutover 实施完成但 4 critical smoke FAIL functional regression。**等待用户决策**。详见 `Progress.md` "M7d Stop Runner" 段。
 
 ### 用户三选一

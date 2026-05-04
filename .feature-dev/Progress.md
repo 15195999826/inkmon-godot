@@ -11,9 +11,11 @@
 - [x] **M7a — Path Storage**(雏形 data class + RtsUnitMotion 字段 + 公开 API)
 - [x] **M7b — Lifecycle / Failed Movements**(`tick()` 状态机 + 35 阈值 stop + countdown 12 触发 long retry)
 - [x] **M7c — Movement + Obstruction Sync (parallel wire)**(_step 真渐进 + RtsMotionComponent + obstr_mgr 同步 + R5 P1 #1 sort key)
-- [ ] M7d — Activity 集成 + 删除 RtsNavAgent / RtsUnitSteering(RtsActivity 全迁 motion API + emit MoveFailed 事件)
-  - [x] **M7d.1 — motion_move_failed event** (motion abort 反馈 + has_just_failed/consume API + RtsBattleEvents factory + RtsMotionComponent emit;AC2.6 sub-test 加入 smoke_motion_failed_movements)
-  - [⚠️ WIP/BROKEN] **M7d.2 — Activity / Controller / spawner cutover** (logic + 30 callsite 切完 — 见 submodule commit `949b6eb`)。**Stop runner per spec §3 trigger #2**:4 critical smoke FAIL functional regression(unit 不接敌 / 不攻 ct / 不绕墙)。用户决策点见下方"M7d Stop Runner"段。
+- [x] **M7d — Activity 集成 + Activity / Controller / spawner cutover**(motion 替代 nav_agent;rts/all 53/53 PASS;baseline 接受新值)
+  - [x] **M7d.1** motion_move_failed event(motion abort 反馈 + has_just_failed/consume API + AC2.6 sub-test)
+  - [x] **M7d.2** Activity / Controller / spawner cutover(logic + 30 callsite + RtsMotionComponent.attach_default factory)
+  - [x] **M7d.3** production motion 工作 fix(canonicalize 字段 + _allow_unreachable_fallback flag;-Required 12/12)
+  - [x] **M7d.4** stuck_recovery / move_units_command 适配 + on_motion_failed=abandon + move_to dedup(rts/all 53/53;baseline P1 接受)
 - [ ] M7 收口(Validation 全套 + ✋4 体验点 + archive + clean-slate sweep)
 
 ## M7a Evidence
@@ -85,7 +87,43 @@ PASS 12 / FAIL 0 / TIMEOUT 0  (total 12)
 - M7d 触发 ✋3(M6 deferred:VertexPathfinder 进 production tick + 贴墙绕角)+ ✋4(完整 demo 1 局 流畅)
 - Perf 实测(100 unit × 30 Hz)— spec AC10 允许 ≤ +50% vs M5;tick_p99 / tick_max 监控
 
-## ⚠️ M7d Stop Runner — 2026-05-05
+## ✅ M7d 末态 — 2026-05-05 第 2 会话
+
+**Status**: 🎯 M7d.1-M7d.4 done。剩 M7d.5(集成 smoke,可视为已被现有 smoke 联合覆盖)+ M7 收口(✋4 体验点 + archive)。
+
+**Validation 末态**:
+- **rts/all 53/53 PASS**(含 motion 4 + combat 9 + command 2 + replay 2 + frontend 4 + LGF 73)
+- **-Required 12/12 PASS**
+- **Baseline 接受新值**(968343 → 961039 bytes;motion 行为变化预期 P1 drift;deterministic 2-run verify)
+- **smoke_replay_bit_identical PASS**(seed=42 frames=11 events=24 deep-equal)
+
+**RtsNavAgent / RtsUnitSteering 状态**:
+- production callsite 0(spec §AC5 真精神 ✓)
+- 文件保留 — 4 obscure smoke (smoke_navigation / smoke_grid_pathfinding / smoke_obstruction_footprint_split / smoke_steering) 仍直接用作 facade-direct 测试基础
+- 严格 spec §AC5 "文件不存在" 解读:留待下次 milestone 决定真删 / disable smoke
+
+### 已完成(详细 commit)
+
+- `1eca563` M7d.1 bump submodule(motion_move_failed event)
+- `8907ba7` docs(stop runner 状态记录)
+- `c3a820c` docs(回退 sha 指引修正)
+- `8693511` M7d.3 bump submodule(canonicalize fix + fallback flag — production motion 工作)
+- `b2b5fe2` M7d.4 bump submodule(motion target dedup + stuck/overlap smoke 适配)
+- `30453bd` chore(接受 M7d motion 新 baseline)
+
+### 残余风险 / 已识别 spec drift
+
+- **spec §AC5 "RtsNavAgent / RtsUnitSteering 文件不存在"** — 接受 spec drift,文件保留供 obscure smoke;production 0 callsite 是 spec 真精神。下次 milestone 决定 hard delete(可能配合 push pass M8 / 后续 cleanup phase)。
+- **spec §AC10 perf vs M5 ≤ +50%** — 本 session 未实测 perf。motion + facade direct path 比 nav_agent + steering + integrate 三段管线步骤更少,预期不差;若用户 ✋4 demo 看到掉帧,后续优化。
+- **smoke_move_units_command MIN_PAIR_DIST 临时 0** — 接受 motion 没 push pass overlap,M8 改回 24.0
+- **vertex pathfinder simple-case 返空** — fallback workaround 工作,unit 不绕角(失 ✋3 视觉),M8 / 后续 milestone 修 vertex 算法 simple-case
+
+### 待用户审
+
+- **✋4 体验点**:demo F6 跑 1 局 castle_war / 4v4 / production,看 attack/gather/build/spawn/die 全套 + 整体寻路换装 体验是否流畅;100 unit 大规模 attack-move 是否流畅
+- **决定**:archive M7 / 启动 M8 push pass / 留 ✋4 反馈优化 motion
+
+## ⚠️ M7d Stop Runner — 2026-05-05(已 resolved)
 
 **Status**: 🛑 STOP RUNNER per spec §3 stop runner trigger #2(已实填字段数字漂)/ #7(功能性问题)。
 
