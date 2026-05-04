@@ -1,180 +1,130 @@
-# Progress — RTS Pathfinding M3 Epic / M5 done
+# Progress — RTS Pathfinding M3 Epic / M6 进行中
 
-**Status**: 🟢 M5 整 milestone done (M5.1-M5.4 algo+facade+wire + M5.5a navcell_grid 提升 + M5.6 smoke+✋2+validation)。**M5.5b-e RtsBattleGrid 完整删除** DEFERRED 到 EPIC 末 cleanup phase(用户决策:8-10h wallclock 纯 cleanup work,不影响 M6 启动)。M0+M1+M2+M3+M4+M5 archived 2026-05-04。
+**Status**: 🟡 M6 进行中。**M6a sub-phase done(2026-05-04)** — VertexPathfinder static-OBB only + RtsLineOfSight + RtsShortPathRequest + RtsPathfinderHeap(LongPath/Vertex 共享 heap)+ smoke_vertex_static_obb 8 sub-test + prototype scene。下一步 M6b(virtual goal + terrain edges + best-so-far)。
 
-**Active feature**: ⏸ 等待 M6 启动(milestone-chain 协议 — 用户审完 M5 archive 后授权 M6)
-**完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md)
-
----
-
-## 0. 已完成 milestones
-
-✅ M0 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md`](archive/2026-05-04-rts-m3-m0-footprint-split/Summary.md)
-✅ M1 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md`](archive/2026-05-04-rts-m3-m1-navcell-grid/Summary.md)
-✅ M2 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md`](archive/2026-05-04-rts-m3-m2-obstruction-manager/Summary.md)
-✅ M3 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m3-clearance/Summary.md`](archive/2026-05-04-rts-m3-m3-clearance/Summary.md)
-✅ M4 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m4-hierarchical/Summary.md`](archive/2026-05-04-rts-m3-m4-hierarchical/Summary.md)
-✅ M5 done + archived(2026-05-04)— [`archive/2026-05-04-rts-m3-m5-long-pathfinder/Summary.md`](archive/2026-05-04-rts-m3-m5-long-pathfinder/Summary.md)
-
-M5 末态 baseline(M6 出发点):RtsLongPathfinder 朴素 A* on NavcellGrid + RtsPathfinderFacade 顶层(canonicalize+A*) + canonicalize 切到 spec "总是 navcell 中心"(M4b reachable→no-op 临时方案被替代) + nav_agent / activity wire(玩家 click=canonicalize / actor 中心=direct + LongPath direct-path fallback) + ✋2 体验点 headless mock PASS + 新 baseline CSV 968343 bytes(M4 829520→+17% LongPath 路径变化 P1 接受)+ LGF 73/73 + replay seed=42 frames=11 events=24 deep-equal + 8 RTS smoke + 5 hierarchical smoke + 3 long_pathfinder smoke 全 PASS。**M5.5b-e RtsBattleGrid 完整删除** DEFERRED 到 EPIC 末 cleanup phase。
+**Active feature**: 🚧 M6 — VertexPathfinder
+**完整 spec**: [`task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md)
 
 ---
 
-## 1. M4 子任务 checklist
+## 0. 已完成 milestones / sub-phases
 
-完整定义见 [`M4-hierarchical.md §2`](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md#2-子任务)。
+✅ M0+M1+M2+M3+M4+M5 done + archived(2026-05-04)— 见 [`archive/`](archive/) 各 Summary.md
+✅ **M6a done(2026-05-04)** — VertexPathfinder static-OBB only(sub-phase,不 archive,等 M6 整 milestone 末)
 
-### M4a — Full Recompute (默认必做)
-
-- [x] **M4a.1** RtsRegionIdHelper packed int64 (24+24+16 bit) + boundary case 单元测试 — `logic/pathfinding/rts_region_id_helper.gd` + `tests/battle/smoke_region_id_helper.tscn` PASS
-- [x] **M4a.2** RtsHierarchicalChunk(96×96 navcells per chunk + regions / regions_id PackedInt32Array)— `logic/pathfinding/rts_hierarchical_chunk.gd`
-- [x] **M4a.3** RtsHierarchicalPathfinder.recompute(per-class 全图 chunks → flood-fill within chunk,字典序起点 §12.2)— `logic/pathfinding/rts_hierarchical_pathfinder.gd:88` recompute / `_build_chunk:122` / `_flood_fill_chunk:146`(cursor + PackedInt32Array O(N) BFS)
-- [x] **M4a.4** _build_edges + _add_vertical_edges / _add_horizontal_edges(跨 chunk edges,bsearch+insert 替代 append+sort)— `rts_hierarchical_pathfinder.gd:188 / 199 / 207 / 215 / 232 / 245`
-- [x] **M4a.5** _compute_global_regions(R5 P1 #3 修订:起点 = 全量 packed RegionID,cursor BFS)— `rts_hierarchical_pathfinder.gd:262` + 验 via `smoke_hierarchical_isolated_region.tscn` 4 isolated 4 unique GlobalID
-- [x] **M4a.6** Smoke `smoke_hierarchical_recompute`(AC2+AC8 6 sub-test PASS)+ `smoke_hierarchical_isolated_region`(R5 P1 #3 + AC1+AC8 3 sub-test PASS)
-- [x] **M4a.7** Wire — `world.hierarchical_pathfinder` 字段 + procedure.tick step 6.7 lazy recompute (在 step 6.6 rasterize 之后,production code M4a 不消费 → 0 baseline 漂移)
-
-### M4b — MakeGoalReachable canonicalization (默认必做)
-
-- [x] **M4b.1** get_region / get_global_region / is_goal_reachable_point + spiral ring scan(`rts_hierarchical_pathfinder.gd:331/351/362/432-482`)
-- [x] **M4b.2** make_goal_reachable_point canonicalize(M4b 阶段 reachable → no-op,不可达 → 跟 start 同 GlobalRegion 的离 goal 最近 navcell;`rts_hierarchical_pathfinder.gd:392-425`)
-  - **设计偏离 spec**:spec §M4b.2 "总是 mutate goal 到 navcell 中心" 被推迟到 M5 LongPathfinder 落地时再做 — M4b 阶段保 baseline 不动(reachable → no-op),M5 引入 LongPathfinder 时再切"总是 navcell 中心" + 接受 P1 baseline 漂(详见函数 docstring)
-- [~] **M4b.3** Wire 进 RtsMoveUnitsCommand — **DEFERRED 到 M5**(2026-05-04 用户确认)
-  - **问题**:spec §M4b.3 前提 "target = 玩家右键点的地图坐标" 与 AI attack-move "target = enemy actor 中心" 语义冲突。wire 进 `rts_move_units_command.gd` 后 ai_vs_player smoke unit-to-ct attacks 7 → 0(canonicalize 把 enemy actor 中心 — 落在 building footprint 内 — 拽到 ct 旁外缘 navcell,unit 走到那里停但 ct 在 attack range 外 → 永远打不到)
-  - **触发条件 M5 解锁**:M5 LongPathfinder 落地后,canonicalize 总是 mutate(M4b reachable → no-op 语义改成 "总是到 navcell 中心"),AI attack-move 走单独路径(直接传 enemy actor 中心,不过 canonicalize)
-  - **临时回避**:wire 已 revert,baseline 恢复 byte-identical
-- [x] **M4b.4** Smoke `smoke_hierarchical_unreachable`(6 sub-test:reachable / unreachable / goal-in-wall / start-in-wall / pure-query / split-by-wall)PASS — 纯 API 测试不依赖 wire
-
-### M4c — Dirty 增量更新 (M4-spec §1 R5 反馈:可选,perf 触发)
-
-- [x] **M4-perf-gate** done(2026-05-04):synthetic perf smoke `smoke_hierarchical_perf` 跑 realistic demo case(96² grid + 16 building × 5²)→ p99 = 28.0 ms ≤ 30 ms 阈值 PASS;synthetic 高规模 case(192²/384²/768² + 10% scattered)p99 = 119/450/1683 ms 超阈但仅 info 不阻塞 PASS(未来预警:demo 规模扩到 192²+ 需补 M4c)
-- [~] **M4c.1** update(grid, dirty)— **CANCEL**(M4-perf-gate 不触发,realistic demo 不卡)
-- [~] **M4c.2** procedure tick step 6.7 接 update — **CANCEL**(同上)
-- [~] **M4c.3** smoke_hierarchical_dirty_update — **CANCEL**(同上)
-
-### Validation 收口
-
-- [x] **M4-validation** done(2026-05-04):LGF 73/73 + replay seed=42 frames=11 events=20 deep-equal + baseline CSV byte-identical 829520 bytes + rts_auto_battle baseline-identical(ticks=264 attacks=65)+ castle_war / flying / determinism / clearance_inflate 全 PASS + 4 hierarchical smoke(region_id_helper + recompute + isolated_region + unreachable + perf)PASS
-- [~] **✋2 用户体验点** — **DEFERRED 到 M5**(依赖 M4b.3 wire 落地;M4 archive 不阻塞)
+submodule commit: `d4eda45 feat(rts): M6a VertexPathfinder static-OBB only`
 
 ---
 
-## 2. AC 验收(镜像自 [M4-hierarchical.md §3](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md#3-验收准则-m4-总))
+## 1. M6 子任务 checklist
 
-- [x] **AC1** RtsRegionId helper packed int64:pack/unpack 可逆 + 0 = invalid 与 (ci=0, cj=0, r=N) 区分 — `smoke_region_id_helper` 4 sub-test PASS
-- [x] **AC2** M4a recompute:单 chunk 全可通 → 1 region;一半 impassable → 2+ regions;跨 chunk edges 完整 — `smoke_hierarchical_recompute` 6 sub-test PASS
-- [x] **AC3** M4b is_goal_reachable / make_goal_reachable:**API 层实现 + smoke 验证 PASS**(`smoke_hierarchical_unreachable` 6 sub-test:reachable / unreachable / goal-in-wall / start-in-wall / pure-query / split-by-wall)。**M4b 阶段语义偏离 spec**:reachable → no-op(不动 goal),不可达 → 同 GlobalRegion 离 goal 最近 navcell;原 spec "总是 navcell 中心 canonicalize" 推迟到 M5 LongPathfinder 落地(详见函数 docstring)。**Wire 进 player command 推迟到 M5**(target 语义冲突,详见 §1 M4b.3 deferred)
-- [~] **AC4** M4c dirty 增量 — **CANCEL**(M4-perf-gate 不触发,realistic demo p99=28 ms ≤ 阈值)
-- [~] **AC5** ✋2 体验点 demo 玩家点不可达点不死循环 — **DEFERRED 到 M5**(依赖 M4b.3 wire,跟 wire 一起推 M5,不阻塞 M4 archive)
-- [x] **AC6** 4 smoke PASS — region_id_helper + recompute + isolated_region + unreachable + perf。Validation 全套:LGF 73/73 + replay seed=42 frames=11 events=20 deep-equal + baseline CSV byte-identical 829520 bytes + rts_auto / castle_war / flying / determinism / clearance_inflate 全 baseline-identical
-- [x] **AC7** Perf:realistic demo(96² + 16 building × 5²)median=24 ms / p99=**28 ms** / max=29 ms ≤ 30 ms 阈值 PASS;synthetic future-warning(192²/384²/768² + 10% scattered)p99=119/450/1683 ms 超阈仅 info(未来 demo 扩到 192²+ 需补 M4c)。**注意:28 ms 离 30 ms 阈值边缘小**,M5+ demo grid 扩大需复测
-- [x] **AC8** Determinism §12.2 严格遵守:chunk flood-fill 字典序 (`_build_chunk:128-130` lj outer / li inner) + Region ID 单调递增 (`:135` next_local_r += 1) + Edge bsearch+insert 升序 (`_insert_sorted_unique:245`) + GlobalRegion BFS 起点 = 全量 packed RID 升序 (`_compute_global_regions:271 all_rids.sort()`)— `smoke_hierarchical_recompute._test_determinism_two_runs` 跑两次 deep-equal + isolated_region order test PASS
+完整定义见 [`M6-vertex-pathfinder.md §2`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#2-子任务)。
+
+### M6a — Static OBB Prototype (done 2026-05-04)
+
+- [x] **M6a.1** Prototype scene `tests/prototype/proto_vertex_obb.{gd,tscn}` — 独立 explore scene,M6c 末删(R6 风险缓解)
+- [x] **M6a.2** RtsShortPathRequest data class — `logic/pathfinding/rts_short_path_request.gd`(start/clearance/range/goal/pass_mask/avoid_moving_units/control_group)
+- [x] **M6a.3** RtsVertexPathfinder static-OBB only — `logic/pathfinding/rts_vertex_pathfinder.gd`:`compute_short_path_immediate` → `_compute_search_bounds`(detail #1 toward goal shift)+ vertex 候选(start/goal/OBB corners by tag↑×corner_idx 0..3/bounds 4 角 detail #2)+ `_astar_lazy_visibility`(5 元组 deterministic key + RtsPathfinderHeap.insert / key_less)
+- [x] **M6a.4** RtsLineOfSight.segment_clear / check_line_movement — `logic/pathfinding/rts_line_of_sight.gd`:segment-vs-OBB(enclose-radius 早出 + axis-aligned fast-path + t-stepping 100 sample fallback)+ segment-vs-Unit(解析公式)+ Bresenham raycast on grid
+- [x] **M6a.5** smoke_vertex_static_obb — `tests/battle/smoke_vertex_static_obb.{gd,tscn}` 8 sub-test PASS:data class / segment_clear 几何 / direct line / OBB blocks / same-point 兜底 / 完全包围 / determinism / search bounds toward goal / vertex 候选顺序 deterministic
+- [x] **M6a-simplify** Phase-close gate 7a-7c done:抽 RtsPathfinderHeap(LongPath/Vertex 共享 heap insert+key_less)+ 删 narrate-code 注释 + smoke helper 消重(`_path_for_obb_specs` / `_assert_paths_equal`)+ OBB enclose-radius 预判(efficiency 1b,实际 demo 大半 OBB 调用走早出路径)+ axis-aligned fast-path
+
+### M6b — Virtual Goal + Terrain Edges + Best-So-Far(待启动)
+
+- [ ] **M6b.1** Virtual goal vertex(detail #3)— RtsPathGoal.nearest_point_on_goal CIRCLE/SQUARE 几何 + 在搜索框内找 goal 边界离 start 最近可达点
+- [ ] **M6b.2** Terrain edges(detail #4)— 沿 search box 内 grid 边界,passable / impassable 邻居对中点作 vertex
+- [ ] **M6b.3** Best-so-far fallback(detail #6)— A* 跑完没到 goal_idx → 返扩展过的 vertices 中离 goal 最近的路径
+- [ ] **M6b.4** smoke_vertex_virtual_goal — CIRCLE goal 边界点 + terrain 水陆交界 case
+- [ ] **M6b.5** segment-vs-OBB 精确化 — t-stepping 换 Liang-Barsky / SAT(M6b 末);保留 enclose-radius 早出
+
+### M6c — Dynamic Units + Group Filter + Facade Wire(待启动)
+
+- [ ] **M6c.1** Moving unit square proxy(detail #7)— 圆形 obstruction 近似 AABB 4 角作 vertex
+- [ ] **M6c.2** Group filter(detail #8)— 同 control_group obstruction 跳过
+- [ ] **M6c.3** avoid_moving_units 开关 — false 时 MOVING flag 单位不算障碍
+- [ ] **M6c.4** facade.compute_short_path_immediate wire — RtsPathfinderFacade 加 API,production 可调
+- [ ] **M6c.5** smoke_vertex_corner_walking + smoke_vertex_group_filter
+- [ ] **M6c.6** Prototype 退役 — 删 `tests/prototype/proto_vertex_obb.*` + 配套 prototype-only 简化代码(R6 风险:避免双实现漂移)
+
+---
+
+## 2. AC 验收(镜像自 [M6-vertex-pathfinder.md §3](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#3-验收准则-m6-总))
+
+### M6a 已通过 AC 子集
+
+- [x] **AC1.1** detail #1 search bounds toward goal shift — `_compute_search_bounds` lerp 中点 + min(toward/6, range/4) 偏移
+- [x] **AC1.2** detail #2 range boundary — bounds 4 角作 vertex(TL/TR/BL/BR 固定枚举)
+- [x] **AC1.5** detail #5 lazy visibility — `_astar_lazy_visibility` expand 时 `for nb_idx: segment_clear`
+- [x] **AC1.9** detail #9 tie-break — vertex 候选按 (obstr.tag, corner_index) 字典序;A* 5 元组 (f, h, vx_int, vy_int, seq) deterministic
+- [x] **AC11(部分)** Validation:LGF 73/73 + replay seed=42 deep-equal + 14 项 smoke 字段 byte-identical(M6a 不接 production → 0 baseline 漂移)
+- [x] **AC12** Determinism §12.3 严格遵守 — `_test_determinism_two_runs` + `_test_vertex_candidate_order_deterministic` 两次构造同 specs 路径 byte-identical PASS
+
+### M6b/M6c 范围 AC(待启动)
+
+- [ ] **AC1.3** detail #3 virtual goal(M6b)
+- [ ] **AC1.4** detail #4 terrain edges(M6b)
+- [ ] **AC1.6** detail #6 best-so-far(M6b)
+- [ ] **AC1.7** detail #7 moving unit square proxy(M6c)
+- [ ] **AC1.8** detail #8 group filter(M6c)
+- [ ] **AC10** ✋3 体验点 demo 单位贴墙绕角(M6c demo F6 + ✋3 用户验)
+- [ ] **AC11(完整)** baseline CSV short_path_size / short_path_wp_json 字段从占位变实填(M6c facade wire 后预期 baseline 漂)
+- [ ] **AC11(perf)** tick_p99 / tick_max ≤ +50% vs M5(M6c facade wire 后实测)
 
 ---
 
 ## 3. 残余风险
 
-完整列表见 [M4-hierarchical.md §6](task-plan/m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md#6-残余风险) + [risks-and-rollback.md §1.1 / §3](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md);M4 主要风险:
+完整列表见 [`M6-vertex-pathfinder.md §6`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#6-残余风险) + [`risks-and-rollback.md §3`](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md);M6a sub-phase 末已 clear 的:
 
-- **R1** M4c 增量 GlobalRegion 错算(分量合并/分裂)— invariant check + 100 cycle smoke
-- **R2** edges Dictionary 迭代序漂 — 所有 edges 操作按 packed RID 升序 sort
-- **R3** _build_chunk flood_fill 起点漂 — 严格 (lj, li) 字典序
-- **R4** make_goal_reachable canonicalize 后 LongPath 仍找不到 — M4b smoke 必须验证闭环
-- **R5** M4c update 触发频率(每 tick 都跑会贵)— rasterize_if_dirty 已确保只 dirty 时跑
+- ✅ R4 替代:vertex 候选生成顺序 deterministic — get_obstructions_in_range 按 tag 升序 + statics 维持升序 + obb.get_corners() 固定 (+u+v, +u-v, -u-v, -u+v)
+- ✅ R3 替代:`_segment_to_obb_dist` t-stepping 100 sample 在 enclose-radius 早出 + axis-aligned fast-path 加持下,perf 不再是 M6a 瓶颈;M6b 末仍按 spec 换 Liang-Barsky / SAT 精确版
 
-⚠️ **risks-and-rollback §3 stop runner 9 条触发条件 已读完**:
-1. replay seed=42 deep-equal FAIL
-2. 14 项 smoke 任一项已实填字段 byte diff
-3. LGF 73 单元测试任一 FAIL
-4. LGF submodule core/ 或 stdlib/ 内文件被改
-5. perf tick_p99 / tick_max 增长 ≥ 100%(2×)
-6. baseline CSV 已实填字段值变化但不在预期算法变化范围(M4 引入新字段从占位 -1 变实填属于预期 P1)
-7. ✋2 用户体验点不通过
-8. R5 P1 #2 dirty lifecycle invariant 违反(任一路径在 step 5-6 中间清 dirty)
-9. R5 P1 #1 actor sort 用字典序而非 (kind, spawn_seq) 数值复合 key (M7 引入 sort 时漂)
+M6b/M6c 引入新风险待启动时再 review。
 
----
+⚠️ Stop runner 9 条 [`risks-and-rollback §3`](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md#3-stop-runner-触发条件) M6a 全 clear:
 
-## 4. 下一步动作
-
-⏸ M4 milestone 整体收口 + archive done(2026-05-04)。下一步等用户审 M4 archive + 授权启 M5 LongPathfinder。详见 Next-Steps.md。
+1. ✅ replay seed=42 deep-equal PASS
+2. ✅ 14 项 smoke 已实填字段 byte-identical
+3. ✅ LGF 73/73 PASS
+4. ✅ LGF submodule core/ 或 stdlib/ 0 改动(全在 example/rts-auto-battle/)
+5. ✅ perf:M6a 不接 production → 不影响 tick_p99 / tick_max
+6. ✅ baseline CSV byte-identical(M6a 算法层独立,不消费 production)
+7. — 体验点 ✋3 在 M6c
+8. ✅ R5 P1 #2 dirty lifecycle invariant 不违反(M6a 不动 dirty 路径)
+9. ✅ R5 P1 #1 actor sort 不引入(M6a 不动 motion)
 
 ---
 
-## 5. Evidence(累积)
+## 4. 下一步
 
-### M4a sub-phase done(2026-05-04)
+按 spec §M6 sub-phase 顺序推进 M6b。Sub-phase 之间不需要 milestone-chain 等用户授权(同 milestone 内推进);M6 整体 done 后才走 archive + 等 ✋3 用户审 → M7。
 
-- **新代码**(submodule `addons/logic-game-framework/`):
-  - `example/rts-auto-battle/logic/pathfinding/rts_region_id_helper.gd`
-  - `example/rts-auto-battle/logic/pathfinding/rts_hierarchical_chunk.gd`
-  - `example/rts-auto-battle/logic/pathfinding/rts_hierarchical_pathfinder.gd`
-  - `example/rts-auto-battle/tests/battle/smoke_region_id_helper.{gd,tscn}`
-  - `example/rts-auto-battle/tests/battle/smoke_hierarchical_recompute.{gd,tscn}`
-  - `example/rts-auto-battle/tests/battle/smoke_hierarchical_isolated_region.{gd,tscn}`
+详见 Next-Steps.md。
+
+---
+
+## 5. Evidence
+
+### M6a sub-phase done(2026-05-04)
+
+- **新代码**(submodule `addons/logic-game-framework/`,commit `d4eda45`):
+  - `example/rts-auto-battle/logic/pathfinding/rts_short_path_request.gd`(84 行)
+  - `example/rts-auto-battle/logic/pathfinding/rts_line_of_sight.gd`(154 行;含 enclose-radius 早出 + axis-aligned fast-path)
+  - `example/rts-auto-battle/logic/pathfinding/rts_vertex_pathfinder.gd`(240 行)
+  - `example/rts-auto-battle/logic/pathfinding/rts_pathfinder_heap.gd`(44 行;LongPath/Vertex 共享)
+  - `example/rts-auto-battle/tests/battle/smoke_vertex_static_obb.{gd,tscn}`(294 行 .gd,8 sub-test)
+  - `example/rts-auto-battle/tests/prototype/proto_vertex_obb.{gd,tscn}`(81 行 .gd;M6c 末删)
 - **修改**(submodule):
-  - `example/rts-auto-battle/core/rts_world_gameplay_instance.gd`(+ `hierarchical_pathfinder` 字段)
-  - `example/rts-auto-battle/core/rts_auto_battle_procedure.gd`(`_init` 末尾 `world.hierarchical_pathfinder = RtsHierarchicalPathfinder.new()` + `tick_once` step 6.7 lazy recompute,守卫用 `is_recomputed()` derived state)
-- **Simplify pass 收尾**(commit 前 7a-7b 强制要求):
-  - flood_fill / global_regions BFS 用 cursor + PackedInt32Array 替代 Array.pop_front()(O(N²) → O(N))
-  - 4-邻居 hoist 成 file-level const(避免 BFS 内层每次 alloc)
-  - `_add_undirected_edge` 用 bsearch+insert 替代 append+sort
-  - `_add_edges_between(direction:String)` 拆 `_add_vertical_edges` / `_add_horizontal_edges` + `_add_pair_if_passable` helper(消除 stringly-typed)
-  - 删 `_hierarchical_initial_recompute_done` flag(改用 `is_recomputed()` derived state),省字段省 8 行 docstring
-- **Validation 全套 PASS**(simplify 后重跑):
-  - `/tmp/lgf.txt`:LGF 73/73 PASS
-  - `/tmp/s_rts.txt`:rts_auto_battle ticks=264 attacks=65 melee=33 ranged=32 melee_max=24.16 deaths=4 detoured=4(完全 baseline-identical)
-  - `/tmp/s_replay.txt`:replay seed=42 commands=2 frames=11 events=20 deep-equal
-  - `/tmp/s_baseline.txt` + `cmp` 验:baseline CSV byte-identical 829520 bytes
-  - `/tmp/castle.txt`、`/tmp/flying.txt`、`/tmp/det.txt`、`/tmp/clear.txt`:4 baseline-critical smoke 全 PASS
-  - 3 hierarchical smoke 全 PASS(`/tmp/s_rid.txt` + `/tmp/s_hier_r.txt` + `/tmp/s_hier_iso.txt`)
-- **Stop runner 检查**:9 条全 clear(无 replay 漂、无数字漂、无 LGF 回归、无 LGF submodule core/ stdlib 改动、无 perf 信息变化、无 baseline 已实填字段值变、体验点未到、dirty lifecycle invariant 未违反、无 actor sort 引入)
-
-### M4b sub-phase done(2026-05-04)
-
-- **新代码**(submodule):
-  - `example/rts-auto-battle/logic/pathfinding/rts_hierarchical_pathfinder.gd` 加 ~170 行 M4b 公开 API:
-    - `is_recomputed()` / `get_region(i,j,mask)` / `get_global_region(i,j,mask)` / `is_goal_reachable_point(start,goal,mask)` / `make_goal_reachable_point(start,goal,mask)` / `find_nearest_passable_navcell(start,mask)` + 内部 helper(`_find_nearest_in_global_region` / `_scan_ring_for_passable` / `_scan_ring_for_global`)
-  - `example/rts-auto-battle/tests/battle/smoke_hierarchical_unreachable.{gd,tscn}`(6 sub-test 覆盖 AC3.1-AC3.4 + 边界)
-- **设计偏离 spec(已写函数 docstring)**:M4b 阶段 `make_goal_reachable_point` reachable → no-op(不动 goal,保 baseline 路径不漂);原 spec §M4b.2 "总是 mutate 到 navcell 中心" 推迟到 M5 LongPathfinder 落地 — 因为 M5 之前 LongPathfinder 不存在,canonicalize 到 navcell 中心会让 target 偏 0-16 px → 改 baseline → 触发 stop runner 第 6 条
-- **M4b.3 wire DEFERRED 到 M5**(2026-05-04 用户确认):
-  - **冲突点**:spec §M4b.3 假设 wire 入口 = "玩家右键点目标" 的 click 坐标(地图 free space 的点);AI attack-move(`rts_ai_strategy.gd` 决策)的 target = enemy actor 中心(很可能落在 building footprint impassable 区)。wire 进 `rts_move_units_command.gd` 后:canonicalize 把 enemy actor 中心 → 拽到 ct 旁外缘 navcell → unit 走到那站住 → ct 在 attack range 外 → ai_vs_player smoke unit-to-ct attacks 7 → 0
-  - **触发 M5 才解锁**:M5 LongPathfinder 落地时改 canonicalize 语义 + AI attack-move 走单独路径(直接传 enemy actor 中心,不过 canonicalize)
-  - **临时回避**:wire 已 revert,baseline 恢复 byte-identical
-- **Validation 全套 PASS**(M4b sub-phase 收口):
-  - `/tmp/lgf.txt`:LGF 73/73 PASS
-  - `/tmp/s_replay.txt`:replay seed=42 commands=2 frames=11 events=20 deep-equal PASS
-  - `/tmp/s_rts.txt`:rts_auto_battle ticks=264 attacks=65 melee=33 ranged=32 melee_max=24.16 deaths=4 detoured=4(M3 末态完全 baseline-identical)
-  - `/tmp/s_clear.txt`:clearance_inflate AC1+AC2+AC3+AC8 PASS
-  - `/tmp/s_baseline.txt` + `cmp` 验:baseline CSV byte-identical 829520 bytes
-  - `/tmp/s_unreach.txt`:smoke_hierarchical_unreachable 6 sub-test PASS
-- **Stop runner 检查**:9 条全 clear(M4b 算法层不消费 production code → 0 baseline 漂移)
-
-### M4-perf-gate done(2026-05-04)
-
-- **新 smoke**(submodule):`example/rts-auto-battle/tests/battle/smoke_hierarchical_perf.{gd,tscn}` — synthetic perf benchmark + 阈值判
-- **决策模型**(2026-05-04 用户确认 "重测真实 demo 规模后再判"):
-  - **Realistic demo case = 阈值判**:96² grid(1 chunk)+ 16 building × 5² 模拟 castle_war 1v1 demo
-  - **Synthetic future-warning cases = info(不阻塞 PASS)**:192²/384²/768² + 10% scattered obstacle(BFS worst case)
-- **实测数据**(100 iterations / case,seed=0x4d345045):
-  - `realistic_demo` 96² 1 chunk:median=24.0 ms / **p99=28.0 ms** / max=29.0 ms ≤ 30 ms 阈值 ✓
-  - `synthetic_192` 4 chunks 10%:median=98 ms / p99=119 ms / max=122 ms ❌ (info)
-  - `synthetic_384` 16 chunks 10%:median=399 ms / p99=450 ms / max=475 ms ❌ (info)
-  - `synthetic_768` 64 chunks 10%:median=1597 ms / p99=1683 ms / max=1692 ms ❌ (info)
-- **决策**:
-  - M4c.1 / M4c.2 / M4c.3 → **CANCEL**(spec §1 阈值判:realistic ≤ 30 ms → 跳 M4c)
-  - **警告**:28 ms 离 30 ms 阈值仅 ~7% 余地。M5+ demo grid 扩大或 dynamic building 多触发 dirty 频繁需复测 + 补 M4c
-- **每 navcell 时间** ~3 us(GDScript BFS overhead 比 0 A.D. C++ 高 ~100×);scaling = O(N) 跟 navcell count 线性
-- **Validation 全套 PASS**(M4 milestone 收口):
-  - `/tmp/lgf.txt`:LGF 73/73 PASS
-  - `/tmp/s_replay.txt`:replay seed=42 commands=2 frames=11 events=20 deep-equal PASS
-  - `/tmp/s_rts.txt`:rts_auto_battle ticks=264 attacks=65 melee=33 ranged=32 melee_max=24.16 deaths=4 detoured=4(M3 末态 baseline-identical)
-  - `/tmp/s_castle.txt`:castle_war ticks=193 left_win unit_to_building_attacks=4 archer_anti_air=1 PASS
-  - `/tmp/s_flying.txt`:archer_tower(mask=AIR)anti-air OK + ground unit cannot hit AIR + flying through building OK
-  - `/tmp/s_det.txt`:determinism seed=12345 tick_diff=0(run1=run2 ticks=264 winner=left_win)
-  - `/tmp/s_clear.txt`:clearance_inflate AC1+AC2+AC3+AC8 PASS
-  - `/tmp/s_baseline.txt` + `cmp` 验:baseline CSV byte-identical 829520 bytes
-  - `/tmp/s_perf2.txt`:smoke_hierarchical_perf realistic p99=28 ms PASS
-  - 4 hierarchical smoke 全 PASS(region_id_helper / recompute / isolated_region / unreachable)
-- **Stop runner 检查**:9 条全 clear(M4-perf-gate 不引入 production code 改动 → 0 baseline 漂移)
+  - `example/rts-auto-battle/logic/pathfinding/rts_long_pathfinder.gd`(`_heap_insert` / `_key_less` 切到 `RtsPathfinderHeap.insert / key_less`,-29 行 net)
+  - `example/rts-auto-battle/tests/test_groups.json`(rts/pathfinding 加 `smoke_vertex_static_obb.tscn`)
+- **Phase-close gate 7a-7c**(commit 前强制要求):
+  - **simplify pass**:抽 RtsPathfinderHeap + 删 narrate-code 注释 + smoke helper 消重 + OBB enclose-radius 早出 + axis-aligned fast-path
+  - **re-validate**:smoke + -Required + rts/pathfinding 全 PASS
+  - **AC-doc consistency**:M6a 实现的 detail #1 / #2 / #5 / #9 跟 spec align;detail #3 #4 #6 #7 #8 显式 docstring 标 "M6a 简化(M6b/c 补全)"
+- **Validation 全套 PASS**:
+  - `-Required` 12/12:LGF 73 + rts/regression(rts_auto_battle / castle_war / ai_vs_player / ai_vs_ai_observe / pathfinding_baseline / long_pathfinder_determinism / hierarchical_unreachable / replay_bit_identical)+ hex/regression(skill_scenarios / frontend_main)+ core unit
+  - `rts/pathfinding` 13/13:navigation / grid_pathfinding / pathfinding_baseline / pathfinding_validation / clearance_inflate / region_id_helper / hierarchical_recompute / hierarchical_isolated_region / hierarchical_unreachable / long_pathfinder_basic+unreachable+determinism / **vertex_static_obb** 全 PASS
+  - smoke_vertex_static_obb 单跑 0.8s,vertex 算法层 8 sub-test (data class / segment_clear 几何 / direct line / OBB blocks / same-point / 完全包围 / determinism / search bounds toward goal / vertex 候选顺序 deterministic) 全 PASS
+  - prototype proto_vertex_obb 单跑 PASS,128×128 grid + 5 OBB(3 barracks + 2 tower)+ start (50,50) → goal (1500,1500) clearance=14 → path size=2 + 全 segment clear
+- **Stop runner 检查**:9 条全 clear(详见 §3)
 
