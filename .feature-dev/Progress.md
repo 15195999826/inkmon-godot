@@ -10,8 +10,8 @@
 
 - [x] **M7a — Path Storage**(雏形 data class + RtsUnitMotion 字段 + 公开 API)
 - [x] **M7b — Lifecycle / Failed Movements**(`tick()` 状态机 + 35 阈值 stop + countdown 12 触发 long retry)
-- [ ] M7c — Movement + Obstruction Sync(`_step()` per tick + move_shape + set_unit_moving_flag + RtsWorld.tick 6 步顺序 + 删除 RtsNavAgent / RtsUnitSteering)
-- [ ] M7d — Activity 集成(RtsActivity 全迁 motion API + emit MoveFailed 事件)
+- [x] **M7c — Movement + Obstruction Sync (parallel wire)**(_step 真渐进 + RtsMotionComponent + obstr_mgr 同步 + R5 P1 #1 sort key)
+- [ ] M7d — Activity 集成 + 删除 RtsNavAgent / RtsUnitSteering(RtsActivity 全迁 motion API + emit MoveFailed 事件)
 - [ ] M7 收口(Validation 全套 + ✋4 体验点 + archive + clean-slate sweep)
 
 ## M7a Evidence
@@ -41,7 +41,27 @@
 
 **M7b smoke**:`PASS - motion_failed_movements — AC2.1-2.5 all OK`
 
-## Validation 累计(M7a + M7b)
+## M7c Evidence
+
+**修改**(submodule):
+- `logic/rts_battle_actor.gd`(+spawn_seq + motion_component 字段)
+- `logic/movement/rts_unit_motion.gd`(_step 真渐进 + ARRIVAL_THRESHOLD=4 常量)
+- `core/rts_auto_battle_procedure.gd`(+step 4g 加 motion-bearing actor sort + tick + _compare_motion_actor static helper)
+- `tests/battle/smoke_motion_failed_movements.gd`(修 countdown test 让 _walk_speed 大 trigger pop)
+- `tests/test_groups.json`(motion group 加 2 新 smoke)
+
+**新增**:
+- `logic/movement/rts_motion_component.gd`(component 桥接 actor ↔ motion ↔ obstr_mgr)
+- `tests/battle/smoke_motion_obstruction_sync.{tscn,gd}`(AC3.1-3.4 actor / obstr_shape 同步 + clearance)
+- `tests/battle/smoke_motion_tick_order_with_10plus_units.{tscn,gd}`(AC9.1-9.4 R5 P1 #1 数值序)
+
+**M7c smoke**:
+- `PASS - motion_obstruction_sync — AC3.1-3.4 all OK`
+- `PASS - motion_tick_order_with_10plus_units — AC9.1-9.4 (R5 P1 #1) all OK`
+
+**Scope 拆分决策**(用户授权):**M7c.4 删除 RtsNavAgent / RtsUnitSteering 推到 M7d**(activity 切 motion API 之前不能删)。M7c 末态:NavAgent / Steering 仍在 production 路径,motion-bearing actor 集合实测空 → baseline / replay 0 漂(实测 -Required 12/12)。
+
+## Validation 累计(M7a + M7b + M7c)
 
 **Stop runner 核心 9 条**(每 sub-phase 末跑):
 ```
@@ -57,7 +77,8 @@ PASS 12 / FAIL 0 / TIMEOUT 0  (total 12)
 
 ## 残余风险 / 下一步关注
 
-- M7c 引入 `(kind, spawn_seq)` actor sort key(R5 P1 #1)+ `RtsWorld.tick` 6 步顺序调整 — **R5 P1 #1 stop runner 触发条件高风险**,需要 `smoke_motion_tick_order_with_10plus_units` 验 ≥ 10 unit 数值序而非字典序
-- M7c _step 真 position update + move_shape + set_unit_moving_flag — 接 obstr_mgr 后 RtsActor → motion → obstr_mgr 链路打通;此时 production callsite 仍不切,但 trace 字段开始变(M7d 才完整漂)
-- M7c 末删除 RtsNavAgent / RtsUnitSteering destructive,activity 全切走前不能删
-- M7d Activity 全迁 + baseline CSV `short_path_*` 字段从占位变实填(P1 接受新 baseline;真正"漂"在 M7d production wire 后)
+- M7d:RtsActivity 子类(MoveTo / Attack / Gather / Build / ReturnAndDrop / AttackMove / Idle)逐个切 motion API,`_create_unit` spawner 设 actor.motion_component;现有 RtsNavAgent 调用 sites ~49 个文件(5 logic / 16 smoke / frontend)需逐一替换或并行 dual-wire
+- M7d 末删除 RtsNavAgent + RtsUnitSteering(destructive)
+- M7d 接 production 后 baseline CSV 漂(short_path 字段从占位 -1 变实填 + 路径形状变化 — P1 接受新 baseline)
+- M7d 触发 ✋3(M6 deferred:VertexPathfinder 进 production tick + 贴墙绕角)+ ✋4(完整 demo 1 局 流畅)
+- Perf 实测(100 unit × 30 Hz)— spec AC10 允许 ≤ +50% vs M5;tick_p99 / tick_max 监控

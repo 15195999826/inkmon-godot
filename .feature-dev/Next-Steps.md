@@ -1,8 +1,8 @@
-# Next Steps — 2026-05-05 (M7 UnitMotion 进行中;M7a+M7b done,M7c 起步)
+# Next Steps — 2026-05-05 (M7 UnitMotion 进行中;M7a+M7b+M7c done,M7d 起步)
 
 ## 当前目标
 
-🚀 **M7 UnitMotion**(整合 long+short 双轨)— `/autonomous-feature-runner` 实施中。M7a Path Storage(2026-05-04)+ M7b Lifecycle / Failed Movements(2026-05-05) done,进入 M7c。
+🚀 **M7 UnitMotion**(整合 long+short 双轨)— `/autonomous-feature-runner` 实施中。M7a Path Storage(2026-05-04)+ M7b Lifecycle / Failed Movements(2026-05-05)+ M7c Movement / Obstruction Sync (parallel wire)(2026-05-05) done,进入 M7d(Activity 集成 + RtsNavAgent 删除)。
 
 > **M3 Epic 进度**: M0+M1+M2+M3+M4+M5+M6+M7a 已 done。剩余 M7b/c/d / M8 (Group Push) + EPIC 末 cleanup phase (M5.5b-e RtsBattleGrid 完整删除)。
 > Epic 总览 [`task-plan/m3-0ad-pathfinding-migration/README.md`](task-plan/m3-0ad-pathfinding-migration/README.md)。
@@ -25,25 +25,24 @@
 
 ## 下一步
 
-**M7c — Movement + Obstruction Sync**(spec §M7c)。
+**M7d — Activity 集成 + RtsNavAgent / RtsUnitSteering 删除**(spec §M7d)。
 
-M7c 把 motion 真接 actor / obstr_mgr 链路:_step 渐进 position update(walk_speed * delta)+ obstr_mgr.move_shape + set_unit_moving_flag + RtsMotionComponent 把 owner 跟 motion wire 起来 + RtsWorld.tick 6 步顺序按 §interfaces.md §10.3(R5 P1 #1 sort by (kind, spawn_seq) 数值复合 key,**不**用 actor.get_id() 字典序)+ M7c 末删除 RtsNavAgent / RtsUnitSteering(destructive)。
+M7d 把 production callsite 切 motion + 删旧 nav_agent / steering。RtsActivity 子类(MoveTo / Attack / Gather / Build / ReturnAndDrop / AttackMove / Idle)逐个切 motion.move_to_* API + motion abort 时 emit "motion_move_failed" event 给 activity,activity 接事件后 abort/retry。`_create_unit` spawner 设 actor.motion_component → procedure._world_tick step 4g 真激活 → motion-bearing actor 真 tick。
 
-**M7c 子任务**(spec §M7c.1-5):
-1. `_step` 真 position update + obstr_mgr.move_shape per tick + set_unit_moving_flag(0/1 切换)
-2. RtsWorld.tick 6 步顺序调整(spec §10.3):commands → motion.tick (sorted) → obstruction rasterize_if_dirty → hierarchical update → events flush
-3. RtsMotionComponent 数据类 + set_clearance 同步 obstr_mgr.unit_shape.clearance
-4. 删除 RtsNavAgent / RtsUnitSteering(activity 切到 motion API 之前别动 — 这部分 M7d 才能切)→ 实际 M7c 末态:这两类还在,M7d 才真删
-5. 新 smoke `smoke_motion_obstruction_sync`(actor.position_2d ≡ obstr_shape.center 跟随 + FLAG_MOVING 切换)+ `smoke_motion_tick_order_with_10plus_units`(AC9 R5 P1 #1 ≥ 10 unit 数值序而非字典序)
+**M7d 子任务**(spec §M7d.1-3 + 拆分自 M7c.4):
+1. RtsActivity 子类 API 迁移(`_nav_agent.set_target` → `motion.move_to_*`):attack / gather / build / move_to_order / idle / return_and_drop / attack_move
+2. motion abort emit `motion_move_failed` event(走 LGF event 系统给 actor → activity 监听);activity 接事件后 re-acquire target / abort / reset state
+3. _create_unit spawner 设 actor.motion_component(RtsCharacters / production_system._unit_spawner / 各 smoke 自己的 spawner)
+4. 删除 `logic/components/rts_nav_agent.gd` + `logic/movement/rts_unit_steering.gd`(确认 grep 0 callsite 后)+ 把 M2.3 stuck_detector / push_out 部分逻辑迁到 motion._handle_obstructed_move(spec §M7c.4 mention)
+5. 新 smoke `smoke_motion_activity_integration`(完整 demo 1 局 — 类似 smoke_rts_auto_battle 4v4 + buildings,验 attack/gather/build/spawn/die 全套行为正常)
 
-**风险点**(M7c 引入,stop runner 触发):
-- R5 P1 #1 actor sort 用错 key → replay seed=42 deep-equal 漂 — `smoke_motion_tick_order_with_10plus_units` 必须 ≥ 10 同 kind unit
-- R5 P1 #2 dirty lifecycle 违反 → hierarchical 漏 dirty → 单位绕路漂
+**风险点 / Stop runner 触发**:
+- 🔴 baseline CSV 漂 → 实填 short_path_size / short_path_wp_json / clearance / failed_movements / ticket_state(预期变化,P1 接受新 baseline 走流程)
+- 🔴 replay seed=42 deep-equal 可能漂(motion 引入的 ticket / activity 切顺序变化)— stop runner 后定位是字段实填还是真漂
+- 🟡 perf vs M5(spec AC10 允许 ≤ +50%;真 motion tick + obstr 同步比老 nav_agent 多步;若超 stop 调优)
+- 🟡 ✋3(贴墙绕角)+ ✋4(100 unit 流畅)— 用户跑 demo 反馈
 
-**M7d 真接 production 时触发 M6 deferred**:
-- VertexPathfinder 真正进 production tick → ✋3 demo 看到效果
-- baseline CSV short path 字段实填 → P1 接受新 baseline
-- perf 实测(100 unit × 30 Hz)
+**Scope 拆分提醒**:M7d 工作量大(~49 文件涉及 RtsNavAgent),建议 mini-phase 推进(activity 一个一个切 + smoke 验证 + 小 commit)。
 
 ## 验收准则
 
@@ -73,12 +72,12 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 
 ## 等待动作
 
-`/autonomous-feature-runner` 自动续 **M7c**(本轮已 commit M7a + M7b,继续推进)。
+`/autonomous-feature-runner` 自动续 **M7d**(本轮已 commit M7a + M7b + M7c,继续推进)。
 
-1. M7a/b evidence 见 Progress.md;M7c spec §M7c
-2. **R5 P1 #1 actor sort 漂**(数值 vs 字典序)风险点真正出现在 M7c 这一步;`smoke_motion_tick_order_with_10plus_units` 必须 ≥ 10 同 kind unit
-3. M7c 末态保留 RtsNavAgent / RtsUnitSteering(activity 切走前不能删);M7d 才真删除
-4. M7 全 AC 通过后:milestone-chain 协议 — 直接 archive M7 + 等用户审 ✋3 + ✋4 体验点(M7 一并兑现 M6 ✋3 + 自身 ✋4)→ 启动 M8
+1. M7a/b/c evidence 见 Progress.md;M7d spec §M7d + M7c.4 (NavAgent 删除)
+2. **R5 P1 #2 dirty lifecycle invariant** 风险点 — 接 obstruction rasterize/hierarchical 时验 step 7 末才 clear_dirty(M7c 没动这部分,M7d 也不应破)
+3. M7d 末态:NavAgent / Steering 删除 + activity 全 motion;baseline 接受新基线
+4. M7 全 AC 通过后:milestone-chain 协议 — 直接 archive M7 + 等用户审 ✋3 + ✋4 体验点 → 启动 M8
 
 ## 期间踩坑提醒(累积)
 
