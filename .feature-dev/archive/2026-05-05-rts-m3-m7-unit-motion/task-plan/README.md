@@ -1,10 +1,10 @@
-# Task Plan — Active: RTS Pathfinding M3 Epic(M7 done;等启 M8 / cleanup)
+# Task Plan — Active: RTS Pathfinding M3 Epic / M3 sub-feature
 
-> **Active feature**: ⏸ 无 active(M7 UnitMotion archive 完成 2026-05-05)。等用户授权下一 milestone(M3 Epic 剩 M8 group push + EPIC 末 cleanup phase)。
+> **Active feature**: M3 Epic — RTS 寻路全面迁移到 0 A.D. 方案;**当前 sub-feature = M3**(Clearance + 外扩)
 >
-> **Epic 状态**: M0-M7 done + archived(7/9 milestone)。剩 M8(group push pass)+ cleanup phase(M5.5b-e RtsBattleGrid 删除 + RtsNavAgent / RtsUnitSteering hard delete + vertex pathfinder simple-case 算法修)。
+> **Epic 状态**: codex Round 1-8 全部 APPROVE,Step A + Step B 文档体系完整,**M0 + M1 + M2 已 done + archived**(2026-05-04),M3 等 `/autonomous-feature-runner` 启动
 >
-> **下一步**:用户跑 `/next-feature-planner` 启动 M8 / cleanup,或先跑 demo F6 ✋4 体验点验证 motion 行为。
+> **M2 milestone (旧 RTS milestone)**: ✅ 已归档(M2.1 经济 + M2.2 AI + M2.3 UI/HUD 三 sub-feature 全 done;**注**:旧 RTS M2 跟本 M3 Epic / M2 ObstructionManager 是不同语境)
 
 ---
 
@@ -20,12 +20,12 @@
 | [`m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md`](m3-0ad-pathfinding-migration/milestones/M0-footprint-split.md) | M0 Footprint 拆分 + Bug 1 修复(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m0-footprint-split/) |
 | [`m3-0ad-pathfinding-migration/milestones/M1-navcell-grid.md`](m3-0ad-pathfinding-migration/milestones/M1-navcell-grid.md) | M1 Navcell Grid + Passability(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m1-navcell-grid/) |
 | [`m3-0ad-pathfinding-migration/milestones/M2-obstruction-manager.md`](m3-0ad-pathfinding-migration/milestones/M2-obstruction-manager.md) | M2 ObstructionManager + Spatial Index(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m2-obstruction-manager/) |
-| [`m3-0ad-pathfinding-migration/milestones/M3-clearance.md`](m3-0ad-pathfinding-migration/milestones/M3-clearance.md) | M3 Clearance + 外扩(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m3-clearance/) |
-| [`m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md`](m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md) | M4 Hierarchical(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m4-hierarchical/) |
-| [`m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md) | M5 LongPathfinder(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m5-long-pathfinder/) |
-| [`m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md) | M6 VertexPathfinder(已 archived;simple-case 算法修留 cleanup)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m6-vertex-pathfinder/) |
-| [`m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md) | **M7 UnitMotion(已 archived 2026-05-05)** | ✅ done → [archive](../archive/2026-05-05-rts-m3-m7-unit-motion/) |
-| [`m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](m3-0ad-pathfinding-migration/milestones/M8-group-push.md) | M8 push pass + group polish | 🔒 pending(等用户启动) |
+| [`m3-0ad-pathfinding-migration/milestones/M3-clearance.md`](m3-0ad-pathfinding-migration/milestones/M3-clearance.md) | **当前 sub-feature 完整 spec** | 🟡 active, 待 runner 启动 |
+| [`m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md`](m3-0ad-pathfinding-migration/milestones/M4-hierarchical.md) | M4 Hierarchical (拆 a/b/c) | 🔒 pending |
+| [`m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md) | M5 LongPathfinder | 🔒 pending |
+| [`m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md) | M6 VertexPathfinder (拆 a/b/c, 最难) | 🔒 pending |
+| [`m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md) | M7 UnitMotion (拆 a/b/c/d) | 🔒 pending |
+| [`m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](m3-0ad-pathfinding-migration/milestones/M8-group-push.md) | M8 push pass + group polish | 🔒 pending |
 | [`m3-0ad-pathfinding-migration/deferred/0ad-formation-design.md`](m3-0ad-pathfinding-migration/deferred/0ad-formation-design.md) | Formation handoff(下个 Epic)| 📋 deferred |
 | [`m2-roadmap.md`](m2-roadmap.md) | M2 milestone 路线图(已 done)| 稳定 spec, 历史参考 |
 
@@ -78,12 +78,7 @@
 
 | 文档 | 角色 |
 |---|---|
-| [`../archive/2026-05-05-rts-m3-m7-unit-motion/`](../archive/2026-05-05-rts-m3-m7-unit-motion/) | **M7 UnitMotion 双轨整合 cutover(M3 Epic 第八个 milestone)— 最近** |
-| [`../archive/2026-05-04-rts-m3-m6-vertex-pathfinder/`](../archive/2026-05-04-rts-m3-m6-vertex-pathfinder/) | M6 VertexPathfinder 算法层(M3 Epic 第七个 milestone)|
-| [`../archive/2026-05-04-rts-m3-m5-long-pathfinder/`](../archive/2026-05-04-rts-m3-m5-long-pathfinder/) | M5 LongPathfinder + Facade(M3 Epic 第六个 milestone)|
-| [`../archive/2026-05-04-rts-m3-m4-hierarchical/`](../archive/2026-05-04-rts-m3-m4-hierarchical/) | M4 HierarchicalPathfinder(M3 Epic 第五个 milestone)|
-| [`../archive/2026-05-04-rts-m3-m3-clearance/`](../archive/2026-05-04-rts-m3-m3-clearance/) | M3 Clearance + 外扩(M3 Epic 第四个 milestone)|
-| [`../archive/2026-05-04-rts-m3-m2-obstruction-manager/`](../archive/2026-05-04-rts-m3-m2-obstruction-manager/) | M2 ObstructionManager + Spatial Index(M3 Epic 第三个 milestone)|
+| [`../archive/2026-05-04-rts-m3-m2-obstruction-manager/`](../archive/2026-05-04-rts-m3-m2-obstruction-manager/) | **M2 ObstructionManager + Spatial Index(M3 Epic 第三个 milestone)** |
 | [`../archive/2026-05-04-rts-m3-m1-navcell-grid/`](../archive/2026-05-04-rts-m3-m1-navcell-grid/) | M1 Navcell Grid + Passability(M3 Epic 第二个 milestone)|
 | [`../archive/2026-05-04-rts-m3-m0-footprint-split/`](../archive/2026-05-04-rts-m3-m0-footprint-split/) | M0 Footprint 拆分 + Bug 1 修复(M3 Epic 第一个 milestone)|
 | [`../archive/2026-05-03-rts-m2-3-ui-hud/`](../archive/2026-05-03-rts-m2-3-ui-hud/) | M2.3 UI / HUD / Build Panel / 关卡完整归档(旧 RTS M2 milestone 收口章节)|

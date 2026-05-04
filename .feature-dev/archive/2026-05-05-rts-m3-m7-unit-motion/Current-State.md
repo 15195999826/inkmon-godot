@@ -1,28 +1,23 @@
-# Current State — 2026-05-05 baseline (M3 Epic / M0-M7 done; M8 + cleanup 待启动)
+# Current State — 2026-05-04 baseline (M3 Epic / M0-M6 done; M7 待启动)
 
-inkmon-godot baseline 事实快照. M8 / cleanup 启动用.
+inkmon-godot baseline 事实快照. M3 Epic / M7 启动用.
 
-> **Active feature**: ⏸ 无 active(M7 archive 完成 2026-05-05)。等用户授权 M8 / cleanup。
+> **Active feature**: ⏸ 等用户审 M6 archive + 授权启 M7(UnitMotion 整合 long+short 双轨).
 >
-> **M0-M7 sub-feature**: ✅ 全部完成 + archived
-> - M0 → `archive/2026-05-04-rts-m3-m0-footprint-split/`
-> - M1 → `archive/2026-05-04-rts-m3-m1-navcell-grid/`
-> - M2 → `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
-> - M3 → `archive/2026-05-04-rts-m3-m3-clearance/`
-> - M4 → `archive/2026-05-04-rts-m3-m4-hierarchical/`
-> - M5 → `archive/2026-05-04-rts-m3-m5-long-pathfinder/`
-> - M6 → `archive/2026-05-04-rts-m3-m6-vertex-pathfinder/`
-> - **M7 (UnitMotion 双轨整合) → `archive/2026-05-05-rts-m3-m7-unit-motion/`**
+> **M0 + M1 + M2 + M3 + M4 + M5 + M6 sub-feature**: ✅ 整体完成 + archived
+> - M0 (Footprint 拆分) → `archive/2026-05-04-rts-m3-m0-footprint-split/`
+> - M1 (Navcell Grid + Passability) → `archive/2026-05-04-rts-m3-m1-navcell-grid/`
+> - M2 (ObstructionManager + Spatial Index) → `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
+> - M3 (Clearance + 外扩 per-class buffer) → `archive/2026-05-04-rts-m3-m3-clearance/`
+> - M4 (HierarchicalPathfinder + canonicalize API) → `archive/2026-05-04-rts-m3-m4-hierarchical/`
+> - M5 (LongPathfinder 朴素 A* + Facade + wire) → `archive/2026-05-04-rts-m3-m5-long-pathfinder/`
+> - M6 (VertexPathfinder 算法层 + Liang-Barsky 精确化 + facade API) → `archive/2026-05-04-rts-m3-m6-vertex-pathfinder/`
 >
-> **M3 Epic 状态**: M0-M7 done(8/9 milestone)。**末态 baseline**:rts/all 53/53 PASS + LGF 73/73 + replay seed=42 frames=11 events=24 deep-equal + baseline CSV 968478 bytes(M7 接受新值;M7d.5 重新整合 RtsUnitSteering 后接近 M7c 末态)+ -Required 12/12 PASS。
+> **M3 Epic 状态**: M0-M6 done(7/9 milestone)+ 12 -Required smoke + 16 rts/pathfinding smoke(M5 13 + M6 4)+ LGF 73/73 + replay seed=42 frames=11 events=24 deep-equal + baseline CSV byte-identical 968343 bytes(同 M5 末态;M6 算法层不接 production → 0 漂移;M7 production wire 时预期 short path 字段从占位变实填 P1 接受).
 >
-> **M7 末态能力**:Motion 双轨整合(LongPath + canonicalize 字段 routing immediate vs direct + _allow_unreachable_fallback flag);Activity 全切 motion API + RtsMotionComponent.attach_default factory;controller.on_motion_failed default = abandon_command(motion 自治 abort = stuck abandon 等价语义);**RtsMotionComponent.tick 在 motion.handle_path_update 与 motion._step 之间插 RtsUnitSteering.apply** 让 motion-bearing actor 互推(separation + deflection 复用 P2.2 nav_agent 时代实现,M8 push pass 替代后再删)。
+> **M6 deferred → M7 wire 触发**:✋3 demo F6 visual 验证 / baseline `short_path_*` 字段实填 / perf 实测 — 全部依赖 M7 UnitMotion 整合双轨把 vertex pathfinder 接 production callsite。
 >
-> **剩余 deferred → cleanup phase**:
-> - **M5.5b-e RtsBattleGrid 完整删除**(8-10h wallclock 纯 cleanup,production code 已走 NavcellGrid 直接)
-> - **vertex pathfinder simple-case 算法修**(M7d fallback 兜底,需求 cleanup 修真算法,恢复 ✋3 贴墙绕角)
-> - **RtsNavAgent / RtsUnitSteering hard delete**(production 0 callsite ✓,文件保留供 4 obscure smoke;cleanup 时决定 disable smoke / 删文件)
-> - **smoke_move_units_command MIN_PAIR_DIST 改回 24.0**(M8 push pass 加入后)
+> **M5 deferred → EPIC 末 cleanup phase**:**M5.5b-e RtsBattleGrid 完整删除**(用户决策推迟 — 8-10h wallclock 纯 cleanup work,production code 已走 NavcellGrid 直接,删除 RtsBattleGrid 不影响 functionality)。
 >
 > phase 实现细节 / 决策来源 → 见对应 archive 的 `Summary.md` 或 `task-plan/m3-0ad-pathfinding-migration/`.
 
@@ -164,9 +159,7 @@ M3 Epic 新增约束:
 
 ## 决策来源 (历史 sub-feature → archive)
 
-- **M7 UnitMotion 双轨整合** (2026-05-05): `archive/2026-05-05-rts-m3-m7-unit-motion/` ← **最近**
-- **M6 VertexPathfinder** (2026-05-04): `archive/2026-05-04-rts-m3-m6-vertex-pathfinder/`
-- **M5 LongPathfinder + Facade** (2026-05-04): `archive/2026-05-04-rts-m3-m5-long-pathfinder/`
+- **M5 LongPathfinder + Facade** (2026-05-04): `archive/2026-05-04-rts-m3-m5-long-pathfinder/` ← **最近**
 - **M4 HierarchicalPathfinder** (2026-05-04): `archive/2026-05-04-rts-m3-m4-hierarchical/`
 - **M3 Clearance + 外扩** (2026-05-04): `archive/2026-05-04-rts-m3-m3-clearance/`
 - **M2 ObstructionManager** (2026-05-04): `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
