@@ -1,6 +1,6 @@
 ---
 name: lgf-new-logic-skill
-description: Use when implementing any logic-layer skill/ability/buff/passive from the inkmon taxonomy design (see `.lomo-team/reference/inkmon-skill-design.md` — 16 skills across Tier 1/2/3). Trigger on casual phrasings too — "做 Poison", "实现 Ward", "来个 Chain Lightning", "加个吸血被动", "做 Tier 2 技能 X", "照着 Shadow Step 再做一个类似的", "尸爆怎么写". Explicitly a companion to `enforcing-lgf` (coding rules) and `gdscript-coding` (syntax) — this skill owns the "where to put it, how to wire it into the submodule, and how to test it" dimension. Especially relevant when the user is doing logic work (often at the office) and deferring presentation/visual wiring for later.
+description: Use when implementing any skill/ability/buff/passive from the inkmon taxonomy design (see `.lomo-team/reference/inkmon-skill-design.md` — 16 skills across Tier 1/2/3). Trigger on casual phrasings too — "做 Poison", "实现 Ward", "来个 Chain Lightning", "加个吸血被动", "做 Tier 2 技能 X", "照着 Shadow Step 再做一个类似的", "尸爆怎么写". Explicitly a companion to `enforcing-lgf` (coding rules) and `gdscript-coding` (syntax) — this skill owns the "where to put it, how to wire it into the submodule, how to test it, and how to wire the presentation layer" dimension. Logic + presentation are implemented together; the previous "logic-only, leave TODO for visuals later" mode has been deprecated (see §7).
 ---
 
 # 新增 inkmon 逻辑层技能（taxonomy 16 技能实现指南）
@@ -323,23 +323,51 @@ godot --headless tests/smoke_skill_scenarios.tscn
 
 ---
 
-## 7. 只做逻辑、不做表演(工作模式边界)
+## 7. 表演层接入清单(逻辑做完同步接,**不留 TODO**)
 
-**背景**:用户常在办公不方便调表演时写逻辑,回家再对接前端。
+**重要**:本 skill 早期版本曾允许"先做逻辑、表演留 TODO 回家再补"。**已废弃**——每次落地一个技能都欠一笔技术债,后续往往遗忘或集中拖延,所以现在改为**逻辑 + 表演同步实现**。表演层接入面比想象小,checklist 大多 1-2 处而已。
 
-**可以做**:
-- AbilityConfig / Timeline / Action / Buff / Passive / PreEvent
-- 伤害/治疗/冷却数值
-- TargetSelector 形状
-- scenario 测试(所有断言)
-- headless 验证
+### 7.1 接入面候选清单(对照下表逐项判断)
 
-**留给"回家后"**(用占位字符串标记):
-- `StageCueAction` 的 `cue_id` — 写成 `"my_skill_cue"` + 注释 `# TODO 表演层待对接`
-- `ProjectileActor.CFG_VISUAL_TYPE` — 同上
-- `.tscn` / scene 层、inspector、`hex-atb-battle/frontend/` 相关
+| 接入点 | 文件 | 何时必接 |
+|---|---|---|
+| **BUFF_REGISTRY**(buff 头顶图标) | `frontend/visualizers/buff_visualizer.gd::BUFF_REGISTRY` | 任何**新 buff** ability(buff 实例若不在注册表里**永远不显示**;BuffVisualizer 走 config_id 白名单,不读 ability_tags) |
+| **StageCue cue_id**(施法瞬间 vfx) | `frontend/visualizers/stage_cue_visualizer.gd::MELEE_ATTACK_CUES / HEAL_CUES` | 主动技能用 `StageCueAction` 时;**优先复用现有 cue id**(`melee_slash` / `melee_heavy` / `melee_combo` / `magic_heal`),仅当现有视觉真不对路才加新 cue 类别 + 新 vfx 类型 |
+| **default_registry**(visualizer 注册) | `frontend/visualizers/default_registry.gd::create()` | **只有**新加 Visualizer 类时才动(普通技能 / buff 复用现有 10 个 visualizer 即够) |
+| **ProjectileActor.CFG_VISUAL_TYPE** | 各投射物注册位置 | 仅当技能用了**自定义投射物形态**(普通投射物已有标准类型,先复用) |
 
-**好处**:回家时 `grep -r "TODO 表演层"` 能一次性列出所有接入点。
+### 7.2 BUFF_REGISTRY 一行格式
+
+```gdscript
+HexBattleMyBuff.CONFIG_ID: {
+    "short": "X",                            # 1-2 字符头顶字母
+    "color": Color(0.9, 0.4, 0.2),           # 16 进制色彩区分别 buff
+    "primary_source": PrimarySource.STACKS,  # STACKS(读 ability.stacks) / SHIELD_REMAINING(护盾) / NONE(只 duration 不显数字)
+},
+```
+
+**short / color 选取约定**:
+- 取 ability 名首字母大写(P=Poison、E=Expose、S=Shield、U=Surge、T=Thorn …)
+- 已用色避开:Poison 紫(0.6,0.2,0.8) / Ward 蓝(0.3,0.5,1.0) / Surge 橙(0.95,0.6,0.2) / Thorn 暖橙(1.0,0.5,0.2) / Vitality 绿(0.3,0.9,0.4) / Vigor 金黄(0.95,0.85,0.3)
+- 同性质 buff(positive / negative)颜色区分够即可,不必一致
+
+### 7.3 复用 cue id 的判断
+
+**优先复用,不编新名**。Expose 的 setup 标记直接复用 `melee_slash`(挥手特效)就够,玩家看到"caster 朝 target 挥了一下"的视觉反馈即可。新 cue id 仅在以下场景才加:
+- 视觉语义与现有任何 cue 都不匹配(例如召唤 / 远程瞬移 / debuff glow 圈这种特殊视觉)
+- 你愿意同步在 `stage_cue_visualizer.gd` 加 `MyCue 类别 + 新 vfx 类型 + 颜色 / 时长配置`
+
+注意:**stage_cue_visualizer 对未登记的 cue id 静默跳过**(不报错),所以编新名不会让 scenario 红——但也不会有任何视觉,等于白接入。
+
+### 7.4 为什么改成同步接
+
+- 新 buff 不接 BUFF_REGISTRY → 玩家看不到 buff 在身上,demo 视觉错乱
+- `# TODO 表演层` 占位字符串容易被忽视,project-wide grep 时混在其它 TODO 里
+- 表演层接入面 checklist 化后接入成本极低(常见技能就 1-2 处,Expose 整体接入只加 1 行 BUFF_REGISTRY + 1 个 cue id 替换)
+
+### 7.5 既知例外
+
+scenario / headless 验证**不读表演层**(走 logic event collector),所以表演层接入只影响 demo / SkillPreview 等真实渲染场景。如果你的技能纯 pattern 验证(比如 vigor / vitality 这种属性 sandbox)且不打算在 demo 出现,可以**显式声明跳过** + 在 §10 收工自检里写明"表演层不接入,理由 X" — 但默认仍是同步接入。
 
 ---
 
@@ -363,6 +391,8 @@ godot --headless tests/smoke_skill_scenarios.tscn
 - [ ] Submodule 内已 commit + push
 - [ ] 外层已 bump submodule 指针
 - [ ] scenario 测试已写,`smoke_skill_scenarios` headless 跑过全绿
-- [ ] `StageCueAction` / Visual key 的占位字符串都带 `# TODO 表演层` 注释
+- [ ] **表演层接入清单**(§7.1)逐项已勾完: BUFF_REGISTRY / cue id / default_registry / projectile registry — 没接入的项需要显式写明跳过理由(§7.5)
+- [ ] **scenario 重跑 5 次稳定** — 涉及 PreEvent / damage 拦截类技能, 必须 5 次都 PASS(damage_action.gd 有 `randf() < 0.1` crit, 单次 PASS 不够; crit 时 Strike push 第二个 CRITICAL_BONUS damage event 也走 pre_damage 也吃放大, 写 events.size() 断言极易 flaky → 用伤害值阈值过滤主伤害 vs crit_bonus)
+- [ ] **多 buff 同字段确认**: 改 buff `ability_tags` / 加新 buff entry 时, grep 一遍 `frontend/visualizers/buff_visualizer.gd` 和 `skill-preview/hex_battle_skill_index.gd` / `skill_preview.gd::318` — 这两处过滤的"buff" tag 不能丢
 - [ ] `enforcing-lgf` 的 Validation Checklist 过了(共享无状态、PreEvent Intent、Resolver、Actor 生命周期)
 - [ ] (若值得)新 session pattern 传递验证通过
