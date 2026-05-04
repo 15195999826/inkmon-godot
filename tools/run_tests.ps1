@@ -180,7 +180,9 @@ function Start-Scene($scene) {
     $batBody = @"
 @echo off
 "$GodotExe" --headless --path . "$relScene" > "$logFile" 2>&1
-exit /b %ERRORLEVEL%
+set GD_EC=%ERRORLEVEL%
+(echo __GODOT_EXIT_CODE=%GD_EC%)>> "$logFile"
+exit /b %GD_EC%
 "@
     Set-Content -Path $batFile -Value $batBody -Encoding ASCII
 
@@ -199,9 +201,13 @@ exit /b %ERRORLEVEL%
 }
 
 function Finish-Scene($r) {
+    $r.Process.WaitForExit()
     $elapsed = ((Get-Date) - $r.Started).TotalSeconds
-    $exitCode = $r.Process.ExitCode
     $log = if (Test-Path $r.LogFile) { Get-Content $r.LogFile -Raw -ErrorAction SilentlyContinue } else { "" }
+    # Pull exit code from the log marker emitted by the .bat wrapper.
+    # Start-Process -PassThru .bat in PS 7+ on Windows can leave Process.ExitCode null
+    # even after WaitForExit, so we don't trust the Process object for this.
+    $exitCode = if ($log -match "__GODOT_EXIT_CODE=(\d+)") { [int]$matches[1] } else { -1 }
 
     $status = "PASS"
     $reason = ""

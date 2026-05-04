@@ -1,11 +1,12 @@
-# Next Steps — 2026-05-04 (M6 done + archived;等用户授权 M7 启动)
+# Next Steps — 2026-05-04 (M7 UnitMotion 进行中;M7a done,M7b 起步)
 
 ## 当前目标
 
-⏸ **等用户审 M6 archive + 授权启动 M7**(milestone-chain 协议:每 milestone 末等审阅再起下一个)。
+🚀 **M7 UnitMotion**(整合 long+short 双轨)— `/autonomous-feature-runner` 实施中。M7a Path Storage done(2026-05-04 同日),进入 M7b。
 
-> **M3 Epic 进度**: M0+M1+M2+M3+M4+M5+M6 已 archived(2026-05-04),7/9 milestone done。剩余 M7 (UnitMotion 整合双轨) / M8 (Group Push) + EPIC 末 cleanup phase (M5.5b-e RtsBattleGrid 完整删除)。
+> **M3 Epic 进度**: M0+M1+M2+M3+M4+M5+M6+M7a 已 done。剩余 M7b/c/d / M8 (Group Push) + EPIC 末 cleanup phase (M5.5b-e RtsBattleGrid 完整删除)。
 > Epic 总览 [`task-plan/m3-0ad-pathfinding-migration/README.md`](task-plan/m3-0ad-pathfinding-migration/README.md)。
+> M7 spec [`task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md)。
 
 **M6 末态 baseline**(M7 出发点):
 - VertexPathfinder 算法层完整(detail #1-#9 全实现)+ Liang-Barsky segment-vs-OBB 精确化 + axis-aligned fast-path + enclose-radius 早出
@@ -24,11 +25,17 @@
 
 ## 下一步
 
-**M7 — UnitMotion(整合 long+short 双轨)**(完整 spec [`task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md))。
+**M7b — Lifecycle / Failed Movements**(spec §M7b)。
 
-M7 重写 unit motion 状态机替代 RtsNavAgent + RtsUnitSteering,把 LongPath(全图)+ ShortPath(VertexPath)双轨整合到统一 motion update tick;✋4 体验点 = 流畅 attack-move + 单位 chain motion 不卡。
+M7b 在 RtsUnitMotion 上实现 `tick(delta, world, facade)` 状态机 + `_failed_movements` 累计(MAX_FAILED_MOVEMENTS=35 abort 触发)+ `_follow_known_imperfect_path_countdown`(12 ticks 后 long path retry)。**仍不接 production callsite**(activity / nav_agent 还走旧路径),只验状态机本身。
 
-**M7 触发 M6 deferred 项**:
+**M7b 子任务**:
+1. `tick()` 状态机:`_path_update_needed` → `_request_long_path` → 从 long_path pop 一个 waypoint 触发 short_path req → `_step()` 雏形(M7c 完整)
+2. `_request_long_path(facade)` 调 `facade.compute_path_immediate(start, goal, mask)`,空 path → `_failed_movements += 1`
+3. `m_FollowKnownImperfectPathCountdown`:short_path 走完后倒数 N tick 触发 long_path retry
+4. 新 smoke `smoke_motion_failed_movements`:goal 完全围死 → 35 tick 内 _failed_movements 累到 35 → motion stop()
+
+**M7a 触发 M6 deferred 项**(M7d 真接 production 时兑现):
 - VertexPathfinder 真正进 production tick → ✋3 demo 看到效果
 - baseline CSV short path 字段实填 → P1 接受新 baseline
 - perf 实测(100 unit × 30 Hz)
@@ -61,13 +68,12 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 
 ## 等待动作
 
-由 `/autonomous-feature-runner` 接 **M7** 起步(用户授权后)。runner 进入后应:
+`/autonomous-feature-runner` 自动续 **M7b**(本轮已 commit M7a + tooling fix,继续推进)。
 
-1. 先读 [`task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md)
-2. **必读** [`task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md`](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md) **§3 stop runner 9 条**(M7 是 R5 P1 #1 actor sort 漂 / R5 P1 #2 dirty lifecycle 高风险点)
-3. **M6 末态 baseline 数据**:见 Current-State.md "测试基线" 表 + `archive/2026-05-04-rts-m3-m6-vertex-pathfinder/Summary.md`
-4. 按 M7a → M7b → M7c → M7d 顺序推进(spec §M7,sub-phase 独立 rollback 点);每个子任务 done 时 update Progress.md
-5. M7 全 AC 通过后:milestone-chain 协议 — 直接 archive M7 + 等用户审 ✋3 + ✋4 体验点(M7 一并兑现 M6 ✋3 + 自身 ✋4)→ 启动 M8
+1. M7a done evidence 见 Progress.md
+2. M7b spec §M7b(`tick()` 状态机 + `_failed_movements` + countdown)
+3. **R5 P1 #1 actor sort 漂**(数值 vs 字典序)风险点真正出现在 M7c(引入 `(kind, spawn_seq)` 排序);M7b 只动单个 motion 的 tick 状态机,不动 RtsWorld.tick 顺序
+4. M7 全 AC 通过后:milestone-chain 协议 — 直接 archive M7 + 等用户审 ✋3 + ✋4 体验点(M7 一并兑现 M6 ✋3 + 自身 ✋4)→ 启动 M8
 
 ## 期间踩坑提醒(累积)
 
