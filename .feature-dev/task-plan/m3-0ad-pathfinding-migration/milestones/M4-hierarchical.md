@@ -344,11 +344,13 @@ func _navcell_in_goal(goal, target_global, pass_mask) -> Vector2i:
     return Vector2i(-1, -1)
 ```
 
-**M4b.2** — `make_goal_reachable` (canonicalize)
+**M4b.2** — `make_goal_reachable` (canonicalize) — **实际实现 = `make_goal_reachable_point` 偏离 spec(详见函数 docstring)**
 
 按 [interfaces §1.3](../interfaces.md#13-make_goal_reachable-语义-codex-r1-p1-修正):
 - true: goal 区域内有可达 → 替换 goal 为该区域**离 start 最近**的 navcell POINT
 - false: goal 区域无可达 → 全图最近可达 POINT
+
+⚠️ **M4b 阶段实际实现偏离**(2026-05-04):`make_goal_reachable_point` reachable → **no-op**(不动 goal,保 baseline 路径不漂);不可达 → 跟 start 同 GlobalRegion 的离 goal 最近 navcell 中心。原 spec "总是 navcell 中心 mutate" 推迟到 M5 LongPathfinder 落地 + 接受 P1 baseline 漂(M4b 阶段 LongPathfinder 不存在,canonicalize 到 navcell 中心会让 target 偏 0-16 px → 改 baseline → 触发 stop runner 第 6 条)。
 
 ```gdscript
 func make_goal_reachable(start_i: int, start_j: int, goal: RtsPathGoal, pass_mask: int) -> bool:
@@ -383,12 +385,16 @@ func make_goal_reachable(start_i: int, start_j: int, goal: RtsPathGoal, pass_mas
     return false
 ```
 
-**M4b.3** — Wire 进 placement / move command
+**M4b.3** — Wire 进 placement / move command — **DEFERRED 到 M5(2026-05-04)**
 
-修改 `rts_player_command_move.gd` (假设存在 / 否则在 RtsActivity 入口):
-- 玩家右键点目标 → 创建 PathGoal POINT
-- 启动寻路前调 `facade.make_goal_reachable(start, goal, default_mask)`
-- canonicalized goal 给 LongPathfinder(M5 之前 LongPathfinder 仍是旧实现,但 goal 是 POINT 走旧 path 算法仍 OK)
+⚠️ **冲突点**:spec 假设 wire 入口 = "玩家右键点目标" 的 click 坐标(地图 free space 的点);AI attack-move(`rts_ai_strategy.gd` 决策)的 target = enemy actor 中心 — 很可能落在 building footprint impassable 区。wire 进 `rts_move_units_command.gd` 后:canonicalize 把 enemy actor 中心 → 拽到 ct 旁外缘 navcell → unit 走到那站住 → ct 在 attack range 外 → ai_vs_player smoke unit-to-ct attacks 7 → 0(unit 永远打不到 ct)。
+
+⚠️ **M5 解锁条件**:M5 LongPathfinder 落地时:
+1. canonicalize 语义改成"总是 mutate 到 navcell 中心"(M4b 阶段 reachable → no-op 临时方案被 M5 替代)
+2. AI attack-move 走单独路径(直接传 enemy actor 中心,不过 canonicalize)— 跟玩家 click move 区分入口
+3. 重新 wire 时验 `smoke_ai_vs_player_full_match` unit-to-ct attacks ≥ baseline 阈值
+
+**临时回避**(M4b 阶段):wire revert,baseline 保 byte-identical;canonicalize 仅 smoke 内部测试调用,不进 production code。
 
 **M4b.4** — Smoke
 
@@ -531,9 +537,11 @@ func tick(delta: float) -> void:
 
 ## 5. 子任务进度
 
-- [ ] M4a — Full Recompute (1 周)
-- [ ] M4b — MakeGoalReachable (1 周)
-- [ ] M4c — Dirty 增量 (1 周)
+- [x] M4a — Full Recompute (2026-05-04)
+- [x] M4b — MakeGoalReachable (2026-05-04, M4b.3 wire DEFERRED 到 M5)
+- [ ] M4-perf-gate — pending(决定 M4c 是否启动)
+- [ ] M4c — Dirty 增量(perf-gate 触发才启动)
+- [ ] ✋2 体验点 — DEFERRED 到 M5(依赖 M4b.3 wire 落地)
 
 ---
 
