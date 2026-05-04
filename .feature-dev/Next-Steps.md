@@ -1,33 +1,52 @@
-# Next Steps — 2026-05-04 (M6a done;M6b 待启动)
+# Next Steps — 2026-05-04 (M6a + M6b done;M6c 待启动)
 
 ## 当前目标
 
-🚧 **M6 milestone 进行中** — M6a (static-OBB only) **done 2026-05-04**(submodule commit `d4eda45`),下一步推 **M6b** virtual goal + terrain edges + best-so-far。
+🚧 **M6 milestone 进行中** — M6a + M6b **done 2026-05-04**(submodule commits `d4eda45` + `c458bee`),下一步推 **M6c** dynamic units + group filter + facade wire + prototype 退役 + ✋3 体验点。M6c 是 M6 milestone 末端,完成后 archive + 等 ✋3 用户审 → M7。
 
-> **M3 Epic 进度**: M0+M1+M2+M3+M4+M5 archived + M6a done(sub-phase),6.33/9 milestone。剩余 M6b/M6c → M7 (UnitMotion) / M8 (Group Push) + EPIC 末 cleanup phase (M5.5b-e RtsBattleGrid 完整删除)。
+> **M3 Epic 进度**: M0+M1+M2+M3+M4+M5 archived + M6a + M6b done(sub-phase),6.66/9 milestone。剩余 M6c → M7 (UnitMotion) / M8 (Group Push) + EPIC 末 cleanup phase。
 > Epic 总览 [`task-plan/m3-0ad-pathfinding-migration/README.md`](task-plan/m3-0ad-pathfinding-migration/README.md)。
 
-**M6a 末态(M6b 出发点)**:
-- RtsShortPathRequest / RtsLineOfSight / RtsVertexPathfinder / RtsPathfinderHeap(LongPath/Vertex 共享 heap insert+key_less)4 个新 class 落地
-- VertexPathfinder static-OBB only:search bounds toward goal shift(detail #1)+ range boundary 4 角(detail #2)+ lazy visibility A*(detail #5)+ tie-break (obstr.tag, corner_index) deterministic(detail #9)
-- LineOfSight.segment_clear:enclose-radius 早出 + axis-aligned fast-path + t-stepping 100 sample fallback
-- smoke_vertex_static_obb 8 sub-test PASS(进 rts/pathfinding manifest);proto_vertex_obb headless PASS(M6c 末删,R6 缓解)
-- LongPath._heap_insert / _key_less 抽出 RtsPathfinderHeap,LongPath baseline-identical
-- M6a 不接 facade / production:0 baseline 漂移 + tick_p99 / tick_max 不变;M6c.4 才 wire facade.compute_short_path_immediate
-- Validation:-Required 12/12 + rts/pathfinding 13/13 PASS;LGF 73 + replay seed=42 deep-equal + baseline CSV byte-identical;9 条 stop runner 全 clear
+**M6b 末态(M6c 出发点)**:
+- vertex pathfinder 算法层 7 details 全到位(M6c 加 #7 #8 dynamic units / group filter):
+  - #1 search bounds toward goal shift / #2 range boundary / #3 virtual goal CIRCLE/SQUARE/INVERTED 几何 / #4 terrain edges / #5 lazy visibility / #6 best-so-far fallback / #9 tie-break deterministic
+- segment-vs-OBB 精确化:Liang-Barsky 精确测相交 + 不相交时 endpoint/corner-to-segment 取 min;精度 ≤ 1 IEEE ulp(替代 t-stepping 100 sample);保留 enclose-radius 早出 + axis-aligned fast-path
+- M6b smoke_vertex_virtual_goal 7 sub-test PASS;M6a smoke_vertex_static_obb 8 sub-test 仍 PASS(best-so-far + Liang-Barsky 不破坏 M6a 行为)
+- M6a/b 仍不接 facade / production:0 baseline 漂移 + tick_p99 / tick_max 不变;M6c.4 facade.compute_short_path_immediate wire 后预期 baseline 漂(short_path_size / short_path_wp_json 字段从占位变实填)
+- Validation:-Required 12/12 + rts/pathfinding 14/14 PASS;LGF 73 + replay seed=42 deep-equal + baseline CSV byte-identical;9 条 stop runner 全 clear
 
 ## 下一步
 
-**M6b — Virtual Goal + Terrain Edges + Best-So-Far**(完整 spec [`M6-vertex-pathfinder.md §M6b`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#m6b--virtual-goal--terrain-edges--best-so-far-15-周))。
+**M6c — Dynamic Units + Group Filter + Facade Wire + Prototype 退役**(完整 spec [`M6-vertex-pathfinder.md §M6c`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#m6c--dynamic-units--group-filter--prototype-退役-15-周))。
 
-M6b sub-phase 子任务(spec §M6b.1-5):
-1. **Virtual goal vertex(detail #3)** — RtsPathGoal.nearest_point_on_goal 扩 CIRCLE/SQUARE 几何;在 search bounds 内找 goal 边界离 start 最近可达点作 vertex,替代 M6a 的 goal.center 兜底
-2. **Terrain edges(detail #4)** — 沿 search box 内 grid 边界扫,passable / impassable 邻居对中点作 vertex;水陆交界 / 不可走地形边
-3. **Best-so-far fallback(detail #6)** — A* 跑完没到 goal_idx 时,返回扩展过的 vertices 中**离 goal 最近**那个的路径(让 unit 至少朝 goal 方向走一段)
-4. **smoke_vertex_virtual_goal** — CIRCLE goal 边界点 + terrain 水陆交界
-5. **segment-vs-OBB 精确化** — t-stepping 换 Liang-Barsky / SAT(spec M6b 末);保留 enclose-radius 早出
+M6c sub-phase 子任务(spec §M6c.1-6):
+1. **Moving unit square proxy(detail #7)** — 圆形 obstruction 在 visibility graph 中近似 AABB 4 角作 vertex(0 A.D. 简化,避免几何 bug);visibility 测试时 unit 仍当圆处理(`_segment_to_point_dist` 模式)
+2. **Group filter(detail #8)** — 同 control_group obstruction 跳过(队伍内不互相挡);RtsShortPathRequest.control_group 字段已落地(M6a),M6c 启用 filter 逻辑
+3. **avoid_moving_units 开关** — false 时 MOVING flag 单位不算障碍(让"挤过"队伍)
+4. **facade.compute_short_path_immediate wire** — RtsPathfinderFacade 加 API,production 可调;此时**baseline 预期漂**(short path 字段从占位变实填)
+5. **smoke_vertex_corner_walking + smoke_vertex_group_filter** — 验证贴墙绕角自然 + 同 group 不互相挡
+6. **Prototype 退役 R6** — 删 `tests/prototype/proto_vertex_obb.{gd,tscn,gd.uid}` + 跑 grep 确认 RtsVertexPathfinder 内无 prototype-only 简化分支
 
-M6b 收口后 → M6c(dynamic units + group filter + facade wire + prototype 退役)→ M6 整 milestone done → archive + 等 ✋3 用户审。
+M6c 收口后 → ✋3 体验点 demo F6 验证 + 等用户审 → milestone-chain 触发 → archive M6 → 启动 M7 UnitMotion。
+
+## 验收准则
+
+M6 完整 AC 见 [`M6-vertex-pathfinder.md §3`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#3-验收准则-m6-总);M6c sub-phase 关键过线:
+
+### M6c 关键过线条件
+
+- ✅ **AC1.7** moving unit square proxy:visibility graph 加 unit AABB 4 corner vertex,visibility check segment-to-point 圆模式
+- ✅ **AC1.8** group filter:`req.control_group == ""` 跳过 filter;非空时同 group obstruction 不算障碍
+- ✅ **AC10** ✋3 体验点 demo F6 验证(用户最终判)
+- ✅ **AC11(完整)** baseline CSV short_path_size / short_path_wp_json 字段从占位变实填(M6c facade wire 预期 P1 baseline 漂);其他字段 byte-identical
+- ✅ **AC11(perf)** tick_p99 / tick_max ≤ +50% vs M5(facade wire 后实测;Liang-Barsky 精确版 + enclose-radius 早出应足够)
+- ✅ **AC12** Determinism:dynamic units AABB corner 顺序按 (obstr.tag, corner_index) 字典序,group filter 不破坏顺序
+- ✅ Prototype scene 完整删除 + 确认无 prototype-only 简化代码残留(R6)
+- ✅ 改动仅在 `addons/logic-game-framework/example/rts-auto-battle/` 内,不动 LGF core/ stdlib/
+
+### Stop Runner 触发条件
+
+⚠️ M6c 引入 facade wire 后**预期** baseline 漂(short path 字段从占位变实填,§3 第 6 条 P2 接受);其他字段 byte-identical,replay seed=42 deep-equal 必须仍 PASS。详见 [`risks-and-rollback.md §3`](task-plan/m3-0ad-pathfinding-migration/risks-and-rollback.md)。
 
 ## 验收准则
 
@@ -52,22 +71,20 @@ M6b 期间新增需关注:
 
 ## 非下一步
 
-- ❌ 不启动 M6c(M6b 末再起;sub-phase 间不需要 milestone-chain 等用户但应 update progress)
-- ❌ 不实现 dynamic units / group filter(M6c)
-- ❌ 不接 facade / production wire(M6c.4)
-- ❌ 不删 prototype scene(M6c.6 末删)
+- ❌ 不启动 M7/M8(M6 整 milestone 末等用户授权再起 M7)
+- ❌ 不实现 UnitMotion / Push pass(分别在 M7 / M8)
 - ❌ 不修改 LGF submodule core/ 或 stdlib/(项目硬约束)
 - ❌ 不主动跑 `/ultrareview` 或 push commit(commit 是本地节点,push 等用户)
 
 ## 等待动作
 
-`/autonomous-feature-runner` 接 **M6b** 起步(sub-phase 间自治推进,不再等用户授权 — milestone-chain 仅在 M6 整 milestone 末触发)。runner 进入后应:
+`/autonomous-feature-runner` 接 **M6c** 起步(sub-phase 间自治推进,不再等用户授权 — milestone-chain 仅在 M6 整 milestone 末触发)。runner 进入后应:
 
-1. 读 [`task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md §M6b`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#m6b--virtual-goal--terrain-edges--best-so-far-15-周)
-2. M6a 末态 baseline:见 Progress.md §0 / §5(submodule HEAD `d4eda45`)
-3. 按 M6b.1 → M6b.5 顺序推进;每个子任务 done 时 update Progress.md
-4. M6b 末再次跑 phase-close gate 7a-7c(simplify + re-validate + AC-doc consistency)+ commit
-5. M6b 完成后接 M6c(无需重新等用户授权)
+1. 读 [`task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md §M6c`](task-plan/m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md#m6c--dynamic-units--group-filter--prototype-退役-15-周)
+2. M6b 末态 baseline:见 Progress.md §0 / §5(submodule HEAD `c458bee`)
+3. 按 M6c.1 → M6c.6 顺序推进;facade wire(M6c.4)前先把 dynamic units / group filter / smoke 准备好,wire 一刀 baseline 预期漂(P1 接受)
+4. M6c 末跑 phase-close gate 7a-7c(simplify + re-validate + AC-doc consistency)
+5. M6 整 milestone done → archive 整套 → 等 ✋3 用户审 demo F6(milestone-chain 触发点) → M7
 
 ## 期间踩坑提醒(累积)
 
@@ -77,6 +94,10 @@ M6b 期间新增需关注:
   - **GDScript class_name cache race(再次踩)** — 加新 class(RtsLineOfSight / RtsShortPathRequest / RtsVertexPathfinder / RtsPathfinderHeap)首次 smoke 报"Identifier not declared"。**Lesson 同 M5**:加新 class_name 后必须先跑 `godot --headless --path . --import` 让 cache stabilize 才跑 smoke
   - **Bash `cd submodule_root` 漂 cwd** — `cd addons/logic-game-framework && git status` 后再调 godot,主仓 project.godot 找不到 → headless 卡死。**Lesson**:godot 调用永远用绝对路径 `--path D:/...inkmon-godot`,不依赖 shell pwd
   - **浮点 distance round-off 让 visibility A* path 不"最短"** — start, bounds_TL, goal 三点共线时(几何 corner case),A* 选 via-bounds_TL(累加浮点 sum 反比 direct distance 小 1 ulp),path size=2 而非 size=1。**Lesson**:visibility graph A* 的"路径形状"对几何 corner case 敏感,但语义等价(unit 走的轨迹相同),不是 bug — smoke 不应 hard-assert "size=1"
+- **M6b 新增坑**:
+  - **Liang-Barsky 浮点除零 epsilon** — segment 几乎平行 X 或 Y 轴时 `dx` / `dy` 极小但非 0,`1.0 / dx` 爆无穷大 → t1/t2 误判 → segment-AABB 相交错判。**Lesson**:浮点 sentinel 用 `absf(dx) > 1e-9` 而非 `dx != 0.0`;阈值跟 buffer (~12 px) 数量级比绝对小,不影响精度
+  - **best-so-far 严格 < 比较保 deterministic** — `if nb_h < best_dist:` 而非 `<=`,等距时按 expansion 顺序保 deterministic;否则同距离 tie-break 走 nb_idx 字面值,跨 run 不稳定
+  - **best-so-far start_idx 兜底返空** — A* open 耗尽时 best_idx 仍 = start_idx 意味"start 没邻居可见"(完全 enclosed),返非空 path = [start] 会让 caller 把 unit 留在原地空转;直接返空让 caller 进 "stuck" 状态有意义 — M6a `_test_fully_enclosed_returns_empty` 行为保留
 
 ## 期间踩坑提醒(累积)
 
