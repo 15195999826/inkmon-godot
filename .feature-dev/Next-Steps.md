@@ -72,23 +72,41 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 
 ## 等待动作
 
-⏸ 本会话(2026-05-05)在 **M7c done** 停。M7a + M7b + M7c 都不接 production callsite,baseline / replay 0 漂(实测 -Required 12/12 PASS)= 稳定 checkpoint。M7d cutover 留给下次 session。
+🛑 **2026-05-05 第 2 会话 STOP RUNNER**:M7d.1 done + M7d.2 cutover 实施完成但 4 critical smoke FAIL functional regression。**等待用户决策**。详见 `Progress.md` "M7d Stop Runner" 段。
 
-**下次 session 启动 M7d 协议**:
-1. 用户授权后 `/autonomous-feature-runner` 接 M7d
-2. runner 进入后先读:
-   - `task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md` §M7d(activity 集成 spec)
-   - `risks-and-rollback.md` §3 stop runner 9 条(baseline 漂走 P1 接受流程,replay 漂 stop runner)
-3. M7d 拆 mini-phase 推进(activity 一个一个切 + smoke 验证 + 小 commit);用户决定 baseline 接受时机
-4. M7d 末态:demo 跑 1 局让用户审 ✋3(贴墙绕角)+ ✋4(100 unit 流畅)→ archive + 启动 M8
+### 用户三选一
 
-**M7c 末态稳定标志**(下次 session 起步 sanity check):
-- production callsite 走 RtsNavAgent(activity 老路径不变)
-- motion-bearing actor 集合实测空(actor.motion_component 全 null)
-- procedure._world_tick step 4g 加 motion-bearing tick(空集合 noop)
-- baseline CSV 968343 bytes(同 M5 末态;motion 链路 wire 但 production 不消费)
-- replay seed=42 frames=11 events=24 deep-equal
-- LGF 73/73 + RTS -Required 12/12 全 PASS
+1. **深入诊断 + 修 4 FAIL**(目标 -Required 12/12 PASS + 接受新 baseline)
+2. **回退到 M7d.1 末态 + 重新设计 cutover**(dual-wire 渐进式)
+3. **缩小 scope 单 long path motion**(永久禁 vertex 集成,✋3 贴墙绕角延后)
+
+### M7d cutover 已完成内容(submodule commit `949b6eb`,主仓未 bump)
+
+- Logic 层 5 activity + Controller + procedure + stuck_detector 全切 `motion_component` API
+- Spawner / smoke / scenario / frontend 30 callsite 改 `RtsMotionComponent.attach_default(actor, world)`(替 `RtsNavAgent.new + bind_actor + attach_pathfinder` 4 行)
+- `RtsMotionComponent.attach_default` static factory 加(motion + actor.motion_component 自动 wire)
+- procedure step 4a/b/c 删(motion 接管),step 4f motion-bearing skip,step 4g 末加 motion_failed event dispatch
+- vertex pathfinder simple-case 返空 path 已识别 + 加 fallback(short empty 时 push long next_wp)
+
+### M7d cutover 4 smoke FAIL(主仓 -Required 8/12)
+
+- smoke_rts_auto_battle: AC2 wall detour(`_check_detour_for_blocked_units` Agent stub 返空)
+- smoke_castle_war_minimal: 600 ticks battle 不结束
+- smoke_ai_vs_player_full_match: AI unit 没攻 ct(ai_unit_to_ct_attacks=0)
+- smoke_ai_vs_ai_observe: combat 不接敌(combat→combat attacks=0)
+
+**smoke_ai 1v1 PASS** = motion 简单场景 work;复杂场景集成 bug 未确诊。
+
+### 下次 session 启动方式(等用户选 1/2/3 决策)
+
+- **选 1**:`/autonomous-feature-runner 接 M7d 4 FAIL 诊断`
+- **选 2**:`git reset --hard 1eca563 && cd addons/logic-game-framework && git reset --hard 0646c31` 然后 `/next-feature-planner 重新设计 M7d`(dual-wire 渐进式 cutover)
+- **选 3**:`/autonomous-feature-runner 接 M7d 缩小 scope`(单 long path 不集成 vertex,✋3 延后)
+
+### 主仓 / submodule sha checkpoint
+
+- **主仓**:`1eca563`(M7d.1 末态;phase B 在 submodule worktree dirty + submodule commit 但**未 bump 主仓 pointer**,让回退方便)
+- **submodule**:`e1929b5`(M7d.1)→ **`949b6eb`(M7d.2 WIP/BROKEN cutover)**
 
 ## 期间踩坑提醒(累积)
 

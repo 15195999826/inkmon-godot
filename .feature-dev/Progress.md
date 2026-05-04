@@ -13,6 +13,7 @@
 - [x] **M7c — Movement + Obstruction Sync (parallel wire)**(_step 真渐进 + RtsMotionComponent + obstr_mgr 同步 + R5 P1 #1 sort key)
 - [ ] M7d — Activity 集成 + 删除 RtsNavAgent / RtsUnitSteering(RtsActivity 全迁 motion API + emit MoveFailed 事件)
   - [x] **M7d.1 — motion_move_failed event** (motion abort 反馈 + has_just_failed/consume API + RtsBattleEvents factory + RtsMotionComponent emit;AC2.6 sub-test 加入 smoke_motion_failed_movements)
+  - [⚠️ WIP/BROKEN] **M7d.2 — Activity / Controller / spawner cutover** (logic + 30 callsite 切完 — 见 submodule commit `949b6eb`)。**Stop runner per spec §3 trigger #2**:4 critical smoke FAIL functional regression(unit 不接敌 / 不攻 ct / 不绕墙)。用户决策点见下方"M7d Stop Runner"段。
 - [ ] M7 收口(Validation 全套 + ✋4 体验点 + archive + clean-slate sweep)
 
 ## M7a Evidence
@@ -83,3 +84,47 @@ PASS 12 / FAIL 0 / TIMEOUT 0  (total 12)
 - M7d 接 production 后 baseline CSV 漂(short_path 字段从占位 -1 变实填 + 路径形状变化 — P1 接受新 baseline)
 - M7d 触发 ✋3(M6 deferred:VertexPathfinder 进 production tick + 贴墙绕角)+ ✋4(完整 demo 1 局 流畅)
 - Perf 实测(100 unit × 30 Hz)— spec AC10 允许 ≤ +50% vs M5;tick_p99 / tick_max 监控
+
+## ⚠️ M7d Stop Runner — 2026-05-05
+
+**Status**: 🛑 STOP RUNNER per spec §3 stop runner trigger #2(已实填字段数字漂)/ #7(功能性问题)。
+
+**已完成**:
+- M7d.1 done(motion_move_failed event;主仓 commit `1eca563`)
+- M7d.2 cutover code-wise done(38 文件;submodule commit `949b6eb` 标 WIP/BROKEN)
+  - Logic 层:Activity 基类 + 5 子类 + Controller + procedure step 4 + stuck_detector + RtsMotionComponent.attach_default factory
+  - Spawner / smoke / scenario / frontend 30 callsite 全切到 motion(Agent dispatch + 我审)
+
+**4 critical smoke FAIL**(主仓 -Required 8/12 PASS):
+
+| smoke | 失败原因 | 可能根因 |
+|---|---|---|
+| smoke_rts_auto_battle | AC2 violated: walked through wall | Agent stub `_check_detour_for_blocked_units` 返空数组(motion 没 max_y_deviation 字段)→ 需新加 _y_history dict 主循环写入,或重写 AC2 不依赖 nav_agent 字段 |
+| smoke_castle_war_minimal | 600 ticks 不结束(ct 没死) | unit spawn 后没攻进 ct,可能 spawn pos 在 inflate 内 motion long_path A* 返空 → _failed_movements 累 35 abort |
+| smoke_ai_vs_player_full_match | ai_unit_to_ct_attacks=0 / spawned=4 | AI production unit motion 不工作或 attack engagement 不切;total_attack_events=0 = 没人 attack |
+| smoke_ai_vs_ai_observe | combat→combat attacks=0 | 4v4 AttackMove engagement 不切 attack child(ENGAGEMENT_RADIUS=100 内可能 unit 没靠近) |
+
+**smoke_ai 1v1 melee PASS** = motion 简单 case work(units 绕中央障碍 final_dist 17 < attack_range 24);
+复杂场景 fail = 集成 bug 在某层未识别。
+
+**已发现 + workaround 的 bug**(已 commit):
+- **vertex pathfinder simple-case 返空 path** — motion 调 `facade.compute_short_path_immediate` 在 start ≈ next_long 时返 size=0(实测 print 确认)。
+- **Workaround**: motion.tick 加 fallback,_short_path 空时 push next_long → _step 走 long path next wp。加完 smoke_ai PASS,但 4 复杂 smoke 仍 FAIL。
+
+### 用户决策点
+
+1. **深入诊断** — 继续 root cause 4 FAIL(可能 1-2 sessions);目标修到 -Required 12/12 PASS + 接受新 baseline。需要先诊断:
+   - production-spawned unit 的 motion 行为(spawn pos / motion abort?)
+   - AttackMove engagement gate 是否因 motion 路径变化误触发
+   - smoke_rts_auto_battle AC2 改写为 main 循环 sample _y_history
+2. **回退到 M7d.1** — 主仓 `git reset --hard 1eca563`(M7d.1 末态)+ submodule revert 949b6eb;M7d.2+ 重新设计 cutover(可能 dual-wire 渐进式 / 先单 logic 切再 spawner)
+3. **缩小 scope** — 接受 motion 只走 long path(永久禁 vertex);✋3 贴墙绕角延后到独立 milestone;M7 重命名 "LongPath Motion Cutover"
+
+**下次 session 启动方式**(等用户选 1/2/3):
+- 选 1:`/autonomous-feature-runner 接 M7d 4 FAIL 诊断`
+- 选 2:`git reset --hard 1eca563 && cd addons/logic-game-framework && git reset --hard 0646c31` 然后 `/next-feature-planner 重新设计 M7d`
+- 选 3:`/autonomous-feature-runner 接 M7d 缩小 scope`(单 long path,放弃 vertex 集成)
+
+**主仓 / submodule 当前 sha**:
+- 主仓:`1eca563`(M7d.1 done;phase B 改动在 submodule worktree dirty + submodule commit `949b6eb` 但未 bump pointer)
+- submodule:`e1929b5`(M7d.1)→ `949b6eb`(M7d.2 WIP/BROKEN;主仓没 bump 是为了让 user 选项 2 回退方便)
