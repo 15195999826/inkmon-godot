@@ -1,23 +1,20 @@
-# Current State — 2026-05-04 baseline (M3 Epic / M0-M6 done; M7 待启动)
+# Current State — 2026-05-04 baseline (M3 Epic / M0-M5 done; M6 待启动)
 
-inkmon-godot baseline 事实快照. M3 Epic / M7 启动用.
+inkmon-godot baseline 事实快照. M3 Epic / M6 启动用.
 
-> **Active feature**: ⏸ 等用户审 M6 archive + 授权启 M7(UnitMotion 整合 long+short 双轨).
+> **Active feature**: ⏸ 等用户审 M5 archive + 授权启 M6(VertexPathfinder).
 >
-> **M0 + M1 + M2 + M3 + M4 + M5 + M6 sub-feature**: ✅ 整体完成 + archived
+> **M0 + M1 + M2 + M3 + M4 + M5 sub-feature**: ✅ 整体完成 + archived
 > - M0 (Footprint 拆分) → `archive/2026-05-04-rts-m3-m0-footprint-split/`
 > - M1 (Navcell Grid + Passability) → `archive/2026-05-04-rts-m3-m1-navcell-grid/`
 > - M2 (ObstructionManager + Spatial Index) → `archive/2026-05-04-rts-m3-m2-obstruction-manager/`
 > - M3 (Clearance + 外扩 per-class buffer) → `archive/2026-05-04-rts-m3-m3-clearance/`
 > - M4 (HierarchicalPathfinder + canonicalize API) → `archive/2026-05-04-rts-m3-m4-hierarchical/`
 > - M5 (LongPathfinder 朴素 A* + Facade + wire) → `archive/2026-05-04-rts-m3-m5-long-pathfinder/`
-> - M6 (VertexPathfinder 算法层 + Liang-Barsky 精确化 + facade API) → `archive/2026-05-04-rts-m3-m6-vertex-pathfinder/`
 >
-> **M3 Epic 状态**: M0-M6 done(7/9 milestone)+ 12 -Required smoke + 16 rts/pathfinding smoke(M5 13 + M6 4)+ LGF 73/73 + replay seed=42 frames=11 events=24 deep-equal + baseline CSV byte-identical 968343 bytes(同 M5 末态;M6 算法层不接 production → 0 漂移;M7 production wire 时预期 short path 字段从占位变实填 P1 接受).
+> **M3 Epic 状态**: codex Round 1-8 APPROVE + M0-M5 done(6/9 milestone)+ 8 RTS smoke + 5 hierarchical smoke + 3 long_pathfinder smoke + LGF 73/73 + replay seed=42 frames=11 events=24 deep-equal + 新 baseline CSV byte-identical 968343 bytes(M5 LongPath 路径变化 P1 接受新 baseline)+ ✋2 体验点 headless mock PASS.
 >
-> **M6 deferred → M7 wire 触发**:✋3 demo F6 visual 验证 / baseline `short_path_*` 字段实填 / perf 实测 — 全部依赖 M7 UnitMotion 整合双轨把 vertex pathfinder 接 production callsite。
->
-> **M5 deferred → EPIC 末 cleanup phase**:**M5.5b-e RtsBattleGrid 完整删除**(用户决策推迟 — 8-10h wallclock 纯 cleanup work,production code 已走 NavcellGrid 直接,删除 RtsBattleGrid 不影响 functionality)。
+> **M5 deferred → EPIC 末 cleanup phase**:**M5.5b-e RtsBattleGrid 完整删除**(2026-05-04 用户决策推迟 — 8-10h wallclock 纯 cleanup work,production code 已走 NavcellGrid 直接,删除 RtsBattleGrid 不影响 functionality);M5.5a navcell_grid 一等公民提升已 done.
 >
 > phase 实现细节 / 决策来源 → 见对应 archive 的 `Summary.md` 或 `task-plan/m3-0ad-pathfinding-migration/`.
 
