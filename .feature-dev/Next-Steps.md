@@ -100,13 +100,15 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 ### 下次 session 启动方式(等用户选 1/2/3 决策)
 
 - **选 1**:`/autonomous-feature-runner 接 M7d 4 FAIL 诊断`
-- **选 2**:`git reset --hard 1eca563 && cd addons/logic-game-framework && git reset --hard 0646c31` 然后 `/next-feature-planner 重新设计 M7d`(dual-wire 渐进式 cutover)
+- **选 2**(保留 M7d.1 + 回退 M7d.2):`cd addons/logic-game-framework && git reset --hard e1929b5`(submodule 回 M7d.1)+ 主仓不动(HEAD = `8907ba7` docs;pointer 已是 e1929b5)→ `/next-feature-planner` 重新设计 M7d.2 cutover(dual-wire 渐进式)
+- **选 2'**(完全回退 M7d):主仓 `git reset --hard 7a18670`(M7c 末态)+ `cd addons/logic-game-framework && git reset --hard 0646c31`(M7c 末态)
 - **选 3**:`/autonomous-feature-runner 接 M7d 缩小 scope`(单 long path 不集成 vertex,✋3 延后)
 
 ### 主仓 / submodule sha checkpoint
 
-- **主仓**:`1eca563`(M7d.1 末态;phase B 在 submodule worktree dirty + submodule commit 但**未 bump 主仓 pointer**,让回退方便)
-- **submodule**:`e1929b5`(M7d.1)→ **`949b6eb`(M7d.2 WIP/BROKEN cutover)**
+- **主仓 HEAD**:`8907ba7`(docs / Stop runner 文档);**submodule pointer 在主仓**:`e1929b5`(M7d.1 末态)
+- **submodule worktree HEAD**:`949b6eb`(M7d.2 WIP/BROKEN cutover)
+- 主仓 `git status` 显示 `Mm addons`(pointer ≠ worktree HEAD;故意,让 user 选 1 / 2 决策方便)
 
 ## 期间踩坑提醒(累积)
 
