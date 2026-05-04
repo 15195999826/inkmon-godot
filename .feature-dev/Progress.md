@@ -12,6 +12,7 @@
 - [x] **M7b — Lifecycle / Failed Movements**(`tick()` 状态机 + 35 阈值 stop + countdown 12 触发 long retry)
 - [x] **M7c — Movement + Obstruction Sync (parallel wire)**(_step 真渐进 + RtsMotionComponent + obstr_mgr 同步 + R5 P1 #1 sort key)
 - [ ] M7d — Activity 集成 + 删除 RtsNavAgent / RtsUnitSteering(RtsActivity 全迁 motion API + emit MoveFailed 事件)
+  - [x] **M7d.1 — motion_move_failed event** (motion abort 反馈 + has_just_failed/consume API + RtsBattleEvents factory + RtsMotionComponent emit;AC2.6 sub-test 加入 smoke_motion_failed_movements)
 - [ ] M7 收口(Validation 全套 + ✋4 体验点 + archive + clean-slate sweep)
 
 ## M7a Evidence
