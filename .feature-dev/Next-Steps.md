@@ -72,12 +72,23 @@ M7 完整 AC 见 spec;Progress.md §2 由 runner 启动时镜像填入。
 
 ## 等待动作
 
-`/autonomous-feature-runner` 自动续 **M7d**(本轮已 commit M7a + M7b + M7c,继续推进)。
+⏸ 本会话(2026-05-05)在 **M7c done** 停。M7a + M7b + M7c 都不接 production callsite,baseline / replay 0 漂(实测 -Required 12/12 PASS)= 稳定 checkpoint。M7d cutover 留给下次 session。
 
-1. M7a/b/c evidence 见 Progress.md;M7d spec §M7d + M7c.4 (NavAgent 删除)
-2. **R5 P1 #2 dirty lifecycle invariant** 风险点 — 接 obstruction rasterize/hierarchical 时验 step 7 末才 clear_dirty(M7c 没动这部分,M7d 也不应破)
-3. M7d 末态:NavAgent / Steering 删除 + activity 全 motion;baseline 接受新基线
-4. M7 全 AC 通过后:milestone-chain 协议 — 直接 archive M7 + 等用户审 ✋3 + ✋4 体验点 → 启动 M8
+**下次 session 启动 M7d 协议**:
+1. 用户授权后 `/autonomous-feature-runner` 接 M7d
+2. runner 进入后先读:
+   - `task-plan/m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md` §M7d(activity 集成 spec)
+   - `risks-and-rollback.md` §3 stop runner 9 条(baseline 漂走 P1 接受流程,replay 漂 stop runner)
+3. M7d 拆 mini-phase 推进(activity 一个一个切 + smoke 验证 + 小 commit);用户决定 baseline 接受时机
+4. M7d 末态:demo 跑 1 局让用户审 ✋3(贴墙绕角)+ ✋4(100 unit 流畅)→ archive + 启动 M8
+
+**M7c 末态稳定标志**(下次 session 起步 sanity check):
+- production callsite 走 RtsNavAgent(activity 老路径不变)
+- motion-bearing actor 集合实测空(actor.motion_component 全 null)
+- procedure._world_tick step 4g 加 motion-bearing tick(空集合 noop)
+- baseline CSV 968343 bytes(同 M5 末态;motion 链路 wire 但 production 不消费)
+- replay seed=42 frames=11 events=24 deep-equal
+- LGF 73/73 + RTS -Required 12/12 全 PASS
 
 ## 期间踩坑提醒(累积)
 
