@@ -218,6 +218,42 @@ func push_pass(world: RtsWorld) -> void:
 
 ---
 
+## 7b. 启动前已知观察(用户 2026-05-04 跑 demo 反馈)
+
+用户跑 `demo_rts_pathfinding.tscn` 测 8 unit 走到 3 barracks 中央凹槽 (350, 230),报告**中途擦肩穿模视觉异常**(终点稳定 OK)。
+
+**复测入口**(数据 dump 工具,不是 PASS/FAIL smoke):
+`tests/diagnostics/trace_pathfinding_8units.tscn`
+
+**M5 末态 baseline 量化结果**:
+
+| 阶段 | tick | overlap events | max_overlap |
+|---|---|---|---|
+| 起手离开 | 0-39 | 83 | 8.73 px |
+| **中途绕行** | 40-119 | **266** | **9.45 px** ← 用户反馈 |
+| 接近聚拢 | 120-199 | 40 | 7.94 px |
+| 终点稳定 | 200+ | 0 | 0 |
+
+(collision_diameter = 24 px → max overlap 9.45 px = ~39% 重叠;视觉上明显穿模)
+
+**根因分层**(见会话讨论):
+1. 几何 hard constraint — barracks_1 ↔ barracks_2 间垂直空隙仅 16 px < 24 px diameter,8 unit 物理上塞不进
+2. `RtsGroupFormation.assign_offsets` 不知 obstacle,offset 落点经 canonicalize 多个挤同格(0 A.D. 用 footprint-aware formation 解,在 formation deferred plan)
+3. `MAX_SEP_FRACTION = 0.7` 留 30% velocity 朝目标推 → 互挤
+4. `RtsMinimalPushOut` 0.5×overlap 修正不彻底 → 稳态轻度重叠
+
+**M6/M7/M8 各能解多少**:
+- **M6 vertex pathfinder**:中途单位走斜线绕对方 vertex,266 中途 events 应显著降
+- **M7 UnitMotion 整合 long+short**:cluster 抵达后 motion 状态机能识别"在拥挤区"主动减速,可消接近聚拢的 40 events
+- **M8 push pass + control_group**:同 group 单位互不阻挡,终点 formation 稳定不抖动 — ✋5 体验点的核心
+
+**M8 验收追加**:M8 末跑一次 `trace_pathfinding_8units.tscn`,对比上面 baseline。M8 后预期:
+- 中途 events ≤ 100(~60% 降幅)
+- max_overlap ≤ 4 px(~16% diameter 以下,视觉无穿模感)
+- 终点 events 仍 0(M5 已达,不退化)
+
+---
+
 ## 8. Epic 完成
 
 M8 完成 = 整个 M3 Epic 完成 — 9 个 milestone (M0-M8) + Formation handoff(deferred)= 0 A.D. 寻路全面迁移落地。
