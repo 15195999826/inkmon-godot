@@ -132,5 +132,4 @@ LGF 原始架构文档：`addons/logic-game-framework/AGENTS.md` 和同级 `docs
 ## 本地约定
 
 - 响应用中文，技术术语/代码保留英文
-- 改代码前先确认 scope（改 `scripts/` 还是 `addons/`），不擅自扩大范围
 - UI/场景改动需在编辑器中验证，不能仅靠 headless
