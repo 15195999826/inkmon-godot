@@ -185,6 +185,40 @@
   - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
     TIMEOUT 0.
 
+## 2026-05-06 Claude Review Follow-Up For Slow Separation
+
+- Claude Code reviewed the uncommitted slow-frame diff and agreed that:
+  - `_resolve_overlaps()` / `_push_out_static_obstacles()` returning `bool` plus
+    `_resolve_separation()` early-out is a correct no-regret change;
+  - the logged-cluster smoke regression should remain;
+  - lowering `SEPARATION_STABILIZE_ITERATIONS` from 6 to 3 is too hack-like for
+    the long term;
+  - changing perimeter `sample_step` from 8 to 24 is a risky trade-off because
+    it can miss candidates near a unit radius boundary.
+- Applied the review direction:
+  - restored `SEPARATION_STABILIZE_ITERATIONS` to 6;
+  - restored perimeter `sample_step` to 8;
+  - added stuck-break in `_push_out_static_obstacles()` when a push attempt does
+    not move the unit.
+- Result:
+  - smoke still reproduced the slow frame at about `separation_usec=54472`, so
+    stuck-break alone did not address this log's root cause.
+- Final fix:
+  - added step-local cache inside `_resolve_separation()` for static inflated
+    rectangles and connected components keyed by unit radius;
+  - removed a duplicate per-candidate component containment check because the
+    global inflated-rect check already covers component membership.
+- This keeps the safer 6 stabilization passes and 8 px perimeter sampling while
+  removing the repeated static component work from each unit/iteration.
+- Verification:
+  - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
+  - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
+    TIMEOUT 0.
+  - latest dynamic stress metrics:
+    - `dynamic_edit_stress.max_step_usec=50641`
+    - `dynamic_edit_stress.max_active_obstacle_violations=0`
+    - `dynamic_edit_stress.max_overlap=0.0`
+
 ## 2026-05-06 Manual Lab Exported Log Side-Crossing Follow-Up
 
 - User exported:
@@ -219,6 +253,35 @@
     - `dynamic_edit_stress.max_step_usec=55264`
     - `dynamic_edit_stress.max_active_obstacle_violations=0`
     - `dynamic_edit_stress.max_overlap=0.0`
+
+## 2026-05-06 Manual Lab Slow-Frame Log Follow-Up
+
+- User exported:
+  - `C:/Users/37065/AppData/Roaming/Godot/app_userdata/Inkmon/rts_pathfinding_lab_logs/rts_pathfinding_lab_2026-05-06T01-18-56_tick_911.json`
+- Log findings:
+  - This was a real continuous slow-frame case, not a side-crossing-only case.
+  - `last_step_usec=59538`, `max_step_usec=86837`, `avg_step_usec=6045.4006586169`.
+  - Slow-frame events were recorded continuously from tick `844` through
+    `911`.
+  - The previous export schema could prove the slow frame was inside
+    `_world.step()`, but could not split the cost between replan, movement,
+    separation, and trace/settle phases.
+- Logging improvement:
+  - `RtsPathfindingLabWorld` now records `last_step_profile` with phase timing:
+    `replan_usec`, `move_usec`, `separation_usec`, `settle_trace_usec`,
+    `planned_count`, pending replans, and per-step plan reports.
+  - `_plan_unit()` now records rolling `recent_plan_reports` with unit id,
+    start/target before/after canonicalization, `plan_usec`, path size,
+    static obstacle count, other unit count, and the pathfinder `last_report`.
+  - The frontend now records `position_jump` events when a unit moves more than
+    `24 px` in one `world.step()`.
+  - `slow_step` events now include `world_step_profile` and recent plan reports.
+  - Export JSON includes `world.last_step_profile` and
+    `world.recent_plan_reports`.
+- Verification:
+  - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
+  - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
+    TIMEOUT 0.
 
 ## 2026-05-06 Manual Lab Exported Log Flicker Follow-Up
 
@@ -317,3 +380,171 @@
   - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
   - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
     TIMEOUT 0.
+
+## 2026-05-06 Manual Lab Tick 1039 Export Follow-Up
+
+- User exported:
+  - `C:/Users/37065/AppData/Roaming/Godot/app_userdata/Inkmon/rts_pathfinding_lab_logs/rts_pathfinding_lab_2026-05-06T01-36-48_tick_1039.json`
+- Log findings:
+  - `world.metrics.active_move_orders=5`, `arrived_count=1`,
+    `pending_replans=1`.
+  - `perf.last_step_usec=21618`, `perf.max_step_usec=23478`.
+  - `world.last_step_profile.replan_usec=794`,
+    `separation_usec=20773`, so this was not a core path query spike.
+  - The 22ms frame was not captured as a slow event because the playable lab
+    threshold was still `50000 usec`.
+- Failure root cause:
+  - static push-out picked the nearest valid exit point without considering
+    nearby units, so multiple active units could be pushed onto the same narrow
+    obstacle edge/gap and then keep active direct-to-target orders alive.
+  - The remaining cost was lab separation/settling around static obstacle
+    edges, not `SimNavPathfinderFacade` reachability or dirty recompute.
+- Fix:
+  - lowered playable slow-step event threshold from `50000 usec` to
+    `20000 usec`.
+  - export JSON now includes `world.movement_debug` with per-unit target error,
+    stalled tick counters, direct-target state, and static-constraint state.
+  - `world.last_step_profile` now includes `stuck_settles`.
+  - lab static push-out now scores exit candidates by severe unit overlap before
+    distance, while preserving the previous-side preference.
+  - lab separation now stabilizes in `static -> unit overlap -> static` order so
+    static push-out does not leave same-frame unit overlap on obstacle edges.
+  - active arrival after separation is gated by `ARRIVE_MAX_OVERLAP`; near-target
+    stuck settle is lab-local and only applies to final direct targets near a
+    static obstacle boundary.
+- Regression coverage:
+  - added a smoke scenario from the exported tick-1039 obstacle/unit layout.
+  - it asserts active move orders settle, queued replans clear, no active
+    obstacle violations occur, overlap stays bounded, and separation remains
+    budgeted.
+  - dynamic edit stress now records `max_overlap_detail` for future failures.
+- Verification after the fix:
+  - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
+  - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
+    TIMEOUT 0.
+  - `git -C addons diff --check` -> PASS.
+  - `git -C addons status --short -- sim-nav-map/docs/references/0ad-source`
+    -> no output.
+- Editor/manual verification:
+  - Headless scene-load/export smoke covers the script-level export contract.
+  - The playable feel of placing obstacles while units are moving still needs
+    editor-side/manual verification, because this changed the lab frontend log
+    threshold and movement settling behavior.
+
+## 2026-05-06 Manual Lab Tick 1254 Idle Crossing Follow-Up
+
+- User exported:
+  - `C:/Users/37065/AppData/Roaming/Godot/app_userdata/Inkmon/rts_pathfinding_lab_logs/rts_pathfinding_lab_2026-05-06T01-53-06_tick_1254.json`
+- Log findings:
+  - `perf.max_step_usec=3980`, so this was not a slow-frame bug.
+  - `recent_events` contained multiple `position_jump` events with
+    `arrived=true`, `has_move_order=false`, and `path_size=0`.
+  - Example: `blue_1` jumped from about `(392.9, 143.9)` to `(396.5, 23.5)`,
+    about `120 px`.
+  - This was idle static separation, not path traversal or reachability.
+- Reproduced before the fix:
+  - added `idle-gap-push` smoke from the exported obstacle layout and the
+    trace-tail positions before the jumps.
+  - `./tools/run_tests.ps1 rtslab/smoke` -> FAIL.
+  - first failure moved `blue_0` from `(392.93, 126.038)` to `(409.5, 231.5)`,
+    `106.76 px`.
+- Root cause:
+  - idle mobile units clustered near a connected static component gap.
+  - idle-idle overlap separation could push an already-arrived unit into a
+    static inflated rect.
+  - static push-out then chose a low-overlap exit on a far edge of the connected
+    component, creating a visible cross-component teleport.
+- Fix:
+  - static push-out now treats the latest nearby static-safe trace point as a
+    local exit candidate for idle units only.
+  - local static exits are preferred for idle units within `24 px`; active units
+    keep the overlap-aware candidate scoring from the tick-1039 fix.
+  - idle-idle overlap resolution is skipped only when either idle unit is near a
+    static boundary; ordinary open-area arrival still uses overlap resolution.
+  - non-direct active stuck tracking now uses current-waypoint progress when the
+    unit is static-constrained, avoiding a revived "active forever" case in the
+    tick-1039 regression.
+- Regression coverage:
+  - `idle-gap-push` asserts no idle unit moves more than `24 px` and no active
+    obstacle violation remains.
+  - the tick-1039 active-order regression remains, with a longer 520-tick window
+    to prove eventual settle instead of enforcing an arbitrary short arrival
+    time.
+- Verification after the fix:
+  - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
+  - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
+    TIMEOUT 0.
+  - `git diff --check` -> PASS.
+  - `git -C addons diff --check` -> PASS.
+  - `git -C addons status --short -- sim-nav-map/docs/references/0ad-source`
+    -> no output.
+
+## 2026-05-06 Overnight Lab Stress And 10x Follow-Up
+
+- User asked for broader self-testing before handoff:
+  - repeat six units moving between building sides;
+  - create/remove static obstacles and blockers mid-move;
+  - cover edge targets, blocked building targets, group filter toggles, dynamic
+    avoidance toggles, active/idle jump detection, out-of-bounds checks,
+    overlap checks, active obstacle violations, and replan budget.
+- Added `comprehensive_scripted_stress` to `rtslab/smoke`:
+  - 10 deterministic cases, 960 total `world.step()` calls per smoke run.
+  - Records `max_step_usec`, `max_edit_usec`, `max_any_jump`,
+    `max_idle_jump`, `max_overlap_detail`, `max_out_of_bounds`,
+    `max_active_obstacle_violations`, and per-case final metrics.
+  - Tightened dynamic/comprehensive stress max-step budgets to `80000 usec`.
+- Failure root causes found by the broader stress:
+  - Far/edge lab queries could still run `SimNavVertexPathfinder` first and only
+    then fall back to long grid pathing; slow frames were dominated by
+    `vertex_usec`, not dirty recompute, reachability, or separation.
+  - Canonicalized targets needed to persist as lab command state across later
+    replans; otherwise a previously canonicalized reachable edge could be
+    treated as an ordinary target on the next query.
+  - Units whose active orders were already eligible for age-based settling still
+    paid one final separation pass before `_update_active_move_settle()` stopped
+    them.
+- Fixes:
+  - Lab pathfinder records reachability/vertex/grid timings and active/dynamic
+    obstacle counts in `last_report`.
+  - Lab pathfinder skips vertex for far canonical targets, crowded canonical
+    targets, edited static long queries, and edge targets beyond `64 px`, using
+    long grid fallback instead.
+  - Long grid fallback string-pulls and validates against static obstacles only;
+    dynamic unit avoidance remains a local/movement-policy concern in the lab.
+  - Lab world tracks `_canonical_target_by_unit` so canonical target state
+    survives subsequent replans until the move order settles or is retargeted.
+  - Lab world now pre-settles expired active orders before separation, avoiding
+    one extra expensive static/unit push pass for orders that are already known
+    to stop in the same tick.
+- Fix classification:
+  - Logic-correctness fixes:
+    - persistent canonical target state in the lab adapter;
+    - static-only validation for long-grid fallback boundaries;
+    - pre-separation settling for already-expired active orders.
+  - Protective/performance fixes:
+    - vertex skip policy for edge/far/crowded lab queries;
+    - `80000 usec` stress budgets and richer failure metrics.
+  - These remain lab adapter/playable-regression policy, not core Feature 5
+    long-path result contract or game-specific movement policy promoted into
+    `sim-nav-map`.
+- Verification:
+  - `./tools/run_tests.ps1 rtslab/smoke` -> PASS 4 / FAIL 0 / TIMEOUT 0.
+  - `./tools/run_tests.ps1 simnav/smoke rtslab/smoke` -> PASS 20 / FAIL 0 /
+    TIMEOUT 0.
+  - 10 consecutive runs:
+    - `./tools/run_tests.ps1 rtslab/smoke` repeated 10 times
+    - `RTSLAB_SMOKE_10X_PASS: 10/10`
+  - `git diff --check` -> PASS.
+  - `git -C addons diff --check` -> PASS.
+  - `git -C addons status --short -- sim-nav-map/docs/references/0ad-source`
+    -> no output.
+- Latest final-run metrics:
+  - default world: `max_step_usec=1826`, `arrived_count=6/6`,
+    `obstacle_violations=0`, `max_overlap=0.0`.
+  - dynamic edit stress: `max_step_usec=42319`, `max_edit_usec=27807`,
+    `max_active_obstacle_violations=0`, `max_overlap=0.0`,
+    `max_replans_per_tick=1`.
+  - comprehensive scripted stress: `max_step_usec=36403`,
+    `max_edit_usec=22287`, `max_active_obstacle_violations=0`,
+    `max_out_of_bounds=0`, `max_idle_jump=8.1138`,
+    `max_replans_per_tick=1`.
