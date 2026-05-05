@@ -4,9 +4,9 @@
 > 数据结构: [`../data-structures.md`](../data-structures.md) §8 (UnitMotion)
 > API: [`../interfaces.md`](../interfaces.md) §6
 >
-> Status: 🔒 pending(M7 完成后启动)
-> 依赖: M7 (UnitMotion 完整)
-> ✋ 用户体验点 5: M8 完成时(多单位移动整齐,同队不互相绕)
+> Status: ⏳ active(2026-05-05 planner 启动;scope = M8 only;cleanup phase 留 M8 完成后下一 feature)
+> 依赖: M7 (UnitMotion 完整,M7d 末态 baseline rts/all 53/53 PASS)
+> ✋ 用户体验点 5: M8 完成时(多单位移动整齐,同队不互相绕);AC8 user demo 硬性验收(8 unit 凹陷中心)
 
 ---
 
@@ -171,23 +171,34 @@ func push_pass(world: RtsWorld) -> void:
 ### AC7 — Group filter 生效验证 🔒
 - 同 control_group 单位 short path 不绕(M6 wired,M8 真实场景验证)
 
+### AC8 — User demo ✋4 8 unit 凹陷中心硬性验收 🔒(2026-05-05 planner 追加)
+**触发动机**:M7d 教训 — smoke 全过 ≠ user demo 真实多 unit 拥挤体验(4 unit pairwise 27 PASS,8 unit 用户实测仍重叠)。AC8 把 user demo 显式签字纳入 ✋5 体验点必要条件,防止 smoke 全过但 demo 仍差直接 archive。
+
+- 跑 `demo_rts_pathfinding.tscn`,user F6 同时控制 8 unit 移动到 3 barracks 凹陷中心(座标 ~350, 230)
+- **接受标准**:user 显式签字"目视无重叠 / 无穿越 / 远好于 M7d.5b 末态"才算 ✋5 通过,否则不算 M8 done
+- 量化对比(配套数据 dump,非 PASS/FAIL smoke):跑 `tests/diagnostics/trace_pathfinding_8units.tscn`,与 §7b 表中 M5 baseline 对比:
+  - 中途 events ≤ 100(M5 baseline 266,~60% 降幅)
+  - max_overlap ≤ 4 px(~16% diameter 以下,视觉无穿模感)
+  - 终点 events 仍 0(M5 已达,不退化)
+- 量化指标 + user 签字两者**都过**才算 AC8 PASS
+
 ---
 
 ## 4. 关键决策
 
-### N1 — push_factor 数值
+### N1 — push_factor 数值 ✅ locked A(2026-05-05 planner)
 
-- **A. 0.5** (0 A.D. 同值) — Recommended
+- **A. 0.5** (0 A.D. 同值) — ✅ **locked**
 - B. 0.3 / 1.0(更弱 / 更强)
 
-> default A;复刻 0 A.D.,体感最自然。
+> 复刻 0 A.D.,体感最自然。runner 直接按 0.5 实现;demo F6 ✋5 不达再 tune。
 
-### N2 — push 是否考虑 group(同队 push 力度减小?)
+### N2 — push 是否考虑 group(同队 push 力度减小?) ✅ locked A(2026-05-05 planner)
 
-- **A. 不考虑,所有 unit pair 同力度 push**(简化) — Recommended
+- **A. 不考虑,所有 unit pair 同力度 push**(简化) — ✅ **locked**
 - B. 同 control_group push 力度 × 0.5(让队友更紧凑)
 
-> default A;0 A.D. 不区分;A 选项语义清晰。
+> 0 A.D. 不区分;A 选项语义清晰。runner 直接按 A 实现;demo 不达再考虑 B。
 
 ---
 

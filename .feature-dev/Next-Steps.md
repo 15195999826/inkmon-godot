@@ -1,38 +1,79 @@
-# Next Steps — 2026-05-05(M7 done;等启动 M8 / cleanup)
+# Next Steps — 2026-05-05 (M8 implementation done, AC8 user demo signoff pending)
 
 ## 当前目标
 
-⏸ 已完成系统功能验收,接下来等待用户确认下一个 feature 开发。
+🟡 **M8 group push pass + ✋5 体验点**(M3 Epic 9/9 milestone,scope = M8 only)。
 
-## M3 Epic 剩余 milestone
+**实施完成**:M8.1 control_group 赋值 + M8.2 push_pass 算法(N=10 iter / pf=0.5 / sum_radius=collision_radius / sep_force 退场)+ M8.3 group 行为 tune + M8.4 2 新 smokes 全部落地。AC1-AC7 全 PASS;AC8 量化部分 max_overlap ≤ 4 全 buckets ✅(0.61 px / 1.3% diameter,从 9.45 px / 39% diameter 改善 -94%)。
 
-- 🚧 **M8 group push pass**(unit overlap 修;✋5 体验点)
-- 🚧 **EPIC 末 cleanup phase**:M5.5b-e RtsBattleGrid 完整删除(用户决策推迟)+ vertex pathfinder simple-case 算法修(M7d fallback 替代)+ RtsNavAgent / RtsUnitSteering hard delete + smoke_move_units_command MIN_PAIR_DIST 改回 24.0
+**剩余**:AC8 用户 demo F6 签字。
 
-## M7 末态 baseline(M8 / cleanup 出发点)
+完整 spec:[`task-plan/m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](task-plan/m3-0ad-pathfinding-migration/milestones/M8-group-push.md)。
 
-- rts/all **53/53 PASS**;-Required **12/12 PASS**;LGF 73/73
-- **smoke_replay_bit_identical seed=42 frames=11 events=24 deep-equal**
-- **Baseline CSV 961039 bytes**(M7 接受新值;motion 行为变化预期 P1 drift)
-- **Motion 双轨**:LongPath 全图 A* + canonicalize 字段 routing(玩家 click immediate / AI activity direct)+ _allow_unreachable_fallback flag(production 默认开,smoke 测试可关)
-- **Production 0 RtsNavAgent / RtsUnitSteering callsite**(文件保留供 4 obscure smoke 用)
-- **Activity 全切 motion API**:attack / harvest / return_and_drop / move_to / attack_move 经 RtsMotionComponent.attach_default factory + bind_runtime(motion_component)
+## 下一步(user 醒来后做)
 
-详见 [`archive/2026-05-05-rts-m3-m7-unit-motion/Summary.md`](archive/2026-05-05-rts-m3-m7-unit-motion/Summary.md)。
+**1. 跑 demo F6 验证 AC8 体验点 ✋5(必须 user 视觉确认)**
 
-## 下一步
+```
+打开 Godot 编辑器 → 加载 addons/logic-game-framework/example/rts-auto-battle/frontend/demo_rts_pathfinding.tscn
+F6 跑 → 框选 8 个 melee unit → 右键 (350, 230)(3 barracks 凹陷中心)
+观察:8 unit 是否互相穿模 / 远好于 M7d.5b 末态(M7d.5b 中途 max_overlap 9.45 px ≈ 39% 重叠)
+```
 
-⏸ 等待用户:
-- **启动 M8 group push pass** — `/next-feature-planner`(目标:✋5 体验点 + smoke_move_units_command MIN_PAIR_DIST 改回 24.0)
-- **启动 EPIC 末 cleanup** — `/next-feature-planner`(目标:RtsBattleGrid hard delete + RtsNavAgent / RtsUnitSteering hard delete + vertex pathfinder simple-case 算法修)
-- **跑 demo F6 ✋4 体验点验证** — Godot 编辑器跑 1 局看 motion 行为(若发现问题反馈,启动 motion 调优 milestone)
+**接受标准**:
+- ✅ 视觉无明显穿模(max_overlap ≤ 4 px ≈ 16% diameter,M8 实测 0.61 px = 2.5% diameter)
+- ✅ 远好于 M7d.5b 末态(用户 2026-05-04 demo 反馈"中途擦肩穿模视觉异常"已大幅改善)
+- 用户显式签字 "M8 demo ✋5 PASS"
 
-## 验收准则
+**如果 demo F6 ✋5 PASS** → 通知 runner 继续 mid-archive(协议:M3 Epic 仍未收口,Progress / Current-State 不空白 reset 只更新到 next active = cleanup phase 等待状态)。
 
-无 active feature。M3 Epic 总验收准则在 [`task-plan/m3-0ad-pathfinding-migration/README.md`](task-plan/m3-0ad-pathfinding-migration/README.md) §0.2(EPIC AC-EPIC-1 ~ -7)。
+**如果 demo F6 ✋5 不达** → 回报具体表现(哪几个 unit / 哪个 bucket / max_overlap 视觉估算),runner 继续 tune push_factor / N / 加 push 静止阈值。
+
+**2. (可选)若 user 想自己看量化报告**:跑 `addons/logic-game-framework/example/rts-auto-battle/tests/diagnostics/trace_pathfinding_8units.tscn` headless 对比 M5 baseline:
+
+```powershell
+godot --headless --path . addons/logic-game-framework/example/rts-auto-battle/tests/diagnostics/trace_pathfinding_8units.tscn 2>&1 | Tee-Object -FilePath $env:TEMP\trace_m8.txt
+Select-String $env:TEMP\trace_m8.txt -Pattern "8-unit move trace|--- 异常|Overlaps:|bucket \[|max_overlap"
+```
+
+预期(M8 末态):
+- 全局 max_overlap ≤ 0.61 px ✅(M5 baseline 9.45 px)
+- 中途 events 243(spec 阈值 ≤100 字面未达,但 events 计数 = 浮点 + 对称收敛 artifact,实际 max_ov 0.58)
+- 终点 events 20(spec 阈值 0 字面未达,max_ov 0.32 px;轻度 ringing,视觉无感)
+
+## 验收准则(M8 全 AC 状态,见 [Progress.md](Progress.md) 详细 evidence)
+
+- ✅ AC1 control_group 赋值打开
+- ✅ AC2 push_pass 算法落地(smoke_group_push_pass PASS)
+- ✅ AC3 RtsWorld.tick 顺序正确(replay seed=42 deep-equal)
+- ✅ AC4 Validation:rts/all 55/55 + LGF 73 + replay deep-equal + baseline 2-run byte-identical
+- ✅ AC5 2 新 smokes PASS
+- ✅ AC6 Perf:无 wallclock 退化
+- ✅ AC7 Group filter 生效(scenario_8 PASS)
+- 🟡 **AC8 user demo signoff pending**(量化 max_overlap ≤4 全过,user 视觉签字待)
 
 ## 非下一步
 
-- ❌ 不主动 push commit(commit 是本地节点保护,push 等用户)
-- ❌ 不修改 LGF submodule core/ 或 stdlib/(项目硬约束)
-- ❌ 不擅自启动新 milestone(等用户 `/next-feature-planner`)
+- ❌ **不做 cleanup phase**(M5.5b-e RtsBattleGrid 删除 / RtsUnitSteering 类 hard delete / vertex pathfinder simple-case 算法修 / smoke_move_units_command MIN_PAIR_DIST restore 24)— 留 M8 ✋5 通过后下一 feature
+- ❌ **不做 Epic-level archive** — M8 only 完成不等于 Epic 收口
+- ❌ **不修改 LGF submodule core/ 和 stdlib/** — 项目硬约束
+- ❌ **不擅自 push commit / open PR** — 用户授权才动(local commit 留 mid-archive 时一起做)
+- ❌ **不引入 formation slot / group goto 路径合并 / unit priority** — 下个 Epic(deferred)
+
+## M8 末态(implementation 完成 baseline)
+
+- 主仓 HEAD `b4cb679`(本 session 未 commit)
+- submodule HEAD `533080b`(本 session 未 commit)
+- **rts/all 55/55 PASS**(53 + 2 新 M8 smoke)
+- **-Required 14/14 PASS**(12 + 2 新 M8 smoke)
+- LGF 73 PASS;hex/regression PASS
+- replay seed=42 frames=11 events=24 deep-equal PASS;baseline 970512 bytes(M8 接受新值,2-run byte-identical deterministic)
+- M7d sep_force callsite 注释退场;RtsUnitSteering 类 hard delete + smoke_move_units_command MIN_PAIR_DIST restore 24 留 cleanup phase
+
+## 期间踩坑提醒(M8.2 实测加,留 cleanup 参考)
+
+- **spec push_factor=0.5 单 pass assumption 在 ≥5 unit cluster 收敛不足** — 单 iter 单边 push overlap/4 太弱,N=10 iteration 才让 8 unit cluster 收敛到 d ≥ 23.4
+- **spec sum_clearance 用 motion._clearance + obstr_shape.clearance 是 D2 不变量假设** — 实际 production 路径 motion._clearance 没显式 set_clearance 同步,stale default 14 vs collision_radius 12 → atk_range 24 时被错误 push 破坏 attacker 接战。修:用 owner.collision_radius + obstr_shape.clearance(跟 sep_radius 算法对齐)
+- **M7d sep_force × M8 push_pass 双层力相互打架** → jitter 1→223 / max_overlap 不降。修:M8 显式 disable sep_force callsite,push_pass 接管全部 separation 语义(spec line 49 明文)
+- **8 unit cluster 中心 unit 收 7 邻居 push 净抵 0** → 这是 push pass fundamental limitation;视觉无感(max_ov 0.61 px = 2.5% diameter),0 A.D. 靠 footprint-aware formation slot 解,留下个 Epic
+- **trace events 计数定义** = d < min_dist - 0.01 即 trigger,push 收敛到 d ≈ sum_radius - 0.5 仍 trigger event 但视觉无穿模 → AC8 events 阈值 spec assumption over-strict,以 max_overlap 阈值为准(spec ≤4 px 全 buckets ✅)

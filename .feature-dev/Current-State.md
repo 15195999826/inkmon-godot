@@ -1,8 +1,8 @@
-# Current State — 2026-05-05 baseline (M3 Epic / M0-M7 done; M8 + cleanup 待启动)
+# Current State — 2026-05-05 baseline (M3 Epic / M0-M7 done; M8 active)
 
-inkmon-godot baseline 事实快照. M8 / cleanup 启动用.
+inkmon-godot baseline 事实快照. M8 group push pass 启动用.
 
-> **Active feature**: ⏸ 无 active(M7 archive 完成 2026-05-05)。等用户授权 M8 / cleanup。
+> **Active feature**: ⏳ **M8 group push pass + ✋5 体验点**(2026-05-05 planner 启动;scope = M8 only;N1=0.5 / N2=同力度 locked;AC8 demo 硬性验收追加)。Cleanup phase / Epic-level archive 留 M8 完成后下一 feature。
 >
 > **M0-M7 sub-feature**: ✅ 全部完成 + archived
 > - M0 → `archive/2026-05-04-rts-m3-m0-footprint-split/`

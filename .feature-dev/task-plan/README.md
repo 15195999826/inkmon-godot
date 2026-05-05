@@ -1,10 +1,14 @@
-# Task Plan — Active: RTS Pathfinding M3 Epic(M7 done;等启 M8 / cleanup)
+# Task Plan — Active: RTS Pathfinding M3 Epic(M8 group push pass active)
 
-> **Active feature**: ⏸ 无 active(M7 UnitMotion archive 完成 2026-05-05)。等用户授权下一 milestone(M3 Epic 剩 M8 group push + EPIC 末 cleanup phase)。
+> **Active feature**: ⏳ **M8 group push pass + ✋5 体验点**(scope = M8 only;cleanup phase 留 M8 完成后再 plan;Epic-level archive 同样推迟)。2026-05-05 planner 启动。
 >
-> **Epic 状态**: M0-M7 done + archived(7/9 milestone)。剩 M8(group push pass)+ cleanup phase(M5.5b-e RtsBattleGrid 删除 + RtsNavAgent / RtsUnitSteering hard delete + vertex pathfinder simple-case 算法修)。
+> **Epic 状态**: M0-M7 done + archived(8/9 milestone)。当前 M8 active。剩 cleanup phase(M5.5b-e RtsBattleGrid 删除 + RtsNavAgent / RtsUnitSteering hard delete + vertex pathfinder simple-case 算法修 + smoke 阈值 restore)留 M8 完成后下一 feature。
 >
-> **下一步**:用户跑 `/next-feature-planner` 启动 M8 / cleanup,或先跑 demo F6 ✋4 体验点验证 motion 行为。
+> **下一步**:M8.1 — `RtsMotionComponent._init` 末尾调 `set_unit_control_group(tag, str(team_id))`(spec §2 M8.1)。
+>
+> **关键决策 confirm**(本轮 planner 锁定): N1 `push_factor = 0.5`(A) / N2 不区分 control_group(A)。
+>
+> **完整 spec**:[`m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](m3-0ad-pathfinding-migration/milestones/M8-group-push.md)。
 
 ---
 
@@ -25,7 +29,7 @@
 | [`m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M5-long-pathfinder.md) | M5 LongPathfinder(已 archived)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m5-long-pathfinder/) |
 | [`m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md`](m3-0ad-pathfinding-migration/milestones/M6-vertex-pathfinder.md) | M6 VertexPathfinder(已 archived;simple-case 算法修留 cleanup)| ✅ done → [archive](../archive/2026-05-04-rts-m3-m6-vertex-pathfinder/) |
 | [`m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md`](m3-0ad-pathfinding-migration/milestones/M7-unit-motion.md) | **M7 UnitMotion(已 archived 2026-05-05)** | ✅ done → [archive](../archive/2026-05-05-rts-m3-m7-unit-motion/) |
-| [`m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](m3-0ad-pathfinding-migration/milestones/M8-group-push.md) | M8 push pass + group polish | 🔒 pending(等用户启动) |
+| [`m3-0ad-pathfinding-migration/milestones/M8-group-push.md`](m3-0ad-pathfinding-migration/milestones/M8-group-push.md) | **M8 push pass + group polish** | ⏳ **active**(2026-05-05 planner 启动;N1=0.5 / N2=同力度 confirm;AC8 demo 硬性验收追加) |
 | [`m3-0ad-pathfinding-migration/deferred/0ad-formation-design.md`](m3-0ad-pathfinding-migration/deferred/0ad-formation-design.md) | Formation handoff(下个 Epic)| 📋 deferred |
 | [`m2-roadmap.md`](m2-roadmap.md) | M2 milestone 路线图(已 done)| 稳定 spec, 历史参考 |
 
