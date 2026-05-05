@@ -8,7 +8,7 @@
 #
 # Group names: "<namespace>/<group>", "<namespace>/all", "all-required", "all".
 # Manifests: addons/logic-game-framework/{tests,example/*/tests}/test_groups.json,
-#            addons/sim-nav-map/tests/test_groups.json
+#            addons/sim-nav-map/{tests,examples/*/tests}/test_groups.json
 #
 # Paths inside each manifest are relative to that manifest's own directory.
 
@@ -42,7 +42,8 @@ Get-ChildItem -Path $WrapperDir -Filter *.bat -ErrorAction SilentlyContinue |
 $ManifestPatterns = @(
     "addons\logic-game-framework\tests\test_groups.json",
     "addons\logic-game-framework\example\*\tests\test_groups.json",
-    "addons\sim-nav-map\tests\test_groups.json"
+    "addons\sim-nav-map\tests\test_groups.json",
+    "addons\sim-nav-map\examples\*\tests\test_groups.json"
 )
 $Manifests = @()
 foreach ($pat in $ManifestPatterns) {
