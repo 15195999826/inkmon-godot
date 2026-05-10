@@ -114,11 +114,12 @@ godot --headless --path . <scene.tscn> > /tmp/godot_out.txt 2>&1
 
 ## 规范与踩坑
 
-项目自带三个 Codex Skill（`.agents/skills/`，按需加载，不常驻 context；Claude mirror 在 `.claude/skills/`）：
+项目自带 Codex Skill（`.agents/skills/`，按需加载，不常驻 context；Claude mirror 在 `.claude/skills/`）：
 
 - **`gdscript-coding`** — 通用 GDScript 编码规范（类型、shadowing、I* pattern、`Log.assert_crash` 等 14 条）；踩坑见同目录 `reference/troubleshooting.md`
 - **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver 等）；详细 API 在 `reference/*.md`
 - **`lgf-new-logic-skill`** — 实现新 skill / ability / buff / passive 时的 "去哪写、怎么 wire 进 submodule、怎么测" 指南（搭配上面两个使用）
+- **`sim-nav-map`** — `addons/sim-nav-map` 背景速记：现役 `0ad-rts-pathfinding-lab`、旧 `rts-pathfinding-lab` 边界，以及 0 A.D. 本地源码优先规则
 
 配套 Claude slash command（`.claude/commands/`）：
 
