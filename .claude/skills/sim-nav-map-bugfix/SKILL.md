@@ -45,7 +45,9 @@ python .claude/skills/sim-nav-map-bugfix/probe_log.py <log.json> --kind movement
 | 模板 | 用途 |
 |---|---|
 | `probe_los.gd/.tscn` | 单段 LOS 测试：直接 `SimNavLineOfSight.shape_blocks_segment` + facade.validate_movement_line + lab pathfinder 三层。验证"这条 segment 应该 block 吗" |
-| `probe_motion.gd/.tscn` | 多 tick motion 模拟（默认 120 tick = 2 秒）：跑 motion controller 的 step_unit + apply_push_adjust 多帧，看 unit 是否前进 / fm 累 / drift 进 obstacle 中心。**比单步 LOS 准——揭露累积漂移问题** |
+| `probe_motion.gd/.tscn` | 多 tick motion 模拟（默认 120 tick = 2 秒，**走 ZeroAdRtsLabWorld.step()**）：完整 path queue + apply_path_results + dispatch motion updates + push adjust，跟 lab demo 同管线。看 unit 是否前进 / fm 累 / cancel order / drift 进 obstacle 中心。**比单步 LOS 准——揭露累积漂移问题** |
+
+**别绕过 World 直跑 motion**：`motion.step_unit + apply_push_adjust` 直跑会跳过 path queue 与 refresh_dynamic_units，motion controller 内部状态偏离真实流程，**fm 不再 increment、motion update 不 emit、单位 silent freeze**。这是 probe artefact，不是 lab bug——别照这种 probe 输出去发明 motion controller 修补。如果你**真的**只想测单帧 motion 逻辑，参考 `addons/sim-nav-map/tests/repro/repro_core_016_arrive_when_blocked_close_to_target.gd` 的写法。
 
 使用：
 ```bash
@@ -122,6 +124,7 @@ godot --headless --path . .claude/tmp/probe_los.tscn 2>&1 | grep "LOS\|FACADE\|L
 - 在 lab 加魔术常量"压低出现概率"代替治根因
 - **改 LOS 后只单步 probe，不跑 multi-tick** — 累积漂移类 bug（单步 0.5 px tolerance 几十帧穿过 obstacle）单步看不出来，必须 `probe_motion` 验证
 - **加 lab 自创"看似合理"的保护**（如 stay-or-deeper guard、cooldown） — 0 A.D. 没就不要加；真有 race-condition / drift 顾虑，看 0 A.D. 怎么靠 push system / blocked recovery 多帧处理，而不是 LOS 单帧硬拒
+- **直跑 `motion.step_unit + apply_push_adjust` 当 probe 还把"fm 不增 / silent freeze"当真 lab bug** — 跳过 World.step 的 path queue / apply_path_results / refresh_dynamic_units 后 motion controller 状态偏离真实流程；这是 probe artefact，必须用 `ZeroAdRtsLabWorld.step()` 复现才算数
 
 ## 已存案例（参考写法）
 
