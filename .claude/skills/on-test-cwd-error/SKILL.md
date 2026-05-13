@@ -1,6 +1,6 @@
 ---
 name: on-test-cwd-error
-description: Recovery skill for when the user calls out a mistake in a `godot` command you just ran (or are about to retry). Trigger on phrases like "cwd 错了"、"路径不对"、"你又跑歪了"、"用 launcher"、"为什么不用 run_tests"、"用 PowerShell 不是 bash"、"shell tool 选错了"、"用绝对路径"、"--path . 不行"、"重新跑"、"为什么 godot 加载不到 project"、"godot 又静默挂了" — and any equivalent in English ("wrong cwd", "use the launcher", "absolute path"). Also trigger if you just ran a `godot ...` command and the user immediately interrupts to correct your shell-tool / path / launcher choice. This is a RECOVERY skill — purpose is to diagnose what went wrong and issue ONE corrected command, not to re-explain background or apologize at length.
+description: Invoke when your last `godot ...` command failed, hung, or produced empty/garbled output. Diagnoses cwd / shell-tool / `--path` / launcher / pipe-buffering issues and issues ONE corrected command. No background re-explanation, no extended apology.
 ---
 
 # On test cwd / shell / path error — fast recovery
