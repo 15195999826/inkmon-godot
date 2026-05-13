@@ -1,0 +1,4 @@
+interface:
+  display_name: "DevAgent Scene Debug Mode"
+  short_description: "Add DevAgent Debug Mode adapters to Godot scenes."
+  default_prompt: "Use $dev-agent-scene-debug-mode to add a minimal DevAgent Debug Mode adapter to this Godot scene."
