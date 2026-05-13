@@ -1,6 +1,6 @@
 ---
 name: dev-agent-scene-debug-mode
-description: Manual DevAgent Debug Mode scene adapter workflow.
+description: Add DevAgent Debug Mode to a Godot scene by wiring a small scene-specific adapter to addons/lomolib/dev_agent. Use when the user asks to make a scene controllable/debuggable through JSONL commands, screenshots, real input injection, inspect_controls, inspect_tree, dump_node, or scene-specific DevAgent operations. Do not use for CI, regression testing, production/player automation, or bypassing real UI input paths.
 ---
 
 # DevAgent Scene Debug Mode

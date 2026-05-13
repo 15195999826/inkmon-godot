@@ -1,6 +1,6 @@
 ---
 name: lgf-new-logic-skill
-description: Use when implementing any logic-layer skill/ability/buff/passive from the inkmon taxonomy design (see `.lomo-team/reference/inkmon-skill-design.md` — 16 skills across Tier 1/2/3). Trigger on casual phrasings too — "做 Poison", "实现 Ward", "来个 Chain Lightning", "加个吸血被动", "做 Tier 2 技能 X", "照着 Shadow Step 再做一个类似的", "尸爆怎么写". Explicitly a companion to `enforcing-lgf` (coding rules) and `gdscript-coding` (syntax) — this skill owns the "where to put it, how to wire it into the submodule, and how to test it" dimension. Especially relevant when the user is doing logic work (often at the office) and deferring presentation/visual wiring for later.
+description: Manual inkmon taxonomy logic skill workflow.
 ---
 
 # 新增 inkmon 逻辑层技能（taxonomy 16 技能实现指南）
