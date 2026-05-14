@@ -1,6 +1,6 @@
 ---
 name: run-dev-scene
-description: Drive a DevAgent-enabled Godot scene (e.g. skill_preview) autonomously to verify a feature, balance change, or bug. Use this skill whenever the user wants to test/verify/validate/check any in-game behaviour (skill damage, animations, cooldowns, passives, balance numbers, reproductions) AND a DevAgent-enabled scene exists in the repo — even if they do not explicitly say "dev mode". Common phrasings: "用 dev 模式/DevAgent/dev session 测试 X", "用 skill_preview 验证 Y", "test the new fireball", "verify Z cooldown", or any prompt that names a known dev scene as the verification vehicle. The skill launches the scene, sends JSONL ops through DevAgent, reads outbox, reports findings, then stops the process. Do NOT use this skill to ADD DevAgent to a new scene — that is `dev-agent-scene-debug-mode`'s job.
+description: Drive an existing DevAgent-enabled Godot scene (e.g. skill_preview) to autonomously verify in-game behaviour. Use proactively after changing game logic (skills, passives, balance numbers, cooldowns, animation timing) when a matching dev scene exists — validate the change yourself via JSONL ops before reporting completion, instead of asking the user to test manually. Not for adding DevAgent to a new scene (that's `dev-agent-scene-debug-mode`).
 ---
 
 # Run Dev Scene
