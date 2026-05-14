@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game Architecture Patterns"
+  short_description: "Map game architecture symptoms to project-ready patterns."
+  default_prompt: "Use $game-architecture-patterns to evaluate a game architecture design or refactor against existing project mechanisms."
