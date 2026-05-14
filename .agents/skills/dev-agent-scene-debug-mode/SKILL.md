@@ -1,6 +1,6 @@
 ---
 name: dev-agent-scene-debug-mode
-description: Manual DevAgent Debug Mode scene adapter workflow.
+description: Add DevAgent Debug Mode to a Godot scene by wiring a small scene-specific adapter to addons/lomolib/dev_agent. Use when the user asks to make a scene controllable/debuggable through JSONL commands, screenshots, real input injection, inspect_controls, inspect_tree, dump_node, or scene-specific DevAgent operations. Do not use for CI, regression testing, production/player automation, or bypassing real UI input paths.
 ---
 
 # DevAgent Scene Debug Mode
@@ -68,6 +68,57 @@ The **right** answers, in order:
 3. As a last resort, add a `dev_agent_*` API on the scene that exposes the *visible state change*, and have the adapter call it after the real click — so the validation still measures what happened, even if the click itself needed an unusual route.
 
 What you must **not** do: silently route `click_X` to `function_X()` because the click was unreliable. That makes the op name a lie.
+
+## Step 3: Observation strategy — structured ops first, screenshots last
+
+A future AI session driving this scene starts cold. It does NOT know which state fields matter, which op name returns what, or where to look. Make discovery cheap and bias toward structured data — pictures cost ~5× the vision tokens a JSON dump does for the same scene context, and accumulate on disk fast.
+
+### Adapter author obligations
+
+- Expose at least one **state snapshot op** (suggested names: `state`, `scene_state`, `dump_state`). Its return Dictionary should cover:
+  - every field the agent might want to mutate later (so it can verify its own edits took effect),
+  - every observable runtime field needed to validate the scene's purpose (battle outcome, animation step, UI mode, etc.),
+  - stable identifiers (idx, role_id, actor_id, button names) the agent can quote in mutation ops.
+- For each action op, write one line in the adapter README naming **which snapshot fields change after success**. The agent should be able to pick the next observation op from that line alone.
+- Group ops in DEV_AGENT.md (or equivalent) into:
+  1. **Action / mutation** — changes state, returns `ok` + minimal data.
+  2. **Observation** — read-only, returns Dictionary, no side effects.
+  3. **Raw real-input escape hatch** — `click_at` / `click_control` / `drag_at` / `tap_key`.
+- Every scene-op response automatically carries `data.supported_ops`. After a single call the agent has the complete op vocabulary — no separate "list ops" call needed.
+
+### Agent runtime strategy
+
+When driving an unfamiliar dev scene:
+
+1. Send any cheap scene op (e.g. `{"op":"scene","name":"state"}`) once. Read `data.supported_ops` from the response — that's the full op list. Cross-reference against the adapter's DEV_AGENT.md for semantics.
+2. After each mutation, send the relevant structured observation op (`state` / `world_state` / `dump_X`). Verify the change against the returned Dictionary, not by looking at a screenshot.
+3. Send `capture` ONLY when the validation target is genuinely visual:
+   - VFX, animation frame, particle spawn position, sprite swap.
+   - Layout regression where Control rects matter and `inspect_controls` is insufficient.
+   - A hand-off snapshot for a human reviewer.
+4. When in doubt — if a question could be answered by either an op or a screenshot — pick the op. Pictures are tie-breakers, not the default channel.
+
+### Screenshot defaults
+
+The generic `capture` op defaults to **960 px wide JPEG q=80** (~25–40 KB). It accepts:
+
+```json
+{"op":"capture","label":"after_battle","width":960,"format":"jpeg","quality":80}
+```
+
+- `width: 0` keeps original viewport size; otherwise the longest edge is scaled while preserving aspect.
+- `format: "png"` for lossless / pixel-precise regression (file size jumps ~5×).
+- Only raise the defaults when you have a concrete reason (small font readability, exact pixel diff). Anthropic vision processes both 1920×1080 and 960×540 by tiling — bigger ≠ more information for the model.
+
+### Cleanup
+
+DevAgent does not auto-clean `user://dev-agent/sessions/`. Sessions accumulate on disk. When they get large, run the bundled cleanup helper:
+
+```powershell
+pwsh .claude/skills/dev-agent-scene-debug-mode/cleanup-sessions.ps1
+# defaults: delete sessions older than 7 days under %APPDATA%\Godot\app_userdata\Inkmon\dev-agent\sessions
+# add -DryRun to preview, -Days N to change the cutoff
+```
 
 ## Workflow
 
