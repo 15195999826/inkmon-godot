@@ -1,6 +1,6 @@
 ---
 name: run-dev-scene
-description: Drive an existing DevAgent-enabled Godot scene (e.g. skill_preview) to autonomously verify in-game behaviour. Use proactively after changing game logic (skills, passives, balance numbers, cooldowns, animation timing) when a matching dev scene exists — validate the change yourself via JSONL ops before reporting completion, instead of asking the user to test manually. Not for adding DevAgent to a new scene (that's `dev-agent-scene-debug-mode`).
+description: Autonomously verify gameplay changes by driving an existing DevAgent-enabled Godot scene, instead of asking the user to test manually. Use proactively after modifying gameplay code when a matching dev scene exists. Not for setting up DevAgent on a new scene (see `dev-agent-scene-debug-mode`).
 ---
 
 # Run Dev Scene
