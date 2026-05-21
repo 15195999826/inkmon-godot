@@ -11,6 +11,7 @@
 - 修正 `smoke_summon_spike.gd` 假 PASS：Phase 5 behavior placeholder 不计入完成；manual remove 与 `TimeDurationConfig/on_remove` lifecycle 分开给结论。
 - 加强 Action validator / `execution_state` guardrail：覆盖 skill 文件里的 `SkillLocalAction` 边界，禁止直接读写 `execution_state` 绕过 namespaced helper。
 - 修正 Chain Lightning scenario 跨 frame 逐跳断言，让 replay frame metadata 可被断言；补 caster 被 post reaction 反死后不继续结算下一跳 damage 的回归。
+- 修正 `SkillPreviewProcedure` tick 漂移：preview 只替换 AI 决策/启动 action 阶段，ability runtime tick 复用正式 `HexBattleProcedure` 合同；已死亡 actor 不再继续 tick 身上 ability。
 
 ## 禁止
 
