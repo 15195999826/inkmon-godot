@@ -45,6 +45,12 @@
 
 - 2026-05-23 - kickoff baseline - 主仓 commit 07a6057 + sub commit 33e4f0b - review: N/A (docs only) - smoke: N/A - skill-preview: N/A
 - 2026-05-23 - Prep · 目录整理 - 主仓 commits 7d3a106 + fe42f15 + sub commit 673d2b4 - review: pass (1 high fixed: lgf-new-logic-skill SKILL.md 旧路径) - smoke: hex/regression + hex/skills + hex/skill-preview + core/skill-preview-env 13/13 PASS - skill-preview: N/A (现有技能 smoke 覆盖,无新 skill)
+- 2026-05-23 - Phase A · Stun - 主仓 commits 2e363b4 + 08185f9 + sub commits d0abb95 + c692c42 - review: pass (1 high fixed: HexBattleCancelActiveExecutionsAction ALLOWLIST register) - smoke: hex/skills + core/unit 4/4 PASS (Stun 两 scenario + 全 LGF 单测 + 全 hex skill scenarios) - skill-preview: PASS (dev-agent 实证 grant buff_stun → cant_act 拦 Strike (reason="已有 Tag: cant_act") → ~1900ms expire → Strike 恢复 50 damage)
+
+## Known Baseline Flakes (Phase A 发现, pre-existing)
+
+- `hex/frontend/smoke_surge_unit_view`: launcher 30s timeout vs scene 自身 `_elapsed >= 30s` 才 assert 的设计 race。Phase A 之前 baseline 即 TIMEOUT 30.5s, 跟本 phase 改动无关。
+- `rts/battle/smoke_ai_vs_ai_observe`: 单独跑 PASS (~36s); 在 launcher 并发批量负载下偶发 timeout 超 45s。单跑 PASS 即接受, 算 launcher 资源压力 flake, 不计入 phase 失败。
 
 ## Open Review Findings
 
