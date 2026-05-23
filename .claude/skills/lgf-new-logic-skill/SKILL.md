@@ -159,8 +159,10 @@ d. ★ 用户 align 门(**必须,即使 0 新机制也走**)
      - **❌ 反模式**:用户答完决策题(尤其全选推荐项)后顺势进入实现 — 全 A 不等于"动手吧"。0 新机制也要先把方案完整呈现,显式等"开始"信号。
      ↓
 e. 在 submodule 内实现
-     - AbilityConfig: addons/.../example/hex-atb-battle/logic/skills/
-     - Buff (若有): addons/.../example/hex-atb-battle/logic/buffs/
+     - 主动 AbilityConfig: addons/.../example/hex-atb-battle/logic/abilities/active/
+     - 被动 AbilityConfig: addons/.../example/hex-atb-battle/logic/abilities/passives/
+     - Buff (若有): addons/.../example/hex-atb-battle/logic/abilities/buffs/
+     - 注册 / helper glue: addons/.../example/hex-atb-battle/logic/abilities/shared/
      - 新 Action (仅当现有不够): addons/.../example/hex-atb-battle/logic/actions/
      - 新 TargetSelector (若形状特殊): addons/.../example/hex-atb-battle/logic/target_selectors.gd
      ↓
