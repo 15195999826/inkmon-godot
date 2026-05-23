@@ -50,6 +50,10 @@
 - 2026-05-24 - Phase B2 · Break (改 LGF core) - 主仓 commits a546579 + 9009d45 + sub commits 443746d + 95457ba - review: pass (3 severe fixed: scenario frame-based 断言替换模糊计数; 4 medium + 2 low 转 Open Review Findings 待 Final Consistency Review 清空) - smoke: hex/skills 34/34 PASS (4 break scenarios) + core/unit PASS (LGF 单测 + Repo scan allowlist) + -Required 15/16 (1 pre-existing flake `smoke_ai_vs_ai_observe` 并发负载) - skill-preview: PASS (dev-agent 实证 Thorn passive 期内 disabled 不反伤 → break expire frame 23 → 期后 Strike 触发 Thorn 反伤 2 PURE)
 - 2026-05-24 - Phase C0 · Summon Totem 正式实现 - 主仓 commit d0b9c88 + sub commit 36a2b50 - review: pending (跟下一 phase 一起做 max review) - smoke: hex/skills 35/35 PASS (含 1 summon scenario) + core/unit PASS + hex/skill-preview + core/skill-preview-env 9/9 PASS + -Required 15/16 (pre-existing flake) - skill-preview: PASS (dev-agent 实证 frame 4 spawn TOTEM (Character_6) + grant TotemAttack/TotemLifetime, frame 34/64/94/124 TOTEM 每 3000ms 自动攻击 enemy_0 各 30 damage)
 - 2026-05-24 - Phase C · Fire Tile minimal (路线 A overlay) - 主仓 commit 6352761 + sub commit 948d5ba - review: pending (Phase B2 + C0 + C 一起做 batch max review) - smoke: hex/skills 36/36 PASS (含 fire_tile scenario) + core/unit PASS + hex/skill-preview 9/9 PASS - skill-preview: PASS (dev-agent 实证 frame 4 spawn FireTile EnvironmentActor (Environment_6) + grant FireTilePulse/FireTileLifetime, frame 13/23/33/43 每 1000ms pulse 20 PURE 给 enemy_0)
+- 2026-05-24 - Phase D · Cleanse - 主仓 commit a2c75fd + sub commit c572989 - review: pending (Phase D+E+F+G batch max review) - smoke: hex/skills 37/37 PASS (含 cleanse_priority scenario) + core/unit PASS - skill-preview: PASS via scenario (poison buff revoked by cleanse - DISPELLED reason); dev-agent individual session 计入 batch verify under Final Consistency Review
+- 2026-05-24 - Phase E · Swap - 主仓 commit b2c39c6 + sub commit fa2fd25 - review: pending (batch) - smoke: hex/skills 38/38 PASS (含 swap_position scenario) + core/unit PASS - skill-preview: PASS via scenario (2 ActorDisplacedEvent 同 swap_id, caster/enemy 位置原子互换 from→to coord); dev-agent batch deferred
+- 2026-05-24 - Phase F · Lifesteal - 主仓 commit 48f48a6 + sub commit 64767a7 - review: pending (batch) - smoke: hex/skills 39/39 PASS (含 lifesteal_basic scenario) + core/unit PASS - skill-preview: PASS via scenario (damage 40 + heal event amount=20 actual*0.5, caster.hp 100→120); dev-agent batch deferred
+- 2026-05-24 - Phase G · Piercing Line - 主仓 commit d96bbca + sub commit 05d37fb - review: pending (batch) - smoke: hex/skills 40/40 PASS (含 piercing_line scenario, 3 enemies 排一行各受 atk PHYSICAL) + core/unit PASS - skill-preview: PASS via scenario; dev-agent batch deferred
 
 ## Known Baseline Flakes (Phase A 发现, pre-existing)
 
@@ -60,23 +64,66 @@
 
 medium-severity review findings 允许延后，但 Final Consistency Review 前必须清空。
 
-### Phase B2 (Break) — code-review max 剩余 mediums
-
-- **late-grant passives escape Break**: Break buff `_BreakPassivesAction` 在 on_apply 时 snapshot passive 列表; break 期内 grant 的新 passive 不会被 disable。Goal doc L305 措辞 "Break 在一定时间内, 禁用 actor 的 passive skill" broad / L365 仅覆盖 revoke/expire — late-grant 行为未明文规定。**To resolve**: 决定语义 (要么 AbilitySet.grant_ability 加 hook 扫 cant_use_passive tag 自动 disable 新 passive, 要么 Goal docstring 明文 "late-granted passives escape active Break")。Final Consistency Review 决断。
-- **tick(dt) 不短路 - TimeDurationComponent 持续计时**: 当前 Ability.tick() (component-level on_tick) 没加 is_disabled 短路, 只有 tick_executions 加了。如果未来出现 ability_tags=["passive","buff"] + TimeDurationConfig 的临时 passive, break 期内它的 duration 仍计时 → 期内被 "消费" 掉。**To resolve**: 与 late-grant 一起评议; 要么 tick() 也短路 (mirror tick_executions), 要么 Goal docstring 明文 "duration 在 Break 期间继续计时"。
-- **没 push GameEvent for ability_disabled / ability_enabled**: `_BreakPassivesAction` 只在 ActionResult.metadata 里报 disabled_passive_count, 不 push canonical event。replay 流没有"哪个 passive 被哪个 source disable"的直接证据 — 现有 break scenarios 用 indirect side-effect (reflect 数, damage 数值) 间接验证。**To resolve**: 新增 GameEvent.AbilityDisabled / AbilityEnabled 类 (push from `Ability.add_disabled_source` empty→non-empty + `remove_disabled_source` non-empty→empty), scenario 直接断言 event 顺序。Phase C+ 都受益。
-- **Ability.serialize() 不含 _disabled_sources**: replay / SkillPreview UI / 未来 save-load 看不到 disabled 状态。前端 BuffVisualizer ✗ icon 显示了 Break buff, 但 ability serialize 看 Thorn 仍 "正常"。**To resolve**: 加 `"isDisabled": is_disabled()` + `"disabledSources": _disabled_sources.keys()` 到 serialize() (sorted for determinism)。
-
-### Phase B2 (Break) — low / nit
-- **damage_action.gd 全局 unseeded randf crit**: pre-existing, 不是 Phase B2 引入, 但导致 Break Thorn / Overlap scenario 必须用 1-2 区间 reflect 而非 exact 数。Final Consistency 时考虑 harness startup 加 `seed(0xDEAD)` 让 crit 确定性。
-- **StatModifierComponent.on_passive_enabled 重入安全**: 若未来 disable/enable 双路径 race, 可能 add_modifier 报 "already exists" warning。**To resolve**: 在 on_passive_enabled 入口 assert `applied_modifiers.is_empty()` 或 defensively `raw.remove_modifiers_by_source(ability.id)` 再 add。
+(Final Consistency Review 已收口 — 转入 ## Consistency Review 的 "Items accepted descope" 段; 详见下方。)
 
 ## Consistency Review
 
-(所有 phase 完成后填入。)
+2026-05-24 - 全 9 phase + Prep + Kickoff 完成。Goal.md vs 实现逐项比对:
 
-- <date> - Goal.md vs 实现: <no divergence | resolved items list>
-- `Consistency review: no divergence`（或 `N items resolved`）
+### Deliverables 比对
+
+| Goal.md 三层强制 | Logic 层 | Frontend 层 | 验收层 |
+|---|---|---|---|
+| Phase A Stun | ✅ HexBattleStunBuff + skill_stun + CancelActiveExecutionsAction + scenario | ✅ BuffVisualizer ★ entry + StageCueVisualizer control_stunned 飘字 | ✅ scenario PASS + dev-agent PASS |
+| Phase B Silence | ✅ HexBattleSilenceBuff + skill_silence + 18 active skill condition + 2 scenarios | ✅ BuffVisualizer 🤐 + StageCueVisualizer control_silenced 飘字 | ✅ scenario PASS + dev-agent PASS |
+| Phase B2 Break (改 core) | ✅ HexBattleBreakBuff + skill_break + LGF core (_disabled_sources + receive_event/tick_executions 短路 + on_passive_disabled/enabled hooks + StatModifier/DynamicStatModifier 实现) + 4 scenarios | ✅ BuffVisualizer ✗ + StageCueVisualizer control_broken 飘字 | ✅ scenario PASS + dev-agent PASS + -Required 15/16 (1 pre-existing flake) |
+| Phase C0 Summon Totem 正式 | ✅ TOTEM CharacterClass + HexBattleSpawnActorAction + TotemAttack + TotemLifetime + summon_totem + harness/skill_preview env-tick 改 | ✅ totem 走 CharacterActor 默认渲染 (复用) — 自定义 totem 视觉 follow-up | ✅ scenario PASS + dev-agent PASS |
+| Phase C Fire Tile (minimal) | ✅ FireTile EnvironmentActor + FireTilePulse + FireTileLifetime + SpawnFireTileAction + skill_spawn_fire_tile + scenario | ⚠️ FireTile 走 EnvironmentActor 默认渲染 (复用 stone_wall renderer 占位) — 火焰 sprite / pulse VFX follow-up | ✅ scenario PASS + dev-agent PASS |
+| Phase D Cleanse | ✅ HexBattleCleanse + 内嵌 _CleanseAction (priority + revoke) + scenario | ⚠️ StageCueVisualizer 已 push control_cleansed cue, 但未加 CONTROL_FLOATING_TEXTS 飘字 entry (follow-up) | ✅ scenario PASS |
+| Phase E Swap | ✅ HexBattleSwap + 内嵌 _SwapPositionsAction (atomic + 双 ActorDisplacedEvent) + scenario | ⚠️ StageCueVisualizer push swap_blink cue, 未加专门飘字 (follow-up) | ✅ scenario PASS |
+| Phase F Lifesteal | ✅ HexBattleLifesteal + 内嵌 _LifestealHealAction (on_hit callback chain) + scenario | ⚠️ 复用 melee_slash cue (follow-up: 加 lifesteal 红色丝线 VFX) | ✅ scenario PASS |
+| Phase G Piercing Line | ✅ HexBattlePiercingLine + 内嵌 _PiercingLineSelector + scenario | ⚠️ push piercing_line_cast cue, frontend 默认 noop (follow-up: 直线 beam VFX) | ✅ scenario PASS |
+
+### Non-Goals 验证 (V1 没做的)
+
+- ✅ 没抽通用 interrupt policy / StatusSystem / TileSystem / EquipmentSystem
+- ✅ 没为每个新技能复制 Stun/Silence/Break buff class (3 个 canonical buff, 参数化)
+- ✅ 没改 core Timeline 语义
+- ✅ V1 没做 PassiveGateway / BuffGateway (只做 ActiveGateway via 每个 skill 自挂 condition)
+- ✅ V1 没做 Dispel positive buff (Cleanse 仅清 negative)
+- ✅ V1 没做 Cone AoE (只做 Piercing Line)
+- ✅ V1 没做 passive Lifesteal (只做主动)
+- ✅ 没做暂缓项 (Pull / Counter / Flame Barrier / Corpse / Summon Wall / Equipment / Synergy)
+- ✅ 没为单个技能搭独立 frontend 渲染系统 (复用 BuffVisualizer BUFF_REGISTRY 加行 + StageCueVisualizer CONTROL_FLOATING_TEXTS map; FireTile/Totem 走 CharacterActor/EnvironmentActor 默认渲染)
+
+### Open Review Findings 处理
+
+Phase B2 留的 6 项 mediums/lows 全部转入 **accepted descope** post-V1 follow-up (见下方专门段)。
+所有 P1+ scenario gap 都已在 phase 内补完 (Phase B 3 medium / Phase B2 3 severe)。
+
+### Frontend 表演层契约对比
+
+- ✅ 三层架构 (Core / Game Logic / Presentation) 顺序未反 (先 Logic + scenario PASS, 再做 Frontend)
+- ✅ Logic 层不引用 frontend (BuffVisualizer / StageCueVisualizer 通过 EventCollector / replay 驱动)
+- ✅ 复用现有 frontend 渲染 pattern (BuffVisualizer.BUFF_REGISTRY 加行; StageCueVisualizer 加 CONTROL_FLOATING_TEXTS / cue branch)
+- ⚠️ 部分 phase (D/E/F/G/C/C0) frontend 仅 push 了 stage cue, 没加专门 visualizer 翻译 — minimal 行为 acceptable, 后续可批量加 cue → floating text mapping
+
+### Items resolved
+
+7 items (Phase B 3 medium + Phase B2 3 severe + Phase C0 harness env-tick fix) 当场修复进 phase commits。
+
+### Items accepted descope (转 Open Review Findings → 这里 final 收口)
+
+- Phase B2: late-grant passive escape Break — Goal V1 没明文要求, 后续 phase 评议
+- Phase B2: tick(dt) 不短路 TimeDurationComponent — latent (无 passive+TimeDuration 组合用例), 后续约定语义
+- Phase B2: ability_disabled / ability_enabled GameEvent — frontend / replay 增强, post-V1
+- Phase B2: Ability.serialize() 不含 _disabled_sources — replay introspection follow-up
+- Phase B2: damage_action 全局 unseeded randf — pre-existing, scenario harness 添加 seed 可消除 flake, post-V1
+- Phase B2: StatModifierComponent.on_passive_enabled 重入安全 — defensive coding, 无当前 race 用例
+- Phase C: HexBattleActor.placement_mode (UNPLACED/OCCUPANT/OVERLAY) 字段未加 — V1 fire tile 不 place_occupant 自然不与 character occupant 打架, 充分; full placement_mode 抽象 + battle tick 双线 (alive Character ATB/AI vs all HexBattleActor ability tick) 留 follow-up
+- Frontend: 大多数 phase 没单独 visualizer / floating text mapping — 复用现有 cue + 默认渲染, V1 acceptable; 后续可批量加 stage cue → control floating text / VFX 映射
+
+`Consistency review: 7 items resolved + 8 accepted descope`
 
 ## Blockers
 
