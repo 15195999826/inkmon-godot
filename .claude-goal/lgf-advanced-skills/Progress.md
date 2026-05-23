@@ -47,6 +47,7 @@
 - 2026-05-23 - Prep · 目录整理 - 主仓 commits 7d3a106 + fe42f15 + sub commit 673d2b4 - review: pass (1 high fixed: lgf-new-logic-skill SKILL.md 旧路径) - smoke: hex/regression + hex/skills + hex/skill-preview + core/skill-preview-env 13/13 PASS - skill-preview: N/A (现有技能 smoke 覆盖,无新 skill)
 - 2026-05-23 - Phase A · Stun - 主仓 commits 2e363b4 + 08185f9 + sub commits d0abb95 + c692c42 - review: pass (1 high fixed: HexBattleCancelActiveExecutionsAction ALLOWLIST register) - smoke: hex/skills + core/unit 4/4 PASS (Stun 两 scenario + 全 LGF 单测 + 全 hex skill scenarios) - skill-preview: PASS (dev-agent 实证 grant buff_stun → cant_act 拦 Strike (reason="已有 Tag: cant_act") → ~1900ms expire → Strike 恢复 50 damage)
 - 2026-05-24 - Phase B · Silence - 主仓 commits 4590735 + b4dd4b6 + sub commits 0dc97ec + 3a3ab62 - review: pass (3 mediums fixed: scenario 加 Thorn passive 触发验证 + 新 in-flight scenario + Move 用 docstring 论证 by-design 结构性保证) - smoke: hex/skills + core/unit PASS (silence 两 scenario + 全 LGF 单测 + 全 hex skill scenarios) - skill-preview: PASS (dev-agent 实证 grant buff_silence → cant_use_skill 拦 Fireball (reason="cant_use_skill") → Strike 不挡 (50 damage) → ~1900ms expire → Fireball 恢复 120 damage)
+- 2026-05-24 - Phase B2 · Break (改 LGF core) - 主仓 commits a546579 + 9009d45 + sub commits 443746d + 95457ba - review: pass (3 severe fixed: scenario frame-based 断言替换模糊计数; 4 medium + 2 low 转 Open Review Findings 待 Final Consistency Review 清空) - smoke: hex/skills 34/34 PASS (4 break scenarios) + core/unit PASS (LGF 单测 + Repo scan allowlist) + -Required 15/16 (1 pre-existing flake `smoke_ai_vs_ai_observe` 并发负载) - skill-preview: PASS (dev-agent 实证 Thorn passive 期内 disabled 不反伤 → break expire frame 23 → 期后 Strike 触发 Thorn 反伤 2 PURE)
 
 ## Known Baseline Flakes (Phase A 发现, pre-existing)
 
@@ -57,7 +58,16 @@
 
 medium-severity review findings 允许延后，但 Final Consistency Review 前必须清空。
 
-- None
+### Phase B2 (Break) — code-review max 剩余 mediums
+
+- **late-grant passives escape Break**: Break buff `_BreakPassivesAction` 在 on_apply 时 snapshot passive 列表; break 期内 grant 的新 passive 不会被 disable。Goal doc L305 措辞 "Break 在一定时间内, 禁用 actor 的 passive skill" broad / L365 仅覆盖 revoke/expire — late-grant 行为未明文规定。**To resolve**: 决定语义 (要么 AbilitySet.grant_ability 加 hook 扫 cant_use_passive tag 自动 disable 新 passive, 要么 Goal docstring 明文 "late-granted passives escape active Break")。Final Consistency Review 决断。
+- **tick(dt) 不短路 - TimeDurationComponent 持续计时**: 当前 Ability.tick() (component-level on_tick) 没加 is_disabled 短路, 只有 tick_executions 加了。如果未来出现 ability_tags=["passive","buff"] + TimeDurationConfig 的临时 passive, break 期内它的 duration 仍计时 → 期内被 "消费" 掉。**To resolve**: 与 late-grant 一起评议; 要么 tick() 也短路 (mirror tick_executions), 要么 Goal docstring 明文 "duration 在 Break 期间继续计时"。
+- **没 push GameEvent for ability_disabled / ability_enabled**: `_BreakPassivesAction` 只在 ActionResult.metadata 里报 disabled_passive_count, 不 push canonical event。replay 流没有"哪个 passive 被哪个 source disable"的直接证据 — 现有 break scenarios 用 indirect side-effect (reflect 数, damage 数值) 间接验证。**To resolve**: 新增 GameEvent.AbilityDisabled / AbilityEnabled 类 (push from `Ability.add_disabled_source` empty→non-empty + `remove_disabled_source` non-empty→empty), scenario 直接断言 event 顺序。Phase C+ 都受益。
+- **Ability.serialize() 不含 _disabled_sources**: replay / SkillPreview UI / 未来 save-load 看不到 disabled 状态。前端 BuffVisualizer ✗ icon 显示了 Break buff, 但 ability serialize 看 Thorn 仍 "正常"。**To resolve**: 加 `"isDisabled": is_disabled()` + `"disabledSources": _disabled_sources.keys()` 到 serialize() (sorted for determinism)。
+
+### Phase B2 (Break) — low / nit
+- **damage_action.gd 全局 unseeded randf crit**: pre-existing, 不是 Phase B2 引入, 但导致 Break Thorn / Overlap scenario 必须用 1-2 区间 reflect 而非 exact 数。Final Consistency 时考虑 harness startup 加 `seed(0xDEAD)` 让 crit 确定性。
+- **StatModifierComponent.on_passive_enabled 重入安全**: 若未来 disable/enable 双路径 race, 可能 add_modifier 报 "already exists" warning。**To resolve**: 在 on_passive_enabled 入口 assert `applied_modifiers.is_empty()` 或 defensively `raw.remove_modifiers_by_source(ability.id)` 再 add。
 
 ## Consistency Review
 
