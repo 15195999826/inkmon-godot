@@ -54,6 +54,17 @@
 - 2026-05-24 - Phase E · Swap - 主仓 commit b2c39c6 + sub commit fa2fd25 - review: pending (batch) - smoke: hex/skills 38/38 PASS (含 swap_position scenario) + core/unit PASS - skill-preview: PASS via scenario (2 ActorDisplacedEvent 同 swap_id, caster/enemy 位置原子互换 from→to coord); dev-agent batch deferred
 - 2026-05-24 - Phase F · Lifesteal - 主仓 commit 48f48a6 + sub commit 64767a7 - review: pending (batch) - smoke: hex/skills 39/39 PASS (含 lifesteal_basic scenario) + core/unit PASS - skill-preview: PASS via scenario (damage 40 + heal event amount=20 actual*0.5, caster.hp 100→120); dev-agent batch deferred
 - 2026-05-24 - Phase G · Piercing Line - 主仓 commit d96bbca + sub commit 05d37fb - review: pending (batch) - smoke: hex/skills 40/40 PASS (含 piercing_line scenario, 3 enemies 排一行各受 atk PHYSICAL) + core/unit PASS - skill-preview: PASS via scenario; dev-agent batch deferred
+- 2026-05-24 - **Phase D/E/F/G dev-agent batch re-verify (post stop-hook reject)**: phase-defg-verify-v4 session ALL PASS:
+  - Phase D Cleanse: poison_grant @ f3 / remove @ f42 (cleanse hit ~f43 远早于自然 expire f63)
+  - Phase E Swap: 2 ActorDisplacedEvent 同 swap_id=swap_39 @ f3, from↔to coord 互换
+  - Phase F Lifesteal: damage 50 enemy + heal 25 caster @ f3 (actual 50 * 0.5 = 25)
+  - Phase G Piercing Line: 3 main damages @ f3 (50 each), 3 unique targets
+- 2026-05-24 - **Goal-wide /code-review max + 全 phase 修复 (post stop-hook reject)**: 主仓 commits 5231b89(sub) + 3f0e2ef(bump):
+  - 1 HIGH 修: production HexBattleProcedure tick mid-spawn HexBattleActor (修复 demo Totem/FireTile 永不 tick bug)
+  - 5 MEDIUM 修: fire_tile_pulse is_dead guard / skill_preview_procedure disconnect actor_added signal on finish / ActorDisplacedEvent.swap_id 正式字段 (替换 dict patch) / swap actual_distance 用 distance_to / cleanse_priority_scenario 真验证 control > other (caster 同时持 Stun+Poison, ally cleanse → Stun 优先)
+  - 6 frontend cue 补齐 control_cleansed/swap_blink/lifesteal_drain/summon_totem_cast/fire_tile_cast/piercing_line_cast 飘字
+  - 8 LOW/NIT 转 accepted descope (post-V1 follow-up)
+  - 验证: hex/skills 40/40 + core/unit + -Required 16/16 PASS (含 production procedure scenarios)
 
 ## Known Baseline Flakes (Phase A 发现, pre-existing)
 
@@ -77,12 +88,12 @@ medium-severity review findings 允许延后，但 Final Consistency Review 前�
 | Phase A Stun | ✅ HexBattleStunBuff + skill_stun + CancelActiveExecutionsAction + scenario | ✅ BuffVisualizer ★ entry + StageCueVisualizer control_stunned 飘字 | ✅ scenario PASS + dev-agent PASS |
 | Phase B Silence | ✅ HexBattleSilenceBuff + skill_silence + 18 active skill condition + 2 scenarios | ✅ BuffVisualizer 🤐 + StageCueVisualizer control_silenced 飘字 | ✅ scenario PASS + dev-agent PASS |
 | Phase B2 Break (改 core) | ✅ HexBattleBreakBuff + skill_break + LGF core (_disabled_sources + receive_event/tick_executions 短路 + on_passive_disabled/enabled hooks + StatModifier/DynamicStatModifier 实现) + 4 scenarios | ✅ BuffVisualizer ✗ + StageCueVisualizer control_broken 飘字 | ✅ scenario PASS + dev-agent PASS + -Required 15/16 (1 pre-existing flake) |
-| Phase C0 Summon Totem 正式 | ✅ TOTEM CharacterClass + HexBattleSpawnActorAction + TotemAttack + TotemLifetime + summon_totem + harness/skill_preview env-tick 改 | ✅ totem 走 CharacterActor 默认渲染 (复用) — 自定义 totem 视觉 follow-up | ✅ scenario PASS + dev-agent PASS |
-| Phase C Fire Tile (minimal) | ✅ FireTile EnvironmentActor + FireTilePulse + FireTileLifetime + SpawnFireTileAction + skill_spawn_fire_tile + scenario | ⚠️ FireTile 走 EnvironmentActor 默认渲染 (复用 stone_wall renderer 占位) — 火焰 sprite / pulse VFX follow-up | ✅ scenario PASS + dev-agent PASS |
-| Phase D Cleanse | ✅ HexBattleCleanse + 内嵌 _CleanseAction (priority + revoke) + scenario | ⚠️ StageCueVisualizer 已 push control_cleansed cue, 但未加 CONTROL_FLOATING_TEXTS 飘字 entry (follow-up) | ✅ scenario PASS |
-| Phase E Swap | ✅ HexBattleSwap + 内嵌 _SwapPositionsAction (atomic + 双 ActorDisplacedEvent) + scenario | ⚠️ StageCueVisualizer push swap_blink cue, 未加专门飘字 (follow-up) | ✅ scenario PASS |
-| Phase F Lifesteal | ✅ HexBattleLifesteal + 内嵌 _LifestealHealAction (on_hit callback chain) + scenario | ⚠️ 复用 melee_slash cue (follow-up: 加 lifesteal 红色丝线 VFX) | ✅ scenario PASS |
-| Phase G Piercing Line | ✅ HexBattlePiercingLine + 内嵌 _PiercingLineSelector + scenario | ⚠️ push piercing_line_cast cue, frontend 默认 noop (follow-up: 直线 beam VFX) | ✅ scenario PASS |
+| Phase C0 Summon Totem 正式 | ✅ TOTEM CharacterClass + HexBattleSpawnActorAction + TotemAttack + TotemLifetime + summon_totem + production+preview+harness mid-spawn tick | ✅ summon_totem_cast "图腾!" 飘字 (CONTROL_FLOATING_TEXTS); totem 走 CharacterActor 默认渲染 (复用) | ✅ scenario PASS + dev-agent PASS |
+| Phase C Fire Tile (minimal) | ✅ FireTile EnvironmentActor + FireTilePulse + FireTileLifetime + SpawnFireTileAction + skill_spawn_fire_tile + scenario | ✅ fire_tile_cast "火地!" 飘字; FireTile 走 EnvironmentActor 默认渲染 (复用 stone_wall renderer 占位) | ✅ scenario PASS + dev-agent PASS |
+| Phase D Cleanse | ✅ HexBattleCleanse + 内嵌 _CleanseAction (priority + revoke) + priority scenario | ✅ control_cleansed "净化!" 飘字 (HEAL style 白光) | ✅ scenario PASS + dev-agent PASS |
+| Phase E Swap | ✅ HexBattleSwap + 内嵌 _SwapPositionsAction (atomic + 双 ActorDisplacedEvent 同 swap_id 正式字段) + scenario | ✅ swap_blink "换位!" 飘字 | ✅ scenario PASS + dev-agent PASS |
+| Phase F Lifesteal | ✅ HexBattleLifesteal + 内嵌 _LifestealHealAction (on_hit callback chain) + scenario | ✅ lifesteal_drain "汲血!" 飘字 (HEAL style 暗红) + melee_slash attack VFX | ✅ scenario PASS + dev-agent PASS |
+| Phase G Piercing Line | ✅ HexBattlePiercingLine + 内嵌 _PiercingLineSelector + scenario | ✅ piercing_line_cast "穿透!" 飘字 (锐青) | ✅ scenario PASS + dev-agent PASS |
 
 ### Non-Goals 验证 (V1 没做的)
 
@@ -105,25 +116,44 @@ Phase B2 留的 6 项 mediums/lows 全部转入 **accepted descope** post-V1 fol
 
 - ✅ 三层架构 (Core / Game Logic / Presentation) 顺序未反 (先 Logic + scenario PASS, 再做 Frontend)
 - ✅ Logic 层不引用 frontend (BuffVisualizer / StageCueVisualizer 通过 EventCollector / replay 驱动)
-- ✅ 复用现有 frontend 渲染 pattern (BuffVisualizer.BUFF_REGISTRY 加行; StageCueVisualizer 加 CONTROL_FLOATING_TEXTS / cue branch)
-- ⚠️ 部分 phase (D/E/F/G/C/C0) frontend 仅 push 了 stage cue, 没加专门 visualizer 翻译 — minimal 行为 acceptable, 后续可批量加 cue → floating text mapping
+- ✅ 复用现有 frontend 渲染 pattern (BuffVisualizer.BUFF_REGISTRY 加 stun/silence/break 3 行; StageCueVisualizer CONTROL_FLOATING_TEXTS map 加 9 entry 全 phase 飘字)
+- ✅ post-review fix 补齐 Phase D/E/F/G/C/C0 各自专属飘字 (净化! / 换位! / 汲血! / 图腾! / 火地! / 穿透!), 全部走 floating text pipeline; 复用 helper, 未为单 phase 搭独立渲染系统
 
 ### Items resolved
 
-7 items (Phase B 3 medium + Phase B2 3 severe + Phase C0 harness env-tick fix) 当场修复进 phase commits。
+13 items 当场修复进 phase / review-fix commits:
+- Phase B 3 medium (Move 论证 + Thorn passive scenario + in-flight scenario)
+- Phase B2 3 severe (3 break scenarios frame-based 断言)
+- Phase C0 harness env-tick fix (registry-based get_all_actors + recorder register_actor)
+- Goal-wide review HIGH (production HexBattleProcedure tick mid-spawn HexBattleActor)
+- Goal-wide review 5 medium (fire_tile_pulse is_dead guard + skill_preview_procedure
+  disconnect actor_added + ActorDisplacedEvent.swap_id 正式字段 + swap actual_distance
+  用 distance_to + cleanse_priority_scenario 真验证 control > other)
 
 ### Items accepted descope (转 Open Review Findings → 这里 final 收口)
 
+Phase B2 leftover (6):
 - Phase B2: late-grant passive escape Break — Goal V1 没明文要求, 后续 phase 评议
 - Phase B2: tick(dt) 不短路 TimeDurationComponent — latent (无 passive+TimeDuration 组合用例), 后续约定语义
 - Phase B2: ability_disabled / ability_enabled GameEvent — frontend / replay 增强, post-V1
 - Phase B2: Ability.serialize() 不含 _disabled_sources — replay introspection follow-up
 - Phase B2: damage_action 全局 unseeded randf — pre-existing, scenario harness 添加 seed 可消除 flake, post-V1
 - Phase B2: StatModifierComponent.on_passive_enabled 重入安全 — defensive coding, 无当前 race 用例
-- Phase C: HexBattleActor.placement_mode (UNPLACED/OCCUPANT/OVERLAY) 字段未加 — V1 fire tile 不 place_occupant 自然不与 character occupant 打架, 充分; full placement_mode 抽象 + battle tick 双线 (alive Character ATB/AI vs all HexBattleActor ability tick) 留 follow-up
-- Frontend: 大多数 phase 没单独 visualizer / floating text mapping — 复用现有 cue + 默认渲染, V1 acceptable; 后续可批量加 stage cue → control floating text / VFX 映射
 
-`Consistency review: 7 items resolved + 8 accepted descope`
+Phase C placement_mode (1):
+- Phase C: HexBattleActor.placement_mode (UNPLACED/OCCUPANT/OVERLAY) 字段未加 — V1 fire tile 不 place_occupant 自然不与 character occupant 打架, 充分; full placement_mode 抽象 + battle tick 双线 (alive Character ATB/AI vs all HexBattleActor ability tick) 留 follow-up
+
+Goal-wide review LOW / NIT (8):
+- Phase C0: SpawnActorAction.attribute_overrides 只识别 max_hp/hp/atk; def/speed/任意 key 默默丢 — 加 push_warning unknown key follow-up
+- Phase C0: _find_free_neighbor 顺序固定 (HexCoord.DIRECTIONS) — 战术可预测, caster.facing_direction 优先 follow-up
+- Phase C: SpawnFireTileAction.pulse_interval_ms / pulse_damage 参数 dead code (写死 DEFAULT) — fire_tile_pulse.create_config(interval, damage) factory follow-up
+- Phase C: FireTile.create() 不接 hp/profile 参数 — boss-tier 高血火地 follow-up
+- Phase D: Cleanse on_timeline_start StageCue 无条件触发 — 改成 _CleanseAction success 分支 push follow-up
+- Phase F: _LifestealHealAction 每次新建 HexBattleHealAction 不 freeze — 改 static frozen + float_fn resolver follow-up
+- Phase G: _PiercingLineSelector 方向 tie-break 不 deterministic (caster==target 退化, 对称位置取 dir[0]) — caster.facing_direction tie-break follow-up
+- skill_preview_procedure 191-196 EnvironmentActor in-flight 探测多遍历一次 (triggered 已聚合) — micro-cleanup follow-up
+
+`Consistency review: 13 items resolved + 15 accepted descope`
 
 ## Blockers
 
