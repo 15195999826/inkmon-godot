@@ -44,6 +44,7 @@
 `<date> - phase <N> - commit <short-sha> - review: <pass / N findings fixed> - smoke: <pass / skipped: reason> - skill-preview: <PASS / N/A>`
 
 - 2026-05-23 - kickoff baseline - 主仓 commit 07a6057 + sub commit 33e4f0b - review: N/A (docs only) - smoke: N/A - skill-preview: N/A
+- 2026-05-23 - Prep · 目录整理 - 主仓 commits 7d3a106 + fe42f15 + sub commit 673d2b4 - review: pass (1 high fixed: lgf-new-logic-skill SKILL.md 旧路径) - smoke: hex/regression + hex/skills + hex/skill-preview + core/skill-preview-env 13/13 PASS - skill-preview: N/A (现有技能 smoke 覆盖,无新 skill)
 
 ## Open Review Findings
 
