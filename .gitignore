@@ -4,4 +4,5 @@
 .claude/settings.local.json
 .claude/tmp/
 art/kaykit
-.claude-goal
+.claude-goal/*
+!.claude-goal/lgf-advanced-skills/
