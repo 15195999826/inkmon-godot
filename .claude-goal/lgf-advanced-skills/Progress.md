@@ -46,6 +46,7 @@
 - 2026-05-23 - kickoff baseline - 主仓 commit 07a6057 + sub commit 33e4f0b - review: N/A (docs only) - smoke: N/A - skill-preview: N/A
 - 2026-05-23 - Prep · 目录整理 - 主仓 commits 7d3a106 + fe42f15 + sub commit 673d2b4 - review: pass (1 high fixed: lgf-new-logic-skill SKILL.md 旧路径) - smoke: hex/regression + hex/skills + hex/skill-preview + core/skill-preview-env 13/13 PASS - skill-preview: N/A (现有技能 smoke 覆盖,无新 skill)
 - 2026-05-23 - Phase A · Stun - 主仓 commits 2e363b4 + 08185f9 + sub commits d0abb95 + c692c42 - review: pass (1 high fixed: HexBattleCancelActiveExecutionsAction ALLOWLIST register) - smoke: hex/skills + core/unit 4/4 PASS (Stun 两 scenario + 全 LGF 单测 + 全 hex skill scenarios) - skill-preview: PASS (dev-agent 实证 grant buff_stun → cant_act 拦 Strike (reason="已有 Tag: cant_act") → ~1900ms expire → Strike 恢复 50 damage)
+- 2026-05-24 - Phase B · Silence - 主仓 commits 4590735 + b4dd4b6 + sub commits 0dc97ec + 3a3ab62 - review: pass (3 mediums fixed: scenario 加 Thorn passive 触发验证 + 新 in-flight scenario + Move 用 docstring 论证 by-design 结构性保证) - smoke: hex/skills + core/unit PASS (silence 两 scenario + 全 LGF 单测 + 全 hex skill scenarios) - skill-preview: PASS (dev-agent 实证 grant buff_silence → cant_use_skill 拦 Fireball (reason="cant_use_skill") → Strike 不挡 (50 damage) → ~1900ms expire → Fireball 恢复 120 damage)
 
 ## Known Baseline Flakes (Phase A 发现, pre-existing)
 
