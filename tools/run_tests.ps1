@@ -18,6 +18,7 @@ param(
     [string[]]$Groups,
     [switch]$List,
     [switch]$Required,
+    [switch]$SkipImportRefresh,
     [int]$MaxParallel = 5
 )
 
@@ -37,6 +38,32 @@ New-Item -ItemType Directory -Force -Path $WrapperDir | Out-Null
 # always reflects only what's executing right now.
 Get-ChildItem -Path $WrapperDir -Filter *.bat -ErrorAction SilentlyContinue |
     Remove-Item -Force -ErrorAction SilentlyContinue
+
+if (-not $SkipImportRefresh -and -not $List) {
+    $ImportLog = Join-Path $LogDir "_godot_import_refresh.log"
+    $ImportBat = Join-Path $WrapperDir "_godot_import_refresh.bat"
+    if (Test-Path $ImportLog) { Remove-Item $ImportLog -Force -ErrorAction SilentlyContinue }
+    $importBatBody = @"
+@echo off
+"$GodotExe" --headless --path . --import --quit > "$ImportLog" 2>&1
+set GD_EC=%ERRORLEVEL%
+(echo __GODOT_EXIT_CODE=%GD_EC%)>> "$ImportLog"
+exit /b %GD_EC%
+"@
+    Set-Content -Path $ImportBat -Value $importBatBody -Encoding ASCII
+
+    $importProc = Start-Process -FilePath $ImportBat -PassThru -NoNewWindow -WorkingDirectory $RepoRoot
+    $importProc.WaitForExit()
+    $importOutput = if (Test-Path $ImportLog) { Get-Content $ImportLog -Raw -ErrorAction SilentlyContinue } else { "" }
+    $importExitCode = if ($importOutput -match "__GODOT_EXIT_CODE=(\d+)") { [int]$matches[1] } else { -1 }
+    if (Test-Path $ImportBat) { Remove-Item $ImportBat -Force -ErrorAction SilentlyContinue }
+
+    if ($importExitCode -ne 0) {
+        Write-Host "Godot import refresh failed before tests. See: $ImportLog" -ForegroundColor Red
+        Get-Content $ImportLog -Tail 40 -ErrorAction SilentlyContinue
+        exit $importExitCode
+    }
+}
 
 # --- Discover manifests ---
 $ManifestPatterns = @(
