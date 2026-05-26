@@ -91,7 +91,18 @@ Non-goals held:
 - DevAgent remains scene-gated and disabled by default.
 - `item-preview` remains the data-rule authority; SkillPreview only reuses its controls and routes through the same item domain/service APIs.
 
-Remaining accepted descope:
+Follow-up notes:
 
 - Inventory panel is scoped to the SkillPreview character actor roster; environment actors are not exposed as equipment-bearing UI targets in Phase F.
-- The explicit single-scene validation used Windows `godot_console` for reliable redirected console output; the scene is also covered by `hex/regression`.
+- The explicit `smoke_hex_item_domain.tscn` single-scene validation used Windows `godot_console` for reliable redirected console output; that data-layer scene is also covered by `hex/regression`.
+- `smoke_skill_preview_inventory.tscn` is registered under `hex/skill-preview`, not `hex/regression`; future inventory acceptance must keep the DevAgent JSONL real-input drag/drop run in the gate when validating the UI loop.
+
+### Review Follow-up Checkpoint
+
+- Converted SkillPreview world reset equipment-unload failure from crash-only assert flow to recoverable `false` with `Log.error`, so UI/DevAgent reset calls can report `ok=false`.
+- Registered actor equipment containers inside the `after_id_assigned` callback before `actor_added` is emitted.
+- Tightened remove lifecycle: `remove_actor()` confirms the world actor exists before unregistering inventory, and environment removal now checks the world remove result.
+- Stabilized `smoke_skill_preview_inventory.gd` seed item lookup by `config_id + slot_index`, avoiding reliance on container insertion order.
+- PASS after follow-up: `./tools/run_tests.ps1 hex/skill-preview -MaxParallel 2` - 9/9.
+- PASS after follow-up: `./tools/run_tests.ps1 hex/regression -MaxParallel 2` - 5/5.
+- PASS after follow-up: `./tools/run_tests.ps1 -Required -MaxParallel 2` - 19/19.
