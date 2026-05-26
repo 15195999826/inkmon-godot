@@ -117,3 +117,13 @@ Follow-up notes:
 - PASS after semantics update: `./tools/run_tests.ps1 hex/regression -MaxParallel 2` - 5/5.
 - PASS after semantics update: `./tools/run_tests.ps1 -Required -MaxParallel 2` - 19/19.
 - Note: an attempted parallel launcher run hit Godot import-refresh file locking; the same gates were rerun serially and passed.
+
+### DevAgent Reset-Demo Transcript Refresh
+
+- PASS DevAgent JSONL real-input acceptance for updated reset semantics.
+- Session: `skill-preview-reset-demo-acceptance`.
+- Outbox: `C:\Users\Administrator\AppData\Roaming\Godot\app_userdata\Inkmon\dev-agent\sessions\skill-preview-reset-demo-acceptance\outbox.jsonl`.
+- Godot log: `C:\Users\Administrator\AppData\Roaming\Godot\app_userdata\Inkmon\dev-agent\sessions\skill-preview-reset-demo-acceptance\godot.log`.
+- Ops: 40 outbox entries.
+- Covered: initial inventory state, actor selection sync, bag -> equipment success, occupied reject, non-equipable reject, equipment -> bag, add actor creates equipment container, remove actor unloads/cleans container, `reset_world_to_model` restores initial demo inventory, `start_battle -> wait_for_idle -> reset_battle` restores initial demo inventory.
+- Observed reset proof: initial player bag id `2`, final player bag id `9`; sword item id before reset `1`, after `reset_world_to_model` `6`, after `reset_battle` `11`, confirming fresh demo item instances.
