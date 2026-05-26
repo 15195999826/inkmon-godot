@@ -12,8 +12,8 @@
 - `SkillPreviewWorldGI` now holds the same `HexPlayerInventory`.
 - `SkillPreviewWorldGI.add_actor()` registers equipment containers for scene `CharacterActor` runtime ids.
 - `SkillPreviewWorldGI.remove_actor()` unloads equipment to player bag before removing an actor.
-- `SkillPreviewWorldGI.reset()` clears old actor equipment containers while preserving player bag and items; new scene actors rebuild equipment containers with new runtime actor ids.
-- Added `HexPlayerInventory.clear_actor_equipment_keep_player()` for SkillPreview reset semantics.
+- SkillPreview reset now restores the initial demo inventory state: old item session is torn down, seed bag is recreated, and new scene actors rebuild equipment containers with new runtime actor ids.
+- Added `HexPlayerInventory.clear_actor_equipment_keep_player()` for keep-player reset semantics; SkillPreview product reset later moved to full demo session rebuild.
 - Added SkillPreview `Inventory` workspace tab:
   - player bag grid.
   - selected/current actor equipment slots `1..6`.
@@ -57,8 +57,8 @@ Covered:
 - equipment -> bag.
 - add actor creates equipment container.
 - remove actor unloads/cleans container.
-- reset keeps player bag and rebuilds actor equipment.
-- start/reset battle keeps inventory state consistent.
+- reset restores initial demo inventory and rebuilds actor equipment.
+- start/reset battle returns inventory to initial demo state.
 
 ### Final Validation
 
@@ -75,7 +75,7 @@ Phase F deliverables:
 
 - SkillPreview boots a real preview-local `ItemSystem` session with `HexItemDomain`, `HexItemCatalog`, and `HexPlayerInventory`.
 - `SkillPreviewWorldGI` owns/accesses the same player inventory and synchronizes actor equipment containers against runtime actor ids.
-- Player bag and player-owned item instances survive world reset; actor equipment containers are rebuilt or cleaned up on reset/add/remove.
+- Reset restores the initial demo player bag/items; actor equipment containers are rebuilt or cleaned up on reset/add/remove.
 - Actor removal refuses to destroy an equipped item if unload-to-bag fails.
 - Inventory workspace tab shows player bag and selected actor equipment slots `1..6`.
 - Bag/equipment drag/drop uses `ItemSystem.move_item()` and keeps `HexPlayerInventory` / `ItemSystem` as the single authoritative state.
@@ -106,3 +106,14 @@ Follow-up notes:
 - PASS after follow-up: `./tools/run_tests.ps1 hex/skill-preview -MaxParallel 2` - 9/9.
 - PASS after follow-up: `./tools/run_tests.ps1 hex/regression -MaxParallel 2` - 5/5.
 - PASS after follow-up: `./tools/run_tests.ps1 -Required -MaxParallel 2` - 19/19.
+
+### Product Semantics Update
+
+- User decision: SkillPreview reset should restore the initial demo state, not preserve player bag state.
+- Updated reset path to rebuild the preview-local `ItemSystem` session, recreate the seeded player bag, and rebuild actor equipment containers from fresh runtime actor ids.
+- Updated `smoke_skill_preview_inventory.gd` to assert old equipped item instances are destroyed, seed items reappear in initial bag slots, and rebuilt actor equipment slots are empty after reset.
+- Updated DevAgent docs so `reset_world_to_model` / `reset_battle` acceptance expects initial demo inventory state.
+- PASS after semantics update: `./tools/run_tests.ps1 hex/skill-preview -MaxParallel 2` - 9/9.
+- PASS after semantics update: `./tools/run_tests.ps1 hex/regression -MaxParallel 2` - 5/5.
+- PASS after semantics update: `./tools/run_tests.ps1 -Required -MaxParallel 2` - 19/19.
+- Note: an attempted parallel launcher run hit Godot import-refresh file locking; the same gates were rerun serially and passed.

@@ -10,7 +10,7 @@
 - `SkillPreviewWorldGI` 持有并访问同一套 `HexPlayerInventory`。
 - SkillPreview scene actor equipment containers 使用真实 runtime actor id, 不硬编码 actor id。
 - actor add/remove/reset/start-reset lifecycle 同步创建、卸回、清理或重建 equipment containers。
-- player bag 和 player-owned items 在 reset 中保留。
+- reset/start-reset 恢复初始 demo inventory 状态，重建 player bag seed 和 actor equipment containers。
 - `skill_preview` UI 增加 Inventory tab, 展示 player bag 和当前/选中 actor 的 6 个 equipment slots。
 - bag/equipment drag/drop 复用 `item-preview` 控件规则, 业务 mutation 只走 `ItemSystem.move_item()`。
 - DevAgent scene ops 支持 `inventory_state`、`inventory_layout_state`、`selected_actor_equipment_state`, 并能通过 `drag_at` 真实输入验证 inventory UI 操作。
