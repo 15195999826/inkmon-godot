@@ -1,10 +1,12 @@
 # Progress
 
-最后更新：2026-05-21
+最后更新：2026-05-27
 
 ## 当前状态
 
-代码、文档与验证已完成；待提交。
+状态：complete。
+
+代码、文档与验证已完成。本文件之前的“待提交”表述是 stale 状态；当前没有剩余实现或验证工作。
 
 ## 已完成
 
@@ -18,7 +20,7 @@
 - [x] 修正 `SkillPreviewProcedure` 自写 ability tick 漂移：正式 runtime tick 抽到 `HexBattleProcedure.tick_actor_ability_runtime()` 复用，preview 只调度 keyframe；已死亡 actor 的 pending keyframe / buff tick 不再继续执行。
 - [x] 同步 remaining skills docs 的 spike closeout 状态。
 
-## 待验证
+## 验证记录
 
 - [x] `./tools/run_tests.ps1 hex/skill-preview` — PASS 8 / FAIL 0。
 - [x] `./tools/run_tests.ps1 core/unit hex/skills hex/skill-preview` — PASS 12 / FAIL 0。
@@ -33,3 +35,7 @@
 - 未实现正式 Summon Totem。
 - 未触碰 Phase 2+ advanced skills。
 - 不纳入本目标前已存在的无关 dirty/untracked 文件。
+
+## 收口说明
+
+- 2026-05-27：修正 stale 文档状态；该 goal 已收口，不再作为当前开发入口。

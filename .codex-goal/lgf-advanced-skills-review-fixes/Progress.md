@@ -1,10 +1,10 @@
 # Progress
 
-Last updated: 2026-05-24 03:12 +08:00
+Last updated: 2026-05-27
 
 ## Current State
 
-- Status: active
+- Status: complete
 - Branch: `master`
 - Main repo review base: current workspace after LGF advanced skills Phase 2+ completion.
 - Submodule: `addons` has the relevant LGF changes; leave unrelated untracked `sim-nav-map/docs/references/dota2-style-source/` alone.
@@ -24,7 +24,8 @@ Last updated: 2026-05-24 03:12 +08:00
 - 2026-05-24 03:12 +08:00 - Fixes landed - Fire Tile overlay cleanup is occupant-safe; production `HexBattleProcedure` registers mid-spawn actors; spawn actions initialize position/team/abilities before `actor_added` observers snapshot; Cleanse self-target is allowed only when `self` tag is present; Break skips `lifetime` passives so Totem/FireTile lifetime still expires.
 - 2026-05-24 03:12 +08:00 - Coverage added - Tightened Fire Tile occupant assertion; added Cleanse self scenario, Break lifetime scenario, and `smoke_mid_spawn_production_replay` covering Summon Totem + Fire Tile actorSpawned/abilityGranted/executionActivated/actorDestroyed in production procedure path.
 - 2026-05-24 03:12 +08:00 - Validation - `git -C addons diff --check` PASS; `./tools/run_tests.ps1 hex/skills` PASS 4/4; `./tools/run_tests.ps1 hex/regression` PASS 3/3; `./tools/run_tests.ps1 core/unit hex/skills hex/regression` PASS 6/6.
+- 2026-05-27 - Documentation residue cleanup - Corrected stale `active` status to `complete`; this goal has no remaining implementation or validation work.
 
 ## Blockers
 
-- None.
+- None; goal closed.
