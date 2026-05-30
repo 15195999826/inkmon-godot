@@ -11,6 +11,11 @@
       "scenes": [
         "../../scenes/inkmon-main/tests/smoke_session_spine.tscn"
       ]
+    },
+    "app-root": {
+      "scenes": [
+        "../../scenes/inkmon-main/tests/smoke_app_root.tscn"
+      ]
     }
   }
 }
