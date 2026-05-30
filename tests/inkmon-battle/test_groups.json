@@ -16,6 +16,11 @@
       "scenes": [
         "../../scenes/inkmon-main/tests/smoke_app_root.tscn"
       ]
+    },
+    "content": {
+      "scenes": [
+        "../../scenes/inkmon-main/tests/smoke_content_contract.tscn"
+      ]
     }
   }
 }
