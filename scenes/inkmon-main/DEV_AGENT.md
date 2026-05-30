@@ -2,12 +2,8 @@
 
 ## Scene Classification
 
-Business/data-flow runtime validation.
-
-The current `InkMonMain.tscn` has no player-facing UI. Scene ops use direct calls
-to validate session ownership, battle transition, reward application, and runtime
-scene startup. Future overworld movement visuals and NPC panels must get their
-own UI discussion, image mockup, and real input validation where relevant.
+Business/data-flow runtime validation plus real-input checks for the current
+overworld/NPC side-sheet surface.
 
 ## Launch
 
@@ -26,8 +22,8 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `player_coord`, `near_npc_id`, `active_npc_id`, `panel_open`, `bag`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
-| `layout_state` | none | viewport and clickable rects for prompt, panel close, Shop buy buttons, and Trainer CTA |
+| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `near_npc_id`, `active_npc_id`, `panel_open`, `bag`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `layout_state` | none | viewport and clickable rects for prompt, panel close, generic NPC action buttons, Shop buy buttons, and Training CTA |
 
 ### Action
 
@@ -35,12 +31,16 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 | --- | --- | --- | --- |
 | `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
+| `npc_action` | `{ "npc_id": string, "action_id": string }` | runs a system NPC handler action for smoke/data validation | action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
+| `save_game` | `{ "path": string }` | writes `InkMonGameSession.to_dict()` JSON to `user://` path | `ok == true` |
+| `load_game` | `{ "path": string }` | reads JSON, rebuilds session runtime containers, returns to `OVERWORLD` | restored `gold`, `roster`, `progression`, `bag` |
 
 Player-facing UI paths must use raw real input:
 
 - `tap_key {"key":"D"}` moves the player near the Shop and should set `near_npc_id == "shop"`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC panel.
 - `click_at` on `layout_state.shop_buy_buttons.minor_rune` buys Minor Rune and should reduce gold by 10.
+- `click_at` on `layout_state.npc_action_buttons.start_training_battle` starts and completes the Training battle.
 - `click_at` on `layout_state.close_button` closes the side sheet.
 
 ### Raw Bridge Ops
@@ -63,6 +63,9 @@ Generic DevAgent ops remain available:
 {"id":"02","op":"scene","name":"run_training_battle","args":{"max_ticks":8}}
 {"id":"03","op":"scene","name":"state"}
 {"id":"04","op":"inspect_tree","root":"/root/InkMonMain","max_depth":3}
+{"id":"05","op":"scene","name":"npc_action","args":{"npc_id":"cultivation","action_id":"cultivate_lead"}}
+{"id":"06","op":"scene","name":"save_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
+{"id":"07","op":"scene","name":"load_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
 ```
 
 Pass criteria:

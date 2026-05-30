@@ -8,6 +8,11 @@ const InkMonOverworldViewScript := preload("res://scenes/inkmon-main/ui/ink_mon_
 
 enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 
+const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
+const CULTIVATION_COST := 25
+const ADVANCEMENT_COST := 40
+const ADOPT_COST := 15
+
 var session: InkMonGameSession
 var app_state: AppState = AppState.OVERWORLD
 var last_battle_result: Dictionary = {}
@@ -26,11 +31,32 @@ var _npc_defs: Dictionary = {
 		"coord": Vector2i(2, 0),
 	},
 	"trainer": {
-		"display_name": "Trainer",
-		"type": "trainer",
+		"display_name": "Training",
+		"type": "training",
 		"coord": Vector2i(-2, 1),
 	},
+	"cultivation": {
+		"display_name": "Cultivation",
+		"type": "cultivation",
+		"coord": Vector2i(0, 2),
+	},
+	"guild": {
+		"display_name": "Guild",
+		"type": "guild",
+		"coord": Vector2i(2, -1),
+	},
+	"advancement": {
+		"display_name": "Trainer Advancement",
+		"type": "advancement",
+		"coord": Vector2i(-2, 0),
+	},
+	"release_adopt": {
+		"display_name": "Release / Adopt",
+		"type": "release_adopt",
+		"coord": Vector2i(0, -2),
+	},
 }
+var _npc_handlers: Dictionary = {}
 
 var _world_layer: InkMonOverworldView
 var _hud_layer: CanvasLayer
@@ -46,6 +72,7 @@ var _npc_panel: PanelContainer
 var _panel_title: Label
 var _panel_body: VBoxContainer
 var _close_button: Button
+var _action_buttons: Dictionary = {}
 var _shop_buy_buttons: Dictionary = {}
 var _trainer_button: Button
 
@@ -56,6 +83,7 @@ func _ready() -> void:
 	session.begin_new_game()
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
+	_build_npc_handlers()
 	_build_world_and_ui()
 	_refresh_ui()
 	_add_event("InkMonMain ready")
@@ -165,6 +193,8 @@ func get_dev_agent_state() -> Dictionary:
 		"active_npc_id": _active_npc_id,
 		"panel_open": app_state == AppState.NPC_MENU,
 		"ui_message": _last_ui_message,
+		"progression": session.player_state.progression.duplicate(true) if session != null and session.player_state != null else {},
+		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
 		"active_instance_id": _active_instance_id,
 		"last_battle_result": last_battle_result.duplicate(true),
@@ -175,6 +205,10 @@ func get_dev_agent_state() -> Dictionary:
 
 func get_dev_agent_layout_state() -> Dictionary:
 	_layout_ui()
+	var action_buttons := {}
+	for action_id in _action_buttons.keys():
+		var action_button := _action_buttons[action_id] as Button
+		action_buttons[str(action_id)] = _control_rect_dict(action_button)
 	var buy_buttons := {}
 	for config_id in _shop_buy_buttons.keys():
 		var button := _shop_buy_buttons[config_id] as Button
@@ -184,6 +218,7 @@ func get_dev_agent_layout_state() -> Dictionary:
 		"prompt_button": _control_rect_dict(_prompt_button),
 		"npc_panel": _control_rect_dict(_npc_panel),
 		"close_button": _control_rect_dict(_close_button),
+		"npc_action_buttons": action_buttons,
 		"shop_buy_buttons": buy_buttons,
 		"trainer_button": _control_rect_dict(_trainer_button),
 	}
@@ -257,40 +292,39 @@ func buy_shop_item(config_id: StringName) -> Dictionary:
 			"message": "shop is not open",
 			"data": get_dev_agent_state(),
 		}
+	var result := purchase_shop_item(config_id)
+	_refresh_ui()
+	return _scene_result(bool(result.get("ok", false)), str(result.get("message", "")))
+
+
+func purchase_shop_item(config_id: StringName) -> Dictionary:
 	var config := ItemSystem.get_item_config(config_id)
 	if config.is_empty():
 		return {
 			"ok": false,
 			"message": "unknown shop item: %s" % str(config_id),
-			"data": get_dev_agent_state(),
 		}
 	var price := int(config.get("price", 0))
 	if session.player_state.gold < price:
 		_last_ui_message = "not enough gold"
-		_refresh_ui()
 		return {
 			"ok": false,
 			"message": "not enough gold",
-			"data": get_dev_agent_state(),
 		}
 	session.player_state.gold -= price
 	var create_result := session.create_bag_item(config_id, 1, -1)
 	if not create_result.success:
 		session.player_state.gold += price
 		_last_ui_message = create_result.error_message
-		_refresh_ui()
 		return {
 			"ok": false,
 			"message": create_result.error_message,
-			"data": get_dev_agent_state(),
 		}
 	_last_ui_message = "bought %s" % str(config.get("display_name", str(config_id)))
-	_refresh_ui()
 	_add_event(_last_ui_message)
 	return {
 		"ok": true,
 		"message": _last_ui_message,
-		"data": get_dev_agent_state(),
 	}
 
 
@@ -298,13 +332,125 @@ func trigger_trainer_battle_from_ui() -> Dictionary:
 	if app_state != AppState.NPC_MENU or _active_npc_id != "trainer":
 		return {
 			"ok": false,
-			"message": "trainer is not open",
+			"message": "training NPC is not open",
 			"data": get_dev_agent_state(),
 		}
+	return run_active_npc_action(InkMonTrainingNpcHandler.ACTION_START_BATTLE)
+
+
+func run_active_npc_action(action_id: String) -> Dictionary:
+	if app_state != AppState.NPC_MENU or _active_npc_id == "":
+		return _scene_result(false, "no active NPC menu")
+	return run_npc_action_for(_active_npc_id, action_id)
+
+
+func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
+	if not _npc_handlers.has(npc_id):
+		return _scene_result(false, "unknown NPC handler: %s" % npc_id)
+	var handler := _npc_handlers[npc_id] as InkMonNpcHandler
+	var result := handler.run_action(action_id, self)
+	var ok := bool(result.get("ok", false))
+	var message := str(result.get("message", ""))
+	if message != "":
+		_last_ui_message = message
+		_add_event(message)
+	if app_state == AppState.NPC_MENU and _active_npc_id == npc_id:
+		_refresh_ui()
+	else:
+		_refresh_ui()
+	return _scene_result(ok, message)
+
+
+func complete_training_battle_action() -> Dictionary:
 	var result := run_training_battle_to_completion(8)
 	_active_npc_id = ""
+	return {
+		"ok": bool(result.get("ok", false)),
+		"message": str(result.get("message", "")),
+	}
+
+
+func cultivate_lead_inkmon() -> Dictionary:
+	if session.player_state.roster.is_empty():
+		return {"ok": false, "message": "no InkMon to cultivate"}
+	if not _spend_gold(CULTIVATION_COST):
+		return {"ok": false, "message": "not enough gold for cultivation"}
+
+	var entry := session.player_state.roster[0]
+	entry.level += 1
+	entry.exp = 0
+	entry.persistent_stats["max_hp"] = float(entry.persistent_stats.get("max_hp", 0.0)) + 10.0
+	entry.persistent_stats["ad"] = float(entry.persistent_stats.get("ad", 0.0)) + 2.0
+	entry.persistent_stats["ap"] = float(entry.persistent_stats.get("ap", 0.0)) + 2.0
+	session.player_state.progression["cultivation_points"] = int(
+		session.player_state.progression.get("cultivation_points", 0)
+	) + 1
+	return {"ok": true, "message": "cultivated %s to Lv%d" % [entry.species, entry.level]}
+
+
+func advance_trainer_rank() -> Dictionary:
+	if not _spend_gold(ADVANCEMENT_COST):
+		return {"ok": false, "message": "not enough gold for trainer advancement"}
+	var rank := int(session.player_state.progression.get("trainer_rank", 1)) + 1
+	session.player_state.progression["trainer_rank"] = rank
+	return {"ok": true, "message": "trainer rank advanced to R%d" % rank}
+
+
+func advance_guild_task() -> Dictionary:
+	session.player_state.progression["guild_joined"] = true
+	var tasks := int(session.player_state.progression.get("guild_tasks_completed", 0)) + 1
+	session.player_state.progression["guild_tasks_completed"] = tasks
+	return {"ok": true, "message": "guild task marker %d" % tasks}
+
+
+func adopt_stub_inkmon() -> Dictionary:
+	if not _spend_gold(ADOPT_COST):
+		return {"ok": false, "message": "not enough gold to adopt"}
+	var entry_id := session.player_state.get_next_roster_entry_id()
+	var unit_key := InkMonUnitConfig.RIGHT_FLEX if entry_id % 2 == 0 else InkMonUnitConfig.LEFT_FLEX
+	var entry := InkMonRosterEntry.from_unit_config(entry_id, unit_key)
+	session.player_state.add_roster_entry(entry)
+	session.sync_roster_containers()
+	return {"ok": true, "message": "adopted %s" % entry.species}
+
+
+func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
+	var save_data := session.to_dict()
+	var file := FileAccess.open(save_path, FileAccess.WRITE)
+	if file == null:
+		return _scene_result(false, "save open failed: %s" % str(FileAccess.get_open_error()))
+	file.store_string(JSON.stringify(save_data, "\t"))
+	file.close()
+	_add_event("saved game: %s" % save_path)
+	return _scene_result(true, "saved game")
+
+
+func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
+	if not FileAccess.file_exists(save_path):
+		return _scene_result(false, "save not found: %s" % save_path)
+	var file := FileAccess.open(save_path, FileAccess.READ)
+	if file == null:
+		return _scene_result(false, "load open failed: %s" % str(FileAccess.get_open_error()))
+	var text := file.get_as_text()
+	file.close()
+	var parsed: Variant = JSON.parse_string(text)
+	var data := parsed as Dictionary
+	if data == null:
+		return _scene_result(false, "save json is not an object")
+
+	session = InkMonGameSession.new()
+	session.from_dict(data)
+	last_battle_result = {}
+	_active_instance_id = ""
+	_battle_instance = null
+	_active_npc_id = ""
+	app_state = AppState.OVERWORLD
+	GameWorld.destroy_all_instances()
+	TimelineRegistry.reset()
+	_refresh_near_npc()
 	_refresh_ui()
-	return result
+	_add_event("loaded game: %s" % save_path)
+	return _scene_result(true, "loaded game")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -499,6 +645,17 @@ func _build_panel() -> void:
 	panel_box.add_child(_panel_body)
 
 
+func _build_npc_handlers() -> void:
+	_npc_handlers = {
+		"shop": InkMonShopNpcHandler.new("shop", "Shop"),
+		"trainer": InkMonTrainingNpcHandler.new("trainer", "Training"),
+		"cultivation": InkMonCultivationNpcHandler.new("cultivation", "Cultivation"),
+		"guild": InkMonGuildNpcHandler.new("guild", "Guild"),
+		"advancement": InkMonAdvancementNpcHandler.new("advancement", "Trainer Advancement"),
+		"release_adopt": InkMonReleaseAdoptNpcHandler.new("release_adopt", "Release / Adopt"),
+	}
+
+
 func _install_dev_agent() -> void:
 	var ops := InkMonMainAgentOpsScript.new() as Node
 	ops.name = "InkMonMainAgentOps"
@@ -644,37 +801,27 @@ func _refresh_panel() -> void:
 	_layout_ui()
 
 
-func _rebuild_panel_body(npc_type: String) -> void:
+func _rebuild_panel_body(_npc_type: String) -> void:
 	for child in _panel_body.get_children():
 		child.queue_free()
+	_action_buttons.clear()
 	_shop_buy_buttons.clear()
 	_trainer_button = null
-	match npc_type:
-		"shop":
-			_add_shop_row(InkMonItemCatalog.TRAINING_SWORD)
-			_add_shop_row(InkMonItemCatalog.MINOR_RUNE)
-		"trainer":
-			var label := Label.new()
-			label.text = "Training roster ready"
-			_panel_body.add_child(label)
-			_trainer_button = Button.new()
-			_trainer_button.name = "TrainerStartBattleButton"
-			_trainer_button.text = "Start Training Battle"
-			_trainer_button.custom_minimum_size = Vector2(220, 44)
-			_trainer_button.pressed.connect(func() -> void:
-				trigger_trainer_battle_from_ui()
-			)
-			_panel_body.add_child(_trainer_button)
-		_:
-			var placeholder := Label.new()
-			placeholder.text = "System linked"
-			_panel_body.add_child(placeholder)
+	var handler := _get_active_handler()
+	if handler == null:
+		var placeholder := Label.new()
+		placeholder.text = "System linked"
+		_panel_body.add_child(placeholder)
+		return
+
+	var actions := handler.get_actions(self)
+	for action in actions:
+		_add_action_row(action)
 
 
-func _add_shop_row(config_id: StringName) -> void:
-	var config := ItemSystem.get_item_config(config_id)
+func _add_action_row(action: Dictionary) -> void:
 	var row := HBoxContainer.new()
-	row.name = "ShopRow_%s" % str(config_id)
+	row.name = "ActionRow_%s" % str(action.get(InkMonNpcHandler.ACTION_ID, "unknown"))
 	row.add_theme_constant_override("separation", 12)
 	_panel_body.add_child(row)
 	var icon := ColorRect.new()
@@ -684,19 +831,34 @@ func _add_shop_row(config_id: StringName) -> void:
 	row.add_child(icon)
 	var label := Label.new()
 	label.name = "ItemLabel"
-	label.text = "%s  %d" % [str(config.get("display_name", str(config_id))), int(config.get("price", 0))]
+	label.text = "%s\n%s" % [
+		str(action.get(InkMonNpcHandler.ACTION_LABEL, "")),
+		str(action.get(InkMonNpcHandler.ACTION_DETAIL, "")),
+	]
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	var button := Button.new()
-	button.name = "Buy_%s" % str(config_id)
-	button.text = "Buy"
-	button.custom_minimum_size = Vector2(72, 40)
+	var action_id := str(action.get(InkMonNpcHandler.ACTION_ID, ""))
+	button.name = "Action_%s" % action_id
+	button.text = "Buy" if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy" else "Go"
+	button.custom_minimum_size = Vector2(84, 40)
+	button.disabled = not bool(action.get(InkMonNpcHandler.ACTION_ENABLED, true))
 	button.pressed.connect(func() -> void:
-		buy_shop_item(config_id)
+		run_active_npc_action(action_id)
 	)
 	row.add_child(button)
-	_shop_buy_buttons[str(config_id)] = button
+	_action_buttons[action_id] = button
+	if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy":
+		_shop_buy_buttons[str(action.get("item_config_id", ""))] = button
+	if action_id == InkMonTrainingNpcHandler.ACTION_START_BATTLE:
+		_trainer_button = button
+
+
+func _get_active_handler() -> InkMonNpcHandler:
+	if _active_npc_id == "" or not _npc_handlers.has(_active_npc_id):
+		return null
+	return _npc_handlers[_active_npc_id] as InkMonNpcHandler
 
 
 func _refresh_near_npc() -> void:
@@ -746,6 +908,36 @@ func _get_bag_snapshot() -> Array[Dictionary]:
 			"slot_index": int(snapshot.get("slot_index", -1)),
 		})
 	return result
+
+
+func _get_roster_snapshot() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if session == null or session.player_state == null:
+		return result
+	for entry in session.player_state.roster:
+		result.append({
+			"entry_id": entry.entry_id,
+			"species": entry.species,
+			"role": entry.role,
+			"level": entry.level,
+			"exp": entry.exp,
+		})
+	return result
+
+
+func _spend_gold(amount: int) -> bool:
+	if session.player_state.gold < amount:
+		return false
+	session.player_state.gold -= amount
+	return true
+
+
+func _scene_result(ok: bool, message: String) -> Dictionary:
+	return {
+		"ok": ok,
+		"message": message,
+		"data": get_dev_agent_state(),
+	}
 
 
 func _control_rect_dict(control: Control) -> Dictionary:

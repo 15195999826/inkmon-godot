@@ -46,6 +46,10 @@ func get_container_id(logical_name: String) -> int:
 	return int(inventory_map[logical_name])
 
 
+func sync_roster_containers() -> void:
+	_register_required_containers({})
+
+
 func project_player_battle_roster(max_units: int = 4) -> Array[Dictionary]:
 	Log.assert_crash(player_state != null, "InkMonGameSession", "player_state is not initialized")
 	return player_state.project_battle_roster(max_units)

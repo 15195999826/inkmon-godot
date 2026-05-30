@@ -2,7 +2,7 @@ class_name InkMonMainAgentOps
 extends "res://addons/lomolib/dev_agent/dev_agent_scene_ops.gd"
 
 ## Scene classification: business/data-flow runtime validation.
-## Ops use direct calls because the current scene has no player-facing UI path.
+## State-changing scene ops complement real-input UI checks documented in DEV_AGENT.md.
 
 
 func get_supported_ops() -> PackedStringArray:
@@ -11,6 +11,9 @@ func get_supported_ops() -> PackedStringArray:
 		"layout_state",
 		"reset_session",
 		"run_training_battle",
+		"npc_action",
+		"save_game",
+		"load_game",
 	])
 
 
@@ -39,5 +42,11 @@ func run_scene_op(op_name: StringName, args: Dictionary) -> Dictionary:
 			return app_root.reset_session()
 		"run_training_battle":
 			return app_root.run_training_battle_to_completion(int(args.get("max_ticks", 8)))
+		"npc_action":
+			return app_root.run_npc_action_for(str(args.get("npc_id", "")), str(args.get("action_id", "")))
+		"save_game":
+			return app_root.save_game(str(args.get("path", InkMonAppRoot.DEFAULT_SAVE_PATH)))
+		"load_game":
+			return app_root.load_game(str(args.get("path", InkMonAppRoot.DEFAULT_SAVE_PATH)))
 		_:
 			return super.run_scene_op(op_name, args)

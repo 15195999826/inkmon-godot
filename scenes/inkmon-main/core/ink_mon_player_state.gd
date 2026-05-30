@@ -98,6 +98,13 @@ func add_roster_entry(entry: InkMonRosterEntry) -> void:
 	roster.append(entry)
 
 
+func get_next_roster_entry_id() -> int:
+	var next_id := 1
+	for entry in roster:
+		next_id = maxi(next_id, entry.entry_id + 1)
+	return next_id
+
+
 func remove_roster_entry(entry_id: int) -> bool:
 	for i in range(roster.size()):
 		if roster[i].entry_id == entry_id:
