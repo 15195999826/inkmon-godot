@@ -6,6 +6,7 @@ const ATB_FULL := 100.0
 
 
 var unit_key: String
+var source_entry_id := -1
 var species: String
 var stage: String
 var role: String
@@ -21,9 +22,24 @@ var _atb_gauge := 0.0
 var _active_skill_config_id := ""
 
 
-func _init(p_unit_key: String) -> void:
+func _init(p_unit_key: String = "", battle_snapshot: Dictionary = {}) -> void:
 	unit_key = p_unit_key
 	type = "InkMonUnit"
+	attribute_set = InkMonUnitAttributeSet.new(get_id())
+	if not battle_snapshot.is_empty():
+		_setup_from_battle_snapshot(battle_snapshot)
+	else:
+		_setup_from_unit_config(p_unit_key)
+	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
+	ai_strategy = InkMonAIStrategyFactory.get_strategy(role)
+
+
+static func from_battle_snapshot(battle_snapshot: Dictionary) -> InkMonUnitActor:
+	return InkMonUnitActor.new("", battle_snapshot)
+
+
+func _setup_from_unit_config(p_unit_key: String) -> void:
+	Log.assert_crash(p_unit_key != "", "InkMonUnitActor", "unit_key is required for config path")
 	var cfg := InkMonUnitConfig.get_unit_config(unit_key)
 	_display_name = cfg.display_name
 	species = cfg.species
@@ -32,7 +48,6 @@ func _init(p_unit_key: String) -> void:
 	elements.assign(cfg.elements)
 	_active_skill_config_id = cfg.active_skill_id
 
-	attribute_set = InkMonUnitAttributeSet.new(get_id())
 	var stats := cfg.stats
 	attribute_set.set_max_hp_base(stats["max_hp"])
 	attribute_set.set_hp_base(stats["hp"])
@@ -41,8 +56,37 @@ func _init(p_unit_key: String) -> void:
 	attribute_set.set_armor_base(stats["armor"])
 	attribute_set.set_mr_base(stats["mr"])
 	attribute_set.set_speed_base(stats["speed"])
-	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
-	ai_strategy = InkMonAIStrategyFactory.get_strategy(role)
+
+
+func _setup_from_battle_snapshot(battle_snapshot: Dictionary) -> void:
+	source_entry_id = int(battle_snapshot.get("source_entry_id", -1))
+	Log.assert_crash(source_entry_id >= 0, "InkMonUnitActor", "battle snapshot missing source_entry_id")
+	species = str(battle_snapshot.get("species", ""))
+	role = str(battle_snapshot.get("role", ""))
+	stage = str(battle_snapshot.get("stage", InkMonUnitConfig.STAGE_BABY))
+	unit_key = "snapshot:%d" % source_entry_id
+	_display_name = str(battle_snapshot.get("display_name", species))
+	_active_skill_config_id = str(battle_snapshot.get("learned_skill_id", ""))
+	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "battle snapshot missing learned_skill_id")
+	elements.clear()
+	var raw_elements := battle_snapshot.get("elements", []) as Array
+	Log.assert_crash(raw_elements != null and not raw_elements.is_empty(), "InkMonUnitActor",
+		"battle snapshot missing elements")
+	for raw_element in raw_elements:
+		elements.append(str(raw_element))
+
+	var stats := battle_snapshot.get("battle_stats", {}) as Dictionary
+	Log.assert_crash(stats != null, "InkMonUnitActor", "battle snapshot battle_stats must be a Dictionary")
+	for key in InkMonRosterEntry.STAT_KEYS:
+		Log.assert_crash(stats.has(key), "InkMonUnitActor", "battle snapshot stats missing key: %s" % key)
+	var max_hp := float(stats["max_hp"])
+	attribute_set.set_max_hp_base(max_hp)
+	attribute_set.set_hp_base(max_hp)
+	attribute_set.set_ad_base(float(stats["ad"]))
+	attribute_set.set_ap_base(float(stats["ap"]))
+	attribute_set.set_armor_base(float(stats["armor"]))
+	attribute_set.set_mr_base(float(stats["mr"]))
+	attribute_set.set_speed_base(float(stats["speed"]))
 
 
 func equip_abilities(game_state_provider: Variant = null) -> void:
@@ -137,6 +181,7 @@ func _get_team_int() -> int:
 func get_attribute_snapshot() -> Dictionary:
 	var snap := get_stats()
 	snap["unit_key"] = unit_key
+	snap["source_entry_id"] = source_entry_id
 	snap["role"] = role
 	snap["elements"] = elements.duplicate()
 	return snap
@@ -145,6 +190,7 @@ func get_attribute_snapshot() -> Dictionary:
 func serialize() -> Dictionary:
 	var base := super.serialize()
 	base["unit_key"] = unit_key
+	base["source_entry_id"] = source_entry_id
 	base["role"] = role
 	base["atb_gauge"] = _atb_gauge
 	return base

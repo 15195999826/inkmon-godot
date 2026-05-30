@@ -106,6 +106,24 @@ func get_result() -> String:
 	return _result
 
 
+func get_result_summary() -> Dictionary:
+	if _result == "":
+		return {}
+	var winner_team := "left" if _result == "left_win" else "right"
+	var player_team := left_team
+	var survivors := _source_entry_ids(player_team, false)
+	var casualties := _source_entry_ids(player_team, true)
+	return {
+		"result": _result,
+		"winner_team": winner_team,
+		"source_team": "left",
+		"survivors": survivors,
+		"casualties": casualties,
+		"per_entry": _per_entry_summary(player_team),
+		"reward_gold": 25 if winner_team == "left" else 0,
+	}
+
+
 func is_ended() -> bool:
 	return _ended
 
@@ -159,18 +177,61 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 
 
 func _setup_teams(config: Dictionary) -> void:
-	var left_roster: Array = config.get("left_roster", InkMonUnitConfig.get_default_roster(0))
-	var right_roster: Array = config.get("right_roster", InkMonUnitConfig.get_default_roster(1))
-	for key in left_roster:
-		left_team.append(_create_team_actor(str(key), 0))
-	for key in right_roster:
-		right_team.append(_create_team_actor(str(key), 1))
+	if config.has("left_roster_snapshots"):
+		var left_snapshots := config.get("left_roster_snapshots", []) as Array
+		Log.assert_crash(left_snapshots != null, "InkMonBattleWorldGI", "left_roster_snapshots must be an Array")
+		for snapshot in left_snapshots:
+			left_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 0))
+	else:
+		var left_roster: Array = config.get("left_roster", InkMonUnitConfig.get_default_roster(0))
+		for key in left_roster:
+			left_team.append(_create_team_actor(str(key), 0))
+
+	if config.has("right_roster_snapshots"):
+		var right_snapshots := config.get("right_roster_snapshots", []) as Array
+		Log.assert_crash(right_snapshots != null, "InkMonBattleWorldGI", "right_roster_snapshots must be an Array")
+		for snapshot in right_snapshots:
+			right_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 1))
+	else:
+		var right_roster: Array = config.get("right_roster", InkMonUnitConfig.get_default_roster(1))
+		for key in right_roster:
+			right_team.append(_create_team_actor(str(key), 1))
 
 
 func _create_team_actor(unit_key: String, team_id: int) -> InkMonUnitActor:
 	var actor := InkMonUnitActor.new(unit_key)
 	actor.set_team_id(team_id)
 	return add_actor(actor) as InkMonUnitActor
+
+
+func _create_team_actor_from_snapshot(snapshot: Dictionary, team_id: int) -> InkMonUnitActor:
+	Log.assert_crash(snapshot != null, "InkMonBattleWorldGI", "roster snapshot must be a Dictionary")
+	var actor := InkMonUnitActor.from_battle_snapshot(snapshot)
+	actor.set_team_id(team_id)
+	return add_actor(actor) as InkMonUnitActor
+
+
+func _source_entry_ids(team: Array[InkMonUnitActor], only_dead: bool) -> Array[int]:
+	var result: Array[int] = []
+	for actor in team:
+		if actor.source_entry_id < 0:
+			continue
+		if actor.is_dead() == only_dead:
+			result.append(actor.source_entry_id)
+	return result
+
+
+func _per_entry_summary(team: Array[InkMonUnitActor]) -> Dictionary:
+	var result := {}
+	for actor in team:
+		if actor.source_entry_id < 0:
+			continue
+		result[actor.source_entry_id] = {
+			"hp_remaining": actor.attribute_set.hp,
+			"max_hp": actor.attribute_set.max_hp,
+			"alive": not actor.is_dead(),
+		}
+	return result
 
 
 func _place_team_fixed(team: Array[InkMonUnitActor], preferred_coords: Array[HexCoord]) -> void:

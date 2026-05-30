@@ -6,6 +6,11 @@
       "scenes": [
         "../../scenes/inkmon-battle/tests/smoke_m1_battle.tscn"
       ]
+    },
+    "session": {
+      "scenes": [
+        "../../scenes/inkmon-main/tests/smoke_session_spine.tscn"
+      ]
     }
   }
 }
