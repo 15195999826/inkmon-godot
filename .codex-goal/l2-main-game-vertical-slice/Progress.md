@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Status: active
+- Status: complete
 - Branch: `master`
 - Workspace: `D:\GodotProjects\inkmon\inkmon-godot`
 - Goal scope: full L2 playable vertical slice, with M1 as the first implementation phase.
@@ -35,6 +35,7 @@
 - 2026-05-31 - M-lab content boundary start - Architecture KB query for `game content import contract stub data validation boundary generated lab data replace handwritten config` found no strong principle match (top `P226` score 0.43), so this slice documents a project-local import contract and validator without replacing current hardcoded stubs or adding a second runtime data source.
 - 2026-05-31 - M-lab content boundary implementation - Added `.codex-goal/l2-main-game-vertical-slice/Lab-Content-Contract.md`, `InkMonL2ContentContract`, and `inkmon/content` smoke. The contract validates schema `inkmon.l2.content.v1`, five elements, dual-channel stats, role, stage, skill pools, skill references, and item prices/tags. `build_current_stub_export()` maps current project stubs into the same contract for validation only; runtime source remains project-local hardcoded configs until lab provides a full validating export.
 - 2026-05-31 - M-lab content boundary validation - `./tools/run_tests.ps1 inkmon/content` PASS (`tests/smoke_content_contract` 0.8s). `./tools/run_tests.ps1 inkmon/content inkmon/app-root inkmon/session inkmon/m1` PASS (`tests/smoke_content_contract` 1.1s, `tests/smoke_app_root` 1.7s, `tests/smoke_session_spine` 1.9s, `tests/smoke_m1_battle` 2.1s). `git diff --check` PASS. Strict scan again found no direct hex-atb example references in L2 scenes.
+- 2026-05-31 - Final closeout validation - `git status --short` showed only untracked context files `CONTEXT.md` and `L2-M1-BRIEF.md`. `git diff --check` PASS. `./tools/run_tests.ps1 inkmon/content inkmon/app-root inkmon/session inkmon/m1` PASS (`tests/smoke_content_contract` 1.1s, `tests/smoke_app_root` 1.7s, `tests/smoke_session_spine` 1.7s, `tests/smoke_m1_battle` 1.9s). DevAgent final loop `inkmon-main-final-loop-20260531063627` PASS: real input Shop buy took gold `100 -> 90` and added `minor_rune`; real input Training battle completed with winner `left` and gold `90 -> 115`; real input Cultivation spent to gold `90`, set `cultivation_points=1`, and lead InkMon `Lv2`; `save_game` and `load_game` returned ok; final state `OVERWORLD`, bag contains `minor_rune`. Completion gate met with lab boundary documented in `Lab-Content-Contract.md` and summarized in `Closeout.md`.
 
 ## Blockers
 
