@@ -34,6 +34,7 @@ static func _configs() -> Dictionary:
 			"item_tags": ["equipment", "weapon"],
 			"max_stack": 1,
 			"equipable": true,
+			"price": 30,
 			"stat_mods": {"ad": 5.0},
 		},
 		String(MINOR_RUNE): {
@@ -43,5 +44,6 @@ static func _configs() -> Dictionary:
 			"item_tags": ["material"],
 			"max_stack": 99,
 			"equipable": false,
+			"price": 10,
 		},
 	}

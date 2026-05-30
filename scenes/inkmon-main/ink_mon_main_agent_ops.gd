@@ -8,6 +8,7 @@ extends "res://addons/lomolib/dev_agent/dev_agent_scene_ops.gd"
 func get_supported_ops() -> PackedStringArray:
 	return PackedStringArray([
 		"state",
+		"layout_state",
 		"reset_session",
 		"run_training_battle",
 	])
@@ -27,6 +28,12 @@ func run_scene_op(op_name: StringName, args: Dictionary) -> Dictionary:
 				"ok": true,
 				"message": "InkMonMain state",
 				"data": app_root.get_dev_agent_state(),
+			}
+		"layout_state":
+			return {
+				"ok": true,
+				"message": "InkMonMain layout state",
+				"data": app_root.get_dev_agent_layout_state(),
 			}
 		"reset_session":
 			return app_root.reset_session()

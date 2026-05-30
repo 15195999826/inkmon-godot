@@ -26,7 +26,8 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `state` | none | `state`, `gold`, `roster_size`, `player_coord`, `near_npc_id`, `active_npc_id`, `panel_open`, `bag`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `layout_state` | none | viewport and clickable rects for prompt, panel close, Shop buy buttons, and Trainer CTA |
 
 ### Action
 
@@ -34,6 +35,13 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 | --- | --- | --- | --- |
 | `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
+
+Player-facing UI paths must use raw real input:
+
+- `tap_key {"key":"D"}` moves the player near the Shop and should set `near_npc_id == "shop"`.
+- `click_at` on `layout_state.prompt_button` opens the nearby NPC panel.
+- `click_at` on `layout_state.shop_buy_buttons.minor_rune` buys Minor Rune and should reduce gold by 10.
+- `click_at` on `layout_state.close_button` closes the side sheet.
 
 ### Raw Bridge Ops
 
@@ -63,3 +71,18 @@ Pass criteria:
 - command `02` returns `ok == true`
 - command `03` returns `gold > 100`, `active_instance_id == ""`, and `last_battle_result.winner_team == "left"`
 - command `04` writes a node tree artifact
+
+UI input check:
+
+```jsonl
+{"id":"10","op":"scene","name":"reset_session"}
+{"id":"11","op":"tap_key","key":"D"}
+{"id":"12","op":"scene","name":"layout_state"}
+{"id":"13","op":"click_at","x":<prompt cx>,"y":<prompt cy>}
+{"id":"14","op":"scene","name":"layout_state"}
+{"id":"15","op":"click_at","x":<minor_rune buy cx>,"y":<minor_rune buy cy>}
+{"id":"16","op":"scene","name":"state"}
+```
+
+Pass criteria: `near_npc_id == "shop"`, panel opens through a real click, and
+gold becomes `90` with a `minor_rune` item in `bag`.

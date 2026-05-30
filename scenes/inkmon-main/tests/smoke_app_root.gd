@@ -25,6 +25,10 @@ func _run() -> String:
 	if int(initial_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD:
 		return _cleanup(root, "new game gold should be default")
 
+	var shop_status := _assert_shop_flow(root)
+	if shop_status != "":
+		return _cleanup(root, shop_status)
+
 	var result := root.run_training_battle_to_completion(8)
 	if not bool(result.get("ok", false)):
 		return _cleanup(root, "training battle failed: %s" % str(result.get("message", "")))
@@ -43,6 +47,48 @@ func _run() -> String:
 	root.queue_free()
 	await get_tree().process_frame
 	return ""
+
+
+func _assert_shop_flow(root: InkMonAppRoot) -> String:
+	var move_result := root.move_player(Vector2i(1, 0))
+	if not bool(move_result.get("ok", false)):
+		return "move to Shop failed"
+	var moved_state := root.get_dev_agent_state()
+	if moved_state.get("near_npc_id", "") != "shop":
+		return "moving right should put player near Shop"
+
+	var open_result := root.open_near_npc_menu()
+	if not bool(open_result.get("ok", false)):
+		return "open near NPC menu failed"
+	if root.get_dev_agent_state().get("active_npc_id", "") != "shop":
+		return "active NPC should be Shop"
+
+	var buy_result := root.buy_shop_item(InkMonItemCatalog.MINOR_RUNE)
+	if not bool(buy_result.get("ok", false)):
+		return "buy Minor Rune failed: %s" % str(buy_result.get("message", ""))
+	var bought_state := root.get_dev_agent_state()
+	if int(bought_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD - 10:
+		return "buying Minor Rune should spend 10 gold"
+	if not _bag_has(bought_state.get("bag", []), "minor_rune"):
+		return "bag should contain minor_rune after buy"
+
+	var close_result := root.close_npc_menu()
+	if not bool(close_result.get("ok", false)):
+		return "close NPC menu failed"
+	if bool(root.get_dev_agent_state().get("panel_open", false)):
+		return "panel should be closed after close_npc_menu"
+	return ""
+
+
+func _bag_has(value: Variant, config_id: String) -> bool:
+	var items := value as Array
+	if items == null:
+		return false
+	for item_value in items:
+		var item := item_value as Dictionary
+		if item != null and str(item.get("config_id", "")) == config_id:
+			return true
+	return false
 
 
 func _cleanup(root: InkMonAppRoot, status: String) -> String:
