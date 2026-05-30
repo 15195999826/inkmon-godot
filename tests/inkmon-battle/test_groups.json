@@ -1,0 +1,11 @@
+{
+  "namespace": "inkmon",
+  "default_timeout_ms": 30000,
+  "groups": {
+    "m1": {
+      "scenes": [
+        "../../scenes/inkmon-battle/tests/smoke_m1_battle.tscn"
+      ]
+    }
+  }
+}
