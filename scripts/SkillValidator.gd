@@ -1,7 +1,7 @@
 class_name SkillValidator
 extends RefCounted
 ## AI 生成技能脚本验证器
-## 执行四级验证：编译 → 接口 → 运行 → 结构
+## 执行五级验证：编译 → 接口 → 运行 → 结构 → 进阶建议(warn-only)
 
 var result: Dictionary
 
@@ -65,71 +65,59 @@ func _check_compile(source_code: String) -> GDScript:
 
 
 ## Stage 2: 接口检查
+##
+## 技能脚本契约 = 暴露 `static var ABILITY := AbilityConfig.builder()...build()`,
+## 与 all_skills.gd 注册的 30 个内置技能模板一致。旧的 `create_ability_config()`
+## 方法契约从未被任何技能实现 (全用 static var ABILITY),已弃用。
 func _check_interface(script: GDScript) -> bool:
-	# 检查脚本是否有 create_ability_config 方法
-	var found := false
-	for method in script.get_script_method_list():
-		if method.name == "create_ability_config":
-			found = true
-			break
-	
-	if not found:
+	if not ("ABILITY" in script):
 		result.stages.interface_check = {
 			"passed": false,
-			"error": "Missing required method: create_ability_config()",
+			"error": "Missing required static var: ABILITY (expected `static var ABILITY := AbilityConfig.builder()...build()`)",
 		}
 		return false
-	
+
 	result.stages.interface_check = { "passed": true }
 	return true
 
 
 ## Stage 3: 运行检查 — 返回 AbilityConfig 或 null
 func _check_runtime(script: GDScript) -> AbilityConfig:
-	# 创建脚本实例
-	var instance = script.new()
-	if instance == null:
+	# 直接读 static var ABILITY (无需实例化; GDScript.get 对 static var 返回其值)
+	var config_value: Variant = script.get("ABILITY")
+
+	if config_value == null:
 		result.stages.runtime = {
 			"passed": false,
-			"error": "Failed to instantiate script",
+			"error": "static var ABILITY is null",
 		}
 		return null
-	
-	# 调用 create_ability_config()
-	var config = instance.call("create_ability_config")
-	
-	if config == null:
+
+	if not (config_value is AbilityConfig):
 		result.stages.runtime = {
 			"passed": false,
-			"error": "create_ability_config() returned null",
+			"error": "ABILITY must be AbilityConfig, got type: %d" % typeof(config_value),
 		}
 		return null
-	
-	if not (config is AbilityConfig):
-		result.stages.runtime = {
-			"passed": false,
-			"error": "create_ability_config() must return AbilityConfig, got: %s" % str(typeof(config)),
-		}
-		return null
-	
+
+	var config := config_value as AbilityConfig
 	result.stages.runtime = { "passed": true }
-	
-	# 尝试获取 timeline（可选）
-	var has_timeline := false
-	for method in script.get_script_method_list():
-		if method.name == "create_timeline":
-			has_timeline = true
-			break
-	
-	if has_timeline:
-		var timeline = instance.call("create_timeline")
-		if timeline != null and timeline is TimelineData:
+
+	# 尝试获取 timeline（可选, best-effort）。
+	# 技能 timeline 是独立 static var,经 all_skills.gd 注册到 TimelineRegistry;
+	# AI 新技能若未注册则查不到,留空不报错。
+	var tl_id := ""
+	if config.active_use_components.size() > 0:
+		tl_id = config.active_use_components[0].timeline_id
+	if tl_id != "":
+		var timeline: TimelineData = TimelineRegistry.get_timeline(tl_id)
+		if timeline != null:
 			result.timeline = {
 				"id": timeline.id,
-			"duration": timeline.total_duration,
+				"duration": timeline.total_duration,
 				"tags": timeline.tags,
 			}
-	
+
 	return config
 
 
@@ -180,7 +168,11 @@ func _check_structure(config: AbilityConfig) -> void:
 ## 提取 AbilityConfig 结构为可序列化字典
 func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 	var first_active: ActiveUseConfig = config.active_use_components[0] if config.active_use_components.size() > 0 else null
-	
+
+	var tl_id: Variant = null
+	if first_active != null:
+		tl_id = first_active.timeline_id
+
 	var data := {
 		"config_id": config.config_id,
 		"display_name": config.display_name,
@@ -188,17 +180,37 @@ func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 		"tags": config.ability_tags,
 		"has_active_use": first_active != null,
 		"has_passive": config.components.size() > 0,
-		"timeline_id": first_active.timeline_id if first_active else null,
+		"timeline_id": tl_id,
 		"actions": [],
 	}
 	
-	# 提取 actions
+	# 提取 active_use 的 actions: on_timeline_start + 各 tag keyframe
 	if first_active != null:
+		for action in first_active.on_timeline_start_actions:
+			data.actions.append(_extract_action(action, "start"))
 		for entry: TagActionsEntry in first_active.tag_actions:
 			var tag_name: String = entry.get_tag()
 			for action in entry.get_actions():
 				data.actions.append(_extract_action(action, tag_name))
-	
+
+	# 提取触发式组件 (ActivateInstanceConfig) 的 actions。
+	# 投射物技能 (fireball / precise_shot / chain_lightning) 的真实命中伤害住在这里
+	# (component_config(ActivateInstanceConfig).trigger(PROJECTILE_HIT_EVENT,...).on_timeline_start([DamageAction])),
+	# 不在 active_use 里。不提取这层就会让 validation summary 完全看不到投射物伤害。
+	for comp in config.components:
+		if comp is ActivateInstanceConfig:
+			# 触发事件类型住在 comp.triggers[i].event_kind (TriggerConfig.event_kind)
+			var evt_kind := ""
+			if comp.triggers.size() > 0:
+				evt_kind = comp.triggers[0].event_kind
+			var trigger_prefix := "trigger:%s" % evt_kind
+			for action in comp.on_timeline_start_actions:
+				data.actions.append(_extract_action(action, trigger_prefix))
+			for entry: TagActionsEntry in comp.tag_actions:
+				var ctag: String = entry.get_tag()
+				for action in entry.get_actions():
+					data.actions.append(_extract_action(action, "%s/%s" % [trigger_prefix, ctag]))
+
 	return data
 
 
@@ -209,18 +221,24 @@ func _extract_action(action: Variant, tag: String) -> Dictionary:
 		"action_type": "",
 		"details": {},
 	}
-	
+
 	if action is HexBattleDamageAction:
 		data.action_type = "damage"
+		# damage 值由 FloatResolver 在执行期按 ExecutionContext 解析。
+		# Resolvers.float_val / float_fn 都返回同一个 FloatResolver (无类型区分),
+		# 且 atk-scaled / 事件数据驱动的 resolver 解引用 ctx,验证期 (无 ctx) 调
+		# resolve() 会崩。故这里只标注 "dynamic", 不静态求值。
+		# (静态读 flat 数值需要框架给 resolver 加 is_static 标记 —— 见 C 批设计债。)
 		data.details = {
-			"damage": action._damage,
+			"damage": "dynamic",
 			"damage_type": str(action._damage_type),
 		}
 	elif action is StageCueAction:
 		data.action_type = "stage_cue"
 	elif action is HexBattleHealAction:
 		data.action_type = "heal"
+		data.details = { "heal": "dynamic" }
 	else:
 		data.action_type = action.type if "type" in action else "unknown"
-	
+
 	return data

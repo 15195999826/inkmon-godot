@@ -1,0 +1,12 @@
+{
+  "namespace": "main",
+  "default_timeout_ms": 30000,
+  "groups": {
+    "validator": {
+      "required": true,
+      "scenes": [
+        "smoke_skill_validator.tscn"
+      ]
+    }
+  }
+}

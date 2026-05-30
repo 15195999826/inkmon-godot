@@ -7,7 +7,8 @@
 #   ./tools/run_tests.ps1 rts/all             # all groups in rts namespace
 #
 # Group names: "<namespace>/<group>", "<namespace>/all", "all-required", "all".
-# Manifests: addons/logic-game-framework/{tests,example/*/tests}/test_groups.json,
+# Manifests: tests/*/test_groups.json (main repo),
+#            addons/logic-game-framework/{tests,example/*/tests}/test_groups.json,
 #            addons/sim-nav-map/{tests,examples/*/tests}/test_groups.json
 #
 # Paths inside each manifest are relative to that manifest's own directory.
@@ -67,6 +68,7 @@ exit /b %GD_EC%
 
 # --- Discover manifests ---
 $ManifestPatterns = @(
+    "tests\*\test_groups.json",
     "addons\logic-game-framework\tests\test_groups.json",
     "addons\logic-game-framework\example\*\tests\test_groups.json",
     "addons\sim-nav-map\tests\test_groups.json",
