@@ -5,6 +5,21 @@ extends RefCounted
 
 var result: Dictionary
 
+## Stage 5 进阶建议阈值
+const ADVISORY_MAX_COOLDOWN_MS := 60000.0
+## cant_act (眩晕/硬控) 门控豁免: 仅 move (走 ActivateInstanceConfig, 无标准门控)。
+## strike 不在此列 —— basic attack 也该被眩晕阻断, 它确实带 cant_act。
+const ADVISORY_CANT_ACT_EXEMPT := ["skill_move"]
+## silence (沉默) 门控豁免: strike (basic attack 不受沉默, ARPG/MOBA 惯例) + move。
+## 把 strike 的 silence 豁免从"沉默的省略"固化成"具名 opt-out", 让其它技能漏写 silence
+## 时能与有意豁免区分 (原 P1-2 关切: condition 门控靠逐文件手抄, 漂移不可检测)。
+const ADVISORY_SILENCE_EXEMPT := ["skill_strike", "skill_move"]
+## determinism 风险 token: 技能逻辑出现这些 = 可能破坏 bit-identical replay (RTS 契约)
+const ADVISORY_NONDETERMINISTIC_TOKENS := [
+	"randf", "randi", "randomize", "RandomNumberGenerator",
+	"Time.", "OS.", "Engine.get_frames",
+]
+
 
 ## 验证 GDScript 技能源码，返回完整的验证结果字典
 func validate(source_code: String) -> Dictionary:
@@ -26,7 +41,11 @@ func validate(source_code: String) -> Dictionary:
 	
 	# Stage 4: 结构检查
 	_check_structure(config)
-	
+
+	# Stage 5: 进阶建议 (warn-only; 仅结构通过后跑, 永不改 success)
+	if result.success:
+		_check_advisory(config, source_code)
+
 	return result
 
 
@@ -40,6 +59,7 @@ func _reset_result() -> void:
 			"interface_check": { "passed": false },
 			"runtime": { "passed": false },
 			"structure": { "passed": false },
+			"advisory": { "passed": false, "warnings": [] },
 		},
 		"ability_config": null,
 		"timeline": null,
@@ -242,3 +262,54 @@ func _extract_action(action: Variant, tag: String) -> Dictionary:
 		data.action_type = action.type if "type" in action else "unknown"
 
 	return data
+
+
+# ============================================================
+# Stage 5: 进阶建议 (warn-only)
+# ============================================================
+
+## 前 4 阶段只验"能否编译/实例化/结构完整"; 本阶段补"该不该这么写", 全部以 warnings
+## 暴露, 永不 fail success。覆盖:
+##   - determinism: 源码出现非确定性 API → 破坏 bit-identical replay
+##   - balance: cooldown 数值离谱 (flat 伤害无法静态读, 见 _extract_action 注释)
+##   - gating: 缺 cant_act / silence 门控 (strike/move 具名豁免) → 可被控/沉默时施放
+##   - metadata: 缺 range 声明 → 消费方默认按 1
+func _check_advisory(config: AbilityConfig, source_code: String) -> void:
+	var warnings: Array[String] = []
+
+	# determinism: 源码 token 扫描
+	for tok in ADVISORY_NONDETERMINISTIC_TOKENS:
+		if source_code.contains(tok):
+			warnings.append("determinism: 源码含 '%s', 可能破坏 bit-identical replay (技能逻辑应避免非确定性 API)" % tok)
+
+	# metadata: range 声明 (AbilityConfig.metadata 是普通 Dictionary)
+	if config.metadata.get(HexBattleSkillMetaKeys.RANGE, null) == null:
+		warnings.append("metadata: 未声明 range meta (consumer 默认按 1 处理)")
+
+	var exempt_cant_act: bool = config.config_id in ADVISORY_CANT_ACT_EXEMPT
+	var exempt_silence: bool = config.config_id in ADVISORY_SILENCE_EXEMPT
+	for au in config.active_use_components:
+		# balance: cooldown (仅检查已声明的 timed_cooldown cost)
+		for cost in au.costs:
+			if cost != null and ("type" in cost) and cost.type == "timed_cooldown" and ("_duration" in cost):
+				var cd := float(cost.get("_duration"))
+				if cd <= 0.0:
+					warnings.append("balance: cooldown <= 0 (无冷却, 通常非预期)")
+				elif cd > ADVISORY_MAX_COOLDOWN_MS:
+					warnings.append("balance: cooldown %.0fms 异常偏大 (> %.0fms)" % [cd, ADVISORY_MAX_COOLDOWN_MS])
+		# gating: cant_act 存在性 (move 豁免)
+		if not exempt_cant_act and not _au_has_no_tag_condition(au, HexBattleActionLockStatus.TAG_CANT_ACT):
+			warnings.append("gating: active_use 缺 cant_act 条件, 可能在眩晕/硬控时施放 (仅 move 应豁免)")
+		# gating: silence 存在性 (strike/move 豁免)
+		if not exempt_silence and not _au_has_no_tag_condition(au, HexBattleSilenceBuff.TAG_CANT_USE_SKILL):
+			warnings.append("gating: active_use 缺 silence (cant_use_skill) 条件, 可能在沉默时施放 (仅 basic-attack/move 应豁免)")
+
+	result.stages.advisory = { "passed": true, "warnings": warnings }
+
+
+## active_use 是否带某 tag 的 NoTagCondition (门控存在性检查)
+func _au_has_no_tag_condition(au: ActiveUseConfig, tag: String) -> bool:
+	for cond in au.conditions:
+		if cond is Condition.NoTagCondition and cond.tag == tag:
+			return true
+	return false

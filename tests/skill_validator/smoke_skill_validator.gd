@@ -19,9 +19,10 @@ var _failures: Array[String] = []
 func _ready() -> void:
 	_part_a_end_to_end()
 	_part_b_all_builtin_skills()
+	_part_c_advisory_stage5()
 
 	if _failures.is_empty():
-		print("SMOKE_TEST_RESULT: PASS - SkillValidator A批回归 (P0-1 + 新-1 + 新-2) 全部通过")
+		print("SMOKE_TEST_RESULT: PASS - SkillValidator 回归 (P0-1 + 新-1 + 新-2 + Stage5) 全部通过")
 		get_tree().quit(0)
 	else:
 		for f in _failures:
@@ -114,8 +115,83 @@ func _part_b_all_builtin_skills() -> void:
 
 
 # ============================================================
+# Part C — Stage 5 advisory (warn-only): determinism 扫描 + 门控存在性
+# ============================================================
+func _part_c_advisory_stage5() -> void:
+	# 合成一个会通过前 4 阶段、但 resolver 里用 randf() 且缺 cant_act/silence 门控的技能。
+	# Stage5 应在 advisory.warnings 标出 determinism + gating, 但 success 仍 true (warn 不 fail)。
+	var src := "\n".join([
+		'static var ABILITY := (',
+		'	AbilityConfig.builder()',
+		'	.config_id("skill_test_advisory")',
+		'	.display_name("AdvisoryProbe")',
+		'	.ability_tags(["skill", "active"])',
+		'	.meta(HexBattleSkillMetaKeys.RANGE, 1)',
+		'	.active_use(',
+		'		ActiveUseConfig.builder()',
+		'		.timeline_id("skill_test_advisory")',
+		'		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(',
+		'			HexBattleTargetSelectors.current_target(),',
+		'			Resolvers.float_fn(func(_c): return randf() * 10.0),',
+		'			BattleEvents.DamageType.PHYSICAL',
+		'		)])',
+		'		.build()',
+		'	)',
+		'	.build()',
+		')',
+		'',
+	])
+	var validator := SkillValidator.new()
+	var res: Dictionary = validator.validate(src)
+
+	# warn-only: 含 randf + 缺门控仍 success=true
+	if not bool(res.get("success", false)):
+		_fail("Part C: advisory 是 warn-only, 含 randf/缺门控的技能应仍 success=true -> %s" % str(res.stages))
+		return
+	var advisory: Dictionary = res.stages.get("advisory", {})
+	if not bool(advisory.get("passed", false)):
+		_fail("Part C: advisory stage 未运行 -> %s" % str(advisory))
+		return
+	var warns: Array = advisory.get("warnings", [])
+	if not _warnings_contain(warns, "determinism"):
+		_fail("Part C: randf() 应产 determinism 警告; warnings=%s" % str(warns))
+	if not _warnings_contain(warns, "cant_act"):
+		_fail("Part C: 缺 cant_act 应产 gating 警告; warnings=%s" % str(warns))
+	if not _warnings_contain(warns, "silence"):
+		_fail("Part C: 缺 silence 应产 gating 警告; warnings=%s" % str(warns))
+
+	# 反向: 一个内置标准技能 (poison, 门控齐全, 无 randf) 不应产这些警告
+	var poison_warns := _builtin_advisory_warnings("skill_poison")
+	if _warnings_contain(poison_warns, "determinism"):
+		_fail("Part C: poison 不该有 determinism 警告; warnings=%s" % str(poison_warns))
+	if _warnings_contain(poison_warns, "gating"):
+		_fail("Part C: poison 门控齐全, 不该有 gating 警告; warnings=%s" % str(poison_warns))
+
+
+## 跑某内置技能的 Stage5 advisory, 返回 warnings (Part B 式: 不重编译, 直接喂 config)
+func _builtin_advisory_warnings(config_id: String) -> Array:
+	for ability: AbilityConfig in HexBattleAllSkills.all_abilities():
+		if ability.config_id != config_id:
+			continue
+		var validator := SkillValidator.new()
+		validator._reset_result()
+		validator._check_structure(ability)
+		if validator.result.success:
+			validator._check_advisory(ability, "")  # 内置技能源码不可得, 传空 (determinism 扫不到, 符合预期)
+		return validator.result.stages.get("advisory", {}).get("warnings", [])
+	return []
+
+
+# ============================================================
 # helpers
 # ============================================================
+func _warnings_contain(warnings: Array, needle: String) -> bool:
+	for w in warnings:
+		if str(w).contains(needle):
+			return true
+	return false
+
+
 func _find_action(actions: Array, tag: String, action_type: String) -> Dictionary:
 	for a in actions:
 		if a is Dictionary and str(a.get("tag", "")) == tag and str(a.get("action_type", "")) == action_type:
