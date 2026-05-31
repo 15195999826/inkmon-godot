@@ -8,6 +8,9 @@ const ROLE_FLEX := "flex"
 
 const STAGE_BABY := "baby"
 
+## 派生属性用的六维 key (本层自有词汇, 不上引 main 层的 RosterEntry.STAT_KEYS)。
+const BASE_STAT_KEYS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
+
 const LEFT_TANK := "left_tank"
 const LEFT_MAGE_DPS := "left_mage_dps"
 const LEFT_HEALER := "left_healer"
@@ -60,6 +63,20 @@ static func get_unit_config(unit_key: String) -> UnitConfigItem:
 	var configs := _configs()
 	Log.assert_crash(configs.has(unit_key), "InkMonUnitConfig", "unknown unit key: %s" % unit_key)
 	return configs[unit_key]
+
+
+## 物种 base 六维 (= level-1 baseline)。供 RosterEntry.derive_battle_stats 的 f(species, level) 用。
+static func get_species_base_stats(species: String) -> Dictionary:
+	var configs := _configs()
+	for unit_key in configs:
+		var cfg := configs[unit_key] as UnitConfigItem
+		if cfg.species == species:
+			var base := {}
+			for stat_key in BASE_STAT_KEYS:
+				base[stat_key] = float(cfg.stats[stat_key])
+			return base
+	Log.assert_crash(false, "InkMonUnitConfig", "no base stats for species: %s" % species)
+	return {}
 
 
 static func _configs() -> Dictionary:

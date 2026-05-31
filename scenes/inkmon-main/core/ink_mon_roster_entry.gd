@@ -4,6 +4,10 @@ extends RefCounted
 
 const STAT_KEYS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
 
+## v1 占位线性成长: level-1 = 物种 base (战斗平衡不变), 之后每级 +LEVEL_GROWTH 倍。
+## 公式由 lab 待定 (docs/L2-ARCHITECTURE.md §9); 调整不影响 entry 结构 (只存 level)。
+const LEVEL_GROWTH := 0.05
+
 
 var entry_id := 0
 var species := ""
@@ -12,10 +16,11 @@ var role := ""
 var elements: Array[String] = []
 var level := 1
 var exp := 0
-var persistent_stats: Dictionary = {}
-var learned_skill_id := ""
+# 存"哪槽选了哪技能", 不存数值变异 (§8c-decision)。
+var skill_slots: Array[Dictionary] = []
+# 刻印: 每条显式指明强化哪个 skill_slot (target_slot 对应 skill_slots[].slot_index)。
+var engravings: Array[Dictionary] = []
 var equipment_container := ""
-var medals: Array[String] = []
 
 
 static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterEntry:
@@ -26,8 +31,8 @@ static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterE
 	entry.stage = cfg.stage
 	entry.role = cfg.role
 	entry.elements.assign(cfg.elements)
-	entry.persistent_stats = _stats_from_config(cfg.stats)
-	entry.learned_skill_id = cfg.active_skill_id
+	entry.skill_slots = [{"slot_index": 0, "skill_id": cfg.active_skill_id}]
+	entry.engravings = []
 	entry.equipment_container = "equip:%d" % p_entry_id
 	return entry
 
@@ -41,10 +46,9 @@ static func from_dict(data: Dictionary) -> InkMonRosterEntry:
 	entry.elements = _string_array(data.get("elements", []))
 	entry.level = int(data.get("level", 1))
 	entry.exp = int(data.get("exp", 0))
-	entry.persistent_stats = _normalize_stats(data.get("persistent_stats", {}))
-	entry.learned_skill_id = str(data.get("learned_skill_id", ""))
+	entry.skill_slots = _skill_slots_from_data(data.get("skill_slots", []))
+	entry.engravings = _engravings_from_data(data.get("engravings", []))
 	entry.equipment_container = str(data.get("equipment_container", "equip:%d" % entry.entry_id))
-	entry.medals = _string_array(data.get("medals", []))
 	return entry
 
 
@@ -57,22 +61,38 @@ func to_dict() -> Dictionary:
 		"elements": elements.duplicate(),
 		"level": level,
 		"exp": exp,
-		"persistent_stats": persistent_stats.duplicate(true),
-		"learned_skill_id": learned_skill_id,
+		"skill_slots": _dup_dict_array(skill_slots),
+		"engravings": _dup_dict_array(engravings),
 		"equipment_container": equipment_container,
-		"medals": medals.duplicate(),
 	}
 
 
+## 六维属性 = f(species, level) 运行时派生, 不进 entry (§8c-decision)。
+func derive_battle_stats() -> Dictionary:
+	var base := InkMonUnitConfig.get_species_base_stats(species)
+	var scale := 1.0 + float(level - 1) * LEVEL_GROWTH
+	var stats := {}
+	for key in STAT_KEYS:
+		stats[key] = float(base.get(key, 0.0)) * scale
+	return stats
+
+
+func get_primary_skill_id() -> String:
+	if skill_slots.is_empty():
+		return ""
+	return str(skill_slots[0].get("skill_id", ""))
+
+
 func project_to_battle_snapshot() -> Dictionary:
-	var battle_stats := _normalize_stats(persistent_stats)
+	# Snapshot 形状 (battle_stats + learned_skill_id) 在 P1 保持不变;
+	# P3 才把形状改成投影 skill_slots。这里 stats 改派生、learned 从 slot[0] 桥接。
 	return {
 		"source_entry_id": entry_id,
 		"species": species,
 		"role": role,
 		"elements": elements.duplicate(),
-		"learned_skill_id": learned_skill_id,
-		"battle_stats": battle_stats,
+		"learned_skill_id": get_primary_skill_id(),
+		"battle_stats": derive_battle_stats(),
 	}
 
 
@@ -80,22 +100,43 @@ func add_exp(amount: int) -> void:
 	exp = max(0, exp + amount)
 
 
-static func _stats_from_config(stats: Dictionary) -> Dictionary:
-	var normalized := {}
-	for key in STAT_KEYS:
-		Log.assert_crash(stats.has(key), "InkMonRosterEntry", "config stats missing key: %s" % key)
-		normalized[key] = float(stats[key])
-	return normalized
+static func _skill_slots_from_data(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var source := value as Array
+	if source == null:
+		return result
+	for item in source:
+		var slot := item as Dictionary
+		if slot == null:
+			continue
+		result.append({
+			"slot_index": int(slot.get("slot_index", result.size())),
+			"skill_id": str(slot.get("skill_id", "")),
+		})
+	return result
 
 
-static func _normalize_stats(stats_value: Variant) -> Dictionary:
-	var stats := stats_value as Dictionary
-	Log.assert_crash(stats != null, "InkMonRosterEntry", "stats must be a Dictionary")
-	var normalized := {}
-	for key in STAT_KEYS:
-		Log.assert_crash(stats.has(key), "InkMonRosterEntry", "stats missing key: %s" % key)
-		normalized[key] = float(stats[key])
-	return normalized
+static func _engravings_from_data(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var source := value as Array
+	if source == null:
+		return result
+	for item in source:
+		var engraving := item as Dictionary
+		if engraving == null:
+			continue
+		result.append({
+			"engraving_id": str(engraving.get("engraving_id", "")),
+			"target_slot": int(engraving.get("target_slot", -1)),
+		})
+	return result
+
+
+static func _dup_dict_array(source: Array[Dictionary]) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item in source:
+		result.append(item.duplicate(true))
+	return result
 
 
 static func _string_array(value: Variant) -> Array[String]:

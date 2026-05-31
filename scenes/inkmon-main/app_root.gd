@@ -525,12 +525,10 @@ func cultivate_lead_inkmon() -> Dictionary:
 	if not _spend_gold(CULTIVATION_COST):
 		return {"ok": false, "message": "not enough gold for cultivation"}
 
+	# 培养 = +level (六维属性由 f(species, level) 派生, 随 level 自动提升, 不直接写数值)。
 	var entry := session.player_state.roster[0]
 	entry.level += 1
 	entry.exp = 0
-	entry.persistent_stats["max_hp"] = float(entry.persistent_stats.get("max_hp", 0.0)) + 10.0
-	entry.persistent_stats["ad"] = float(entry.persistent_stats.get("ad", 0.0)) + 2.0
-	entry.persistent_stats["ap"] = float(entry.persistent_stats.get("ap", 0.0)) + 2.0
 	session.player_state.progression["cultivation_points"] = int(
 		session.player_state.progression.get("cultivation_points", 0)
 	) + 1
@@ -1315,7 +1313,7 @@ func _build_party_panel() -> void:
 			entry.role,
 			", ".join(entry.elements),
 			entry.exp,
-			entry.learned_skill_id,
+			entry.get_primary_skill_id(),
 		]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.modulate = Color(0.92, 0.88, 0.78)
@@ -1323,13 +1321,14 @@ func _build_party_panel() -> void:
 
 		var stats := Label.new()
 		stats.name = "StatsLabel"
+		var derived: Dictionary = entry.derive_battle_stats()
 		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
-			int(float(entry.persistent_stats.get("max_hp", 0.0))),
-			int(float(entry.persistent_stats.get("ad", 0.0))),
-			int(float(entry.persistent_stats.get("ap", 0.0))),
-			int(float(entry.persistent_stats.get("armor", 0.0))),
-			int(float(entry.persistent_stats.get("mr", 0.0))),
-			int(float(entry.persistent_stats.get("speed", 0.0))),
+			int(float(derived.get("max_hp", 0.0))),
+			int(float(derived.get("ad", 0.0))),
+			int(float(derived.get("ap", 0.0))),
+			int(float(derived.get("armor", 0.0))),
+			int(float(derived.get("mr", 0.0))),
+			int(float(derived.get("speed", 0.0))),
 		]
 		stats.modulate = Color(0.82, 0.78, 0.68)
 		row.add_child(stats)

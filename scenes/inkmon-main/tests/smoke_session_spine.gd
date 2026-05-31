@@ -15,6 +15,10 @@ func _run() -> String:
 	var session := InkMonGameSession.new()
 	session.begin_new_game()
 
+	var model_status := _assert_roster_model(session)
+	if model_status != "":
+		return model_status
+
 	var data_status := _assert_session_round_trip(session)
 	if data_status != "":
 		return data_status
@@ -27,6 +31,46 @@ func _run() -> String:
 	if battle_status != "":
 		return battle_status
 
+	return ""
+
+
+func _assert_roster_model(session: InkMonGameSession) -> String:
+	if session.player_state.roster.is_empty():
+		return "new game roster should not be empty"
+	var lead := session.player_state.roster[0]
+	var entry_dict := lead.to_dict()
+
+	# New shape: skill_slots + engravings present.
+	if not entry_dict.has("skill_slots"):
+		return "roster entry must expose skill_slots"
+	var slots := entry_dict["skill_slots"] as Array
+	if slots == null or slots.is_empty():
+		return "seeded roster entry should have at least one skill slot"
+	var slot0 := slots[0] as Dictionary
+	if slot0 == null or not slot0.has("slot_index") or not slot0.has("skill_id"):
+		return "skill slot must carry slot_index and skill_id"
+	if str(slot0.get("skill_id", "")) == "":
+		return "seeded skill slot should reference a skill_id"
+	if not entry_dict.has("engravings"):
+		return "roster entry must expose engravings"
+
+	# Removed fields must be gone from the entry.
+	if entry_dict.has("persistent_stats") or entry_dict.has("learned_skill_id") or entry_dict.has("medals"):
+		return "roster entry should no longer carry persistent_stats/learned_skill_id/medals"
+
+	# medals moved to player-level state.
+	if not session.player_state.to_dict().has("medals"):
+		return "medals should live on player state"
+
+	# Stats are derived f(species, level): level-1 derive must equal species base (battle balance unchanged).
+	if lead.level != 1:
+		return "seeded lead should start at level 1"
+	var base_max_hp := float(InkMonUnitConfig.get_unit_config(InkMonUnitConfig.LEFT_TANK).stats["max_hp"])
+	var projected := lead.project_to_battle_snapshot().get("battle_stats", {}) as Dictionary
+	if projected == null:
+		return "projection must still emit battle_stats"
+	if absf(float(projected.get("max_hp", -1.0)) - base_max_hp) > 0.01:
+		return "level-1 derived max_hp must equal species base (battle balance unchanged)"
 	return ""
 
 

@@ -12,6 +12,8 @@ var gold := 0
 var roster: Array[InkMonRosterEntry] = []
 var overworld: Dictionary = {}
 var progression: Dictionary = {}
+# 勋章是玩家级 (非单只; 影响所有 InkMon, 对标 TFT 海克斯), 从 RosterEntry 移来 (§8c-gap)。
+var medals: Array[String] = []
 
 
 static func create_new_game() -> InkMonPlayerState:
@@ -39,6 +41,7 @@ static func from_dict(data: Dictionary) -> InkMonPlayerState:
 	state.gold = int(data.get("gold", 0))
 	state.overworld = (data.get("overworld", {}) as Dictionary).duplicate(true)
 	state.progression = (data.get("progression", {}) as Dictionary).duplicate(true)
+	state.medals = _string_array(data.get("medals", []))
 	state.roster = []
 	var roster_data := data.get("roster", []) as Array
 	if roster_data != null:
@@ -58,6 +61,7 @@ func to_dict() -> Dictionary:
 		"roster": roster_data,
 		"overworld": overworld.duplicate(true),
 		"progression": progression.duplicate(true),
+		"medals": medals.duplicate(),
 	}
 
 
@@ -111,6 +115,16 @@ func remove_roster_entry(entry_id: int) -> bool:
 			roster.remove_at(i)
 			return true
 	return false
+
+
+static func _string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	var source := value as Array
+	if source == null:
+		return result
+	for item in source:
+		result.append(str(item))
+	return result
 
 
 static func _int_array(value: Variant) -> Array[int]:
