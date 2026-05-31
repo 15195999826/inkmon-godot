@@ -295,10 +295,10 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 	var result := _move_controller.move_actor_to(InkMonOverworldGrid.PLAYER_ID, target_coord)
 	_last_move_result = result.duplicate(true)
 	var data := result.get("data", {}) as Dictionary
+	# move_controller 已更新 grid occupant (运行真相); 不再往 session 写位置 (§3 不双写)。
 	var final_coord := _coord_from_dict(data.get("final_coord", _get_player_coord_dict()))
 	var resolved_coord := _coord_from_dict(data.get("resolved_target", _get_player_coord_dict()))
 	var path := _path_from_dicts(data.get("path", []) as Array)
-	_set_player_coord(final_coord)
 	if bool(result.get("ok", false)):
 		_near_npc_id = ""
 		if _world_layer != null:
@@ -480,6 +480,8 @@ func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
+	# save 侧: 把运行时 grid 玩家位置写回存档字段一次, 再序列化 (§3 不双写)。
+	_sync_player_coord_to_session()
 	var save_data := session.to_dict()
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
@@ -595,22 +597,17 @@ func _setup_overworld_runtime() -> void:
 	# 主世界 grid wrapper 归 main 层所有; 只把底层 GridMapModel bind 给 world GI 做 active 切换。
 	_overworld_grid = InkMonOverworldGrid.new()
 	_overworld_grid.setup(InkMonOverworldGrid.MAP_RADIUS)
-	_overworld_grid.sync_occupants(_get_player_coord(), _npc_defs)
+	# load 侧读: 用存档字段把玩家放到 grid (此后 grid occupant 即运行真相)。
+	_overworld_grid.sync_occupants(_saved_player_coord(), _npc_defs)
 	_world_gi.bind_overworld_grid(_overworld_grid.model)
 	_move_controller = InkMonOverworldMoveController.new()
 	_move_controller.setup(_overworld_grid)
-	_move_controller.move_completed.connect(_on_overworld_move_completed)
+	# move_completed 不再订阅: grid occupant 即玩家位置真相, 无需回写 session (§3)。
 	_move_controller.move_rejected.connect(_on_overworld_move_rejected)
 
 
-func _on_overworld_move_completed(actor_id: String, _from_coord: Vector2i, to_coord: Vector2i) -> void:
-	if actor_id != InkMonOverworldGrid.PLAYER_ID:
-		return
-	_set_player_coord(to_coord)
-
-
 func _on_player_move_animation_finished(final_coord: Vector2i) -> void:
-	_set_player_coord(final_coord)
+	# grid occupant 已是真相 (move_controller 更新); 动画结束只刷 UI / NPC 邻近, 不写 session。
 	_refresh_near_npc()
 	_refresh_ui()
 	_add_event("player move animation finished at %s,%s" % [final_coord.x, final_coord.y])
@@ -1373,15 +1370,24 @@ func _refresh_near_npc() -> void:
 			return
 
 
+## 运行时玩家位置真相 = 主世界 grid 的 occupant (不双写, §3)。grid 未建时回退存档字段。
 func _get_player_coord() -> Vector2i:
-	var overworld := session.player_state.overworld
-	var coord := overworld.get("player_coord", {}) as Dictionary
+	if _overworld_grid != null:
+		return _overworld_grid.get_player_coord()
+	return _saved_player_coord()
+
+
+## 存档字段里的玩家位置: 只在 load 侧读 (放 occupant) / save 侧写, 中间不双写。
+func _saved_player_coord() -> Vector2i:
+	var coord := session.player_state.overworld.get("player_coord", {}) as Dictionary
 	if coord == null:
 		return Vector2i.ZERO
 	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
 
 
-func _set_player_coord(coord: Vector2i) -> void:
+## save 侧: 把运行时 grid 位置写回存档字段一次。
+func _sync_player_coord_to_session() -> void:
+	var coord := _get_player_coord()
 	session.player_state.overworld["player_coord"] = {
 		"q": coord.x,
 		"r": coord.y,

@@ -179,46 +179,26 @@ func find_actor_coord(actor_id: String) -> Vector2i:
 	return coord.to_axial()
 
 
+## 寻路走 ultra-grid-map 插件 astar (替换自写 BFS)。
+## 输出契约不变: 返回不含起点的逐步 axial 坐标; 无路 / 起==终 / 终点不可通行 → []。
 func find_path(actor_id: String, from_coord: Vector2i, to_coord: Vector2i) -> Array[Vector2i]:
-	if not has_coord(from_coord) or not has_coord(to_coord):
+	if model == null or not has_coord(from_coord) or not has_coord(to_coord):
 		return []
 	if from_coord == to_coord:
 		return []
 	if not is_passable_for_actor(to_coord, actor_id):
 		return []
 
-	var frontier: Array[Vector2i] = [from_coord]
-	var came_from: Dictionary = {_coord_key(from_coord): ""}
-	var head := 0
-	while head < frontier.size():
-		var current := frontier[head]
-		head += 1
-		if current == to_coord:
-			break
-		for neighbor in _sorted_neighbors(current):
-			var key := _coord_key(neighbor)
-			if came_from.has(key):
-				continue
-			if neighbor != to_coord and not is_passable_for_actor(neighbor, actor_id):
-				continue
-			if neighbor == to_coord and not is_passable_for_actor(neighbor, actor_id):
-				continue
-			came_from[key] = _coord_key(current)
-			frontier.append(neighbor)
-
-	if not came_from.has(_coord_key(to_coord)):
+	var passable := func(coord: HexCoord) -> bool:
+		return is_passable_for_actor(coord.to_axial(), actor_id)
+	var result := GridPathfinding.astar(model, _to_hex(from_coord), _to_hex(to_coord), passable)
+	if not result.found:
 		return []
 
-	var reversed_path: Array[Vector2i] = []
-	var cursor := to_coord
-	while cursor != from_coord:
-		reversed_path.append(cursor)
-		var previous_key := str(came_from[_coord_key(cursor)])
-		cursor = _coord_from_key(previous_key)
-
+	# astar 路径含起点 (index 0); 本契约去掉起点。
 	var path: Array[Vector2i] = []
-	for i in range(reversed_path.size() - 1, -1, -1):
-		path.append(reversed_path[i])
+	for i in range(1, result.path.size()):
+		path.append(result.path[i].to_axial())
 	return path
 
 
@@ -253,13 +233,6 @@ func _coord_less(a: Vector2i, b: Vector2i) -> bool:
 
 func _coord_key(coord: Vector2i) -> String:
 	return "%d,%d" % [coord.x, coord.y]
-
-
-func _coord_from_key(key: String) -> Vector2i:
-	var parts := key.split(",")
-	if parts.size() < 2:
-		return Vector2i.ZERO
-	return Vector2i(int(parts[0]), int(parts[1]))
 
 
 func _to_hex(coord: Vector2i) -> HexCoord:
