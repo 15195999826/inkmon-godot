@@ -16,14 +16,22 @@ func begin_new_game() -> void:
 	_register_required_containers({})
 
 
-func from_dict(data: Dictionary) -> void:
-	Log.assert_crash(int(data.get("version", SAVE_VERSION)) == SAVE_VERSION, "InkMonGameSession",
-		"unsupported save version: %s" % str(data.get("version", "")))
+## 存档永不向后兼容 (Goal Non-Goal / docs §存档): version 缺失或不符 → 丢弃旧档直接重开新游戏, 不迁移、不崩。
+## 返回 true = 正常读档; false = 旧/不兼容档已被丢弃并重开新游戏 (调用方据此提示玩家)。
+func from_dict(data: Dictionary) -> bool:
+	var save_version := int(data.get("version", -1))
+	if save_version != SAVE_VERSION:
+		Log.warning("InkMonGameSession",
+			"incompatible save version %s (expected %d) — discarding save, starting new game"
+			% [str(data.get("version", "<missing>")), SAVE_VERSION])
+		begin_new_game()
+		return false
 	player_state = InkMonPlayerState.from_dict(data.get("player", {}) as Dictionary)
 	_reset_item_runtime()
 	var inventory_data := data.get("inventory", {}) as Dictionary
 	_register_required_containers(inventory_data if inventory_data != null else {})
 	InkMonInventorySerializer.restore(inventory_map, inventory_data if inventory_data != null else {})
+	return true
 
 
 func to_dict() -> Dictionary:

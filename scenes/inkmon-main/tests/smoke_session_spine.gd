@@ -35,6 +35,10 @@ func _run() -> String:
 	if battle_status != "":
 		return battle_status
 
+	var discard_status := _assert_old_save_discarded()
+	if discard_status != "":
+		return discard_status
+
 	return ""
 
 
@@ -264,3 +268,29 @@ func _has_key_recursive(value: Variant, key: String) -> bool:
 func _shutdown_with_status(status: String) -> String:
 	GameWorld.shutdown()
 	return status
+
+
+func _assert_old_save_discarded() -> String:
+	# F2: 存档永不向后兼容 — 缺 version / 旧版档 from_dict 丢弃重开新游戏, 不读旧形状、不崩。
+	# 旧格式 (无 version, roster entry 缺 skill_slots): 旧逻辑会读成空 slot 再于注入侧 assert 崩。
+	var legacy_save := {
+		"player": {"gold": 99999, "roster": [{"entry_id": 1, "species": "legacy_mon", "level": 7}]},
+		"inventory": {},
+	}
+	var loaded := InkMonGameSession.new()
+	if loaded.from_dict(legacy_save):
+		return "legacy save (missing version) should be discarded, not loaded"
+	if loaded.player_state == null:
+		return "discarded legacy save should restart a fresh new game (player_state is null)"
+	if loaded.player_state.roster.size() != 4:
+		return "discarded legacy save should reseed new-game roster (4), got %d" % loaded.player_state.roster.size()
+	if loaded.player_state.gold == 99999:
+		return "discarded legacy save must not retain old gold"
+
+	# 显式 (未来) 版本号同样丢弃重开。
+	var future_save := loaded.to_dict()
+	future_save["version"] = InkMonGameSession.SAVE_VERSION + 1
+	var loaded2 := InkMonGameSession.new()
+	if loaded2.from_dict(future_save):
+		return "save with future version should be discarded, not loaded"
+	return ""

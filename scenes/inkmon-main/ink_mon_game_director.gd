@@ -545,7 +545,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 		return _scene_result(false, "save json is not an object")
 
 	session = InkMonGameSession.new()
-	session.from_dict(data)
+	var save_loaded := session.from_dict(data)
 	last_battle_result = {}
 	_active_instance_id = ""
 	_world_gi = null
@@ -558,6 +558,9 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_cancel_overworld_animation()
 	_refresh_near_npc()
 	_refresh_ui()
+	if not save_loaded:
+		_add_event("incompatible save discarded, started new game: %s" % save_path)
+		return _scene_result(true, "incompatible save discarded; started new game")
 	_add_event("loaded game: %s" % save_path)
 	return _scene_result(true, "loaded game")
 
