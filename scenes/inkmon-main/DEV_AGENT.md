@@ -15,7 +15,11 @@ New-Item -ItemType Directory -Force -Path $env:SESS_DIR | Out-Null
 godot --path . res://scenes/inkmon-main/InkMonMain.tscn -- --dev-agent --dev-agent-session=$env:SESS_NAME > "$env:SESS_DIR\godot.log" 2>&1
 ```
 
-The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
+`InkMonMain.tscn` is the thin outer screen router; it boots the inner game
+director (`ink_mon_game.tscn`, node name `GameDirector`) which installs the
+DevAgent bridge + scene ops. So the runtime tree is
+`/root/InkMonMain/GameDirector/...`. The scene prints `inbox` and `outbox`
+global paths when DevAgent is enabled.
 
 ## Scene Ops
 
@@ -68,7 +72,7 @@ Generic DevAgent ops remain available:
 {"id":"01","op":"scene","name":"state"}
 {"id":"02","op":"scene","name":"run_training_battle","args":{"max_ticks":8}}
 {"id":"03","op":"scene","name":"state"}
-{"id":"04","op":"inspect_tree","root":"/root/InkMonMain","max_depth":3}
+{"id":"04","op":"inspect_tree","root":"/root/InkMonMain/GameDirector","max_depth":3}
 {"id":"05","op":"scene","name":"npc_action","args":{"npc_id":"cultivation","action_id":"cultivate_lead"}}
 {"id":"06","op":"scene","name":"save_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
 {"id":"07","op":"scene","name":"load_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}

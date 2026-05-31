@@ -9,9 +9,6 @@ const InkMonOverworldView3DScript := preload("res://scenes/inkmon-main/overworld
 enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
-const CULTIVATION_COST := 25
-const ADVANCEMENT_COST := 40
-const ADOPT_COST := 15
 
 var session: InkMonGameSession
 var app_state: AppState = AppState.OVERWORLD
@@ -96,7 +93,7 @@ var _modal_open_requested := false
 
 
 func _ready() -> void:
-	name = "InkMonMain"
+	name = "GameDirector"
 	session = InkMonGameSession.new()
 	session.begin_new_game()
 	GameWorld.init(EventProcessorConfig.new(20, 1))
@@ -433,40 +430,17 @@ func buy_shop_item(config_id: StringName) -> Dictionary:
 			"message": "shop is not open",
 			"data": get_dev_agent_state(),
 		}
-	var result := purchase_shop_item(config_id)
+	# 购买规则住 shop handler (收 session); 导播只转发 + 刷 UI。
+	var shop := _npc_handlers["shop"] as InkMonShopNpcHandler
+	var result := shop.buy(session, config_id)
+	var ok := bool(result.get("ok", false))
+	var message := str(result.get("message", ""))
+	if message != "":
+		_last_ui_message = message
+		if ok:
+			_add_event(message)
 	_refresh_ui()
-	return _scene_result(bool(result.get("ok", false)), str(result.get("message", "")))
-
-
-func purchase_shop_item(config_id: StringName) -> Dictionary:
-	var config := ItemSystem.get_item_config(config_id)
-	if config.is_empty():
-		return {
-			"ok": false,
-			"message": "unknown shop item: %s" % str(config_id),
-		}
-	var price := int(config.get("price", 0))
-	if session.player_state.gold < price:
-		_last_ui_message = "not enough gold"
-		return {
-			"ok": false,
-			"message": "not enough gold",
-		}
-	session.player_state.gold -= price
-	var create_result := session.create_bag_item(config_id, 1, -1)
-	if not create_result.success:
-		session.player_state.gold += price
-		_last_ui_message = create_result.error_message
-		return {
-			"ok": false,
-			"message": create_result.error_message,
-		}
-	_last_ui_message = "bought %s" % str(config.get("display_name", str(config_id)))
-	_add_event(_last_ui_message)
-	return {
-		"ok": true,
-		"message": _last_ui_message,
-	}
+	return _scene_result(ok, message)
 
 
 func trigger_trainer_battle_from_ui() -> Dictionary:
@@ -489,75 +463,20 @@ func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 	if not _npc_handlers.has(npc_id):
 		return _scene_result(false, "unknown NPC handler: %s" % npc_id)
 	var handler := _npc_handlers[npc_id] as InkMonNpcHandler
-	var result := handler.run_action(action_id, self)
+	# handler 只收 session 自含规则; 不再反持 app_root (§5)。
+	var result := handler.run_action(action_id, session)
+	# Command-as-data: handler 返回 flow intent, 导播解释并执行 (起 battle procedure)。
+	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
+	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+		_active_npc_id = ""
+		return run_training_battle_to_completion(8)
 	var ok := bool(result.get("ok", false))
 	var message := str(result.get("message", ""))
 	if message != "":
 		_last_ui_message = message
 		_add_event(message)
-	if app_state == AppState.NPC_MENU and _active_npc_id == npc_id:
-		_refresh_ui()
-	else:
-		_refresh_ui()
+	_refresh_ui()
 	return _scene_result(ok, message)
-
-
-func complete_training_battle_action() -> Dictionary:
-	var result := run_training_battle_to_completion(8)
-	_active_npc_id = ""
-	return {
-		"ok": bool(result.get("ok", false)),
-		"message": str(result.get("message", "")),
-	}
-
-
-func cultivate_lead_inkmon() -> Dictionary:
-	if session.player_state.roster.is_empty():
-		return {"ok": false, "message": "no InkMon to cultivate"}
-	if not _spend_gold(CULTIVATION_COST):
-		return {"ok": false, "message": "not enough gold for cultivation"}
-
-	# 培养 = +level (六维属性由 f(species, level) 派生, 随 level 自动提升, 不直接写数值)。
-	var entry := session.player_state.roster[0]
-	entry.level += 1
-	entry.exp = 0
-	# 跨进化阈值则改写 species/stage/技能 (entry_id 不变)。
-	var evolved := InkMonSpeciesCatalog.evolve_entry(entry)
-	session.player_state.progression["cultivation_points"] = int(
-		session.player_state.progression.get("cultivation_points", 0)
-	) + 1
-	var message := "cultivated %s to Lv%d" % [entry.species, entry.level]
-	if evolved:
-		message += " — evolved!"
-	return {"ok": true, "message": message}
-
-
-func advance_trainer_rank() -> Dictionary:
-	if not _spend_gold(ADVANCEMENT_COST):
-		return {"ok": false, "message": "not enough gold for trainer advancement"}
-	var rank := int(session.player_state.progression.get("trainer_rank", 1)) + 1
-	session.player_state.progression["trainer_rank"] = rank
-	return {"ok": true, "message": "trainer rank advanced to R%d" % rank}
-
-
-func advance_guild_task() -> Dictionary:
-	session.player_state.progression["guild_joined"] = true
-	var tasks := int(session.player_state.progression.get("guild_tasks_completed", 0)) + 1
-	session.player_state.progression["guild_tasks_completed"] = tasks
-	return {"ok": true, "message": "guild task marker %d" % tasks}
-
-
-func adopt_stub_inkmon() -> Dictionary:
-	if not _spend_gold(ADOPT_COST):
-		return {"ok": false, "message": "not enough gold to adopt"}
-	var entry_id := session.player_state.get_next_roster_entry_id()
-	var unit_key := InkMonUnitConfig.RIGHT_FLEX if entry_id % 2 == 0 else InkMonUnitConfig.LEFT_FLEX
-	var species := InkMonUnitConfig.get_unit_config(unit_key).species
-	# 领养 = 新出生 → 确定性 roll 技能槽 (seed = entry_id)。
-	var entry := InkMonRosterEntry.from_birth(entry_id, species, entry_id)
-	session.player_state.add_roster_entry(entry)
-	session.sync_roster_containers()
-	return {"ok": true, "message": "adopted %s" % entry.species}
 
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
@@ -1292,7 +1211,7 @@ func _rebuild_panel_body() -> void:
 		_panel_body.add_child(placeholder)
 		return
 
-	var actions := handler.get_actions(self)
+	var actions := handler.get_actions(session)
 	for action in actions:
 		_add_action_row(action)
 
@@ -1527,13 +1446,6 @@ func _get_roster_snapshot() -> Array[Dictionary]:
 			"exp": entry.exp,
 		})
 	return result
-
-
-func _spend_gold(amount: int) -> bool:
-	if session.player_state.gold < amount:
-		return false
-	session.player_state.gold -= amount
-	return true
 
 
 func _scene_result(ok: bool, message: String) -> Dictionary:

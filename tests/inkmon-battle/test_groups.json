@@ -15,7 +15,8 @@
     },
     "app-root": {
       "scenes": [
-        "../../scenes/inkmon-main/tests/smoke_app_root.tscn"
+        "../../scenes/inkmon-main/tests/smoke_app_root.tscn",
+        "../../scenes/inkmon-main/tests/smoke_main_router.tscn"
       ]
     },
     "content": {

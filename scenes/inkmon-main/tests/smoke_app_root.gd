@@ -1,7 +1,7 @@
 extends Node
 
 
-const InkMonMainScene := preload("res://scenes/inkmon-main/InkMonMain.tscn")
+const InkMonMainScene := preload("res://scenes/inkmon-main/ink_mon_game.tscn")
 
 
 func _ready() -> void:

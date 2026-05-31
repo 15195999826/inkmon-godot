@@ -97,6 +97,13 @@ func apply_battle_result(result: Dictionary) -> void:
 			casualty.add_exp(LOSS_EXP)
 
 
+func try_spend_gold(amount: int) -> bool:
+	if gold < amount:
+		return false
+	gold -= amount
+	return true
+
+
 func add_roster_entry(entry: InkMonRosterEntry) -> void:
 	Log.assert_crash(entry != null, "InkMonPlayerState", "cannot add null roster entry")
 	roster.append(entry)
