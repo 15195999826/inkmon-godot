@@ -11,6 +11,8 @@ const RosterChipScene := preload("res://scenes/inkmon-main/ui/components/roster_
 const PartyEntryRowScene := preload("res://scenes/inkmon-main/ui/components/party_entry_row.tscn")
 const BagItemRowScene := preload("res://scenes/inkmon-main/ui/components/bag_item_row.tscn")
 const NpcActionRowScene := preload("res://scenes/inkmon-main/ui/components/npc_action_row.tscn")
+const JournalPanelScene := preload("res://scenes/inkmon-main/ui/components/journal_panel.tscn")
+const PanelMessageScene := preload("res://scenes/inkmon-main/ui/components/panel_message.tscn")
 # 静态 UI 容器场景 (§6: HUD / drawer / modal 全 .tscn)。
 const SaveLoadModalScene := preload("res://scenes/inkmon-main/ui/save_load_modal.tscn")
 const RightDrawerScene := preload("res://scenes/inkmon-main/ui/right_drawer.tscn")
@@ -1016,15 +1018,10 @@ func _refresh_roster_chips() -> void:
 	for entry in session.player_state.roster:
 		var chip := RosterChipScene.instantiate() as PanelContainer
 		chip.name = "RosterChip_%d" % entry.entry_id
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.10, 0.09, 0.07, 0.92)
-		style.border_color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
-		style.set_border_width_all(2)
-		style.corner_radius_top_left = 4
-		style.corner_radius_top_right = 4
-		style.corner_radius_bottom_left = 4
-		style.corner_radius_bottom_right = 4
-		chip.add_theme_stylebox_override("panel", style)
+		# 样式在 roster_chip.tscn (local-to-scene StyleBox); 代码只填数据驱动的描边色。
+		var style := chip.get_theme_stylebox("panel") as StyleBoxFlat
+		if style != null:
+			style.border_color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
 		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [_role_short(entry.role), entry.level]
 		_roster_box.add_child(chip)
 
@@ -1082,7 +1079,7 @@ func _rebuild_panel_body() -> void:
 
 	var handler := _get_active_handler()
 	if handler == null:
-		var placeholder := Label.new()
+		var placeholder := PanelMessageScene.instantiate() as Label
 		placeholder.text = "System linked"
 		_panel_body.add_child(placeholder)
 		return
@@ -1127,10 +1124,9 @@ func _build_party_panel() -> void:
 func _build_bag_panel() -> void:
 	var bag_items := _get_bag_snapshot()
 	if bag_items.is_empty():
-		var empty := Label.new()
+		var empty := PanelMessageScene.instantiate() as Label
 		empty.name = "BagEmptyLabel"
 		empty.text = "Bag is empty."
-		empty.modulate = Color(0.92, 0.88, 0.78)
 		_panel_body.add_child(empty)
 		return
 
@@ -1161,20 +1157,12 @@ func _build_journal_panel() -> void:
 			str(last_battle_result.get("result", "")),
 			str(last_battle_result.get("winner_team", "")),
 		])
-	var label := Label.new()
-	label.name = "JournalSummary"
-	label.text = "\n".join(lines)
-	label.modulate = Color(0.92, 0.88, 0.78)
-	_panel_body.add_child(label)
-
-	var open_system := Button.new()
-	open_system.name = "OpenSystemMenu"
-	open_system.text = "Save / Load"
-	open_system.custom_minimum_size = Vector2(180, 38)
-	open_system.pressed.connect(func() -> void:
+	var panel := JournalPanelScene.instantiate()
+	(panel.get_node("JournalSummary") as Label).text = "\n".join(lines)
+	(panel.get_node("OpenSystemMenu") as Button).pressed.connect(func() -> void:
 		open_save_load_menu()
 	)
-	_panel_body.add_child(open_system)
+	_panel_body.add_child(panel)
 
 
 func _add_action_row(action: Dictionary) -> void:

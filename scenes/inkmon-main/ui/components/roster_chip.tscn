@@ -1,7 +1,21 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chip"]
+resource_local_to_scene = true
+bg_color = Color(0.1, 0.09, 0.07, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="RosterChip" type="PanelContainer"]
 custom_minimum_size = Vector2(76, 62)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chip")
 
 [node name="ChipLabel" type="Label" parent="."]
 horizontal_alignment = 1
