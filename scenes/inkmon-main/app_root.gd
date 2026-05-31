@@ -4,7 +4,7 @@ extends Node
 
 const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
 const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main_agent_ops.gd")
-const InkMonOverworldViewScript := preload("res://scenes/inkmon-main/ui/ink_mon_overworld_view.gd")
+const InkMonOverworldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_overworld_view_3d.gd")
 
 enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 
@@ -58,23 +58,36 @@ var _npc_defs: Dictionary = {
 }
 var _npc_handlers: Dictionary = {}
 
-var _world_layer: InkMonOverworldView
+var _overworld_grid: InkMonOverworldGrid
+var _move_controller: InkMonOverworldMoveController
+var _last_move_result: Dictionary = {}
+var _world_layer: InkMonOverworldView3D
 var _hud_layer: CanvasLayer
 var _hud_root: Control
 var _gold_label: Label
 var _rank_label: Label
 var _roster_box: HBoxContainer
+var _tool_buttons: Dictionary = {}
 var _prompt_layer: CanvasLayer
 var _prompt_button: Button
 var _panel_layer: CanvasLayer
 var _dim_overlay: ColorRect
 var _npc_panel: PanelContainer
+var _tab_bar: HBoxContainer
+var _tab_buttons: Dictionary = {}
 var _panel_title: Label
 var _panel_body: VBoxContainer
 var _close_button: Button
 var _action_buttons: Dictionary = {}
 var _shop_buy_buttons: Dictionary = {}
 var _trainer_button: Button
+var _drawer_mode := ""
+var _modal_layer: CanvasLayer
+var _modal_overlay: ColorRect
+var _save_load_modal: PanelContainer
+var _save_button: Button
+var _load_button: Button
+var _modal_close_button: Button
 
 
 func _ready() -> void:
@@ -84,6 +97,7 @@ func _ready() -> void:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
 	_build_npc_handlers()
+	_setup_overworld_runtime()
 	_build_world_and_ui()
 	_refresh_ui()
 	_add_event("InkMonMain ready")
@@ -169,10 +183,13 @@ func reset_session() -> Dictionary:
 	_battle_instance = null
 	_active_npc_id = ""
 	_near_npc_id = ""
+	_drawer_mode = ""
+	_last_move_result = {}
 	_last_ui_message = ""
 	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
+	_setup_overworld_runtime()
 	_event_log.clear()
 	_add_event("session reset")
 	_refresh_ui()
@@ -192,10 +209,15 @@ func get_dev_agent_state() -> Dictionary:
 		"near_npc_id": _near_npc_id,
 		"active_npc_id": _active_npc_id,
 		"panel_open": app_state == AppState.NPC_MENU,
+		"drawer_open": _drawer_mode != "",
+		"drawer_mode": _drawer_mode,
+		"modal_open": _save_load_modal != null and _save_load_modal.visible,
 		"ui_message": _last_ui_message,
 		"progression": session.player_state.progression.duplicate(true) if session != null and session.player_state != null else {},
 		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
+		"overworld_3d": _world_layer.get_debug_state() if _world_layer != null else {},
+		"last_move_result": _last_move_result.duplicate(true),
 		"active_instance_id": _active_instance_id,
 		"last_battle_result": last_battle_result.duplicate(true),
 		"game_world": GameWorld.get_debug_info(),
@@ -213,6 +235,14 @@ func get_dev_agent_layout_state() -> Dictionary:
 	for config_id in _shop_buy_buttons.keys():
 		var button := _shop_buy_buttons[config_id] as Button
 		buy_buttons[str(config_id)] = _control_rect_dict(button)
+	var tool_buttons := {}
+	for key in _tool_buttons.keys():
+		var tool_button := _tool_buttons[key] as Button
+		tool_buttons[str(key)] = _control_rect_dict(tool_button)
+	var tab_buttons := {}
+	for key in _tab_buttons.keys():
+		var tab_button := _tab_buttons[key] as Button
+		tab_buttons[str(key)] = _control_rect_dict(tab_button)
 	return {
 		"viewport": _rect_dict(get_viewport().get_visible_rect()),
 		"prompt_button": _control_rect_dict(_prompt_button),
@@ -221,6 +251,12 @@ func get_dev_agent_layout_state() -> Dictionary:
 		"npc_action_buttons": action_buttons,
 		"shop_buy_buttons": buy_buttons,
 		"trainer_button": _control_rect_dict(_trainer_button),
+		"tool_buttons": tool_buttons,
+		"tab_buttons": tab_buttons,
+		"save_load_modal": _control_rect_dict(_save_load_modal),
+		"save_button": _control_rect_dict(_save_button),
+		"load_button": _control_rect_dict(_load_button),
+		"modal_close_button": _control_rect_dict(_modal_close_button),
 	}
 
 
@@ -231,16 +267,54 @@ func move_player(delta_coord: Vector2i) -> Dictionary:
 			"message": "cannot move while state is %s" % _state_name(app_state),
 			"data": get_dev_agent_state(),
 		}
-	var coord := _get_player_coord() + delta_coord
-	_set_player_coord(coord)
+	return goto_tile(_get_player_coord() + delta_coord)
+
+
+func goto_tile(target_coord: Vector2i) -> Dictionary:
+	if app_state != AppState.OVERWORLD or _is_field_input_blocked():
+		return {
+			"ok": false,
+			"message": "cannot move while UI or battle is active",
+			"data": get_dev_agent_state(),
+		}
+	if _move_controller == null:
+		return {
+			"ok": false,
+			"message": "overworld move controller is not ready",
+			"data": get_dev_agent_state(),
+		}
+	var result := _move_controller.move_actor_to(InkMonOverworldGrid.PLAYER_ID, target_coord)
+	_last_move_result = result.duplicate(true)
+	var data := result.get("data", {}) as Dictionary
+	var final_coord := _coord_from_dict(data.get("final_coord", _get_player_coord_dict()))
+	_set_player_coord(final_coord)
 	_refresh_near_npc()
 	_refresh_ui()
-	_add_event("player moved to %s,%s" % [coord.x, coord.y])
-	return {
-		"ok": true,
-		"message": "player moved",
-		"data": get_dev_agent_state(),
-	}
+	if bool(result.get("ok", false)):
+		_add_event("player moved to %s,%s" % [final_coord.x, final_coord.y])
+	else:
+		_add_event("move rejected: %s" % str(result.get("message", "")))
+	return _scene_result(bool(result.get("ok", false)), str(result.get("message", "")))
+
+
+func right_click_at(screen_position: Vector2) -> Dictionary:
+	if _world_layer == null:
+		return _scene_result(false, "3D overworld view is not ready")
+	var pick := _world_layer.pick_coord_from_screen(screen_position)
+	if not bool(pick.get("ok", false)):
+		return _scene_result(false, str(pick.get("message", "right-click did not hit a tile")))
+	var coord := pick.get("coord", Vector2i.ZERO) as Vector2i
+	return goto_tile(coord)
+
+
+func get_tile_screen_position(coord: Vector2i) -> Dictionary:
+	if _world_layer == null:
+		return {
+			"ok": false,
+			"message": "3D overworld view is not ready",
+			"data": {},
+		}
+	return _world_layer.get_tile_screen_position(coord)
 
 
 func open_near_npc_menu() -> Dictionary:
@@ -262,6 +336,7 @@ func open_npc_menu(npc_id: String) -> Dictionary:
 		}
 	app_state = AppState.NPC_MENU
 	_active_npc_id = npc_id
+	_drawer_mode = "npc"
 	_last_ui_message = "%s opened" % str((_npc_defs[npc_id] as Dictionary).get("display_name", npc_id))
 	_refresh_ui()
 	_add_event("npc menu opened: %s" % npc_id)
@@ -275,6 +350,7 @@ func open_npc_menu(npc_id: String) -> Dictionary:
 func close_npc_menu() -> Dictionary:
 	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
+	_drawer_mode = ""
 	_last_ui_message = "closed"
 	_refresh_ui()
 	_add_event("npc menu closed")
@@ -283,6 +359,51 @@ func close_npc_menu() -> Dictionary:
 		"message": "npc menu closed",
 		"data": get_dev_agent_state(),
 	}
+
+
+func open_player_panel(panel_id: String) -> Dictionary:
+	if not ["party", "bag", "journal"].has(panel_id):
+		return _scene_result(false, "unknown player panel: %s" % panel_id)
+	if app_state == AppState.BATTLE:
+		return _scene_result(false, "cannot open player panel during battle")
+	app_state = AppState.OVERWORLD
+	_active_npc_id = ""
+	_drawer_mode = panel_id
+	_last_ui_message = "%s panel opened" % panel_id
+	_refresh_ui()
+	_add_event(_last_ui_message)
+	return _scene_result(true, _last_ui_message)
+
+
+func close_drawer() -> Dictionary:
+	app_state = AppState.OVERWORLD
+	_active_npc_id = ""
+	_drawer_mode = ""
+	_refresh_ui()
+	return _scene_result(true, "drawer closed")
+
+
+func open_save_load_menu() -> Dictionary:
+	if _save_load_modal == null:
+		return _scene_result(false, "save/load modal is not ready")
+	_drawer_mode = ""
+	_active_npc_id = ""
+	app_state = AppState.OVERWORLD
+	_save_load_modal.visible = true
+	if _modal_overlay != null:
+		_modal_overlay.visible = true
+	_last_ui_message = "save/load opened"
+	_add_event(_last_ui_message)
+	return _scene_result(true, _last_ui_message)
+
+
+func close_save_load_menu() -> Dictionary:
+	if _save_load_modal != null:
+		_save_load_modal.visible = false
+	if _modal_overlay != null:
+		_modal_overlay.visible = false
+	_last_ui_message = "save/load closed"
+	return _scene_result(true, _last_ui_message)
 
 
 func buy_shop_item(config_id: StringName) -> Dictionary:
@@ -444,36 +565,56 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_active_instance_id = ""
 	_battle_instance = null
 	_active_npc_id = ""
+	_drawer_mode = ""
 	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
+	_setup_overworld_runtime()
 	_refresh_near_npc()
 	_refresh_ui()
 	_add_event("loaded game: %s" % save_path)
 	return _scene_result(true, "loaded game")
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_RIGHT and app_state == AppState.OVERWORLD:
+			right_click_at(mouse_event.position)
+			get_viewport().set_input_as_handled()
+		return
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if not event is InputEventKey:
-		return
-	var key_event := event as InputEventKey
-	if not key_event.pressed or key_event.echo:
-		return
-	match key_event.keycode:
-		KEY_D, KEY_RIGHT:
-			move_player(Vector2i(1, 0))
-		KEY_A, KEY_LEFT:
-			move_player(Vector2i(-1, 0))
-		KEY_W, KEY_UP:
-			move_player(Vector2i(0, -1))
-		KEY_S, KEY_DOWN:
-			move_player(Vector2i(0, 1))
-		KEY_ENTER, KEY_SPACE:
-			if app_state == AppState.OVERWORLD:
-				open_near_npc_menu()
-		KEY_ESCAPE:
-			if app_state == AppState.NPC_MENU:
-				close_npc_menu()
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if not key_event.pressed or key_event.echo:
+			return
+		match key_event.keycode:
+			KEY_D, KEY_RIGHT:
+				move_player(Vector2i(1, 0))
+			KEY_A, KEY_LEFT:
+				move_player(Vector2i(-1, 0))
+			KEY_W, KEY_UP:
+				move_player(Vector2i(0, -1))
+			KEY_S, KEY_DOWN:
+				move_player(Vector2i(0, 1))
+			KEY_E, KEY_ENTER, KEY_SPACE:
+				if app_state == AppState.OVERWORLD and _drawer_mode == "":
+					open_near_npc_menu()
+			KEY_P:
+				open_player_panel("party")
+			KEY_B:
+				open_player_panel("bag")
+			KEY_J:
+				open_player_panel("journal")
+			KEY_ESCAPE:
+				if _save_load_modal != null and _save_load_modal.visible:
+					close_save_load_menu()
+				elif _drawer_mode != "":
+					close_drawer()
+				else:
+					open_save_load_menu()
 
 
 func _tick_active_instance(dt: float) -> void:
@@ -495,13 +636,38 @@ func _complete_battle_if_ready() -> void:
 	_battle_instance = null
 	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
+	_drawer_mode = ""
 	_last_ui_message = "battle completed"
 	_refresh_ui()
 	_add_event("battle completed: %s" % str(last_battle_result.get("result", "")))
 
 
+func _setup_overworld_runtime() -> void:
+	_overworld_grid = InkMonOverworldGrid.new()
+	_overworld_grid.setup(InkMonOverworldGrid.MAP_RADIUS)
+	_overworld_grid.sync_occupants(_get_player_coord(), _npc_defs)
+	_move_controller = InkMonOverworldMoveController.new()
+	_move_controller.setup(_overworld_grid)
+	_move_controller.move_completed.connect(_on_overworld_move_completed)
+	_move_controller.move_rejected.connect(_on_overworld_move_rejected)
+
+
+func _on_overworld_move_completed(actor_id: String, _from_coord: Vector2i, to_coord: Vector2i) -> void:
+	if actor_id != InkMonOverworldGrid.PLAYER_ID:
+		return
+	_set_player_coord(to_coord)
+	if _world_layer != null:
+		_world_layer.set_player_coord(to_coord)
+	_refresh_near_npc()
+
+
+func _on_overworld_move_rejected(actor_id: String, _from_coord: Vector2i, _target_coord: Vector2i, reason: String) -> void:
+	if actor_id == InkMonOverworldGrid.PLAYER_ID:
+		_last_ui_message = reason
+
+
 func _build_world_and_ui() -> void:
-	_world_layer = InkMonOverworldViewScript.new() as InkMonOverworldView
+	_world_layer = InkMonOverworldView3DScript.new() as InkMonOverworldView3D
 	_world_layer.name = "WorldLayer"
 	_world_layer.set_npcs(_npc_defs)
 	add_child(_world_layer)
@@ -532,6 +698,11 @@ func _build_world_and_ui() -> void:
 	_panel_layer.name = "PanelLayer"
 	add_child(_panel_layer)
 	_build_panel()
+
+	_modal_layer = CanvasLayer.new()
+	_modal_layer.name = "ModalLayer"
+	add_child(_modal_layer)
+	_build_save_load_modal()
 
 
 func _build_hud() -> void:
@@ -574,17 +745,48 @@ func _build_hud() -> void:
 	_roster_box.add_theme_constant_override("separation", 6)
 	hud_box.add_child(_roster_box)
 
-	var settings := Button.new()
-	settings.name = "SettingsButton"
-	settings.text = "⚙"
-	settings.custom_minimum_size = Vector2(52, 52)
-	settings.anchor_left = 1.0
-	settings.anchor_right = 1.0
-	settings.offset_left = -76.0
-	settings.offset_right = -24.0
-	settings.offset_top = 24.0
-	settings.offset_bottom = 76.0
-	_hud_root.add_child(settings)
+	var tools := HBoxContainer.new()
+	tools.name = "TopRightTools"
+	tools.anchor_left = 1.0
+	tools.anchor_right = 1.0
+	tools.offset_left = -348.0
+	tools.offset_right = -24.0
+	tools.offset_top = 24.0
+	tools.offset_bottom = 76.0
+	tools.add_theme_constant_override("separation", 8)
+	_hud_root.add_child(tools)
+	_add_tool_button(tools, "party", "Party\nP")
+	_add_tool_button(tools, "bag", "Bag\nB")
+	_add_tool_button(tools, "journal", "Journal\nJ")
+	_add_tool_button(tools, "menu", "Menu\nEsc")
+
+	var hint := Label.new()
+	hint.name = "HotbarHint"
+	hint.text = "P Party   B Bag   J Journal   Esc Menu"
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.modulate = Color(1.0, 0.88, 0.58, 0.82)
+	hint.anchor_top = 1.0
+	hint.anchor_bottom = 1.0
+	hint.offset_left = 24.0
+	hint.offset_top = -48.0
+	hint.offset_right = 360.0
+	hint.offset_bottom = -18.0
+	_hud_root.add_child(hint)
+
+
+func _add_tool_button(parent: Control, panel_id: String, text: String) -> void:
+	var button := Button.new()
+	button.name = "Tool_%s" % panel_id.capitalize()
+	button.text = text
+	button.custom_minimum_size = Vector2(74, 54)
+	button.pressed.connect(func() -> void:
+		if panel_id == "menu":
+			open_save_load_menu()
+		else:
+			open_player_panel(panel_id)
+	)
+	parent.add_child(button)
+	_tool_buttons[panel_id] = button
 
 
 func _build_panel() -> void:
@@ -597,15 +799,15 @@ func _build_panel() -> void:
 	_dim_overlay = ColorRect.new()
 	_dim_overlay.name = "DimOverlay"
 	_dim_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dim_overlay.color = Color(0.05, 0.04, 0.03, 0.25)
+	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_dim_overlay.color = Color(0.03, 0.03, 0.035, 0.35)
 	panel_root.add_child(_dim_overlay)
 
 	_npc_panel = PanelContainer.new()
-	_npc_panel.name = "NpcSideSheet"
+	_npc_panel.name = "RightDrawer"
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.78, 0.70, 0.54, 0.94)
-	panel_style.border_color = Color(0.07, 0.06, 0.05, 0.96)
+	panel_style.bg_color = Color(0.08, 0.075, 0.065, 0.96)
+	panel_style.border_color = Color(0.76, 0.58, 0.25, 0.86)
 	panel_style.set_border_width_all(3)
 	panel_style.corner_radius_top_left = 6
 	panel_style.corner_radius_top_right = 6
@@ -616,7 +818,7 @@ func _build_panel() -> void:
 
 	var panel_box := VBoxContainer.new()
 	panel_box.name = "PanelBox"
-	panel_box.add_theme_constant_override("separation", 14)
+	panel_box.add_theme_constant_override("separation", 12)
 	_npc_panel.add_child(panel_box)
 
 	var header := HBoxContainer.new()
@@ -625,7 +827,8 @@ func _build_panel() -> void:
 	panel_box.add_child(header)
 	_panel_title = Label.new()
 	_panel_title.name = "PanelTitle"
-	_panel_title.add_theme_font_size_override("font_size", 28)
+	_panel_title.add_theme_font_size_override("font_size", 24)
+	_panel_title.modulate = Color(1.0, 0.86, 0.42)
 	header.add_child(_panel_title)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -635,14 +838,113 @@ func _build_panel() -> void:
 	_close_button.text = "X"
 	_close_button.custom_minimum_size = Vector2(42, 36)
 	_close_button.pressed.connect(func() -> void:
-		close_npc_menu()
+		close_drawer()
 	)
 	header.add_child(_close_button)
+
+	_tab_bar = HBoxContainer.new()
+	_tab_bar.name = "PanelTabs"
+	_tab_bar.add_theme_constant_override("separation", 6)
+	panel_box.add_child(_tab_bar)
+	_add_tab_button("party", "Party")
+	_add_tab_button("bag", "Bag")
+	_add_tab_button("journal", "Journal")
 
 	_panel_body = VBoxContainer.new()
 	_panel_body.name = "PanelBody"
 	_panel_body.add_theme_constant_override("separation", 10)
 	panel_box.add_child(_panel_body)
+
+
+func _add_tab_button(panel_id: String, text: String) -> void:
+	var button := Button.new()
+	button.name = "Tab_%s" % panel_id.capitalize()
+	button.text = text
+	button.custom_minimum_size = Vector2(92, 34)
+	button.pressed.connect(func() -> void:
+		open_player_panel(panel_id)
+	)
+	_tab_bar.add_child(button)
+	_tab_buttons[panel_id] = button
+
+
+func _build_save_load_modal() -> void:
+	var modal_root := Control.new()
+	modal_root.name = "ModalRoot"
+	modal_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	modal_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_modal_layer.add_child(modal_root)
+
+	_modal_overlay = ColorRect.new()
+	_modal_overlay.name = "ModalOverlay"
+	_modal_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_modal_overlay.color = Color(0.02, 0.02, 0.025, 0.52)
+	_modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	modal_root.add_child(_modal_overlay)
+
+	_save_load_modal = PanelContainer.new()
+	_save_load_modal.name = "SaveLoadModal"
+	_save_load_modal.custom_minimum_size = Vector2(360, 250)
+	var modal_style := StyleBoxFlat.new()
+	modal_style.bg_color = Color(0.09, 0.08, 0.07, 0.98)
+	modal_style.border_color = Color(0.76, 0.58, 0.25, 0.95)
+	modal_style.set_border_width_all(3)
+	modal_style.corner_radius_top_left = 6
+	modal_style.corner_radius_top_right = 6
+	modal_style.corner_radius_bottom_left = 6
+	modal_style.corner_radius_bottom_right = 6
+	_save_load_modal.add_theme_stylebox_override("panel", modal_style)
+	modal_root.add_child(_save_load_modal)
+
+	var box := VBoxContainer.new()
+	box.name = "SaveLoadBox"
+	box.add_theme_constant_override("separation", 12)
+	_save_load_modal.add_child(box)
+
+	var title := Label.new()
+	title.name = "SaveLoadTitle"
+	title.text = "System"
+	title.add_theme_font_size_override("font_size", 24)
+	title.modulate = Color(1.0, 0.86, 0.42)
+	box.add_child(title)
+
+	var detail := Label.new()
+	detail.name = "SaveLoadDetail"
+	detail.text = "Save or reload the local vertical-slice state."
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(detail)
+
+	_save_button = Button.new()
+	_save_button.name = "SaveButton"
+	_save_button.text = "Save"
+	_save_button.custom_minimum_size = Vector2(180, 38)
+	_save_button.pressed.connect(func() -> void:
+		save_game()
+		_refresh_ui()
+	)
+	box.add_child(_save_button)
+
+	_load_button = Button.new()
+	_load_button.name = "LoadButton"
+	_load_button.text = "Load"
+	_load_button.custom_minimum_size = Vector2(180, 38)
+	_load_button.pressed.connect(func() -> void:
+		load_game()
+		close_save_load_menu()
+	)
+	box.add_child(_load_button)
+
+	_modal_close_button = Button.new()
+	_modal_close_button.name = "ModalCloseButton"
+	_modal_close_button.text = "Close"
+	_modal_close_button.custom_minimum_size = Vector2(180, 38)
+	_modal_close_button.pressed.connect(func() -> void:
+		close_save_load_menu()
+	)
+	box.add_child(_modal_close_button)
+
+	_save_load_modal.visible = false
+	_modal_overlay.visible = false
 
 
 func _build_npc_handlers() -> void:
@@ -745,13 +1047,19 @@ func _layout_ui() -> void:
 	if _near_npc_id != "" and _npc_defs.has(_near_npc_id):
 		var npc_def := _npc_defs[_near_npc_id] as Dictionary
 		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
-		_prompt_button.position = _world_layer.coord_to_screen(coord) + Vector2(-44, -72)
+		_prompt_button.text = "[E] Talk"
+		_prompt_button.position = _world_layer.coord_to_screen(coord) + Vector2(-54, -82)
 
 	if _npc_panel != null:
 		var size := get_viewport().get_visible_rect().size
-		var panel_width := maxf(330.0, size.x * 0.32)
-		_npc_panel.position = Vector2(size.x - panel_width - 24.0, 84.0)
-		_npc_panel.size = Vector2(panel_width, size.y - 144.0)
+		var panel_width := maxf(420.0, size.x * 0.40)
+		_npc_panel.position = Vector2(size.x - panel_width - 24.0, 104.0)
+		_npc_panel.size = Vector2(panel_width, size.y - 148.0)
+	if _save_load_modal != null:
+		var viewport_size := get_viewport().get_visible_rect().size
+		var modal_size := Vector2(380.0, 270.0)
+		_save_load_modal.position = (viewport_size - modal_size) * 0.5
+		_save_load_modal.size = modal_size
 
 
 func _refresh_roster_chips() -> void:
@@ -783,30 +1091,45 @@ func _refresh_roster_chips() -> void:
 func _refresh_prompt() -> void:
 	if _prompt_button == null:
 		return
-	_prompt_button.visible = app_state == AppState.OVERWORLD and _near_npc_id != ""
+	_prompt_button.visible = app_state == AppState.OVERWORLD and _near_npc_id != "" and _drawer_mode == "" and not _is_modal_open()
 	_layout_ui()
 
 
 func _refresh_panel() -> void:
 	if _dim_overlay == null or _npc_panel == null:
 		return
-	var open := app_state == AppState.NPC_MENU and _active_npc_id != ""
+	var open := _drawer_mode != ""
 	_dim_overlay.visible = open
 	_npc_panel.visible = open
 	if not open:
 		return
-	var npc_def := _npc_defs[_active_npc_id] as Dictionary
-	_panel_title.text = str(npc_def.get("display_name", _active_npc_id))
-	_rebuild_panel_body(str(npc_def.get("type", "")))
+	if _tab_bar != null:
+		_tab_bar.visible = _drawer_mode != "npc"
+	if _drawer_mode == "npc":
+		var npc_def := _npc_defs[_active_npc_id] as Dictionary
+		_panel_title.text = str(npc_def.get("display_name", _active_npc_id))
+	else:
+		_panel_title.text = _drawer_mode.capitalize()
+	_rebuild_panel_body()
 	_layout_ui()
 
 
-func _rebuild_panel_body(_npc_type: String) -> void:
+func _rebuild_panel_body() -> void:
 	for child in _panel_body.get_children():
 		child.queue_free()
 	_action_buttons.clear()
 	_shop_buy_buttons.clear()
 	_trainer_button = null
+	if _drawer_mode == "party":
+		_build_party_panel()
+		return
+	if _drawer_mode == "bag":
+		_build_bag_panel()
+		return
+	if _drawer_mode == "journal":
+		_build_journal_panel()
+		return
+
 	var handler := _get_active_handler()
 	if handler == null:
 		var placeholder := Label.new()
@@ -817,6 +1140,109 @@ func _rebuild_panel_body(_npc_type: String) -> void:
 	var actions := handler.get_actions(self)
 	for action in actions:
 		_add_action_row(action)
+
+
+func _build_party_panel() -> void:
+	for entry in session.player_state.roster:
+		var row := HBoxContainer.new()
+		row.name = "PartyEntry_%d" % entry.entry_id
+		row.add_theme_constant_override("separation", 10)
+		_panel_body.add_child(row)
+
+		var swatch := ColorRect.new()
+		swatch.name = "ElementSwatch"
+		swatch.color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
+		swatch.custom_minimum_size = Vector2(42, 42)
+		row.add_child(swatch)
+
+		var label := Label.new()
+		label.name = "PartyEntryLabel"
+		label.text = "%s  Lv%d  %s\n%s  EXP %d  Skill %s" % [
+			entry.species,
+			entry.level,
+			entry.role,
+			", ".join(entry.elements),
+			entry.exp,
+			entry.learned_skill_id,
+		]
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.modulate = Color(0.92, 0.88, 0.78)
+		row.add_child(label)
+
+		var stats := Label.new()
+		stats.name = "StatsLabel"
+		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
+			int(float(entry.persistent_stats.get("max_hp", 0.0))),
+			int(float(entry.persistent_stats.get("ad", 0.0))),
+			int(float(entry.persistent_stats.get("ap", 0.0))),
+			int(float(entry.persistent_stats.get("armor", 0.0))),
+			int(float(entry.persistent_stats.get("mr", 0.0))),
+			int(float(entry.persistent_stats.get("speed", 0.0))),
+		]
+		stats.modulate = Color(0.82, 0.78, 0.68)
+		row.add_child(stats)
+
+
+func _build_bag_panel() -> void:
+	var bag_items := _get_bag_snapshot()
+	if bag_items.is_empty():
+		var empty := Label.new()
+		empty.name = "BagEmptyLabel"
+		empty.text = "Bag is empty."
+		empty.modulate = Color(0.92, 0.88, 0.78)
+		_panel_body.add_child(empty)
+		return
+
+	for item in bag_items:
+		var row := HBoxContainer.new()
+		row.name = "BagItem_%s" % str(item.get("config_id", "unknown"))
+		row.add_theme_constant_override("separation", 10)
+		_panel_body.add_child(row)
+		var icon := ColorRect.new()
+		icon.name = "ItemIcon"
+		icon.color = Color(0.72, 0.58, 0.24)
+		icon.custom_minimum_size = Vector2(40, 40)
+		row.add_child(icon)
+		var cfg := ItemSystem.get_item_config(StringName(str(item.get("config_id", ""))))
+		var label := Label.new()
+		label.name = "BagItemLabel"
+		label.text = "%s x%d\n%s" % [
+			str(cfg.get("display_name", item.get("config_id", ""))),
+			int(item.get("count", 1)),
+			str(cfg.get("description", "Inventory item")),
+		]
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.modulate = Color(0.92, 0.88, 0.78)
+		row.add_child(label)
+
+
+func _build_journal_panel() -> void:
+	var progression := session.player_state.progression
+	var lines := PackedStringArray([
+		"Trainer Rank: R%d" % int(progression.get("trainer_rank", 1)),
+		"Guild Joined: %s" % ("yes" if bool(progression.get("guild_joined", false)) else "no"),
+		"Cultivation Points: %d" % int(progression.get("cultivation_points", 0)),
+		"Guild Tasks: %d" % int(progression.get("guild_tasks_completed", 0)),
+	])
+	if not last_battle_result.is_empty():
+		lines.append("Last Battle: %s / winner %s" % [
+			str(last_battle_result.get("result", "")),
+			str(last_battle_result.get("winner_team", "")),
+		])
+	var label := Label.new()
+	label.name = "JournalSummary"
+	label.text = "\n".join(lines)
+	label.modulate = Color(0.92, 0.88, 0.78)
+	_panel_body.add_child(label)
+
+	var open_system := Button.new()
+	open_system.name = "OpenSystemMenu"
+	open_system.text = "Save / Load"
+	open_system.custom_minimum_size = Vector2(180, 38)
+	open_system.pressed.connect(func() -> void:
+		open_save_load_menu()
+	)
+	_panel_body.add_child(open_system)
 
 
 func _add_action_row(action: Dictionary) -> void:
@@ -893,6 +1319,21 @@ func _get_player_coord_dict() -> Dictionary:
 		"q": coord.x,
 		"r": coord.y,
 	}
+
+
+func _coord_from_dict(value: Variant) -> Vector2i:
+	var dict := value as Dictionary
+	if dict == null:
+		return Vector2i.ZERO
+	return Vector2i(int(dict.get("q", 0)), int(dict.get("r", 0)))
+
+
+func _is_modal_open() -> bool:
+	return _save_load_modal != null and _save_load_modal.visible
+
+
+func _is_field_input_blocked() -> bool:
+	return _drawer_mode != "" or _is_modal_open()
 
 
 func _get_bag_snapshot() -> Array[Dictionary]:

@@ -10,6 +10,10 @@ func get_supported_ops() -> PackedStringArray:
 		"state",
 		"layout_state",
 		"reset_session",
+		"goto_tile",
+		"tile_screen_position",
+		"open_panel",
+		"open_save_load",
 		"run_training_battle",
 		"npc_action",
 		"save_game",
@@ -40,6 +44,14 @@ func run_scene_op(op_name: StringName, args: Dictionary) -> Dictionary:
 			}
 		"reset_session":
 			return app_root.reset_session()
+		"goto_tile":
+			return app_root.goto_tile(Vector2i(int(args.get("q", 0)), int(args.get("r", 0))))
+		"tile_screen_position":
+			return app_root.get_tile_screen_position(Vector2i(int(args.get("q", 0)), int(args.get("r", 0))))
+		"open_panel":
+			return app_root.open_player_panel(str(args.get("panel", "party")))
+		"open_save_load":
+			return app_root.open_save_load_menu()
 		"run_training_battle":
 			return app_root.run_training_battle_to_completion(int(args.get("max_ticks", 8)))
 		"npc_action":

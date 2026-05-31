@@ -21,6 +21,12 @@
       "scenes": [
         "../../scenes/inkmon-main/tests/smoke_content_contract.tscn"
       ]
+    },
+    "overworld-3d": {
+      "default_timeout_ms": 45000,
+      "scenes": [
+        "../../scenes/inkmon-main/tests/smoke_overworld_3d.tscn"
+      ]
     }
   }
 }

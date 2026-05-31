@@ -163,3 +163,25 @@ Required workflow for each major UI surface:
 - The player can complete the v1 loop in one local run: move in overworld, interact with NPCs, enter battle, win/lose a battle, receive/update resources, apply at least one progression/equipment action, save, and reload.
 - Current tests/smokes for battle, overworld, systems, and save/load pass.
 - No required full-scope L2 feature remains only as a stub or TODO without a documented deferral.
+
+## 2026-05-31 Correction Addendum
+
+The previous closeout was rejected. The completion gate now explicitly requires the main game to be a 3D hex overworld, not the earlier 2D placeholder.
+
+Corrected requirements:
+
+- 3D `InkMonMain` overworld using project-local code and the existing KayKit / `GridMapRenderer3D` direction.
+- Right-click raycast/pick on hex tiles as the primary movement input.
+- Bounded axial-hex path movement to the selected target.
+- Each committed movement step preserves the `hex-atb-battle` Move pipeline semantics: target reservation, occupant update, move-start/move-complete state, and reservation cleanup.
+- No `addons/sim-nav-map` or RTS pathfinding dependency for this movement.
+- No direct dependency on `addons/logic-game-framework/example/hex-atb-battle/` classes.
+- Player-owned UI for status, party/roster, bag/inventory, progression, and save/load.
+- DevAgent real-input validation for right-click movement, NPC interaction after movement, player UI panels, and the local v1 loop.
+
+Planning outputs for the correction:
+
+- `Completion-Rejection-Gaps.md`
+- `3D-Overworld-Correction-Handoff.md`
+- `Player-UI-Correction-Handoff.md`
+- `ui-mockups/inkmon-l2-3d-overworld-player-ui-v1.png`

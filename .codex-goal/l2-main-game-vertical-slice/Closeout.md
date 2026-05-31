@@ -1,6 +1,8 @@
 # L2 Main Game Vertical Slice Closeout
 
-Status: complete for the local v1 vertical slice.
+Status: superseded. This closeout was rejected by product owner feedback on 2026-05-31.
+
+See `Completion-Rejection-Gaps.md` for the corrected acceptance criteria. The validation below remains useful as evidence for the data-flow loop, but it no longer represents vertical-slice completion.
 
 ## Delivered
 
