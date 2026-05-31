@@ -1,6 +1,6 @@
 # Completion Rejection Gaps
 
-Status: corrected implementation completed and validated.
+Status: animation correction completed and validated.
 
 Date: 2026-05-31
 
@@ -72,3 +72,28 @@ The rejection gaps are now closed by the corrected 3D/UI slice:
 - Player UI: HUD, roster strip, Party drawer, Bag drawer backed by `ItemSystem`, Journal/progression drawer, NPC drawer, and save/load modal are present.
 - Validation: `git diff --check` PASS and `./tools/run_tests.ps1 inkmon/content inkmon/app-root inkmon/session inkmon/m1 inkmon/overworld-3d` PASS.
 - Runtime evidence: DevAgent session `inkmon-main-3d-correction-20260531112918` proved real right-click movement, NPC interaction, buy, battle reward, cultivation progression, player panels, save, and load.
+
+## Animation Rejection
+
+The 3D/UI slice above is now treated as foundation only. It remains useful for scene structure, data flow, and runtime input proof, but it does not meet the presentation bar.
+
+Additional missing requirements:
+
+1. Player movement must animate along path steps; instant visual jumps are not acceptable.
+2. Right-click movement needs visible target/path/click feedback, not only state changes.
+3. Player and NPC markers need minimum idle motion so the scene is not a static board.
+4. Camera should follow or settle around player movement.
+5. NPC drawer, Party/Bag/Journal drawer, and save/load modal need basic slide/fade transition.
+6. Smoke and DevAgent evidence must prove visual/logical synchronization after animation, not only coordinate mutation.
+
+## Animation Closeout Evidence
+
+The animation rejection is now closed by the presentation pass:
+
+- Player movement: `InkMonOverworldView3D.play_player_path()` animates returned move paths step by step and emits `player_move_animation_finished`.
+- Move semantics preserved: `InkMonOverworldMoveController` still performs reservation, occupant mutation, and started/applied/completed events before presentation playback.
+- Feedback: target highlight, path preview dots, and click pulse are visible during movement.
+- Idle/camera: player and NPC markers have idle motion; camera follows and settles around the player; smoke verifies idle offsets and camera position change.
+- UI transitions: right drawer slides; save/load modal scales in/out.
+- Validation: `git diff --check` PASS and `./tools/run_tests.ps1 inkmon/content inkmon/app-root inkmon/session inkmon/m1 inkmon/overworld-3d` PASS.
+- Runtime evidence: DevAgent session `inkmon-main-animation-live-20260531122738` proved real right-click animation, visual/logical sync, NPC interaction, buy, battle reward, cultivation progression, player panels, save, and load.

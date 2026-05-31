@@ -25,7 +25,7 @@ func _run() -> String:
 	if int(initial_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD:
 		return _cleanup(root, "new game gold should be default")
 
-	var shop_status := _assert_shop_flow(root)
+	var shop_status := await _assert_shop_flow(root)
 	if shop_status != "":
 		return _cleanup(root, shop_status)
 
@@ -52,9 +52,18 @@ func _assert_shop_flow(root: InkMonAppRoot) -> String:
 	var move_result := root.move_player(Vector2i(1, 0))
 	if not bool(move_result.get("ok", false)):
 		return "move to Shop failed"
+	var started_state := root.get_dev_agent_state()
+	var started_overworld := started_state.get("overworld_3d", {}) as Dictionary
+	if started_overworld == null or not bool(started_overworld.get("move_animation_active", false)):
+		return "move to Shop should start visual animation"
+	var wait_status := await _wait_for_move_animation(root)
+	if wait_status != "":
+		return wait_status
 	var moved_state := root.get_dev_agent_state()
 	if moved_state.get("near_npc_id", "") != "shop":
 		return "moving right should put player near Shop"
+	if _visual_coord_from_state(moved_state) != _coord_from_state(moved_state):
+		return "Shop move visual coord should sync after animation"
 
 	var open_result := root.open_near_npc_menu()
 	if not bool(open_result.get("ok", false)):
@@ -164,6 +173,33 @@ func _bag_has(value: Variant, config_id: String) -> bool:
 		if item != null and str(item.get("config_id", "")) == config_id:
 			return true
 	return false
+
+
+func _wait_for_move_animation(root: InkMonAppRoot) -> String:
+	for _i in range(60):
+		await get_tree().create_timer(0.05).timeout
+		var state := root.get_dev_agent_state()
+		var overworld := state.get("overworld_3d", {}) as Dictionary
+		if overworld != null and not bool(overworld.get("move_animation_active", false)):
+			return ""
+	return "move animation did not finish"
+
+
+func _coord_from_state(state: Dictionary) -> Vector2i:
+	var coord := state.get("player_coord", {}) as Dictionary
+	if coord == null:
+		return Vector2i.ZERO
+	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
+
+
+func _visual_coord_from_state(state: Dictionary) -> Vector2i:
+	var overworld := state.get("overworld_3d", {}) as Dictionary
+	if overworld == null:
+		return Vector2i.ZERO
+	var coord := overworld.get("player_visual_coord", {}) as Dictionary
+	if coord == null:
+		return Vector2i.ZERO
+	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
 
 
 func _cleanup(root: InkMonAppRoot, status: String) -> String:

@@ -3,8 +3,8 @@
 ## Scene Classification
 
 Business/data-flow runtime validation plus real-input checks for the corrected
-3D overworld, right-click hex movement, NPC drawer, player panels, and
-save/load modal.
+3D overworld, animated right-click hex movement, NPC drawer, player panels, and
+save/load modal transitions.
 
 ## Launch
 
@@ -23,7 +23,7 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `near_npc_id`, `active_npc_id`, `drawer_open`, `drawer_mode`, `modal_open`, `bag`, `overworld_3d`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `near_npc_id`, `active_npc_id`, `drawer_open`, `drawer_mode`, `modal_open`, `bag`, `overworld_3d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
 | `layout_state` | none | viewport and clickable rects for prompt, drawer close, NPC action buttons, Shop buy buttons, top-right tool buttons, drawer tabs, and save/load modal buttons |
 | `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for a 3D hex tile center, used with raw `click_at` + `button:"right"` |
 
@@ -32,9 +32,9 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 | op | args | effect | verify with |
 | --- | --- | --- | --- |
 | `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
-| `goto_tile` | `{ "q": int, "r": int }` | direct business/data move through the same `InkMonOverworldMoveController` used by right-click input | `state.player_coord`, `state.last_move_result.data.move_events` |
-| `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab | `state.drawer_mode` |
-| `open_save_load` | none | opens the save/load modal | `state.modal_open == true` |
+| `goto_tile` | `{ "q": int, "r": int }` | direct business/data move through the same `InkMonOverworldMoveController` used by right-click input, then starts the same player path animation | `state.player_coord`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord`, `state.last_move_result.data.move_events` |
+| `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
+| `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
 | `npc_action` | `{ "npc_id": string, "action_id": string }` | runs a system NPC handler action for smoke/data validation | action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
 | `save_game` | `{ "path": string }` | writes `InkMonGameSession.to_dict()` JSON to `user://` path | `ok == true` |
@@ -42,7 +42,7 @@ The scene prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 Player-facing UI paths must use raw real input:
 
-- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` moves toward the occupied Shop tile, retargets to an adjacent free tile, and should set `near_npc_id == "shop"`.
+- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` moves toward the occupied Shop tile, retargets to an adjacent free tile, starts `overworld_3d.move_animation_active`, and after the animation should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC drawer.
 - `click_at` on `layout_state.shop_buy_buttons.minor_rune` buys Minor Rune and should reduce gold by 10.
 - `click_at` on `layout_state.npc_action_buttons.start_training_battle` starts and completes the Training battle.
@@ -88,30 +88,41 @@ UI input check:
 {"id":"11","op":"scene","name":"tile_screen_position","args":{"q":2,"r":0}}
 {"id":"12","op":"click_at","x":<tile x>,"y":<tile y>,"button":"right"}
 {"id":"13","op":"scene","name":"state"}
-{"id":"14","op":"scene","name":"layout_state"}
-{"id":"15","op":"click_at","x":<prompt cx>,"y":<prompt cy>}
+{"id":"14","op":"wait_frames","frames":45}
+{"id":"15","op":"scene","name":"state"}
 {"id":"16","op":"scene","name":"layout_state"}
-{"id":"17","op":"click_at","x":<minor_rune buy cx>,"y":<minor_rune buy cy>}
-{"id":"18","op":"scene","name":"state"}
+{"id":"17","op":"click_at","x":<prompt cx>,"y":<prompt cy>}
+{"id":"18","op":"wait_frames","frames":12}
+{"id":"19","op":"scene","name":"layout_state"}
+{"id":"20","op":"click_at","x":<minor_rune buy cx>,"y":<minor_rune buy cy>}
+{"id":"21","op":"scene","name":"state"}
 ```
 
-Pass criteria: the real right-click path retargets next to Shop, `near_npc_id == "shop"`,
-the drawer opens through a real prompt click, and gold becomes `90` with a
-`minor_rune` item in `bag`.
+Pass criteria: command `13` shows `overworld_3d.move_animation_active == true`;
+command `15` shows `near_npc_id == "shop"` and
+`overworld_3d.player_visual_coord == player_coord`; the drawer opens through a
+real prompt click, and gold becomes `90` with a `minor_rune` item in `bag`.
 
 Player-owned UI input check:
 
 ```jsonl
-{"id":"20","op":"scene","name":"layout_state"}
-{"id":"21","op":"click_at","x":<party tool cx>,"y":<party tool cy>}
-{"id":"22","op":"scene","name":"state"}
-{"id":"23","op":"click_at","x":<bag tool cx>,"y":<bag tool cy>}
-{"id":"24","op":"scene","name":"state"}
-{"id":"25","op":"click_at","x":<journal tool cx>,"y":<journal tool cy>}
-{"id":"26","op":"scene","name":"state"}
-{"id":"27","op":"click_at","x":<menu tool cx>,"y":<menu tool cy>}
-{"id":"28","op":"scene","name":"state"}
+{"id":"30","op":"scene","name":"layout_state"}
+{"id":"31","op":"click_at","x":<party tool cx>,"y":<party tool cy>}
+{"id":"32","op":"scene","name":"state"}
+{"id":"33","op":"wait_frames","frames":12}
+{"id":"34","op":"scene","name":"state"}
+{"id":"35","op":"click_at","x":<bag tool cx>,"y":<bag tool cy>}
+{"id":"36","op":"scene","name":"state"}
+{"id":"37","op":"click_at","x":<journal tool cx>,"y":<journal tool cy>}
+{"id":"38","op":"scene","name":"state"}
+{"id":"39","op":"click_at","x":<menu tool cx>,"y":<menu tool cy>}
+{"id":"40","op":"scene","name":"state"}
+{"id":"41","op":"wait_frames","frames":12}
+{"id":"42","op":"scene","name":"state"}
 ```
 
-Pass criteria: `drawer_mode` changes through `party`, `bag`, and `journal`,
-then `modal_open == true` after the Menu click.
+Pass criteria: command `32` shows
+`ui_animation.drawer_transition_active == true`, command `34` shows
+`drawer_mode == "party"` and transition finished, `drawer_mode` changes through
+`bag` and `journal`, command `40` shows `ui_animation.modal_transition_active ==
+true`, and command `42` shows `modal_open == true` after the transition.

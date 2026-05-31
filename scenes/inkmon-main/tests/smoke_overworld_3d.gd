@@ -20,15 +20,15 @@ func _run() -> String:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var visual_status := _assert_3d_visual_state(root)
+	var visual_status := await _assert_3d_visual_state(root)
 	if visual_status != "":
 		return _cleanup(root, visual_status)
 
-	var path_status := _assert_path_move(root)
+	var path_status := await _assert_path_move(root)
 	if path_status != "":
 		return _cleanup(root, path_status)
 
-	var blocked_status := _assert_blocked_npc_retarget(root)
+	var blocked_status := await _assert_blocked_npc_retarget(root)
 	if blocked_status != "":
 		return _cleanup(root, blocked_status)
 
@@ -36,11 +36,11 @@ func _run() -> String:
 	if input_status != "":
 		return _cleanup(root, input_status)
 
-	var ui_status := _assert_player_ui_panels(root)
+	var ui_status := await _assert_player_ui_panels(root)
 	if ui_status != "":
 		return _cleanup(root, ui_status)
 
-	var save_status := _assert_move_save_load(root)
+	var save_status := await _assert_move_save_load(root)
 	if save_status != "":
 		return _cleanup(root, save_status)
 
@@ -60,14 +60,27 @@ func _assert_3d_visual_state(root: InkMonAppRoot) -> String:
 		return "GridMapRenderer3D should render env tiles"
 	if int(overworld.get("npc_count", 0)) < 6:
 		return "3D overworld should show NPC markers"
+	var player_idle_before := float(overworld.get("player_idle_offset_y", 0.0))
+	var npc_idle_before := float(overworld.get("npc_idle_sample_y", 0.0))
+	await get_tree().create_timer(0.2).timeout
+	var after_state := root.get_dev_agent_state()
+	var after_overworld := after_state.get("overworld_3d", {}) as Dictionary
+	var player_idle_after := float(after_overworld.get("player_idle_offset_y", 0.0))
+	var npc_idle_after := float(after_overworld.get("npc_idle_sample_y", 0.0))
+	if absf(player_idle_after - player_idle_before) < 0.002 and absf(npc_idle_after - npc_idle_before) < 0.002:
+		return "player/NPC idle animation should change visual offsets over time"
 	return ""
 
 
 func _assert_path_move(root: InkMonAppRoot) -> String:
+	var camera_before := _camera_position_from_state(root.get_dev_agent_state())
 	var result := root.goto_tile(Vector2i(3, -1))
 	if not bool(result.get("ok", false)):
 		return "goto_tile path move failed: %s" % str(result.get("message", ""))
 	var state := root.get_dev_agent_state()
+	var overworld := state.get("overworld_3d", {}) as Dictionary
+	if not bool(overworld.get("move_animation_active", false)):
+		return "path move should start a visible movement animation"
 	if _coord_from_state(state) != Vector2i(3, -1):
 		return "player final coord should be clicked target"
 	var move_data := _last_move_data(state)
@@ -84,14 +97,27 @@ func _assert_path_move(root: InkMonAppRoot) -> String:
 		return "move_applied count should equal step count"
 	if _count_events(move_data, "completed") != step_count:
 		return "move_completed count should equal step count"
+	var wait_status := await _wait_for_move_animation(root)
+	if wait_status != "":
+		return wait_status
+	var synced_state := root.get_dev_agent_state()
+	if _visual_coord_from_state(synced_state) != _coord_from_state(synced_state):
+		return "visual coord should sync to logical coord after move animation"
+	var camera_after := _camera_position_from_state(synced_state)
+	if camera_after.distance_to(camera_before) < 0.2:
+		return "camera should follow after player movement"
 	return ""
 
 
 func _assert_blocked_npc_retarget(root: InkMonAppRoot) -> String:
 	root.reset_session()
+	await get_tree().process_frame
 	var result := root.goto_tile(Vector2i(2, 0))
 	if not bool(result.get("ok", false)):
 		return "right-clicking blocked Shop tile should retarget to an adjacent tile"
+	var wait_status := await _wait_for_move_animation(root)
+	if wait_status != "":
+		return wait_status
 	var state := root.get_dev_agent_state()
 	var final_coord := _coord_from_state(state)
 	if final_coord == Vector2i(2, 0):
@@ -103,6 +129,11 @@ func _assert_blocked_npc_retarget(root: InkMonAppRoot) -> String:
 	var move_data := _last_move_data(state)
 	if not bool(move_data.get("retargeted", false)):
 		return "blocked NPC target should be marked retargeted"
+	var overworld := state.get("overworld_3d", {}) as Dictionary
+	if int(overworld.get("path_preview_count", 0)) <= 0:
+		return "retargeted move should leave visible path preview feedback"
+	if not bool(overworld.get("target_feedback_active", false)):
+		return "retargeted move should leave visible target feedback"
 	return ""
 
 
@@ -117,9 +148,14 @@ func _assert_screen_pick_move(root: InkMonAppRoot) -> String:
 	var click_result := root.right_click_at(pos)
 	if not bool(click_result.get("ok", false)):
 		return "screen pick right_click_at failed: %s" % str(click_result.get("message", ""))
+	var wait_status := await _wait_for_move_animation(root)
+	if wait_status != "":
+		return wait_status
 	var state := root.get_dev_agent_state()
 	if _coord_from_state(state) != Vector2i(1, -1):
 		return "screen pick should move to picked hex"
+	if _visual_coord_from_state(state) != Vector2i(1, -1):
+		return "screen pick visual coord should sync after animation"
 	return ""
 
 
@@ -127,6 +163,11 @@ func _assert_player_ui_panels(root: InkMonAppRoot) -> String:
 	var party := root.open_player_panel("party")
 	if not bool(party.get("ok", false)):
 		return "opening Party panel failed"
+	if not bool(root.get_dev_agent_state().get("ui_animation", {}).get("drawer_transition_active", false)):
+		return "opening Party panel should start drawer transition"
+	var drawer_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if drawer_wait != "":
+		return drawer_wait
 	if root.get_dev_agent_state().get("drawer_mode", "") != "party":
 		return "drawer_mode should be party"
 	var bag := root.open_player_panel("bag")
@@ -142,18 +183,29 @@ func _assert_player_ui_panels(root: InkMonAppRoot) -> String:
 	var menu := root.open_save_load_menu()
 	if not bool(menu.get("ok", false)):
 		return "opening Save/Load modal failed"
+	if not bool(root.get_dev_agent_state().get("ui_animation", {}).get("modal_transition_active", false)):
+		return "opening Save/Load modal should start modal transition"
+	var modal_wait := await _wait_for_ui_transition(root, "modal_transition_active")
+	if modal_wait != "":
+		return modal_wait
 	if not bool(root.get_dev_agent_state().get("modal_open", false)):
 		return "modal_open should be true"
 	root.close_save_load_menu()
+	await _wait_for_ui_transition(root, "modal_transition_active")
 	root.close_drawer()
+	await _wait_for_ui_transition(root, "drawer_transition_active")
 	return ""
 
 
 func _assert_move_save_load(root: InkMonAppRoot) -> String:
 	root.reset_session()
+	await get_tree().process_frame
 	var move_result := root.goto_tile(Vector2i(-1, 1))
 	if not bool(move_result.get("ok", false)):
 		return "move before save failed"
+	var wait_status := await _wait_for_move_animation(root)
+	if wait_status != "":
+		return wait_status
 	var save_path := "user://inkmon_l2_overworld_3d_save.json"
 	var save_result := root.save_game(save_path)
 	if not bool(save_result.get("ok", false)):
@@ -166,6 +218,8 @@ func _assert_move_save_load(root: InkMonAppRoot) -> String:
 		return "load after move failed"
 	if _coord_from_state(root.get_dev_agent_state()) != Vector2i(-1, 1):
 		return "load should restore moved overworld coord"
+	if _visual_coord_from_state(root.get_dev_agent_state()) != Vector2i(-1, 1):
+		return "load should restore visual overworld coord"
 	return ""
 
 
@@ -194,6 +248,49 @@ func _coord_from_state(state: Dictionary) -> Vector2i:
 	if coord == null:
 		return Vector2i.ZERO
 	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
+
+
+func _visual_coord_from_state(state: Dictionary) -> Vector2i:
+	var overworld := state.get("overworld_3d", {}) as Dictionary
+	if overworld == null:
+		return Vector2i.ZERO
+	var coord := overworld.get("player_visual_coord", {}) as Dictionary
+	if coord == null:
+		return Vector2i.ZERO
+	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
+
+
+func _camera_position_from_state(state: Dictionary) -> Vector3:
+	var overworld := state.get("overworld_3d", {}) as Dictionary
+	if overworld == null:
+		return Vector3.ZERO
+	var position := overworld.get("camera_position", {}) as Dictionary
+	if position == null:
+		return Vector3.ZERO
+	return Vector3(
+		float(position.get("x", 0.0)),
+		float(position.get("y", 0.0)),
+		float(position.get("z", 0.0))
+	)
+
+
+func _wait_for_move_animation(root: InkMonAppRoot) -> String:
+	for _i in range(60):
+		await get_tree().create_timer(0.05).timeout
+		var state := root.get_dev_agent_state()
+		var overworld := state.get("overworld_3d", {}) as Dictionary
+		if overworld != null and not bool(overworld.get("move_animation_active", false)):
+			return ""
+	return "move animation did not finish"
+
+
+func _wait_for_ui_transition(root: InkMonAppRoot, key: String) -> String:
+	for _i in range(30):
+		await get_tree().create_timer(0.03).timeout
+		var ui_animation := root.get_dev_agent_state().get("ui_animation", {}) as Dictionary
+		if ui_animation != null and not bool(ui_animation.get(key, false)):
+			return ""
+	return "%s did not finish" % key
 
 
 func _axial_distance(a: Vector2i, b: Vector2i) -> int:

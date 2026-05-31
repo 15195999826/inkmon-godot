@@ -6,9 +6,15 @@ const MAP_RADIUS := 4
 const INVALID_COORD := Vector2i(-999999, -999999)
 const PLAYER_HEIGHT := 0.48
 const NPC_HEIGHT := 0.42
+const MOVE_STEP_DURATION := 0.22
+const CLICK_PULSE_DURATION := 0.34
+const CAMERA_FOLLOW_SPEED := 5.0
 
 const GRASS_TILE_PATH := "res://art/kaykit/hexagon/addons/kaykit_medieval_hexagon_pack/Assets/gltf/tiles/base/hex_grass.gltf"
 const ROAD_TILE_PATH := "res://art/kaykit/hexagon/addons/kaykit_medieval_hexagon_pack/Assets/gltf/tiles/roads/hex_road_A.gltf"
+
+
+signal player_move_animation_finished(final_coord: Vector2i)
 
 
 var player_coord := Vector2i.ZERO
@@ -18,9 +24,24 @@ var npc_defs: Dictionary = {}
 var _grid_model: GridMapModel
 var _grid_renderer: GridMapRenderer3D
 var _camera: Camera3D
+var _camera_offset := Vector3(5.5, 8.0, 8.0)
 var _units_root: Node3D
+var _feedback_root: Node3D
 var _player_node: Node3D
+var _player_visual_root: Node3D
 var _npc_nodes: Dictionary = {}
+var _npc_visual_roots: Dictionary = {}
+var _path_preview_nodes: Array[Node3D] = []
+var _target_marker: Node3D
+var _click_pulse_nodes: Array[Node3D] = []
+var _move_tween: Tween
+var _idle_time := 0.0
+var _move_animation_active := false
+var _move_animation_finished_count := 0
+var _move_animation_started_msec := 0
+var _last_animation_path: Array[Dictionary] = []
+var _last_requested_target := INVALID_COORD
+var _last_resolved_target := INVALID_COORD
 
 
 func _ready() -> void:
@@ -29,10 +50,63 @@ func _ready() -> void:
 	set_npcs(npc_defs)
 
 
+func _process(delta: float) -> void:
+	_idle_time += delta
+	_update_idle_animation(delta)
+	_update_camera_follow(delta)
+
+
 func set_player_coord(coord: Vector2i) -> void:
 	player_coord = coord
+	if _player_node != null and not _move_animation_active:
+		_player_node.global_position = _coord_to_actor_position(coord, PLAYER_HEIGHT)
+		_update_camera_follow(1.0)
+
+
+func snap_player_coord(coord: Vector2i) -> void:
+	_cancel_move_tween()
+	_move_animation_active = false
+	player_coord = coord
 	if _player_node != null:
-		_player_node.global_position = coord_to_world(coord) + Vector3(0.0, PLAYER_HEIGHT, 0.0)
+		_player_node.global_position = _coord_to_actor_position(coord, PLAYER_HEIGHT)
+	_update_camera_follow(1.0)
+
+
+func play_player_path(path: Array[Vector2i], requested_target: Vector2i, resolved_target: Vector2i) -> void:
+	_show_move_feedback(path, requested_target, resolved_target)
+	player_coord = resolved_target
+	_last_requested_target = requested_target
+	_last_resolved_target = resolved_target
+	_last_animation_path = _path_dicts(path)
+	if _player_node == null:
+		_finish_move_animation(resolved_target)
+		return
+	if path.is_empty():
+		snap_player_coord(resolved_target)
+		_finish_move_animation(resolved_target)
+		return
+
+	_cancel_move_tween()
+	_move_animation_active = true
+	_move_animation_started_msec = Time.get_ticks_msec()
+	_move_tween = create_tween()
+	_move_tween.set_parallel(false)
+	for step_coord in path:
+		var step_position := _coord_to_actor_position(step_coord, PLAYER_HEIGHT)
+		_move_tween.tween_property(_player_node, "global_position", step_position, MOVE_STEP_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_move_tween.finished.connect(func() -> void:
+		_finish_move_animation(resolved_target)
+	)
+
+
+func is_move_animation_active() -> bool:
+	return _move_animation_active
+
+
+func get_player_visual_coord() -> Vector2i:
+	if _player_node == null:
+		return player_coord
+	return world_to_coord(_player_node.global_position)
 
 
 func set_near_npc_id(npc_id: String) -> void:
@@ -53,6 +127,7 @@ func set_npcs(defs: Dictionary) -> void:
 		if node != null:
 			node.queue_free()
 	_npc_nodes.clear()
+	_npc_visual_roots.clear()
 
 	for npc_id_value in npc_defs.keys():
 		var npc_id := str(npc_id_value)
@@ -64,6 +139,9 @@ func set_npcs(defs: Dictionary) -> void:
 		_units_root.add_child(node)
 		node.global_position = coord_to_world(coord) + Vector3(0.0, NPC_HEIGHT, 0.0)
 		_npc_nodes[npc_id] = node
+		var visual_root := node.get_node_or_null("VisualRoot") as Node3D
+		if visual_root != null:
+			_npc_visual_roots[npc_id] = visual_root
 	set_near_npc_id(near_npc_id)
 
 
@@ -150,13 +228,31 @@ func get_tile_screen_position(coord: Vector2i) -> Dictionary:
 
 
 func get_debug_state() -> Dictionary:
+	var visual_coord := get_player_visual_coord()
+	var visual_position := _player_node.global_position if _player_node != null else Vector3.ZERO
+	var camera_position := _camera.global_position if _camera != null else Vector3.ZERO
 	return {
 		"node_type": "InkMonOverworldView3D",
 		"tile_count": _grid_model.get_tile_count() if _grid_model != null else 0,
 		"env_tile_count": _grid_renderer.get_env_tile_count() if _grid_renderer != null else 0,
 		"player_coord": {"q": player_coord.x, "r": player_coord.y},
+		"player_visual_coord": {"q": visual_coord.x, "r": visual_coord.y},
+		"player_visual_position": {"x": visual_position.x, "y": visual_position.y, "z": visual_position.z},
+		"player_idle_offset_y": _player_visual_root.position.y if _player_visual_root != null else 0.0,
+		"npc_idle_sample_y": _get_npc_idle_sample_y(),
+		"camera_position": {"x": camera_position.x, "y": camera_position.y, "z": camera_position.z},
 		"npc_count": _npc_nodes.size(),
 		"camera_ready": _camera != null,
+		"move_animation_active": _move_animation_active,
+		"move_animation_finished_count": _move_animation_finished_count,
+		"last_animation_path": _last_animation_path.duplicate(true),
+		"last_requested_target": {"q": _last_requested_target.x, "r": _last_requested_target.y},
+		"last_resolved_target": {"q": _last_resolved_target.x, "r": _last_resolved_target.y},
+		"path_preview_count": _path_preview_nodes.size(),
+		"target_feedback_active": _target_marker != null and is_instance_valid(_target_marker),
+		"click_pulse_count": _click_pulse_nodes.size(),
+		"idle_animation": true,
+		"camera_follow": _camera != null,
 	}
 
 
@@ -182,6 +278,10 @@ func _build_scene() -> void:
 	_populate_tiles()
 	_build_lighting()
 	_build_camera()
+
+	_feedback_root = Node3D.new()
+	_feedback_root.name = "FeedbackRoot"
+	add_child(_feedback_root)
 
 	_units_root = Node3D.new()
 	_units_root.name = "UnitsRoot"
@@ -227,7 +327,7 @@ func _build_camera() -> void:
 	_camera = Camera3D.new()
 	_camera.name = "OverworldCamera"
 	_camera.current = true
-	_camera.position = Vector3(5.5, 8.0, 8.0)
+	_camera.position = _camera_offset
 	_camera.fov = 42.0
 	add_child(_camera)
 	_camera.look_at(Vector3.ZERO, Vector3.UP)
@@ -237,6 +337,11 @@ func _create_player_marker() -> Node3D:
 	var root := Node3D.new()
 	root.name = "PlayerAvatar"
 
+	var visual_root := Node3D.new()
+	visual_root.name = "VisualRoot"
+	root.add_child(visual_root)
+	_player_visual_root = visual_root
+
 	var body := MeshInstance3D.new()
 	body.name = "Body"
 	var body_mesh := CapsuleMesh.new()
@@ -244,7 +349,7 @@ func _create_player_marker() -> Node3D:
 	body_mesh.height = 0.72
 	body.mesh = body_mesh
 	body.material_override = _material(Color(0.08, 0.28, 0.58))
-	root.add_child(body)
+	visual_root.add_child(body)
 
 	var head := MeshInstance3D.new()
 	head.name = "Head"
@@ -253,13 +358,17 @@ func _create_player_marker() -> Node3D:
 	head.mesh = head_mesh
 	head.position = Vector3(0.0, 0.48, 0.0)
 	head.material_override = _material(Color(0.86, 0.70, 0.54))
-	root.add_child(head)
+	visual_root.add_child(head)
 	return root
 
 
 func _create_npc_marker(npc_id: String, display_name: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = "NPC_%s" % npc_id
+
+	var visual_root := Node3D.new()
+	visual_root.name = "VisualRoot"
+	root.add_child(visual_root)
 
 	var body := MeshInstance3D.new()
 	body.name = "Body"
@@ -269,7 +378,7 @@ func _create_npc_marker(npc_id: String, display_name: String) -> Node3D:
 	body_mesh.height = 0.62
 	body.mesh = body_mesh
 	body.material_override = _material(_npc_color(npc_id))
-	root.add_child(body)
+	visual_root.add_child(body)
 
 	var label := Label3D.new()
 	label.name = "NameLabel"
@@ -278,7 +387,7 @@ func _create_npc_marker(npc_id: String, display_name: String) -> Node3D:
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 28
 	label.modulate = Color(1.0, 0.88, 0.45)
-	root.add_child(label)
+	visual_root.add_child(label)
 	return root
 
 
@@ -329,11 +438,131 @@ func _create_hex_tile_mesh(color: Color) -> ArrayMesh:
 	return mesh
 
 
+func _coord_to_actor_position(coord: Vector2i, height: float) -> Vector3:
+	return coord_to_world(coord) + Vector3(0.0, height, 0.0)
+
+
+func _show_move_feedback(path: Array[Vector2i], requested_target: Vector2i, resolved_target: Vector2i) -> void:
+	_clear_path_preview()
+	_show_target_marker(resolved_target)
+	_spawn_click_pulse(requested_target)
+	for step_coord in path:
+		var node := _create_disc_marker("PathStep", 0.16, 0.05, Color(0.26, 0.72, 1.0, 0.92))
+		_feedback_root.add_child(node)
+		node.global_position = coord_to_world(step_coord) + Vector3(0.0, 0.08, 0.0)
+		_path_preview_nodes.append(node)
+
+
+func _show_target_marker(coord: Vector2i) -> void:
+	if _target_marker != null and is_instance_valid(_target_marker):
+		_target_marker.queue_free()
+	_target_marker = _create_disc_marker("TargetHighlight", 0.62, 0.035, Color(1.0, 0.78, 0.18, 0.68))
+	_feedback_root.add_child(_target_marker)
+	_target_marker.global_position = coord_to_world(coord) + Vector3(0.0, 0.055, 0.0)
+
+
+func _spawn_click_pulse(coord: Vector2i) -> void:
+	var pulse := _create_disc_marker("ClickPulse", 0.42, 0.03, Color(1.0, 0.95, 0.42, 0.42))
+	_feedback_root.add_child(pulse)
+	pulse.global_position = coord_to_world(coord) + Vector3(0.0, 0.09, 0.0)
+	_click_pulse_nodes.append(pulse)
+	var tween := create_tween()
+	tween.tween_property(pulse, "scale", Vector3(1.65, 1.0, 1.65), CLICK_PULSE_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func() -> void:
+		_click_pulse_nodes.erase(pulse)
+		if is_instance_valid(pulse):
+			pulse.queue_free()
+	)
+
+
+func _create_disc_marker(marker_name: String, radius: float, height: float, color: Color) -> Node3D:
+	var marker := MeshInstance3D.new()
+	marker.name = marker_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 48
+	marker.mesh = mesh
+	marker.material_override = _transparent_material(color)
+	return marker
+
+
+func _clear_path_preview() -> void:
+	for node in _path_preview_nodes:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_path_preview_nodes.clear()
+
+
+func _cancel_move_tween() -> void:
+	if _move_tween != null and _move_tween.is_valid():
+		_move_tween.kill()
+	_move_tween = null
+
+
+func _finish_move_animation(final_coord: Vector2i) -> void:
+	_move_animation_active = false
+	_move_animation_finished_count += 1
+	if _player_node != null:
+		_player_node.global_position = _coord_to_actor_position(final_coord, PLAYER_HEIGHT)
+	player_coord = final_coord
+	_update_camera_follow(1.0)
+	player_move_animation_finished.emit(final_coord)
+
+
+func _update_idle_animation(delta: float) -> void:
+	if _player_visual_root != null:
+		_player_visual_root.position.y = sin(_idle_time * 3.2) * 0.045
+		_player_visual_root.rotation.y = sin(_idle_time * 1.4) * 0.08
+	for npc_id_value in _npc_visual_roots.keys():
+		var npc_id := str(npc_id_value)
+		var visual_root := _npc_visual_roots[npc_id] as Node3D
+		if visual_root == null:
+			continue
+		var phase := float(abs(npc_id.hash()) % 100) / 100.0 * TAU
+		visual_root.position.y = sin(_idle_time * 2.1 + phase) * 0.035
+		visual_root.rotation.y += 0.15 * delta
+
+
+func _update_camera_follow(delta: float) -> void:
+	if _camera == null or _player_node == null:
+		return
+	var target := _player_node.global_position
+	target.y = 0.0
+	var desired_position := target + _camera_offset
+	var weight := clampf(delta * CAMERA_FOLLOW_SPEED, 0.0, 1.0)
+	_camera.global_position = _camera.global_position.lerp(desired_position, weight)
+	_camera.look_at(target, Vector3.UP)
+
+
 func _material(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = 0.85
 	return mat
+
+
+func _transparent_material(color: Color) -> StandardMaterial3D:
+	var mat := _material(color)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+	return mat
+
+
+func _path_dicts(path: Array[Vector2i]) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for coord in path:
+		result.append({"q": coord.x, "r": coord.y})
+	return result
+
+
+func _get_npc_idle_sample_y() -> float:
+	for visual_root_value in _npc_visual_roots.values():
+		var visual_root := visual_root_value as Node3D
+		if visual_root != null:
+			return visual_root.position.y
+	return 0.0
 
 
 func _npc_color(npc_id: String) -> Color:

@@ -88,6 +88,10 @@ var _save_load_modal: PanelContainer
 var _save_button: Button
 var _load_button: Button
 var _modal_close_button: Button
+var _drawer_transition_tween: Tween
+var _modal_transition_tween: Tween
+var _drawer_transition_active := false
+var _modal_transition_active := false
 
 
 func _ready() -> void:
@@ -217,6 +221,10 @@ func get_dev_agent_state() -> Dictionary:
 		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
 		"overworld_3d": _world_layer.get_debug_state() if _world_layer != null else {},
+		"ui_animation": {
+			"drawer_transition_active": _drawer_transition_active,
+			"modal_transition_active": _modal_transition_active,
+		},
 		"last_move_result": _last_move_result.duplicate(true),
 		"active_instance_id": _active_instance_id,
 		"last_battle_result": last_battle_result.duplicate(true),
@@ -277,6 +285,12 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 			"message": "cannot move while UI or battle is active",
 			"data": get_dev_agent_state(),
 		}
+	if _world_layer != null and _world_layer.is_move_animation_active():
+		return {
+			"ok": false,
+			"message": "move animation is still playing",
+			"data": get_dev_agent_state(),
+		}
 	if _move_controller == null:
 		return {
 			"ok": false,
@@ -287,11 +301,20 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 	_last_move_result = result.duplicate(true)
 	var data := result.get("data", {}) as Dictionary
 	var final_coord := _coord_from_dict(data.get("final_coord", _get_player_coord_dict()))
+	var resolved_coord := _coord_from_dict(data.get("resolved_target", _get_player_coord_dict()))
+	var path := _path_from_dicts(data.get("path", []) as Array)
 	_set_player_coord(final_coord)
-	_refresh_near_npc()
+	if bool(result.get("ok", false)):
+		_near_npc_id = ""
+		if _world_layer != null:
+			_world_layer.play_player_path(path, target_coord, resolved_coord)
+		if _world_layer == null or not _world_layer.is_move_animation_active():
+			_refresh_near_npc()
+	else:
+		_refresh_near_npc()
 	_refresh_ui()
 	if bool(result.get("ok", false)):
-		_add_event("player moved to %s,%s" % [final_coord.x, final_coord.y])
+		_add_event("player move started to %s,%s" % [final_coord.x, final_coord.y])
 	else:
 		_add_event("move rejected: %s" % str(result.get("message", "")))
 	return _scene_result(bool(result.get("ok", false)), str(result.get("message", "")))
@@ -389,9 +412,8 @@ func open_save_load_menu() -> Dictionary:
 	_drawer_mode = ""
 	_active_npc_id = ""
 	app_state = AppState.OVERWORLD
-	_save_load_modal.visible = true
-	if _modal_overlay != null:
-		_modal_overlay.visible = true
+	_refresh_panel()
+	_animate_modal_open()
 	_last_ui_message = "save/load opened"
 	_add_event(_last_ui_message)
 	return _scene_result(true, _last_ui_message)
@@ -399,9 +421,7 @@ func open_save_load_menu() -> Dictionary:
 
 func close_save_load_menu() -> Dictionary:
 	if _save_load_modal != null:
-		_save_load_modal.visible = false
-	if _modal_overlay != null:
-		_modal_overlay.visible = false
+		_animate_modal_close()
 	_last_ui_message = "save/load closed"
 	return _scene_result(true, _last_ui_message)
 
@@ -656,9 +676,13 @@ func _on_overworld_move_completed(actor_id: String, _from_coord: Vector2i, to_co
 	if actor_id != InkMonOverworldGrid.PLAYER_ID:
 		return
 	_set_player_coord(to_coord)
-	if _world_layer != null:
-		_world_layer.set_player_coord(to_coord)
+
+
+func _on_player_move_animation_finished(final_coord: Vector2i) -> void:
+	_set_player_coord(final_coord)
 	_refresh_near_npc()
+	_refresh_ui()
+	_add_event("player move animation finished at %s,%s" % [final_coord.x, final_coord.y])
 
 
 func _on_overworld_move_rejected(actor_id: String, _from_coord: Vector2i, _target_coord: Vector2i, reason: String) -> void:
@@ -670,6 +694,7 @@ func _build_world_and_ui() -> void:
 	_world_layer = InkMonOverworldView3DScript.new() as InkMonOverworldView3D
 	_world_layer.name = "WorldLayer"
 	_world_layer.set_npcs(_npc_defs)
+	_world_layer.player_move_animation_finished.connect(_on_player_move_animation_finished)
 	add_child(_world_layer)
 
 	_hud_layer = CanvasLayer.new()
@@ -1060,6 +1085,85 @@ func _layout_ui() -> void:
 		var modal_size := Vector2(380.0, 270.0)
 		_save_load_modal.position = (viewport_size - modal_size) * 0.5
 		_save_load_modal.size = modal_size
+		_save_load_modal.pivot_offset = modal_size * 0.5
+
+
+func _animate_drawer_open() -> void:
+	if _npc_panel == null or _drawer_transition_active:
+		return
+	var target_position := _npc_panel.position
+	var start_position := target_position + Vector2(_npc_panel.size.x + 32.0, 0.0)
+	_npc_panel.position = start_position
+	_drawer_transition_active = true
+	_kill_drawer_tween()
+	_drawer_transition_tween = create_tween()
+	_drawer_transition_tween.tween_property(_npc_panel, "position", target_position, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_drawer_transition_tween.finished.connect(func() -> void:
+		_drawer_transition_active = false
+	)
+
+
+func _animate_drawer_close() -> void:
+	if _npc_panel == null or not _npc_panel.visible:
+		return
+	if _drawer_transition_active:
+		return
+	var target_position := _npc_panel.position + Vector2(_npc_panel.size.x + 32.0, 0.0)
+	_drawer_transition_active = true
+	_kill_drawer_tween()
+	_drawer_transition_tween = create_tween()
+	_drawer_transition_tween.tween_property(_npc_panel, "position", target_position, 0.14).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_drawer_transition_tween.finished.connect(func() -> void:
+		_drawer_transition_active = false
+		_npc_panel.visible = false
+		if _dim_overlay != null:
+			_dim_overlay.visible = false
+	)
+
+
+func _animate_modal_open() -> void:
+	if _save_load_modal == null:
+		return
+	_layout_ui()
+	_save_load_modal.visible = true
+	if _modal_overlay != null:
+		_modal_overlay.visible = true
+	_save_load_modal.scale = Vector2(0.92, 0.92)
+	_modal_transition_active = true
+	_kill_modal_tween()
+	_modal_transition_tween = create_tween()
+	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_modal_transition_tween.finished.connect(func() -> void:
+		_modal_transition_active = false
+	)
+
+
+func _animate_modal_close() -> void:
+	if _save_load_modal == null or not _save_load_modal.visible:
+		return
+	_modal_transition_active = true
+	_kill_modal_tween()
+	_modal_transition_tween = create_tween()
+	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2(0.94, 0.94), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_modal_transition_tween.finished.connect(func() -> void:
+		_modal_transition_active = false
+		_save_load_modal.visible = false
+		_save_load_modal.scale = Vector2.ONE
+		if _modal_overlay != null:
+			_modal_overlay.visible = false
+	)
+
+
+func _kill_drawer_tween() -> void:
+	if _drawer_transition_tween != null and _drawer_transition_tween.is_valid():
+		_drawer_transition_tween.kill()
+	_drawer_transition_tween = null
+
+
+func _kill_modal_tween() -> void:
+	if _modal_transition_tween != null and _modal_transition_tween.is_valid():
+		_modal_transition_tween.kill()
+	_modal_transition_tween = null
 
 
 func _refresh_roster_chips() -> void:
@@ -1099,10 +1203,12 @@ func _refresh_panel() -> void:
 	if _dim_overlay == null or _npc_panel == null:
 		return
 	var open := _drawer_mode != ""
-	_dim_overlay.visible = open
-	_npc_panel.visible = open
 	if not open:
+		_animate_drawer_close()
 		return
+	var animate_open := not _npc_panel.visible
+	_dim_overlay.visible = true
+	_npc_panel.visible = true
 	if _tab_bar != null:
 		_tab_bar.visible = _drawer_mode != "npc"
 	if _drawer_mode == "npc":
@@ -1112,6 +1218,8 @@ func _refresh_panel() -> void:
 		_panel_title.text = _drawer_mode.capitalize()
 	_rebuild_panel_body()
 	_layout_ui()
+	if animate_open:
+		_animate_drawer_open()
 
 
 func _rebuild_panel_body() -> void:
@@ -1328,12 +1436,19 @@ func _coord_from_dict(value: Variant) -> Vector2i:
 	return Vector2i(int(dict.get("q", 0)), int(dict.get("r", 0)))
 
 
+func _path_from_dicts(value: Array) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for coord_value in value:
+		result.append(_coord_from_dict(coord_value))
+	return result
+
+
 func _is_modal_open() -> bool:
 	return _save_load_modal != null and _save_load_modal.visible
 
 
 func _is_field_input_blocked() -> bool:
-	return _drawer_mode != "" or _is_modal_open()
+	return _drawer_mode != "" or _is_modal_open() or (_world_layer != null and _world_layer.is_move_animation_active())
 
 
 func _get_bag_snapshot() -> Array[Dictionary]:
