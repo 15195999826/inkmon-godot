@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[node name="BagItem" type="HBoxContainer"]
+theme_override_constants/separation = 10
+
+[node name="ItemIcon" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(40, 40)
+color = Color(0.72, 0.58, 0.24, 1)
+
+[node name="BagItemLabel" type="Label" parent="."]
+size_flags_horizontal = 3

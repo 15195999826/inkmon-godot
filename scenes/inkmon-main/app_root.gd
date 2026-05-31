@@ -6,6 +6,16 @@ const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_
 const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main_agent_ops.gd")
 const InkMonOverworldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_overworld_view_3d.gd")
 
+# UI 动态列表组件场景 (§6: 动态列表用 instantiate 组件场景)。
+const RosterChipScene := preload("res://scenes/inkmon-main/ui/components/roster_chip.tscn")
+const PartyEntryRowScene := preload("res://scenes/inkmon-main/ui/components/party_entry_row.tscn")
+const BagItemRowScene := preload("res://scenes/inkmon-main/ui/components/bag_item_row.tscn")
+const NpcActionRowScene := preload("res://scenes/inkmon-main/ui/components/npc_action_row.tscn")
+# 静态 UI 容器场景 (§6: HUD / drawer / modal 全 .tscn)。
+const SaveLoadModalScene := preload("res://scenes/inkmon-main/ui/save_load_modal.tscn")
+const RightDrawerScene := preload("res://scenes/inkmon-main/ui/right_drawer.tscn")
+const HudContentScene := preload("res://scenes/inkmon-main/ui/hud_content.tscn")
+
 enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
@@ -638,10 +648,8 @@ func _build_world_and_ui() -> void:
 	_hud_layer.name = "HUDLayer"
 	_hud_layer.layer = 2
 	add_child(_hud_layer)
-	_hud_root = Control.new()
+	_hud_root = HudContentScene.instantiate() as Control
 	_hud_root.name = "HUDRoot"
-	_hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud_layer.add_child(_hud_root)
 	_build_hud()
 
@@ -670,257 +678,92 @@ func _build_world_and_ui() -> void:
 
 
 func _build_hud() -> void:
-	var hud_panel := PanelContainer.new()
-	hud_panel.name = "TopLeftHud"
-	hud_panel.position = Vector2(24, 24)
-	var hud_style := StyleBoxFlat.new()
-	hud_style.bg_color = Color(0.05, 0.045, 0.035, 0.82)
-	hud_style.border_color = Color(0.0, 0.0, 0.0, 0.72)
-	hud_style.set_border_width_all(2)
-	hud_style.corner_radius_top_left = 6
-	hud_style.corner_radius_top_right = 6
-	hud_style.corner_radius_bottom_left = 6
-	hud_style.corner_radius_bottom_right = 6
-	hud_panel.add_theme_stylebox_override("panel", hud_style)
-	_hud_root.add_child(hud_panel)
-
-	var hud_box := VBoxContainer.new()
-	hud_box.name = "HudBox"
-	hud_box.add_theme_constant_override("separation", 8)
-	hud_panel.add_child(hud_box)
-
-	var top_row := HBoxContainer.new()
-	top_row.name = "GoldRankRow"
-	top_row.add_theme_constant_override("separation", 18)
-	hud_box.add_child(top_row)
-
-	_gold_label = Label.new()
-	_gold_label.name = "GoldLabel"
-	_gold_label.add_theme_font_size_override("font_size", 24)
-	top_row.add_child(_gold_label)
-
-	_rank_label = Label.new()
-	_rank_label.name = "RankLabel"
-	_rank_label.add_theme_font_size_override("font_size", 24)
-	top_row.add_child(_rank_label)
-
-	_roster_box = HBoxContainer.new()
-	_roster_box.name = "RosterChips"
-	_roster_box.add_theme_constant_override("separation", 6)
-	hud_box.add_child(_roster_box)
-
-	var tools := HBoxContainer.new()
-	tools.name = "TopRightTools"
-	tools.anchor_left = 1.0
-	tools.anchor_right = 1.0
-	tools.offset_left = -348.0
-	tools.offset_right = -24.0
-	tools.offset_top = 24.0
-	tools.offset_bottom = 76.0
-	tools.add_theme_constant_override("separation", 8)
-	_hud_root.add_child(tools)
-	_add_tool_button(tools, "party", "Party\nP")
-	_add_tool_button(tools, "bag", "Bag\nB")
-	_add_tool_button(tools, "journal", "Journal\nJ")
-	_add_tool_button(tools, "menu", "Menu\nEsc")
-
-	var hint := Label.new()
-	hint.name = "HotbarHint"
-	hint.text = "P Party   B Bag   J Journal   Esc Menu"
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.modulate = Color(1.0, 0.88, 0.58, 0.82)
-	hint.anchor_top = 1.0
-	hint.anchor_bottom = 1.0
-	hint.offset_left = 24.0
-	hint.offset_top = -48.0
-	hint.offset_right = 360.0
-	hint.offset_bottom = -18.0
-	_hud_root.add_child(hint)
+	# 结构 / 主题在 hud_content.tscn; 这里取引用 + 连 tool 按钮 signal。
+	_gold_label = _hud_root.get_node("TopLeftHud/HudBox/GoldRankRow/GoldLabel") as Label
+	_rank_label = _hud_root.get_node("TopLeftHud/HudBox/GoldRankRow/RankLabel") as Label
+	_roster_box = _hud_root.get_node("TopLeftHud/HudBox/RosterChips") as HBoxContainer
+	var tools := _hud_root.get_node("TopRightTools") as HBoxContainer
+	_register_tool_button(tools, "party")
+	_register_tool_button(tools, "bag")
+	_register_tool_button(tools, "journal")
+	_register_tool_button(tools, "menu")
 
 
-func _add_tool_button(parent: Control, panel_id: String, text: String) -> void:
-	var button := Button.new()
-	button.name = "Tool_%s" % panel_id.capitalize()
-	button.text = text
-	button.custom_minimum_size = Vector2(74, 54)
+func _register_tool_button(parent: Control, panel_id: String) -> void:
+	var button := parent.get_node("Tool_%s" % panel_id.capitalize()) as Button
 	button.pressed.connect(func() -> void:
 		if panel_id == "menu":
 			open_save_load_menu()
 		else:
 			open_player_panel(panel_id)
 	)
-	parent.add_child(button)
 	_tool_buttons[panel_id] = button
 
 
 func _build_panel() -> void:
-	var panel_root := Control.new()
+	# 结构 / 主题 / 初始可见性在 right_drawer.tscn; 这里 instantiate + 取引用 + 连 signal。
+	var panel_root := RightDrawerScene.instantiate() as Control
 	panel_root.name = "PanelRoot"
-	panel_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel_layer.add_child(panel_root)
 
-	_dim_overlay = ColorRect.new()
-	_dim_overlay.name = "DimOverlay"
-	_dim_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_dim_overlay.color = Color(0.03, 0.03, 0.035, 0.35)
+	_dim_overlay = panel_root.get_node("DimOverlay") as ColorRect
 	_dim_overlay.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton:
 			var mouse_event := event as InputEventMouseButton
 			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 				close_drawer()
 	)
-	panel_root.add_child(_dim_overlay)
 
-	_npc_panel = PanelContainer.new()
-	_npc_panel.name = "RightDrawer"
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.075, 0.065, 0.96)
-	panel_style.border_color = Color(0.76, 0.58, 0.25, 0.86)
-	panel_style.set_border_width_all(3)
-	panel_style.corner_radius_top_left = 6
-	panel_style.corner_radius_top_right = 6
-	panel_style.corner_radius_bottom_left = 6
-	panel_style.corner_radius_bottom_right = 6
-	_npc_panel.add_theme_stylebox_override("panel", panel_style)
-	panel_root.add_child(_npc_panel)
-
-	var panel_box := VBoxContainer.new()
-	panel_box.name = "PanelBox"
-	panel_box.add_theme_constant_override("separation", 12)
-	_npc_panel.add_child(panel_box)
-
-	var header := HBoxContainer.new()
-	header.name = "PanelHeader"
-	header.add_theme_constant_override("separation", 12)
-	panel_box.add_child(header)
-	_panel_title = Label.new()
-	_panel_title.name = "PanelTitle"
-	_panel_title.add_theme_font_size_override("font_size", 24)
-	_panel_title.modulate = Color(1.0, 0.86, 0.42)
-	header.add_child(_panel_title)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-	_close_button = Button.new()
-	_close_button.name = "PanelCloseButton"
-	_close_button.text = "X"
-	_close_button.custom_minimum_size = Vector2(42, 36)
+	_npc_panel = panel_root.get_node("RightDrawer") as PanelContainer
+	_panel_title = panel_root.get_node("RightDrawer/PanelBox/PanelHeader/PanelTitle") as Label
+	_close_button = panel_root.get_node("RightDrawer/PanelBox/PanelHeader/PanelCloseButton") as Button
 	_close_button.pressed.connect(func() -> void:
 		close_drawer()
 	)
-	header.add_child(_close_button)
-
-	_tab_bar = HBoxContainer.new()
-	_tab_bar.name = "PanelTabs"
-	_tab_bar.add_theme_constant_override("separation", 6)
-	panel_box.add_child(_tab_bar)
-	_add_tab_button("party", "Party")
-	_add_tab_button("bag", "Bag")
-	_add_tab_button("journal", "Journal")
-
-	_panel_body = VBoxContainer.new()
-	_panel_body.name = "PanelBody"
-	_panel_body.add_theme_constant_override("separation", 10)
-	panel_box.add_child(_panel_body)
+	_tab_bar = panel_root.get_node("RightDrawer/PanelBox/PanelTabs") as HBoxContainer
+	_panel_body = panel_root.get_node("RightDrawer/PanelBox/PanelBody") as VBoxContainer
+	_register_tab_button("party")
+	_register_tab_button("bag")
+	_register_tab_button("journal")
 
 
-func _add_tab_button(panel_id: String, text: String) -> void:
-	var button := Button.new()
-	button.name = "Tab_%s" % panel_id.capitalize()
-	button.text = text
-	button.custom_minimum_size = Vector2(92, 34)
+func _register_tab_button(panel_id: String) -> void:
+	var button := _tab_bar.get_node("Tab_%s" % panel_id.capitalize()) as Button
 	button.pressed.connect(func() -> void:
 		open_player_panel(panel_id)
 	)
-	_tab_bar.add_child(button)
 	_tab_buttons[panel_id] = button
 
 
 func _build_save_load_modal() -> void:
-	var modal_root := Control.new()
+	# 结构 / 主题 / 初始可见性在 save_load_modal.tscn; 这里 instantiate + 取引用 + 连 signal。
+	var modal_root := SaveLoadModalScene.instantiate() as Control
 	modal_root.name = "ModalRoot"
-	modal_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	modal_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_modal_layer.add_child(modal_root)
 
-	_modal_overlay = ColorRect.new()
-	_modal_overlay.name = "ModalOverlay"
-	_modal_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal_overlay.color = Color(0.02, 0.02, 0.025, 0.52)
-	_modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_modal_overlay = modal_root.get_node("ModalOverlay") as ColorRect
 	_modal_overlay.gui_input.connect(func(event: InputEvent) -> void:
 		if event is InputEventMouseButton:
 			var mouse_event := event as InputEventMouseButton
 			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 				close_save_load_menu()
 	)
-	modal_root.add_child(_modal_overlay)
 
-	_save_load_modal = PanelContainer.new()
-	_save_load_modal.name = "SaveLoadModal"
-	_save_load_modal.custom_minimum_size = Vector2(360, 250)
-	var modal_style := StyleBoxFlat.new()
-	modal_style.bg_color = Color(0.09, 0.08, 0.07, 0.98)
-	modal_style.border_color = Color(0.76, 0.58, 0.25, 0.95)
-	modal_style.set_border_width_all(3)
-	modal_style.corner_radius_top_left = 6
-	modal_style.corner_radius_top_right = 6
-	modal_style.corner_radius_bottom_left = 6
-	modal_style.corner_radius_bottom_right = 6
-	_save_load_modal.add_theme_stylebox_override("panel", modal_style)
-	modal_root.add_child(_save_load_modal)
-
-	var box := VBoxContainer.new()
-	box.name = "SaveLoadBox"
-	box.add_theme_constant_override("separation", 12)
-	_save_load_modal.add_child(box)
-
-	var title := Label.new()
-	title.name = "SaveLoadTitle"
-	title.text = "System"
-	title.add_theme_font_size_override("font_size", 24)
-	title.modulate = Color(1.0, 0.86, 0.42)
-	box.add_child(title)
-
-	var detail := Label.new()
-	detail.name = "SaveLoadDetail"
-	detail.text = "Save or reload the local vertical-slice state."
-	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(detail)
-
-	_save_button = Button.new()
-	_save_button.name = "SaveButton"
-	_save_button.text = "Save"
-	_save_button.custom_minimum_size = Vector2(180, 38)
+	_save_load_modal = modal_root.get_node("SaveLoadModal") as PanelContainer
+	_save_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/SaveButton") as Button
 	_save_button.pressed.connect(func() -> void:
 		save_game()
 		_refresh_ui()
 	)
-	box.add_child(_save_button)
-
-	_load_button = Button.new()
-	_load_button.name = "LoadButton"
-	_load_button.text = "Load"
-	_load_button.custom_minimum_size = Vector2(180, 38)
+	_load_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/LoadButton") as Button
 	_load_button.pressed.connect(func() -> void:
 		load_game()
 		close_save_load_menu()
 	)
-	box.add_child(_load_button)
-
-	_modal_close_button = Button.new()
-	_modal_close_button.name = "ModalCloseButton"
-	_modal_close_button.text = "Close"
-	_modal_close_button.custom_minimum_size = Vector2(180, 38)
+	_modal_close_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/ModalCloseButton") as Button
 	_modal_close_button.pressed.connect(func() -> void:
 		close_save_load_menu()
 	)
-	box.add_child(_modal_close_button)
-
-	_save_load_modal.visible = false
-	_modal_overlay.visible = false
 
 
 func _build_npc_handlers() -> void:
@@ -1130,9 +973,8 @@ func _refresh_roster_chips() -> void:
 	for child in _roster_box.get_children():
 		child.queue_free()
 	for entry in session.player_state.roster:
-		var chip := PanelContainer.new()
+		var chip := RosterChipScene.instantiate() as PanelContainer
 		chip.name = "RosterChip_%d" % entry.entry_id
-		chip.custom_minimum_size = Vector2(76, 62)
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.10, 0.09, 0.07, 0.92)
 		style.border_color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
@@ -1142,11 +984,7 @@ func _refresh_roster_chips() -> void:
 		style.corner_radius_bottom_left = 4
 		style.corner_radius_bottom_right = 4
 		chip.add_theme_stylebox_override("panel", style)
-		var label := Label.new()
-		label.text = "%s\nLv%d" % [_role_short(entry.role), entry.level]
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		chip.add_child(label)
+		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [_role_short(entry.role), entry.level]
 		_roster_box.add_child(chip)
 
 
@@ -1215,19 +1053,12 @@ func _rebuild_panel_body() -> void:
 
 func _build_party_panel() -> void:
 	for entry in session.player_state.roster:
-		var row := HBoxContainer.new()
+		var row := PartyEntryRowScene.instantiate() as HBoxContainer
 		row.name = "PartyEntry_%d" % entry.entry_id
-		row.add_theme_constant_override("separation", 10)
-		_panel_body.add_child(row)
+		(row.get_node("ElementSwatch") as ColorRect).color = _element_color(
+			entry.elements[0] if not entry.elements.is_empty() else "")
 
-		var swatch := ColorRect.new()
-		swatch.name = "ElementSwatch"
-		swatch.color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
-		swatch.custom_minimum_size = Vector2(42, 42)
-		row.add_child(swatch)
-
-		var label := Label.new()
-		label.name = "PartyEntryLabel"
+		var label := row.get_node("PartyEntryLabel") as Label
 		label.text = "%s  Lv%d  %s\n%s  EXP %d  Skill %s" % [
 			entry.species,
 			entry.level,
@@ -1236,12 +1067,9 @@ func _build_party_panel() -> void:
 			entry.exp,
 			entry.get_primary_skill_id(),
 		]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.modulate = Color(0.92, 0.88, 0.78)
-		row.add_child(label)
 
-		var stats := Label.new()
-		stats.name = "StatsLabel"
+		var stats := row.get_node("StatsLabel") as Label
 		var derived: Dictionary = entry.derive_battle_stats()
 		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
 			int(float(derived.get("max_hp", 0.0))),
@@ -1252,7 +1080,7 @@ func _build_party_panel() -> void:
 			int(float(derived.get("speed", 0.0))),
 		]
 		stats.modulate = Color(0.82, 0.78, 0.68)
-		row.add_child(stats)
+		_panel_body.add_child(row)
 
 
 func _build_bag_panel() -> void:
@@ -1266,26 +1094,17 @@ func _build_bag_panel() -> void:
 		return
 
 	for item in bag_items:
-		var row := HBoxContainer.new()
+		var row := BagItemRowScene.instantiate() as HBoxContainer
 		row.name = "BagItem_%s" % str(item.get("config_id", "unknown"))
-		row.add_theme_constant_override("separation", 10)
-		_panel_body.add_child(row)
-		var icon := ColorRect.new()
-		icon.name = "ItemIcon"
-		icon.color = Color(0.72, 0.58, 0.24)
-		icon.custom_minimum_size = Vector2(40, 40)
-		row.add_child(icon)
 		var cfg := ItemSystem.get_item_config(StringName(str(item.get("config_id", ""))))
-		var label := Label.new()
-		label.name = "BagItemLabel"
+		var label := row.get_node("BagItemLabel") as Label
 		label.text = "%s x%d\n%s" % [
 			str(cfg.get("display_name", item.get("config_id", ""))),
 			int(item.get("count", 1)),
 			str(cfg.get("description", "Inventory item")),
 		]
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.modulate = Color(0.92, 0.88, 0.78)
-		row.add_child(label)
+		_panel_body.add_child(row)
 
 
 func _build_journal_panel() -> void:
@@ -1318,34 +1137,21 @@ func _build_journal_panel() -> void:
 
 
 func _add_action_row(action: Dictionary) -> void:
-	var row := HBoxContainer.new()
+	var row := NpcActionRowScene.instantiate() as HBoxContainer
 	row.name = "ActionRow_%s" % str(action.get(InkMonNpcHandler.ACTION_ID, "unknown"))
-	row.add_theme_constant_override("separation", 12)
-	_panel_body.add_child(row)
-	var icon := ColorRect.new()
-	icon.name = "Icon"
-	icon.color = Color(0.18, 0.14, 0.10)
-	icon.custom_minimum_size = Vector2(54, 54)
-	row.add_child(icon)
-	var label := Label.new()
-	label.name = "ItemLabel"
-	label.text = "%s\n%s" % [
+	(row.get_node("ItemLabel") as Label).text = "%s\n%s" % [
 		str(action.get(InkMonNpcHandler.ACTION_LABEL, "")),
 		str(action.get(InkMonNpcHandler.ACTION_DETAIL, "")),
 	]
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var button := Button.new()
 	var action_id := str(action.get(InkMonNpcHandler.ACTION_ID, ""))
+	var button := row.get_node("ActionButton") as Button
 	button.name = "Action_%s" % action_id
 	button.text = "Buy" if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy" else "Go"
-	button.custom_minimum_size = Vector2(84, 40)
 	button.disabled = not bool(action.get(InkMonNpcHandler.ACTION_ENABLED, true))
 	button.pressed.connect(func() -> void:
 		run_active_npc_action(action_id)
 	)
-	row.add_child(button)
+	_panel_body.add_child(row)
 	_action_buttons[action_id] = button
 	if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy":
 		_shop_buy_buttons[str(action.get("item_config_id", ""))] = button

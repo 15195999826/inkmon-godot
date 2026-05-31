@@ -1,0 +1,66 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="drawer_style"]
+bg_color = Color(0.08, 0.075, 0.065, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.76, 0.58, 0.25, 0.86)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="PanelRoot" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0.03, 0.03, 0.035, 0.35)
+
+[node name="RightDrawer" type="PanelContainer" parent="."]
+visible = false
+theme_override_styles/panel = SubResource("drawer_style")
+
+[node name="PanelBox" type="VBoxContainer" parent="RightDrawer"]
+theme_override_constants/separation = 12
+
+[node name="PanelHeader" type="HBoxContainer" parent="RightDrawer/PanelBox"]
+theme_override_constants/separation = 12
+
+[node name="PanelTitle" type="Label" parent="RightDrawer/PanelBox/PanelHeader"]
+modulate = Color(1, 0.86, 0.42, 1)
+theme_override_font_sizes/font_size = 24
+
+[node name="HeaderSpacer" type="Control" parent="RightDrawer/PanelBox/PanelHeader"]
+size_flags_horizontal = 3
+
+[node name="PanelCloseButton" type="Button" parent="RightDrawer/PanelBox/PanelHeader"]
+custom_minimum_size = Vector2(42, 36)
+text = "X"
+
+[node name="PanelTabs" type="HBoxContainer" parent="RightDrawer/PanelBox"]
+theme_override_constants/separation = 6
+
+[node name="Tab_Party" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
+custom_minimum_size = Vector2(92, 34)
+text = "Party"
+
+[node name="Tab_Bag" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
+custom_minimum_size = Vector2(92, 34)
+text = "Bag"
+
+[node name="Tab_Journal" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
+custom_minimum_size = Vector2(92, 34)
+text = "Journal"
+
+[node name="PanelBody" type="VBoxContainer" parent="RightDrawer/PanelBox"]
+theme_override_constants/separation = 10

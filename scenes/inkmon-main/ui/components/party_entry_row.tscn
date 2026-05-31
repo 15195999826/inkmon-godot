@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[node name="PartyEntry" type="HBoxContainer"]
+theme_override_constants/separation = 10
+
+[node name="ElementSwatch" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(42, 42)
+
+[node name="PartyEntryLabel" type="Label" parent="."]
+size_flags_horizontal = 3
+
+[node name="StatsLabel" type="Label" parent="."]

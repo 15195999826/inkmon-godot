@@ -1,0 +1,81 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="hud_style"]
+bg_color = Color(0.05, 0.045, 0.035, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.72)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="HUDRoot" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TopLeftHud" type="PanelContainer" parent="."]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 320.0
+offset_bottom = 120.0
+theme_override_styles/panel = SubResource("hud_style")
+
+[node name="HudBox" type="VBoxContainer" parent="TopLeftHud"]
+theme_override_constants/separation = 8
+
+[node name="GoldRankRow" type="HBoxContainer" parent="TopLeftHud/HudBox"]
+theme_override_constants/separation = 18
+
+[node name="GoldLabel" type="Label" parent="TopLeftHud/HudBox/GoldRankRow"]
+theme_override_font_sizes/font_size = 24
+
+[node name="RankLabel" type="Label" parent="TopLeftHud/HudBox/GoldRankRow"]
+theme_override_font_sizes/font_size = 24
+
+[node name="RosterChips" type="HBoxContainer" parent="TopLeftHud/HudBox"]
+theme_override_constants/separation = 6
+
+[node name="TopRightTools" type="HBoxContainer" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -348.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = 76.0
+theme_override_constants/separation = 8
+
+[node name="Tool_Party" type="Button" parent="TopRightTools"]
+custom_minimum_size = Vector2(74, 54)
+text = "Party
+P"
+
+[node name="Tool_Bag" type="Button" parent="TopRightTools"]
+custom_minimum_size = Vector2(74, 54)
+text = "Bag
+B"
+
+[node name="Tool_Journal" type="Button" parent="TopRightTools"]
+custom_minimum_size = Vector2(74, 54)
+text = "Journal
+J"
+
+[node name="Tool_Menu" type="Button" parent="TopRightTools"]
+custom_minimum_size = Vector2(74, 54)
+text = "Menu
+Esc"
+
+[node name="HotbarHint" type="Label" parent="."]
+modulate = Color(1, 0.88, 0.58, 0.82)
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -48.0
+offset_right = 360.0
+offset_bottom = -18.0
+text = "P Party   B Bag   J Journal   Esc Menu"
+theme_override_font_sizes/font_size = 14

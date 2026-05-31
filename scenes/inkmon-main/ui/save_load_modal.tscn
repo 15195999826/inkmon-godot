@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="modal_style"]
+bg_color = Color(0.09, 0.08, 0.07, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.76, 0.58, 0.25, 0.95)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="ModalRoot" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="ModalOverlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0.02, 0.02, 0.025, 0.52)
+
+[node name="SaveLoadModal" type="PanelContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(360, 250)
+theme_override_styles/panel = SubResource("modal_style")
+
+[node name="SaveLoadBox" type="VBoxContainer" parent="SaveLoadModal"]
+theme_override_constants/separation = 12
+
+[node name="SaveLoadTitle" type="Label" parent="SaveLoadModal/SaveLoadBox"]
+text = "System"
+theme_override_font_sizes/font_size = 24
+
+[node name="SaveLoadDetail" type="Label" parent="SaveLoadModal/SaveLoadBox"]
+text = "Save or reload the local vertical-slice state."
+autowrap_mode = 3
+
+[node name="SaveButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]
+custom_minimum_size = Vector2(180, 38)
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]
+custom_minimum_size = Vector2(180, 38)
+text = "Load"
+
+[node name="ModalCloseButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]
+custom_minimum_size = Vector2(180, 38)
+text = "Close"

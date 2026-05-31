@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[node name="ActionRow" type="HBoxContainer"]
+theme_override_constants/separation = 12
+
+[node name="Icon" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(54, 54)
+color = Color(0.18, 0.14, 0.1, 1)
+
+[node name="ItemLabel" type="Label" parent="."]
+size_flags_horizontal = 3
+vertical_alignment = 1
+
+[node name="ActionButton" type="Button" parent="."]
+custom_minimum_size = Vector2(84, 40)
