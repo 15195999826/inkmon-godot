@@ -1,4 +1,4 @@
-class_name InkMonAppRoot
+class_name InkMonGameDirector
 extends Node
 
 
@@ -139,7 +139,7 @@ func start_training_battle() -> Dictionary:
 		}
 
 	# 持久 world GI 内起战斗 procedure (不再 per-battle create→destroy)。
-	Log.assert_crash(_world_gi != null, "InkMonAppRoot", "world GI not initialized before battle")
+	Log.assert_crash(_world_gi != null, "InkMonGameDirector", "world GI not initialized before battle")
 	_active_instance_id = _world_gi.id
 	app_state = AppState.BATTLE
 	_world_gi.start_battle_procedure({
@@ -632,7 +632,7 @@ func _setup_overworld_runtime() -> void:
 	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
-	Log.assert_crash(_world_gi != null, "InkMonAppRoot", "failed to create InkMonWorldGI")
+	Log.assert_crash(_world_gi != null, "InkMonGameDirector", "failed to create InkMonWorldGI")
 	# 主世界 grid wrapper 归 main 层所有; 只把底层 GridMapModel bind 给 world GI 做 active 切换。
 	_overworld_grid = InkMonOverworldGrid.new()
 	_overworld_grid.setup(InkMonOverworldGrid.MAP_RADIUS)

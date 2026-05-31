@@ -15,7 +15,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	var root := InkMonMainScene.instantiate() as InkMonAppRoot
+	var root := InkMonMainScene.instantiate() as InkMonGameDirector
 	add_child(root)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -61,7 +61,7 @@ func _run() -> String:
 	return ""
 
 
-func _assert_3d_visual_state(root: InkMonAppRoot) -> String:
+func _assert_3d_visual_state(root: InkMonGameDirector) -> String:
 	var state := root.get_dev_agent_state()
 	var overworld := state.get("overworld_3d", {}) as Dictionary
 	if overworld == null or overworld.get("node_type", "") != "InkMonOverworldView3D":
@@ -84,7 +84,7 @@ func _assert_3d_visual_state(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_path_move(root: InkMonAppRoot) -> String:
+func _assert_path_move(root: InkMonGameDirector) -> String:
 	var camera_before := _camera_position_from_state(root.get_dev_agent_state())
 	var result := root.goto_tile(Vector2i(3, -1))
 	if not bool(result.get("ok", false)):
@@ -121,7 +121,7 @@ func _assert_path_move(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_blocked_npc_retarget(root: InkMonAppRoot) -> String:
+func _assert_blocked_npc_retarget(root: InkMonGameDirector) -> String:
 	root.reset_session()
 	await get_tree().process_frame
 	var result := root.goto_tile(Vector2i(2, 0))
@@ -149,7 +149,7 @@ func _assert_blocked_npc_retarget(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_screen_pick_move(root: InkMonAppRoot) -> String:
+func _assert_screen_pick_move(root: InkMonGameDirector) -> String:
 	root.reset_session()
 	await get_tree().process_frame
 	var pos_result := root.get_tile_screen_position(Vector2i(1, -1))
@@ -171,7 +171,7 @@ func _assert_screen_pick_move(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_player_ui_panels(root: InkMonAppRoot) -> String:
+func _assert_player_ui_panels(root: InkMonGameDirector) -> String:
 	var party := root.open_player_panel("party")
 	if not bool(party.get("ok", false)):
 		return "opening Party panel failed"
@@ -209,7 +209,7 @@ func _assert_player_ui_panels(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_move_save_load(root: InkMonAppRoot) -> String:
+func _assert_move_save_load(root: InkMonGameDirector) -> String:
 	root.reset_session()
 	await get_tree().process_frame
 	var move_result := root.goto_tile(Vector2i(-1, 1))
@@ -235,7 +235,7 @@ func _assert_move_save_load(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_drawer_quick_toggle(root: InkMonAppRoot) -> String:
+func _assert_drawer_quick_toggle(root: InkMonGameDirector) -> String:
 	root.reset_session()
 	await get_tree().process_frame
 	# C1: open a drawer then close it within the open-transition window (same frame).
@@ -274,7 +274,7 @@ func _assert_drawer_quick_toggle(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_overlay_layering_and_dismiss(root: InkMonAppRoot) -> String:
+func _assert_overlay_layering_and_dismiss(root: InkMonGameDirector) -> String:
 	# C5: toolbar (HUD) must draw above the drawer dim; the modal must draw above the HUD.
 	if root._hud_layer.layer <= root._panel_layer.layer:
 		return "HUD layer must sit above the drawer/panel layer so the toolbar stays clickable"
@@ -315,7 +315,7 @@ func _assert_overlay_layering_and_dismiss(root: InkMonAppRoot) -> String:
 	return ""
 
 
-func _assert_load_during_move(root: InkMonAppRoot) -> String:
+func _assert_load_during_move(root: InkMonGameDirector) -> String:
 	# Save a known position, then load it WHILE a move tween is in flight; the stale
 	# tween must not overwrite the loaded coord nor leave the move flag stuck (focus 3).
 	root.reset_session()
@@ -439,7 +439,7 @@ func _camera_position_from_state(state: Dictionary) -> Vector3:
 	)
 
 
-func _wait_for_move_animation(root: InkMonAppRoot) -> String:
+func _wait_for_move_animation(root: InkMonGameDirector) -> String:
 	for _i in range(60):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
@@ -449,7 +449,7 @@ func _wait_for_move_animation(root: InkMonAppRoot) -> String:
 	return "move animation did not finish"
 
 
-func _wait_for_ui_transition(root: InkMonAppRoot, key: String) -> String:
+func _wait_for_ui_transition(root: InkMonGameDirector, key: String) -> String:
 	for _i in range(30):
 		await get_tree().create_timer(0.03).timeout
 		var ui_animation := root.get_dev_agent_state().get("ui_animation", {}) as Dictionary
@@ -464,7 +464,7 @@ func _axial_distance(a: Vector2i, b: Vector2i) -> int:
 	return int((abs(dq) + abs(dq + dr) + abs(dr)) / 2)
 
 
-func _cleanup(root: InkMonAppRoot, status: String) -> String:
+func _cleanup(root: InkMonGameDirector, status: String) -> String:
 	root.queue_free()
 	GameWorld.shutdown()
 	return status
