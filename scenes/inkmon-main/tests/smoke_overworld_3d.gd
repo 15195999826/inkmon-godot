@@ -40,6 +40,18 @@ func _run() -> String:
 	if ui_status != "":
 		return _cleanup(root, ui_status)
 
+	var drawer_race_status := await _assert_drawer_quick_toggle(root)
+	if drawer_race_status != "":
+		return _cleanup(root, drawer_race_status)
+
+	var overlay_status := await _assert_overlay_layering_and_dismiss(root)
+	if overlay_status != "":
+		return _cleanup(root, overlay_status)
+
+	var load_race_status := await _assert_load_during_move(root)
+	if load_race_status != "":
+		return _cleanup(root, load_race_status)
+
 	var save_status := await _assert_move_save_load(root)
 	if save_status != "":
 		return _cleanup(root, save_status)
@@ -221,6 +233,159 @@ func _assert_move_save_load(root: InkMonAppRoot) -> String:
 	if _visual_coord_from_state(root.get_dev_agent_state()) != Vector2i(-1, 1):
 		return "load should restore visual overworld coord"
 	return ""
+
+
+func _assert_drawer_quick_toggle(root: InkMonAppRoot) -> String:
+	root.reset_session()
+	await get_tree().process_frame
+	# C1: open a drawer then close it within the open-transition window (same frame).
+	root.open_player_panel("party")
+	root.close_drawer()
+	var close_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if close_wait != "":
+		return close_wait
+	var state := root.get_dev_agent_state()
+	if state.get("drawer_mode", "x") != "":
+		return "drawer_mode should be empty after quick open-then-close"
+	var ui := state.get("ui_animation", {}) as Dictionary
+	if bool(ui.get("drawer_visible", false)):
+		return "drawer panel must hide after quick open-then-close (C1 ghost drawer)"
+	if bool(ui.get("dim_visible", false)):
+		return "dim overlay must hide after quick open-then-close (C1 input blackhole)"
+
+	# C2: close a drawer then re-open within the close-transition window (same frame).
+	root.open_player_panel("bag")
+	var open_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if open_wait != "":
+		return open_wait
+	root.close_drawer()
+	root.open_player_panel("journal")
+	var reopen_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if reopen_wait != "":
+		return reopen_wait
+	var reopened := root.get_dev_agent_state()
+	if reopened.get("drawer_mode", "") != "journal":
+		return "drawer_mode should be journal after close-then-quick-reopen"
+	var reopened_ui := reopened.get("ui_animation", {}) as Dictionary
+	if not bool(reopened_ui.get("drawer_visible", false)):
+		return "drawer must stay visible after close-then-quick-reopen (C2 ghost drawer)"
+	root.close_drawer()
+	await _wait_for_ui_transition(root, "drawer_transition_active")
+	return ""
+
+
+func _assert_overlay_layering_and_dismiss(root: InkMonAppRoot) -> String:
+	# C5: toolbar (HUD) must draw above the drawer dim; the modal must draw above the HUD.
+	if root._hud_layer.layer <= root._panel_layer.layer:
+		return "HUD layer must sit above the drawer/panel layer so the toolbar stays clickable"
+	if root._modal_layer.layer <= root._hud_layer.layer:
+		return "modal layer must sit above the HUD layer so the modal is exclusive"
+
+	# C5: clicking the dim overlay (outside the drawer) dismisses the drawer (real mouse input).
+	root.reset_session()
+	var window := get_viewport() as Window
+	if window != null:
+		window.size = Vector2i(1280, 720)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	root.open_player_panel("party")
+	var open_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if open_wait != "":
+		return open_wait
+	if root.get_dev_agent_state().get("drawer_mode", "") != "party":
+		return "drawer should be open before the dim-dismiss click"
+	# Click a point inside the dim overlay but clear of the right-side drawer panel,
+	# computed from the actual headless layout (hardcoded coords are viewport-size fragile).
+	var dim_rect := (root._dim_overlay as Control).get_global_rect()
+	var panel_rect := (root._npc_panel as Control).get_global_rect()
+	var click_x := (dim_rect.position.x + panel_rect.position.x) * 0.5
+	if click_x >= panel_rect.position.x:
+		click_x = dim_rect.position.x + 4.0
+	var click_pos := Vector2(click_x, dim_rect.get_center().y)
+	_click_at(click_pos)
+	var dismiss_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
+	if dismiss_wait != "":
+		return dismiss_wait
+	var state := root.get_dev_agent_state()
+	if state.get("drawer_mode", "x") != "":
+		return "clicking the dim overlay should close the drawer (drawer_mode cleared)"
+	var ui := state.get("ui_animation", {}) as Dictionary
+	if bool(ui.get("drawer_visible", false)) or bool(ui.get("dim_visible", false)):
+		return "clicking the dim overlay should hide drawer and dim (real mouse input)"
+	return ""
+
+
+func _assert_load_during_move(root: InkMonAppRoot) -> String:
+	# Save a known position, then load it WHILE a move tween is in flight; the stale
+	# tween must not overwrite the loaded coord nor leave the move flag stuck (focus 3).
+	root.reset_session()
+	await get_tree().process_frame
+	var setup_move := root.goto_tile(Vector2i(0, 1))
+	if not bool(setup_move.get("ok", false)):
+		return "setup move before save failed: %s" % str(setup_move.get("message", ""))
+	var setup_wait := await _wait_for_move_animation(root)
+	if setup_wait != "":
+		return setup_wait
+	var save_path := "user://inkmon_l2_load_during_move.json"
+	var save_result := root.save_game(save_path)
+	if not bool(save_result.get("ok", false)):
+		return "save at known coord failed"
+
+	root.reset_session()
+	await get_tree().process_frame
+	var move := root.goto_tile(Vector2i(3, -1))
+	if not bool(move.get("ok", false)):
+		return "multi-step move before load failed: %s" % str(move.get("message", ""))
+	var mid := root.get_dev_agent_state().get("overworld_3d", {}) as Dictionary
+	if not bool(mid.get("move_animation_active", false)):
+		return "move should be animating before the mid-move load"
+
+	var load_result := root.load_game(save_path)
+	if not bool(load_result.get("ok", false)):
+		return "load during move failed: %s" % str(load_result.get("message", ""))
+	var after := root.get_dev_agent_state()
+	if _coord_from_state(after) != Vector2i(0, 1):
+		return "load during move should restore the saved coord immediately"
+	if _visual_coord_from_state(after) != Vector2i(0, 1):
+		return "visual coord should snap to the loaded coord after load during move"
+	var after_ow := after.get("overworld_3d", {}) as Dictionary
+	if bool(after_ow.get("move_animation_active", false)):
+		return "move animation flag must clear after load (not stuck blocking input)"
+
+	# Let the original (now-killed) tween's would-be finish time pass; coord must hold.
+	await get_tree().create_timer(0.6).timeout
+	var settled := root.get_dev_agent_state()
+	if _coord_from_state(settled) != Vector2i(0, 1):
+		return "stale move tween must not overwrite the loaded coord (focus 3 regression)"
+	if _visual_coord_from_state(settled) != Vector2i(0, 1):
+		return "stale move tween must not move the avatar after load"
+
+	# Field input must work again after the load (flag not stuck true).
+	var post_move := root.goto_tile(Vector2i(1, 0))
+	if not bool(post_move.get("ok", false)):
+		return "movement must work after load during move: %s" % str(post_move.get("message", ""))
+	var post_wait := await _wait_for_move_animation(root)
+	if post_wait != "":
+		return post_wait
+	return ""
+
+
+func _click_at(position: Vector2) -> void:
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = position
+	press.button_mask = MOUSE_BUTTON_MASK_LEFT
+	viewport.push_input(press)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = position
+	viewport.push_input(release)
+	Input.flush_buffered_events()
 
 
 func _last_move_data(state: Dictionary) -> Dictionary:

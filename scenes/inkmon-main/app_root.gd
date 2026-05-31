@@ -92,6 +92,7 @@ var _drawer_transition_tween: Tween
 var _modal_transition_tween: Tween
 var _drawer_transition_active := false
 var _modal_transition_active := false
+var _modal_open_requested := false
 
 
 func _ready() -> void:
@@ -194,6 +195,8 @@ func reset_session() -> Dictionary:
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime()
+	_cancel_overworld_animation()
+	_refresh_near_npc()
 	_event_log.clear()
 	_add_event("session reset")
 	_refresh_ui()
@@ -224,6 +227,9 @@ func get_dev_agent_state() -> Dictionary:
 		"ui_animation": {
 			"drawer_transition_active": _drawer_transition_active,
 			"modal_transition_active": _modal_transition_active,
+			"drawer_visible": _npc_panel != null and _npc_panel.visible,
+			"dim_visible": _dim_overlay != null and _dim_overlay.visible,
+			"modal_visible": _save_load_modal != null and _save_load_modal.visible,
 		},
 		"last_move_result": _last_move_result.duplicate(true),
 		"active_instance_id": _active_instance_id,
@@ -412,6 +418,7 @@ func open_save_load_menu() -> Dictionary:
 	_drawer_mode = ""
 	_active_npc_id = ""
 	app_state = AppState.OVERWORLD
+	_modal_open_requested = true
 	_refresh_panel()
 	_animate_modal_open()
 	_last_ui_message = "save/load opened"
@@ -420,6 +427,7 @@ func open_save_load_menu() -> Dictionary:
 
 
 func close_save_load_menu() -> Dictionary:
+	_modal_open_requested = false
 	if _save_load_modal != null:
 		_animate_modal_close()
 	_last_ui_message = "save/load closed"
@@ -590,6 +598,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime()
+	_cancel_overworld_animation()
 	_refresh_near_npc()
 	_refresh_ui()
 	_add_event("loaded game: %s" % save_path)
@@ -685,6 +694,15 @@ func _on_player_move_animation_finished(final_coord: Vector2i) -> void:
 	_add_event("player move animation finished at %s,%s" % [final_coord.x, final_coord.y])
 
 
+func _cancel_overworld_animation() -> void:
+	# Kill any in-flight move tween (killing does NOT emit player_move_animation_finished,
+	# so it cannot overwrite a freshly reset/loaded coord) and drop stale path/target feedback.
+	if _world_layer == null:
+		return
+	_world_layer.snap_player_coord(_get_player_coord())
+	_world_layer.clear_move_feedback()
+
+
 func _on_overworld_move_rejected(actor_id: String, _from_coord: Vector2i, _target_coord: Vector2i, reason: String) -> void:
 	if actor_id == InkMonOverworldGrid.PLAYER_ID:
 		_last_ui_message = reason
@@ -699,6 +717,7 @@ func _build_world_and_ui() -> void:
 
 	_hud_layer = CanvasLayer.new()
 	_hud_layer.name = "HUDLayer"
+	_hud_layer.layer = 2
 	add_child(_hud_layer)
 	_hud_root = Control.new()
 	_hud_root.name = "HUDRoot"
@@ -726,6 +745,7 @@ func _build_world_and_ui() -> void:
 
 	_modal_layer = CanvasLayer.new()
 	_modal_layer.name = "ModalLayer"
+	_modal_layer.layer = 3
 	add_child(_modal_layer)
 	_build_save_load_modal()
 
@@ -826,6 +846,12 @@ func _build_panel() -> void:
 	_dim_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_dim_overlay.color = Color(0.03, 0.03, 0.035, 0.35)
+	_dim_overlay.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			var mouse_event := event as InputEventMouseButton
+			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
+				close_drawer()
+	)
 	panel_root.add_child(_dim_overlay)
 
 	_npc_panel = PanelContainer.new()
@@ -905,6 +931,12 @@ func _build_save_load_modal() -> void:
 	_modal_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_modal_overlay.color = Color(0.02, 0.02, 0.025, 0.52)
 	_modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_modal_overlay.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			var mouse_event := event as InputEventMouseButton
+			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
+				close_save_load_menu()
+	)
 	modal_root.add_child(_modal_overlay)
 
 	_save_load_modal = PanelContainer.new()
@@ -1106,15 +1138,18 @@ func _animate_drawer_open() -> void:
 func _animate_drawer_close() -> void:
 	if _npc_panel == null or not _npc_panel.visible:
 		return
-	if _drawer_transition_active:
-		return
-	var target_position := _npc_panel.position + Vector2(_npc_panel.size.x + 32.0, 0.0)
-	_drawer_transition_active = true
+	# Kill any in-flight open/close tween and run the close from the current position,
+	# so a close requested mid-open cannot leave a ghost drawer + click-blocking dim.
 	_kill_drawer_tween()
+	_drawer_transition_active = true
+	var target_position := _npc_panel.position + Vector2(_npc_panel.size.x + 32.0, 0.0)
 	_drawer_transition_tween = create_tween()
 	_drawer_transition_tween.tween_property(_npc_panel, "position", target_position, 0.14).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	_drawer_transition_tween.finished.connect(func() -> void:
 		_drawer_transition_active = false
+		# A re-open may have happened during the close tween; do not hide what is now open.
+		if _drawer_mode != "":
+			return
 		_npc_panel.visible = false
 		if _dim_overlay != null:
 			_dim_overlay.visible = false
@@ -1124,13 +1159,13 @@ func _animate_drawer_close() -> void:
 func _animate_modal_open() -> void:
 	if _save_load_modal == null:
 		return
+	_kill_modal_tween()
 	_layout_ui()
 	_save_load_modal.visible = true
 	if _modal_overlay != null:
 		_modal_overlay.visible = true
 	_save_load_modal.scale = Vector2(0.92, 0.92)
 	_modal_transition_active = true
-	_kill_modal_tween()
 	_modal_transition_tween = create_tween()
 	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_modal_transition_tween.finished.connect(func() -> void:
@@ -1141,12 +1176,16 @@ func _animate_modal_open() -> void:
 func _animate_modal_close() -> void:
 	if _save_load_modal == null or not _save_load_modal.visible:
 		return
-	_modal_transition_active = true
 	_kill_modal_tween()
+	_modal_transition_active = true
 	_modal_transition_tween = create_tween()
 	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2(0.94, 0.94), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	_modal_transition_tween.finished.connect(func() -> void:
 		_modal_transition_active = false
+		# A re-open may have happened during the close tween; keep the full-rect
+		# MOUSE_FILTER_STOP overlay in sync with intent to avoid an input blackhole.
+		if _modal_open_requested:
+			return
 		_save_load_modal.visible = false
 		_save_load_modal.scale = Vector2.ONE
 		if _modal_overlay != null:
@@ -1206,7 +1245,12 @@ func _refresh_panel() -> void:
 	if not open:
 		_animate_drawer_close()
 		return
-	var animate_open := not _npc_panel.visible
+	# Re-opening: cancel any in-flight close tween so its finished callback cannot hide
+	# the drawer we are about to show, and play a fresh slide-in.
+	var interrupted_transition := _drawer_transition_active
+	_kill_drawer_tween()
+	_drawer_transition_active = false
+	var animate_open := interrupted_transition or not _npc_panel.visible
 	_dim_overlay.visible = true
 	_npc_panel.visible = true
 	if _tab_bar != null:

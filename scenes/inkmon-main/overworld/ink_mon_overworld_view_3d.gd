@@ -72,6 +72,17 @@ func snap_player_coord(coord: Vector2i) -> void:
 	_update_camera_follow(1.0)
 
 
+func clear_move_feedback() -> void:
+	_clear_path_preview()
+	if _target_marker != null and is_instance_valid(_target_marker):
+		_target_marker.queue_free()
+	_target_marker = null
+	for pulse in _click_pulse_nodes:
+		if pulse != null and is_instance_valid(pulse):
+			pulse.queue_free()
+	_click_pulse_nodes.clear()
+
+
 func play_player_path(path: Array[Vector2i], requested_target: Vector2i, resolved_target: Vector2i) -> void:
 	_show_move_feedback(path, requested_target, resolved_target)
 	player_coord = resolved_target
