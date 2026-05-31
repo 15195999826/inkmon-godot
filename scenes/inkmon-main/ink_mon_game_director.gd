@@ -464,16 +464,6 @@ func buy_shop_item(config_id: StringName) -> Dictionary:
 	return _scene_result(ok, message)
 
 
-func trigger_trainer_battle_from_ui() -> Dictionary:
-	if app_state != AppState.NPC_MENU or _active_npc_id != "trainer":
-		return {
-			"ok": false,
-			"message": "training NPC is not open",
-			"data": get_dev_agent_state(),
-		}
-	return run_active_npc_action(InkMonTrainingNpcHandler.ACTION_START_BATTLE)
-
-
 func run_active_npc_action(action_id: String) -> Dictionary:
 	if app_state != AppState.NPC_MENU or _active_npc_id == "":
 		return _scene_result(false, "no active NPC menu")

@@ -8,8 +8,6 @@ const MAP_RADIUS := 4
 
 var model: GridMapModel
 
-var _npc_ids_by_coord: Dictionary = {}
-
 
 func setup(radius: int = MAP_RADIUS) -> void:
 	var cfg := GridMapConfig.new()
@@ -21,7 +19,6 @@ func setup(radius: int = MAP_RADIUS) -> void:
 
 	model = GridMapModel.new()
 	model.initialize(cfg)
-	_npc_ids_by_coord.clear()
 
 
 func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
@@ -30,7 +27,6 @@ func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
 		model.remove_occupant(coord)
 		model.cancel_reservation(coord)
 		model.set_tile_blocking(coord, false)
-	_npc_ids_by_coord.clear()
 
 	for npc_id_value in npc_defs.keys():
 		var npc_id := str(npc_id_value)
@@ -41,7 +37,6 @@ func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
 		if has_coord(npc_coord):
 			var placed := model.place_occupant(_to_hex(npc_coord), "npc:%s" % npc_id)
 			Log.assert_crash(placed, "InkMonOverworldGrid", "failed to place NPC occupant: %s" % npc_id)
-			_npc_ids_by_coord[_coord_key(npc_coord)] = npc_id
 
 	if has_coord(player_coord):
 		var placed_player := model.place_occupant(_to_hex(player_coord), PLAYER_ID)
@@ -78,10 +73,6 @@ func get_occupant(coord: Vector2i) -> String:
 		return ""
 	var occupant: Variant = model.get_occupant(_to_hex(coord))
 	return str(occupant) if occupant != null else ""
-
-
-func get_npc_id_at(coord: Vector2i) -> String:
-	return str(_npc_ids_by_coord.get(_coord_key(coord), ""))
 
 
 func reserve_tile(coord: Vector2i, actor_id: String) -> bool:
@@ -229,10 +220,6 @@ func _coord_less(a: Vector2i, b: Vector2i) -> bool:
 	if a.x == b.x:
 		return a.y < b.y
 	return a.x < b.x
-
-
-func _coord_key(coord: Vector2i) -> String:
-	return "%d,%d" % [coord.x, coord.y]
 
 
 func _to_hex(coord: Vector2i) -> HexCoord:
