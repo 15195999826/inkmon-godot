@@ -11,7 +11,7 @@ static func apply_damage(
 	damage_event: InkMonBattleEvents.DamageEvent,
 	alive_actor_ids: Array[String],
 	ctx: ExecutionContext,
-	battle: InkMonBattleWorldGI
+	battle: InkMonWorldGI
 ) -> DamageResult:
 	var result := DamageResult.new()
 	var target_id := damage_event.target_actor_id
@@ -48,13 +48,13 @@ static func apply_damage(
 static func broadcast_post_damage(
 	damage_event_dict: Dictionary,
 	alive_actor_ids: Array[String],
-	battle: InkMonBattleWorldGI
+	battle: InkMonWorldGI
 ) -> void:
 	if alive_actor_ids.size() > 0:
 		GameWorld.event_processor.process_post_event(damage_event_dict, alive_actor_ids, battle)
 
 
-static func _clear_grid_footprint(battle: InkMonBattleWorldGI, dead_actor: InkMonBattleActor) -> void:
+static func _clear_grid_footprint(battle: InkMonWorldGI, dead_actor: InkMonBattleActor) -> void:
 	if battle == null or battle.grid == null or dead_actor == null:
 		return
 	var pos := dead_actor.hex_position

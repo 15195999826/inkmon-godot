@@ -12,7 +12,7 @@ func _init(target_selector: TargetSelector, buff_config: AbilityConfig) -> void:
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var battle: InkMonBattleWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.game_state_provider
 	if battle == null:
 		return ActionResult.create_success_result([])
 

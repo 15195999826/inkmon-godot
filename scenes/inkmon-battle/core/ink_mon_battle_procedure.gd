@@ -8,13 +8,13 @@ const MAX_TICKS := 10000
 var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
 
-var _world_instance: InkMonBattleWorldGI = null
+var _world_instance: InkMonWorldGI = null
 var _recording_enabled := true
 var _result := ""
 
 
 func _init(
-	world: InkMonBattleWorldGI,
+	world: InkMonWorldGI,
 	left: Array[InkMonUnitActor],
 	right: Array[InkMonUnitActor],
 	opts: Dictionary = {}
@@ -124,7 +124,7 @@ static func tick_actor_ability_runtime(
 	actor: InkMonUnitActor,
 	tick_interval: float,
 	logic_time: float,
-	world: InkMonBattleWorldGI
+	world: InkMonWorldGI
 ) -> bool:
 	actor.ability_set.tick(tick_interval, logic_time)
 	var has_any_execution := InkMonBattleProcedure.actor_has_executing_ability(actor)

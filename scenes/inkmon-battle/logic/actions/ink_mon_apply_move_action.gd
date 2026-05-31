@@ -16,7 +16,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	if target_coord_dict.is_empty():
 		return ActionResult.create_success_result([])
 	var target_coord := HexCoord.from_dict(target_coord_dict)
-	var battle: InkMonBattleWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.game_state_provider
 	var all_events: Array[Dictionary] = []
 
 	for target_id in get_targets(ctx):

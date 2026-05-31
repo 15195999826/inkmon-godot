@@ -2,7 +2,7 @@ class_name InkMonRoleHealerStrategy
 extends InkMonAIStrategy
 
 
-func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonBattleWorldGI) -> InkMonUnitActor:
+func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonWorldGI) -> InkMonUnitActor:
 	if not skill.has_ability_tag("heal"):
 		return _lowest_hp_enemy_in_range(actor, skill, battle)
 	var best: InkMonUnitActor = null

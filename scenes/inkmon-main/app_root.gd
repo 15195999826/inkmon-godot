@@ -18,7 +18,7 @@ var app_state: AppState = AppState.OVERWORLD
 var last_battle_result: Dictionary = {}
 
 var _active_instance_id := ""
-var _battle_instance: InkMonBattleWorldGI = null
+var _world_gi: InkMonWorldGI = null
 var _event_log: Array[String] = []
 var _dev_agent_bridge: Node = null
 var _active_npc_id := ""
@@ -129,19 +129,11 @@ func start_training_battle() -> Dictionary:
 			"data": get_dev_agent_state(),
 		}
 
-	_battle_instance = GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonBattleWorldGI.new()
-	) as InkMonBattleWorldGI
-	if _battle_instance == null:
-		return {
-			"ok": false,
-			"message": "failed to create InkMonBattleWorldGI",
-			"data": get_dev_agent_state(),
-		}
-
-	_active_instance_id = _battle_instance.id
+	# 持久 world GI 内起战斗 procedure (不再 per-battle create→destroy)。
+	Log.assert_crash(_world_gi != null, "InkMonAppRoot", "world GI not initialized before battle")
+	_active_instance_id = _world_gi.id
 	app_state = AppState.BATTLE
-	_battle_instance.start({
+	_world_gi.start_battle_procedure({
 		"recording": false,
 		"left_roster_snapshots": session.project_player_battle_roster(4),
 		"right_roster_snapshots": _build_training_enemy_snapshots(),
@@ -185,7 +177,7 @@ func reset_session() -> Dictionary:
 	session.begin_new_game()
 	last_battle_result = {}
 	_active_instance_id = ""
-	_battle_instance = null
+	_world_gi = null
 	_active_npc_id = ""
 	_near_npc_id = ""
 	_drawer_mode = ""
@@ -596,7 +588,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	session.from_dict(data)
 	last_battle_result = {}
 	_active_instance_id = ""
-	_battle_instance = null
+	_world_gi = null
 	_active_npc_id = ""
 	_drawer_mode = ""
 	app_state = AppState.OVERWORLD
@@ -658,16 +650,15 @@ func _tick_active_instance(dt: float) -> void:
 
 
 func _complete_battle_if_ready() -> void:
-	if app_state != AppState.BATTLE or _battle_instance == null:
+	if app_state != AppState.BATTLE or _world_gi == null:
 		return
-	if _battle_instance.has_active_battle():
+	if _world_gi.has_active_battle():
 		return
 
-	last_battle_result = _battle_instance.get_result_summary()
+	last_battle_result = _world_gi.get_result_summary()
 	session.player_state.apply_battle_result(last_battle_result)
-	GameWorld.destroy_instance(_battle_instance.id)
+	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
 	_active_instance_id = ""
-	_battle_instance = null
 	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
 	_drawer_mode = ""
@@ -677,9 +668,16 @@ func _complete_battle_if_ready() -> void:
 
 
 func _setup_overworld_runtime() -> void:
+	# 唯一持久 world GI: 承载世界数据 + 主世界 grid + (战斗期) battle procedure (World-owns-Battle)。
+	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
+		return InkMonWorldGI.new()
+	) as InkMonWorldGI
+	Log.assert_crash(_world_gi != null, "InkMonAppRoot", "failed to create InkMonWorldGI")
+	# 主世界 grid wrapper 归 main 层所有; 只把底层 GridMapModel bind 给 world GI 做 active 切换。
 	_overworld_grid = InkMonOverworldGrid.new()
 	_overworld_grid.setup(InkMonOverworldGrid.MAP_RADIUS)
 	_overworld_grid.sync_occupants(_get_player_coord(), _npc_defs)
+	_world_gi.bind_overworld_grid(_overworld_grid.model)
 	_move_controller = InkMonOverworldMoveController.new()
 	_move_controller.setup(_overworld_grid)
 	_move_controller.move_completed.connect(_on_overworld_move_completed)

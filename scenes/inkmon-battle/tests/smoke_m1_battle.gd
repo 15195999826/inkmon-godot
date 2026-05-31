@@ -20,12 +20,12 @@ func _run() -> String:
 	TimelineRegistry.reset()
 
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonBattleWorldGI.new()
-	) as InkMonBattleWorldGI
+		return InkMonWorldGI.new()
+	) as InkMonWorldGI
 	if battle == null:
-		return "failed to create InkMonBattleWorldGI"
+		return "failed to create InkMonWorldGI"
 
-	battle.start({
+	battle.start_battle_procedure({
 		"recording": false,
 	})
 	GameWorld.tick_all(BattleProcedure.DEFAULT_TICK_INTERVAL)

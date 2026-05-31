@@ -137,12 +137,12 @@ func _assert_battle_snapshot_injection(session: InkMonGameSession) -> String:
 
 	var right_snapshots := _build_weak_enemy_snapshots()
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonBattleWorldGI.new()
-	) as InkMonBattleWorldGI
+		return InkMonWorldGI.new()
+	) as InkMonWorldGI
 	if battle == null:
 		return "failed to create battle instance"
 
-	battle.start({
+	battle.start_battle_procedure({
 		"recording": false,
 		"left_roster_snapshots": left_snapshots,
 		"right_roster_snapshots": right_snapshots,
@@ -171,6 +171,18 @@ func _assert_battle_snapshot_injection(session: InkMonGameSession) -> String:
 	session.player_state.apply_battle_result(result)
 	if session.player_state.gold <= gold_before:
 		return _shutdown_with_status("battle result did not award gold")
+
+	# P4: 同一持久 world GI 复用跑第二场战斗 (reset-on-start) 应再次正常结束 (无独立 battle GI)。
+	battle.start_battle_procedure({
+		"recording": false,
+		"left_roster_snapshots": session.project_player_battle_roster(4),
+		"right_roster_snapshots": _build_weak_enemy_snapshots(),
+	})
+	GameWorld.tick_all(BattleProcedure.DEFAULT_TICK_INTERVAL)
+	if battle.has_active_battle():
+		return _shutdown_with_status("reused world GI: second battle did not finish")
+	if battle.get_result_summary().get("winner_team", "") != "left":
+		return _shutdown_with_status("reused world GI: second battle expected left winner")
 
 	GameWorld.shutdown()
 	return ""

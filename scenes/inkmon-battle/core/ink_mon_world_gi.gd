@@ -1,11 +1,23 @@
-class_name InkMonBattleWorldGI
+class_name InkMonWorldGI
 extends WorldGameplayInstance
+## 主游戏唯一的、长命的 world GI (World-owns-Battle)。
+##
+## 承载世界数据 + 逻辑;战斗是它内跑的 InkMonBattleProcedure (短命 procedure), 不是独立 GI。
+## 持两套 grid (第一版临时方案, docs/L2-ARCHITECTURE.md §1②):
+##   - overworld_grid_model: 主世界 hex 网格 model (由 main 层 bind 进来; 玩家行走 + NPC)
+##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
+## `grid` (基类字段) = 当前 active 的那套; start_battle_procedure 切到 battle, 战斗结束切回 overworld。
+## 注: 只持 addon 层 GridMapModel, 不引 main 层 InkMonOverworldGrid wrapper (保 battle 不依赖 main)。
+##
+## 持久: app_root 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
+## (start_battle_procedure 内 reset-on-start 清上一场)。绝不在战斗结束 end() —— end() 单向销毁世界。
 
 
 var tick_count := 0
 var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
 var damage_mod_seen := false
+var overworld_grid_model: GridMapModel = null
 
 var _ended := false
 var _result := ""
@@ -15,13 +27,23 @@ var _recording_enabled := true
 
 
 func _init(id_value: String = "") -> void:
-	super._init(id_value if id_value != "" else IdGenerator.generate("inkmon_battle"))
-	type = "inkmon_battle"
+	super._init(id_value if id_value != "" else IdGenerator.generate("inkmon_world"))
+	type = "inkmon_world"
 	battle_finished.connect(_on_battle_finished)
 
 
-func start(config: Dictionary = {}) -> void:
-	super.start()
+## 绑定 main 层建好的主世界 grid model 并设为 active。世界进 running 态。
+## 只收 GridMapModel (addon 类型), 不收 main 层 wrapper —— 保 battle 层不依赖 main。
+func bind_overworld_grid(model: GridMapModel) -> void:
+	_ensure_started()
+	overworld_grid_model = model
+	grid = model
+
+
+## 在本 world GI 内起一场战斗 (procedure 模式)。可重复调用 (reset-on-start 清上一场)。
+func start_battle_procedure(config: Dictionary = {}) -> void:
+	_ensure_started()
+	_reset_battle_state()
 	_recording_enabled = config.get("recording", true)
 
 	var grid_config := config.get("map_config", null) as GridMapConfig
@@ -53,6 +75,7 @@ func tick(dt: float) -> void:
 		tick_count = _inkmon_procedure.get_current_tick()
 
 
+## battle grid backend = UGridMap autoload。
 func configure_grid(config: GridMapConfig) -> void:
 	UGridMap.configure(config)
 	grid = UGridMap.model
@@ -171,15 +194,38 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 	if _inkmon_procedure != null:
 		_result = _inkmon_procedure.get_result()
 		tick_count = _inkmon_procedure.get_current_tick()
-	print("[InkMonBattleWorldGI] finished result=%s ticks=%d" % [_result, tick_count])
-	end()
+	print("[InkMonWorldGI] battle finished result=%s ticks=%d" % [_result, tick_count])
+	# 持久 world: 不 end() (那会单向销毁世界)。切回主世界 grid (若已 bind)。
 	_inkmon_procedure = null
+	if overworld_grid_model != null:
+		grid = overworld_grid_model
+
+
+## 清上一场战斗的 actor / handler / 状态, 让本实例可被下一场复用。
+func _reset_battle_state() -> void:
+	for actor in get_all_units():
+		var aid := actor.get_id()
+		if GameWorld.event_processor != null:
+			GameWorld.event_processor.remove_handlers_by_owner_id(aid)
+		remove_actor(aid)
+	left_team.clear()
+	right_team.clear()
+	_ended = false
+	_result = ""
+	_final_replay_data = {}
+	tick_count = 0
+	damage_mod_seen = false
+
+
+func _ensure_started() -> void:
+	if get_state() == "created":
+		super.start()
 
 
 func _setup_teams(config: Dictionary) -> void:
 	if config.has("left_roster_snapshots"):
 		var left_snapshots := config.get("left_roster_snapshots", []) as Array
-		Log.assert_crash(left_snapshots != null, "InkMonBattleWorldGI", "left_roster_snapshots must be an Array")
+		Log.assert_crash(left_snapshots != null, "InkMonWorldGI", "left_roster_snapshots must be an Array")
 		for snapshot in left_snapshots:
 			left_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 0))
 	else:
@@ -189,7 +235,7 @@ func _setup_teams(config: Dictionary) -> void:
 
 	if config.has("right_roster_snapshots"):
 		var right_snapshots := config.get("right_roster_snapshots", []) as Array
-		Log.assert_crash(right_snapshots != null, "InkMonBattleWorldGI", "right_roster_snapshots must be an Array")
+		Log.assert_crash(right_snapshots != null, "InkMonWorldGI", "right_roster_snapshots must be an Array")
 		for snapshot in right_snapshots:
 			right_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 1))
 	else:
@@ -205,7 +251,7 @@ func _create_team_actor(unit_key: String, team_id: int) -> InkMonUnitActor:
 
 
 func _create_team_actor_from_snapshot(snapshot: Dictionary, team_id: int) -> InkMonUnitActor:
-	Log.assert_crash(snapshot != null, "InkMonBattleWorldGI", "roster snapshot must be a Dictionary")
+	Log.assert_crash(snapshot != null, "InkMonWorldGI", "roster snapshot must be a Dictionary")
 	var actor := InkMonUnitActor.from_battle_snapshot(snapshot)
 	actor.set_team_id(team_id)
 	return add_actor(actor) as InkMonUnitActor

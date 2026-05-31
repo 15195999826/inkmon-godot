@@ -2,7 +2,7 @@ class_name InkMonAIStrategy
 extends RefCounted
 
 
-func decide(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> Dictionary:
+func decide(actor: InkMonUnitActor, battle: InkMonWorldGI) -> Dictionary:
 	var skill_decision := _try_primary_skill(actor, battle)
 	if skill_decision["type"] != "skip":
 		return skill_decision
@@ -12,7 +12,7 @@ func decide(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> Dictionary:
 	return _try_move_toward_enemy(actor, battle)
 
 
-func _try_primary_skill(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> Dictionary:
+func _try_primary_skill(actor: InkMonUnitActor, battle: InkMonWorldGI) -> Dictionary:
 	var skill := actor.get_skill_ability()
 	if skill == null:
 		return _skip()
@@ -26,7 +26,7 @@ func _try_primary_skill(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> 
 	return _use_skill(skill, target.get_id())
 
 
-func _try_basic_attack(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> Dictionary:
+func _try_basic_attack(actor: InkMonUnitActor, battle: InkMonWorldGI) -> Dictionary:
 	var basic := actor.get_basic_attack_ability()
 	if basic == null:
 		return _skip()
@@ -36,7 +36,7 @@ func _try_basic_attack(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> D
 	return _use_skill(basic, target.get_id())
 
 
-func _try_move_toward_enemy(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> Dictionary:
+func _try_move_toward_enemy(actor: InkMonUnitActor, battle: InkMonWorldGI) -> Dictionary:
 	var target := _nearest_enemy(actor, battle)
 	if target == null:
 		return _skip()
@@ -53,11 +53,11 @@ func _try_move_toward_enemy(actor: InkMonUnitActor, battle: InkMonBattleWorldGI)
 	}
 
 
-func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonBattleWorldGI) -> InkMonUnitActor:
+func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonWorldGI) -> InkMonUnitActor:
 	return _lowest_hp_enemy_in_range(actor, skill, battle)
 
 
-func _lowest_hp_enemy_in_range(actor: InkMonUnitActor, skill: Ability, battle: InkMonBattleWorldGI) -> InkMonUnitActor:
+func _lowest_hp_enemy_in_range(actor: InkMonUnitActor, skill: Ability, battle: InkMonWorldGI) -> InkMonUnitActor:
 	var best: InkMonUnitActor = null
 	var best_hp := INF
 	for candidate in battle.get_alive_actors():
@@ -71,7 +71,7 @@ func _lowest_hp_enemy_in_range(actor: InkMonUnitActor, skill: Ability, battle: I
 	return best
 
 
-func _nearest_enemy(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> InkMonUnitActor:
+func _nearest_enemy(actor: InkMonUnitActor, battle: InkMonWorldGI) -> InkMonUnitActor:
 	var best: InkMonUnitActor = null
 	var best_distance := 1 << 30
 	for candidate in battle.get_alive_actors():
@@ -84,7 +84,7 @@ func _nearest_enemy(actor: InkMonUnitActor, battle: InkMonBattleWorldGI) -> InkM
 	return best
 
 
-func _best_step_toward(actor: InkMonUnitActor, target_pos: HexCoord, battle: InkMonBattleWorldGI) -> HexCoord:
+func _best_step_toward(actor: InkMonUnitActor, target_pos: HexCoord, battle: InkMonWorldGI) -> HexCoord:
 	var best: HexCoord = null
 	var best_distance := actor.hex_position.distance_to(target_pos)
 	for coord in battle.grid.get_neighbors(actor.hex_position):

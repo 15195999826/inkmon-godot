@@ -10,7 +10,7 @@ func _init() -> void:
 func execute(ctx: ExecutionContext) -> ActionResult:
 	if ctx.ability_ref == null:
 		return ActionResult.create_success_result([])
-	var battle: InkMonBattleWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.game_state_provider
 	var owner := battle.get_unit_actor(ctx.ability_ref.owner_actor_id) if battle != null else null
 	if owner == null or owner.is_dead():
 		return ActionResult.create_success_result([])
