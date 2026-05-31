@@ -529,10 +529,15 @@ func cultivate_lead_inkmon() -> Dictionary:
 	var entry := session.player_state.roster[0]
 	entry.level += 1
 	entry.exp = 0
+	# 跨进化阈值则改写 species/stage/技能 (entry_id 不变)。
+	var evolved := InkMonSpeciesCatalog.evolve_entry(entry)
 	session.player_state.progression["cultivation_points"] = int(
 		session.player_state.progression.get("cultivation_points", 0)
 	) + 1
-	return {"ok": true, "message": "cultivated %s to Lv%d" % [entry.species, entry.level]}
+	var message := "cultivated %s to Lv%d" % [entry.species, entry.level]
+	if evolved:
+		message += " — evolved!"
+	return {"ok": true, "message": message}
 
 
 func advance_trainer_rank() -> Dictionary:
@@ -555,7 +560,9 @@ func adopt_stub_inkmon() -> Dictionary:
 		return {"ok": false, "message": "not enough gold to adopt"}
 	var entry_id := session.player_state.get_next_roster_entry_id()
 	var unit_key := InkMonUnitConfig.RIGHT_FLEX if entry_id % 2 == 0 else InkMonUnitConfig.LEFT_FLEX
-	var entry := InkMonRosterEntry.from_unit_config(entry_id, unit_key)
+	var species := InkMonUnitConfig.get_unit_config(unit_key).species
+	# 领养 = 新出生 → 确定性 roll 技能槽 (seed = entry_id)。
+	var entry := InkMonRosterEntry.from_birth(entry_id, species, entry_id)
 	session.player_state.add_roster_entry(entry)
 	session.sync_roster_containers()
 	return {"ok": true, "message": "adopted %s" % entry.species}

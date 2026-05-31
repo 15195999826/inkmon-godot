@@ -67,16 +67,36 @@ static func get_unit_config(unit_key: String) -> UnitConfigItem:
 
 ## 物种 base 六维 (= level-1 baseline)。供 RosterEntry.derive_battle_stats 的 f(species, level) 用。
 static func get_species_base_stats(species: String) -> Dictionary:
+	var cfg := _find_config_by_species(species)
+	Log.assert_crash(cfg != null, "InkMonUnitConfig", "no base stats for species: %s" % species)
+	if cfg == null:
+		return {}
+	var base := {}
+	for stat_key in BASE_STAT_KEYS:
+		base[stat_key] = float(cfg.stats[stat_key])
+	return base
+
+
+static func get_role_for_species(species: String) -> String:
+	var cfg := _find_config_by_species(species)
+	return cfg.role if cfg != null else ROLE_FLEX
+
+
+static func get_elements_for_species(species: String) -> Array[String]:
+	var cfg := _find_config_by_species(species)
+	var result: Array[String] = []
+	if cfg != null:
+		result.assign(cfg.elements)
+	return result
+
+
+static func _find_config_by_species(species: String) -> UnitConfigItem:
 	var configs := _configs()
 	for unit_key in configs:
 		var cfg := configs[unit_key] as UnitConfigItem
 		if cfg.species == species:
-			var base := {}
-			for stat_key in BASE_STAT_KEYS:
-				base[stat_key] = float(cfg.stats[stat_key])
-			return base
-	Log.assert_crash(false, "InkMonUnitConfig", "no base stats for species: %s" % species)
-	return {}
+			return cfg
+	return null
 
 
 static func _configs() -> Dictionary:

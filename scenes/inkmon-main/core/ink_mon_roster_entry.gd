@@ -37,6 +37,21 @@ static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterE
 	return entry
 
 
+## 出生 = 确定性 roll 每槽技能 (§8c)。用于程序化出生 (领养/未来捕获);
+## 起始队伍仍走 from_unit_config (设计出生, 不 roll, 保 M1 平衡)。
+static func from_birth(p_entry_id: int, p_species: String, p_roll_seed: int) -> InkMonRosterEntry:
+	var entry := InkMonRosterEntry.new()
+	entry.entry_id = p_entry_id
+	entry.species = p_species
+	entry.stage = InkMonSpeciesCatalog.get_stage(p_species)
+	entry.role = InkMonUnitConfig.get_role_for_species(p_species)
+	entry.elements = InkMonUnitConfig.get_elements_for_species(p_species)
+	entry.skill_slots = InkMonSpeciesCatalog.roll_birth_skill_slots(p_species, p_roll_seed)
+	entry.engravings = []
+	entry.equipment_container = "equip:%d" % p_entry_id
+	return entry
+
+
 static func from_dict(data: Dictionary) -> InkMonRosterEntry:
 	var entry := InkMonRosterEntry.new()
 	entry.entry_id = int(data.get("entry_id", 0))
@@ -68,8 +83,9 @@ func to_dict() -> Dictionary:
 
 
 ## 六维属性 = f(species, level) 运行时派生, 不进 entry (§8c-decision)。
+## base 走 SpeciesCatalog (覆盖进化形态; baby 委托回 unit_config)。
 func derive_battle_stats() -> Dictionary:
-	var base := InkMonUnitConfig.get_species_base_stats(species)
+	var base := InkMonSpeciesCatalog.get_base_stats(species)
 	var scale := 1.0 + float(level - 1) * LEVEL_GROWTH
 	var stats := {}
 	for key in STAT_KEYS:

@@ -9,7 +9,8 @@
     },
     "session": {
       "scenes": [
-        "../../scenes/inkmon-main/tests/smoke_session_spine.tscn"
+        "../../scenes/inkmon-main/tests/smoke_session_spine.tscn",
+        "../../scenes/inkmon-main/tests/smoke_progression.tscn"
       ]
     },
     "app-root": {
