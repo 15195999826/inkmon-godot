@@ -11,6 +11,8 @@ var species: String
 var stage: String
 var role: String
 var elements: Array[String] = []
+# 技能槽 [{slot_index, skill_id}]; primary = slot0 作 active skill (多技能 equip 留 future)。
+var skill_slots: Array[Dictionary] = []
 var attribute_set: InkMonUnitAttributeSet
 var ai_strategy: InkMonAIStrategy
 
@@ -47,6 +49,7 @@ func _setup_from_unit_config(p_unit_key: String) -> void:
 	role = cfg.role
 	elements.assign(cfg.elements)
 	_active_skill_config_id = cfg.active_skill_id
+	skill_slots = [{"slot_index": 0, "skill_id": cfg.active_skill_id}]
 
 	var stats := cfg.stats
 	attribute_set.set_max_hp_base(stats["max_hp"])
@@ -66,8 +69,10 @@ func _setup_from_battle_snapshot(battle_snapshot: Dictionary) -> void:
 	stage = str(battle_snapshot.get("stage", InkMonUnitConfig.STAGE_BABY))
 	unit_key = "snapshot:%d" % source_entry_id
 	_display_name = str(battle_snapshot.get("display_name", species))
-	_active_skill_config_id = str(battle_snapshot.get("learned_skill_id", ""))
-	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "battle snapshot missing learned_skill_id")
+	skill_slots = _read_skill_slots(battle_snapshot.get("skill_slots", []))
+	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "battle snapshot missing skill_slots")
+	_active_skill_config_id = str(skill_slots[0].get("skill_id", ""))
+	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "battle snapshot primary slot missing skill_id")
 	elements.clear()
 	var raw_elements := battle_snapshot.get("elements", []) as Array
 	Log.assert_crash(raw_elements != null and not raw_elements.is_empty(), "InkMonUnitActor",
@@ -98,13 +103,31 @@ func equip_abilities(game_state_provider: Variant = null) -> void:
 	ability_set.grant_ability(basic_attack, game_state_provider)
 	_basic_attack_ability_id = basic_attack.id
 
-	var skill_config := InkMonAllSkills.get_skill_config(_active_skill_config_id)
-	var skill_ability := Ability.new(skill_config, get_id())
-	ability_set.grant_ability(skill_ability, game_state_provider)
-	_skill_ability_id = skill_ability.id
+	# primary skill = slot0; basic_attack 已无条件授予, 不重复授予 (防 primary==basic)。
+	if _active_skill_config_id != "" and _active_skill_config_id != InkMonBasicAttack.CONFIG_ID:
+		var skill_config := InkMonAllSkills.get_skill_config(_active_skill_config_id)
+		var skill_ability := Ability.new(skill_config, get_id())
+		ability_set.grant_ability(skill_ability, game_state_provider)
+		_skill_ability_id = skill_ability.id
 
 	var math_passive := Ability.new(InkMonDamageMathPassive.ABILITY, get_id())
 	ability_set.grant_ability(math_passive, game_state_provider)
+
+
+static func _read_skill_slots(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var source := value as Array
+	if source == null:
+		return result
+	for item in source:
+		var slot := item as Dictionary
+		if slot == null:
+			continue
+		result.append({
+			"slot_index": int(slot.get("slot_index", result.size())),
+			"skill_id": str(slot.get("skill_id", "")),
+		})
+	return result
 
 
 func get_attribute_set() -> InkMonUnitAttributeSet:

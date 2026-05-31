@@ -1059,7 +1059,7 @@ func _build_training_enemy_snapshots() -> Array[Dictionary]:
 			"species": "training_dummy_%d" % i,
 			"role": InkMonUnitConfig.ROLE_DPS,
 			"elements": [InkMonElementChart.WATER],
-			"learned_skill_id": skills[i],
+			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
 			"battle_stats": {
 				"max_hp": 30.0,
 				"ad": 6.0,

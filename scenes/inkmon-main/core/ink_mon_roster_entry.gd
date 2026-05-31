@@ -100,14 +100,13 @@ func get_primary_skill_id() -> String:
 
 
 func project_to_battle_snapshot() -> Dictionary:
-	# Snapshot 形状 (battle_stats + learned_skill_id) 在 P1 保持不变;
-	# P3 才把形状改成投影 skill_slots。这里 stats 改派生、learned 从 slot[0] 桥接。
+	# P3: snapshot 投影 skill_slots (集合) + 派生 stats。actor primary = slot0。
 	return {
 		"source_entry_id": entry_id,
 		"species": species,
 		"role": role,
 		"elements": elements.duplicate(),
-		"learned_skill_id": get_primary_skill_id(),
+		"skill_slots": _dup_dict_array(skill_slots),
 		"battle_stats": derive_battle_stats(),
 	}
 

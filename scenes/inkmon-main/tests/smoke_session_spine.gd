@@ -105,6 +105,18 @@ func _assert_projection_is_deterministic(session: InkMonGameSession) -> String:
 	var stats := first.get("battle_stats", {}) as Dictionary
 	if stats == null or not stats.has("max_hp") or stats.has("hp"):
 		return "battle snapshot should contain max_hp and not persist hp"
+
+	# P3: snapshot projects skill_slots (array), no longer the single learned_skill_id.
+	if first.has("learned_skill_id"):
+		return "battle snapshot should project skill_slots, not learned_skill_id"
+	if not first.has("skill_slots"):
+		return "battle snapshot must carry skill_slots"
+	var snap_slots := first["skill_slots"] as Array
+	if snap_slots == null or snap_slots.is_empty():
+		return "snapshot skill_slots should be non-empty for a seeded entry"
+	var primary := snap_slots[0] as Dictionary
+	if primary == null or str(primary.get("skill_id", "")) == "":
+		return "snapshot primary skill slot must carry a skill_id"
 	return ""
 
 
@@ -178,7 +190,7 @@ func _build_weak_enemy_snapshots() -> Array[Dictionary]:
 			"species": "training_dummy_%d" % i,
 			"role": InkMonUnitConfig.ROLE_DPS,
 			"elements": [InkMonElementChart.WATER],
-			"learned_skill_id": skills[i],
+			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
 			"battle_stats": {
 				"max_hp": 32.0,
 				"ad": 8.0,
