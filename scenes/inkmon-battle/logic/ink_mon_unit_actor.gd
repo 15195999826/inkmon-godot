@@ -13,6 +13,8 @@ var role: String
 var elements: Array[String] = []
 # 技能槽 [{slot_index, skill_id}]; primary = slot0 作 active skill (多技能 equip 留 future)。
 var skill_slots: Array[Dictionary] = []
+# 刻印 [{engraving_id, target_slot}]; equip 时每条 grant 一个刻印被动强化技能 (§8c)。
+var engravings: Array[Dictionary] = []
 var attribute_set: InkMonUnitAttributeSet
 var ai_strategy: InkMonAIStrategy
 
@@ -73,6 +75,7 @@ func _setup_from_battle_snapshot(battle_snapshot: Dictionary) -> void:
 	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "battle snapshot missing skill_slots")
 	_active_skill_config_id = str(skill_slots[0].get("skill_id", ""))
 	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "battle snapshot primary slot missing skill_id")
+	engravings = _read_engravings(battle_snapshot.get("engravings", []))
 	elements.clear()
 	var raw_elements := battle_snapshot.get("elements", []) as Array
 	Log.assert_crash(raw_elements != null and not raw_elements.is_empty(), "InkMonUnitActor",
@@ -113,6 +116,11 @@ func equip_abilities(game_state_provider: Variant = null) -> void:
 	var math_passive := Ability.new(InkMonDamageMathPassive.ABILITY, get_id())
 	ability_set.grant_ability(math_passive, game_state_provider)
 
+	# 刻印: 每条 engraving grant 一个刻印被动 (LGF passive 强化技能输出, §8c)。
+	for _engraving in engravings:
+		var engraving_passive := Ability.new(InkMonEngravingPassive.ABILITY, get_id())
+		ability_set.grant_ability(engraving_passive, game_state_provider)
+
 
 static func _read_skill_slots(value: Variant) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -126,6 +134,22 @@ static func _read_skill_slots(value: Variant) -> Array[Dictionary]:
 		result.append({
 			"slot_index": int(slot.get("slot_index", result.size())),
 			"skill_id": str(slot.get("skill_id", "")),
+		})
+	return result
+
+
+static func _read_engravings(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var source := value as Array
+	if source == null:
+		return result
+	for item in source:
+		var engraving := item as Dictionary
+		if engraving == null:
+			continue
+		result.append({
+			"engraving_id": str(engraving.get("engraving_id", "")),
+			"target_slot": int(engraving.get("target_slot", -1)),
 		})
 	return result
 

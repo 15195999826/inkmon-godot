@@ -52,7 +52,35 @@ func sync_roster_containers() -> void:
 
 func project_player_battle_roster(max_units: int = 4) -> Array[Dictionary]:
 	Log.assert_crash(player_state != null, "InkMonGameSession", "player_state is not initialized")
-	return player_state.project_battle_roster(max_units)
+	var snapshots := player_state.project_battle_roster(max_units)
+	# battle_stats = base(f(species,level)) + 装备 stat_mods 累加 (docs §8c; 项目本地, lomolib inventoryKit)。
+	for snapshot in snapshots:
+		var entry := player_state.get_roster_entry(int(snapshot.get("source_entry_id", -1)))
+		if entry != null:
+			_fold_equipment_stats(snapshot, entry.equipment_container)
+	return snapshots
+
+
+## 把 entry 装备容器里物品的 stat_mods flat 累加进 snapshot 的 battle_stats (装备数值生效)。
+func _fold_equipment_stats(snapshot: Dictionary, equipment_container: String) -> void:
+	var container_id := get_container_id(equipment_container)
+	if container_id <= 0:
+		return
+	var battle_stats := snapshot.get("battle_stats", {}) as Dictionary
+	if battle_stats == null:
+		return
+	for item_id in ItemSystem.get_items_in_container(container_id):
+		var item_snapshot := ItemSystem.get_item_snapshot(item_id)
+		if item_snapshot.is_empty():
+			continue
+		var config := ItemSystem.get_item_config(StringName(str(item_snapshot.get("config_id", ""))))
+		var stat_mods := config.get("stat_mods", {}) as Dictionary
+		if stat_mods == null:
+			continue
+		var count := int(item_snapshot.get("count", 1))
+		for key in stat_mods:
+			if battle_stats.has(key):
+				battle_stats[key] = float(battle_stats[key]) + float(stat_mods[key]) * count
 
 
 func _reset_item_runtime() -> void:

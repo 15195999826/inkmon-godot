@@ -19,6 +19,10 @@ func _run() -> String:
 	if model_status != "":
 		return model_status
 
+	var equip_status := _assert_equipment_stat_fold(session)
+	if equip_status != "":
+		return equip_status
+
 	var data_status := _assert_session_round_trip(session)
 	if data_status != "":
 		return data_status
@@ -71,6 +75,29 @@ func _assert_roster_model(session: InkMonGameSession) -> String:
 		return "projection must still emit battle_stats"
 	if absf(float(projected.get("max_hp", -1.0)) - base_max_hp) > 0.01:
 		return "level-1 derived max_hp must equal species base (battle balance unchanged)"
+	return ""
+
+
+func _assert_equipment_stat_fold(session: InkMonGameSession) -> String:
+	# P8: 装备的 stat_mods 折叠进投影的 battle_stats (项目本地, lomolib inventoryKit)。
+	var lead := session.player_state.roster[0]
+	var base_ad := float(lead.derive_battle_stats().get("ad", 0.0))
+	var container_id := session.get_container_id(lead.equipment_container)
+	if container_id <= 0:
+		return "equipment container should be registered for lead"
+	var equip_result := ItemSystem.create_item(container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	if not equip_result.success:
+		return "failed to equip training sword: %s" % equip_result.error_message
+	var sword_ad := float((ItemSystem.get_item_config(InkMonItemCatalog.TRAINING_SWORD).get("stat_mods", {}) as Dictionary).get("ad", 0.0))
+	if sword_ad <= 0.0:
+		return "training sword should define an ad stat_mod"
+	var snapshot := session.project_player_battle_roster(4)[0]
+	var folded_ad := float((snapshot.get("battle_stats", {}) as Dictionary).get("ad", 0.0))
+	if absf(folded_ad - (base_ad + sword_ad)) > 0.01:
+		return "equipped sword ad should fold into projected battle_stats (got %.1f want %.1f)" % [folded_ad, base_ad + sword_ad]
+	# 清理: 移除装备避免污染后续往返断言。
+	for item_id in ItemSystem.get_items_in_container(container_id):
+		ItemSystem.destroy_item(item_id)
 	return ""
 
 
@@ -134,6 +161,8 @@ func _assert_battle_snapshot_injection(session: InkMonGameSession) -> String:
 	tuned_stats["mr"] = 90.0
 	tuned_stats["speed"] = 140.0
 	left_snapshots[0]["battle_stats"] = tuned_stats
+	# P8: 给 left[0] 挂刻印, 验证刻印被动 grant + hook 不破坏战斗 (集成)。
+	left_snapshots[0]["engravings"] = [{"engraving_id": "amp", "target_slot": 0}]
 
 	var right_snapshots := _build_weak_enemy_snapshots()
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:

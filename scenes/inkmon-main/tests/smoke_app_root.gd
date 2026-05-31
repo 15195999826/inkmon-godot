@@ -37,6 +37,10 @@ func _run() -> String:
 	if save_status != "":
 		return _cleanup(root, save_status)
 
+	var slot_status := _assert_multi_slot_save(root)
+	if slot_status != "":
+		return _cleanup(root, slot_status)
+
 	var final_state := root.get_dev_agent_state()
 	if final_state.get("state", "") != "OVERWORLD":
 		return _cleanup(root, "state did not return to OVERWORLD")
@@ -130,6 +134,29 @@ func _assert_system_npc_flows(root: InkMonAppRoot) -> String:
 		return "release/adopt NPC failed: %s" % str(adopt_result.get("message", ""))
 	if root.session.player_state.roster.size() != roster_before + 1:
 		return "adopt should add a roster entry"
+	return ""
+
+
+func _assert_multi_slot_save(root: InkMonAppRoot) -> String:
+	# P8: 多槽存档 —— 存到 slot 2, reset, 从 slot 2 读回深相等。
+	var slots := root.list_save_slots()
+	if slots.size() != InkMonAppRoot.SAVE_SLOT_COUNT:
+		return "list_save_slots should report %d slots" % InkMonAppRoot.SAVE_SLOT_COUNT
+	var saved_gold := root.session.player_state.gold
+	var saved_roster := root.session.player_state.roster.size()
+	if not bool(root.save_to_slot(2).get("ok", false)):
+		return "save_to_slot(2) failed"
+	if not bool((root.list_save_slots()[1] as Dictionary).get("exists", false)):
+		return "slot 2 should exist after save_to_slot(2)"
+
+	if not bool(root.reset_session().get("ok", false)):
+		return "reset before slot load failed"
+	if not bool(root.load_from_slot(2).get("ok", false)):
+		return "load_from_slot(2) failed"
+	if root.session.player_state.gold != saved_gold:
+		return "load_from_slot should restore gold"
+	if root.session.player_state.roster.size() != saved_roster:
+		return "load_from_slot should restore roster"
 	return ""
 
 

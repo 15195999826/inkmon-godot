@@ -101,12 +101,14 @@ func get_primary_skill_id() -> String:
 
 func project_to_battle_snapshot() -> Dictionary:
 	# P3: snapshot 投影 skill_slots (集合) + 派生 stats。actor primary = slot0。
+	# P8: 投影 engravings (刻印), actor grant 刻印被动强化技能。
 	return {
 		"source_entry_id": entry_id,
 		"species": species,
 		"role": role,
 		"elements": elements.duplicate(),
 		"skill_slots": _dup_dict_array(skill_slots),
+		"engravings": _dup_dict_array(engravings),
 		"battle_stats": derive_battle_stats(),
 	}
 

@@ -28,26 +28,66 @@ color = Color(0.02, 0.02, 0.025, 0.52)
 
 [node name="SaveLoadModal" type="PanelContainer" parent="."]
 visible = false
-custom_minimum_size = Vector2(360, 250)
+custom_minimum_size = Vector2(380, 300)
 theme_override_styles/panel = SubResource("modal_style")
 
 [node name="SaveLoadBox" type="VBoxContainer" parent="SaveLoadModal"]
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="SaveLoadTitle" type="Label" parent="SaveLoadModal/SaveLoadBox"]
-text = "System"
+text = "Save / Load"
 theme_override_font_sizes/font_size = 24
 
 [node name="SaveLoadDetail" type="Label" parent="SaveLoadModal/SaveLoadBox"]
-text = "Save or reload the local vertical-slice state."
+text = "Pick a slot to save or reload the local game state."
 autowrap_mode = 3
 
-[node name="SaveButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]
-custom_minimum_size = Vector2(180, 38)
+[node name="Slot1Row" type="HBoxContainer" parent="SaveLoadModal/SaveLoadBox"]
+theme_override_constants/separation = 8
+
+[node name="SlotLabel1" type="Label" parent="SaveLoadModal/SaveLoadBox/Slot1Row"]
+custom_minimum_size = Vector2(100, 0)
+text = "Slot 1"
+vertical_alignment = 1
+
+[node name="SaveSlot1" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot1Row"]
+custom_minimum_size = Vector2(110, 38)
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]
-custom_minimum_size = Vector2(180, 38)
+[node name="LoadSlot1" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot1Row"]
+custom_minimum_size = Vector2(110, 38)
+text = "Load"
+
+[node name="Slot2Row" type="HBoxContainer" parent="SaveLoadModal/SaveLoadBox"]
+theme_override_constants/separation = 8
+
+[node name="SlotLabel2" type="Label" parent="SaveLoadModal/SaveLoadBox/Slot2Row"]
+custom_minimum_size = Vector2(100, 0)
+text = "Slot 2"
+vertical_alignment = 1
+
+[node name="SaveSlot2" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot2Row"]
+custom_minimum_size = Vector2(110, 38)
+text = "Save"
+
+[node name="LoadSlot2" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot2Row"]
+custom_minimum_size = Vector2(110, 38)
+text = "Load"
+
+[node name="Slot3Row" type="HBoxContainer" parent="SaveLoadModal/SaveLoadBox"]
+theme_override_constants/separation = 8
+
+[node name="SlotLabel3" type="Label" parent="SaveLoadModal/SaveLoadBox/Slot3Row"]
+custom_minimum_size = Vector2(100, 0)
+text = "Slot 3"
+vertical_alignment = 1
+
+[node name="SaveSlot3" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot3Row"]
+custom_minimum_size = Vector2(110, 38)
+text = "Save"
+
+[node name="LoadSlot3" type="Button" parent="SaveLoadModal/SaveLoadBox/Slot3Row"]
+custom_minimum_size = Vector2(110, 38)
 text = "Load"
 
 [node name="ModalCloseButton" type="Button" parent="SaveLoadModal/SaveLoadBox"]

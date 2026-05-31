@@ -19,6 +19,8 @@ const HudContentScene := preload("res://scenes/inkmon-main/ui/hud_content.tscn")
 enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
+# 手动存档点 + 可多槽 (§8b); 战斗结果不自动落盘, 玩家开 save 菜单存某槽。
+const SAVE_SLOT_COUNT := 3
 
 var session: InkMonGameSession
 var app_state: AppState = AppState.OVERWORLD
@@ -92,8 +94,8 @@ var _drawer_mode := ""
 var _modal_layer: CanvasLayer
 var _modal_overlay: ColorRect
 var _save_load_modal: PanelContainer
-var _save_button: Button
-var _load_button: Button
+var _save_slot_buttons: Dictionary = {}
+var _load_slot_buttons: Dictionary = {}
 var _modal_close_button: Button
 var _drawer_transition_tween: Tween
 var _modal_transition_tween: Tween
@@ -267,10 +269,17 @@ func get_dev_agent_layout_state() -> Dictionary:
 		"tool_buttons": tool_buttons,
 		"tab_buttons": tab_buttons,
 		"save_load_modal": _control_rect_dict(_save_load_modal),
-		"save_button": _control_rect_dict(_save_button),
-		"load_button": _control_rect_dict(_load_button),
+		"save_slot_buttons": _slot_button_rects(_save_slot_buttons),
+		"load_slot_buttons": _slot_button_rects(_load_slot_buttons),
 		"modal_close_button": _control_rect_dict(_modal_close_button),
 	}
+
+
+func _slot_button_rects(slot_buttons: Dictionary) -> Dictionary:
+	var result := {}
+	for slot in slot_buttons.keys():
+		result[str(slot)] = _control_rect_dict(slot_buttons[slot] as Button)
+	return result
 
 
 func move_player(delta_coord: Vector2i) -> Dictionary:
@@ -500,6 +509,26 @@ func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	file.close()
 	_add_event("saved game: %s" % save_path)
 	return _scene_result(true, "saved game")
+
+
+## 多槽存档便捷封装 (§8b); 底层仍复用 path-based save_game/load_game。
+func save_to_slot(slot: int) -> Dictionary:
+	return save_game(_slot_path(slot))
+
+
+func load_from_slot(slot: int) -> Dictionary:
+	return load_game(_slot_path(slot))
+
+
+func list_save_slots() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for slot in range(1, SAVE_SLOT_COUNT + 1):
+		result.append({"slot": slot, "exists": FileAccess.file_exists(_slot_path(slot))})
+	return result
+
+
+func _slot_path(slot: int) -> String:
+	return "user://inkmon_l2_save_slot%d.json" % slot
 
 
 func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
@@ -750,20 +779,29 @@ func _build_save_load_modal() -> void:
 	)
 
 	_save_load_modal = modal_root.get_node("SaveLoadModal") as PanelContainer
-	_save_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/SaveButton") as Button
-	_save_button.pressed.connect(func() -> void:
-		save_game()
-		_refresh_ui()
-	)
-	_load_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/LoadButton") as Button
-	_load_button.pressed.connect(func() -> void:
-		load_game()
-		close_save_load_menu()
-	)
+	_save_slot_buttons.clear()
+	_load_slot_buttons.clear()
+	for slot in range(1, SAVE_SLOT_COUNT + 1):
+		_register_save_slot(modal_root, slot)
 	_modal_close_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/ModalCloseButton") as Button
 	_modal_close_button.pressed.connect(func() -> void:
 		close_save_load_menu()
 	)
+
+
+func _register_save_slot(modal_root: Node, slot: int) -> void:
+	var save_button := modal_root.get_node("SaveLoadModal/SaveLoadBox/Slot%dRow/SaveSlot%d" % [slot, slot]) as Button
+	save_button.pressed.connect(func() -> void:
+		save_to_slot(slot)
+		_refresh_ui()
+	)
+	_save_slot_buttons[slot] = save_button
+	var load_button := modal_root.get_node("SaveLoadModal/SaveLoadBox/Slot%dRow/LoadSlot%d" % [slot, slot]) as Button
+	load_button.pressed.connect(func() -> void:
+		load_from_slot(slot)
+		close_save_load_menu()
+	)
+	_load_slot_buttons[slot] = load_button
 
 
 func _build_npc_handlers() -> void:

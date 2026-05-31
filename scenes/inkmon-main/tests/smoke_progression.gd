@@ -29,6 +29,36 @@ func _run() -> String:
 	if derive_status != "":
 		return derive_status
 
+	var engraving_status := _assert_engraving_projection()
+	if engraving_status != "":
+		return engraving_status
+
+	return ""
+
+
+func _assert_engraving_projection() -> String:
+	# P8: 刻印 entry→dict 往返 + entry→snapshot→actor 投影/吸收 (grant 在 equip 时, 见战斗 smoke)。
+	var entry := InkMonRosterEntry.from_unit_config(11, InkMonUnitConfig.LEFT_MAGE_DPS)
+	entry.engravings = [{"engraving_id": "amp", "target_slot": 0}]
+
+	var loaded := InkMonRosterEntry.from_dict(entry.to_dict())
+	if loaded.engravings.size() != 1 or str(loaded.engravings[0].get("engraving_id", "")) != "amp":
+		return "engravings should round-trip through to_dict/from_dict"
+	if int(loaded.engravings[0].get("target_slot", -1)) != 0:
+		return "engraving target_slot should round-trip"
+
+	var snapshot := entry.project_to_battle_snapshot()
+	var snap_engravings := snapshot.get("engravings", []) as Array
+	if snap_engravings == null or snap_engravings.size() != 1:
+		return "snapshot must project engravings"
+	if str((snap_engravings[0] as Dictionary).get("engraving_id", "")) != "amp":
+		return "snapshot engraving should carry engraving_id"
+
+	var actor := InkMonUnitActor.from_battle_snapshot(snapshot)
+	if actor.engravings.size() != 1:
+		return "actor should absorb engravings from snapshot"
+	if str(actor.engravings[0].get("engraving_id", "")) != "amp":
+		return "actor engraving should carry engraving_id"
 	return ""
 
 
