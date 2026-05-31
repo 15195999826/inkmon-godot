@@ -1531,6 +1531,8 @@ func _element_color(element: String) -> Color:
 			return Color(0.44, 0.30, 0.66)
 		InkMonElementChart.WIND:
 			return Color(0.42, 0.66, 0.34)
+		InkMonElementChart.EARTH:
+			return Color(0.65, 0.50, 0.35)
 		_:
 			return Color(0.72, 0.68, 0.56)
 

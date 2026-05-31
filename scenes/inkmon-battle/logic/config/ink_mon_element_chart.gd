@@ -6,15 +6,17 @@ const DARK := "dark"
 const FIRE := "fire"
 const WATER := "water"
 const WIND := "wind"
+const EARTH := "earth"
 
 const ADVANTAGE_MULT := 1.3
 const DISADVANTAGE_MULT := 0.7
 const NEUTRAL_MULT := 1.0
 
 const _ADVANTAGE := {
+	WIND: EARTH,
+	EARTH: WATER,
 	WATER: FIRE,
 	FIRE: WIND,
-	WIND: WATER,
 	LIGHT: DARK,
 	DARK: LIGHT,
 }
@@ -31,4 +33,4 @@ static func damage_multiplier(attacker_element: String, defender_primary: String
 
 
 static func all_elements() -> Array[String]:
-	return [LIGHT, DARK, FIRE, WATER, WIND]
+	return [LIGHT, DARK, FIRE, WATER, WIND, EARTH]
