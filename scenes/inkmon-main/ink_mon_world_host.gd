@@ -137,11 +137,8 @@ func start_training_battle() -> Dictionary:
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "world GI not initialized before battle")
 	_active_instance_id = _world_gi.id
 	app_state = AppState.BATTLE
-	_world_gi.start_battle_procedure({
-		"recording": false,
-		"left_roster_snapshots": session.project_player_battle_roster(4),
-		"right_roster_snapshots": _build_training_enemy_snapshots(),
-	})
+	# 战斗触发内移:GI 自建 config(player roster + 假人)起 procedure;Host 只管 flow(state/tick)。
+	_world_gi.request_training_battle()
 	_add_event("training battle started")
 	return {
 		"ok": true,
@@ -587,8 +584,8 @@ func _complete_battle_if_ready() -> void:
 	if _world_gi.has_active_battle():
 		return
 
-	last_battle_result = _world_gi.get_result_summary()
-	session.player_state.apply_battle_result(last_battle_result)
+	# 战斗结果内移:GI 读自己的 result_summary 并写回它持有的 session;Host 只拿摘要展示。
+	last_battle_result = _world_gi.apply_battle_result()
 	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
 	_active_instance_id = ""
 	app_state = AppState.OVERWORLD
@@ -806,33 +803,6 @@ func _print_dev_agent_paths() -> void:
 	print("[InkMonMain] inbox: %s" % str(info.get("inbox_global", "")))
 	print("[InkMonMain] outbox: %s" % str(info.get("outbox_global", "")))
 	print("[InkMonMain] session_dir: %s" % str(info.get("session_dir_global", "")))
-
-
-func _build_training_enemy_snapshots() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	var skills := [
-		InkMonStun.CONFIG_ID,
-		InkMonFireball.CONFIG_ID,
-		InkMonHolyHeal.CONFIG_ID,
-		InkMonPoison.CONFIG_ID,
-	]
-	for i in range(4):
-		result.append({
-			"source_entry_id": 2000 + i,
-			"species": "training_dummy_%d" % i,
-			"role": InkMonUnitConfig.ROLE_DPS,
-			"elements": [InkMonElementChart.WATER],
-			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
-			"battle_stats": {
-				"max_hp": 30.0,
-				"ad": 6.0,
-				"ap": 6.0,
-				"armor": 0.0,
-				"mr": 0.0,
-				"speed": 70.0,
-			},
-		})
-	return result
 
 
 func _add_event(message: String) -> void:

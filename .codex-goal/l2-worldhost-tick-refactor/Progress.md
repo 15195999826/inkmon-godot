@@ -24,6 +24,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
   - **P4(tick+command 核心)= TDD yes**(逐格推进/确定性/重算可断言); smoke yes(重写 overworld-3d + app-root 移动 + 新 tick smoke)
 - Phase 4 decisions: TDD=yes(严格 red-green —— 先写纯逻辑 tick 确定性 smoke 定 API 契约:enqueue_move_player → tick 逐格 → actor_position_changed 由 tick 产;同序列两跑位级一致;0 tick 不在终点 / N tick 到;事件非 enqueue 时产。run red 确认旧同步模型不满足,再实现到 green); smoke-test=yes(纯逻辑 tick smoke 进 overworld-3d 组被 gate 跑 + 重写 overworld-3d/app-root 的移动断言为 tick-driven + 既有 save/load/UI race 断言保持)。范围:InkMonWorldActor 加 {moving_to, move_progress, pending_path};GI 命令队列 + drain_commands(latest-wins 方案A)+ advance_world_movement(逐格 emit actor_position_changed)+ CommandDrain/Movement 两 System 注册;Host _process 30Hz 定步泵 + goto_tile 改 enqueue command + 连 actor_position_changed→view;View3D 退 play_player_path 整路 tween 改 per-step 补间;删 move_controller(step-through 被 Movement System 取代)。
   - P5/P6(内移)= TDD no; smoke yes(回归)
+- Phase 5 decisions: TDD=no(纯内移重构,行为不变;app-root training battle smoke 覆盖 request→tick→result→session 全链是回归网); smoke-test=yes(inkmon 组回归)。范围:GI 加 request_training_battle(自建 config:session roster + 训练假人)+ apply_battle_result(结果写回持有的 session)+ _build_training_enemy_snapshots 内移;Host start_training_battle/_complete_battle_if_ready 改委托(只管 flow:state/tick);双 grid 加固 = advance_world_movement 显式 has_active_battle()/overworld_grid==null 守卫 + 注释(只读稳定 overworld_grid,不读战斗期翻转的基类 grid)。
   - **P7(lifecycle)= TDD yes**(capture/hydrate 往返 + 不双写可断言); smoke yes
   - P8(表演抽离)= TDD no; smoke yes(UI 回归)
   - P9(文档蒸馏)= TDD no; smoke no(纯文档,grep 验过渡语清零)
@@ -34,6 +35,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 - 2026-06-01 - phase 1 - commit a77c11a - review: pass(纯机械改名,0 findings;diff cb4ee75..HEAD 全 rename) - smoke: pass(inkmon/m1+session+content+app-root+overworld-3d 7/7 PASS,reimport 注册新全局类无 parse error)
 - 2026-06-01 - phase 2 - commit aee992c - review: pass(0 findings;深查战斗-world-actor 交互:BattleProcedure 用显式 left/right team + events-only 录制,world actor 对战斗完全不可见,基类 Actor 安全默认兜底) - smoke: pass(inkmon 5 组 7/7 + -Required 9/9 PASS;app-root 新增 7-world-actor 注册断言通过)
 - 2026-06-01 - phase 3 - commit aa0b927 - review: pass(0 findings;逐行核 host 委托 + 确认 move_player_to 失败 message 与原 move_rejected reason 全分支相等、move_controller==null 边界 setup 后不可达) - smoke: pass(inkmon 5 组 7/7;综合 overworld-3d save/load/retarget/load-during-move 全过证 delegate 行为等价。-Required 留最终 gate:P3 仅触 inkmon-only 文件,addon/hex/dota2 结构不受影响)
+- 2026-06-01 - phase 4 - commit 433fb5c - review: pass(0 findings;recall 核 latest-wins idle/moving 分支 + moving_to==target 边界 + 回路经自占格 passable + load-during-move race 结构性消灭 + signal per-GI 无泄漏;Non-Goal 守:addon/example 零改动;STEP_DURATION↔MOVE_STEP_DURATION 对齐) - smoke: pass(inkmon 8/8 含新 smoke_tick_movement 纯逻辑 determinism + 重写 overworld-3d/app-root tick-driven;-Required 9/9。TDD red→green:旧同步模型不满足异步契约,实现后位级一致)
 
 ## Open Review Findings
 

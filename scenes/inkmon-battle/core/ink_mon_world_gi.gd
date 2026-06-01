@@ -148,6 +148,10 @@ func _apply_move_player_command(target_coord: Vector2i) -> void:
 
 ## tick 第二阶段(Movement System 调):推进每个移动中 world actor 的进度,逐格跨越。
 func advance_world_movement(dt: float) -> void:
+	# P5 双 grid 边界加固:主世界移动只读 overworld_grid(稳定),绝不读会在战斗期翻转到 battle grid
+	# 的基类 `grid`;且战斗期 base_tick 不跑(GI.tick 走 battle 分支)→ Movement 天然冻结,此处再兜一层。
+	if has_active_battle() or overworld_grid == null:
+		return
 	var player_crossed := false
 	for actor_value in world_actors.values():
 		var actor := actor_value as InkMonWorldActor
@@ -298,6 +302,16 @@ func start_battle_procedure(config: Dictionary = {}) -> void:
 	start_battle(participants)
 
 
+## P5:在本 GI 内起一场 training 战斗(World-owns-Battle)。config 由 GI 自建 —— player roster
+## 投影自持有的 session,敌方为训练假人;Host 只说"打 training",不再在 main 层拼 config。
+func request_training_battle() -> void:
+	start_battle_procedure({
+		"recording": false,
+		"left_roster_snapshots": session.project_player_battle_roster(4),
+		"right_roster_snapshots": _build_training_enemy_snapshots(),
+	})
+
+
 func tick(dt: float) -> void:
 	super.tick(dt)
 	if _inkmon_procedure != null:
@@ -374,6 +388,42 @@ func get_result_summary() -> Dictionary:
 		"per_entry": _per_entry_summary(player_team),
 		"reward_gold": 25 if winner_team == "left" else 0,
 	}
+
+
+## P5:战斗结束把结果写回持有的 session(GI 持 session,结果应用内移)。返回结果摘要供表演展示。
+func apply_battle_result() -> Dictionary:
+	var result := get_result_summary()
+	if session != null and session.player_state != null:
+		session.player_state.apply_battle_result(result)
+	return result
+
+
+## 训练假人队(stub)。从 Host 内移 —— 战斗 config 由 GI 自建(它持 session + 战斗规则)。
+func _build_training_enemy_snapshots() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var skills := [
+		InkMonStun.CONFIG_ID,
+		InkMonFireball.CONFIG_ID,
+		InkMonHolyHeal.CONFIG_ID,
+		InkMonPoison.CONFIG_ID,
+	]
+	for i in range(4):
+		result.append({
+			"source_entry_id": 2000 + i,
+			"species": "training_dummy_%d" % i,
+			"role": InkMonUnitConfig.ROLE_DPS,
+			"elements": [InkMonElementChart.WATER],
+			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
+			"battle_stats": {
+				"max_hp": 30.0,
+				"ad": 6.0,
+				"ap": 6.0,
+				"armor": 0.0,
+				"mr": 0.0,
+				"speed": 70.0,
+			},
+		})
+	return result
 
 
 func is_ended() -> bool:
