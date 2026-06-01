@@ -16,6 +16,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 
 - Phase 1 decisions: TDD=no(纯机械改名,既有 inkmon smoke 是回归网,无新行为可先写测试); smoke-test=yes(全 inkmon 组回归确认行为不变 + reimport 后无 Parse Error)。范围:4 类名(InkMonOverworldGrid/MoveController/View3D→InkMonWorld*,InkMonGameDirector→InkMonWorldHost)+ 同名 .gd/.uid 文件 + 全引用 + .tscn ext_resource/节点名 + preload 路径 + debug node_type 字符串 + smoke PASS 文案 + DEV_AGENT.md 节点路径。保留 `overworld/` 目录与 `overworld_3d`/`overworld`/test-group 小写名词。
 - Phase 2 decisions: TDD=no(class 层级重构机械;玩家/NPC 注册是行为不变 scaffolding —— 战斗对 world actor 隐形已由基类契约分析证明,无需 red-green); smoke-test=yes(全 inkmon 组 + -Required 回归;app-root smoke 加一条 boot 注册断言锚定「玩家/NPC 进 registry」deliverable,m1 战斗即 hex_position 经继承在战斗可用的回归证)。范围:新 InkMonWorldActor(hex_position + _get_position 下沉)/InkMonBattleActor extends 之/InkMonWorldGI 加 world_actors 表 + spawn_world_actor/get_world_actor/Host _spawn_world_actors 接线。
+- Phase 3 decisions: TDD=no(纯所有权搬迁 + 委托,行为不变;overworld-3d/app-root smoke 是强回归网,覆盖 move/retarget/screen-pick/save/load/load-during-move/drawer-race,无新可断言行为); smoke-test=yes(全 inkmon 组确认 delegate 后行为逐位不变)。范围:grid/move_controller git mv 到 inkmon-battle/core(logic 层,纯 logic 无 UI 依赖);InkMonWorldGI 持 session/npc_defs/overworld_grid/near_npc_id/move_controller + setup_overworld/move_player_to/get_player_coord/saved_player_coord/sync_player_coord_to_session/refresh_near_npc/clear_near_npc/_axial_distance;Host 三字段(session/_near_npc_id/_npc_defs)→ 只读 getter property 委托(读站点零改),lifecycle 创建 session 传给 GI,goto_tile 转发 move command,删 host 重复方法(_overworld_grid/_move_controller/_saved/_sync/_axial/_spawn_world_actors/_on_overworld_move_rejected)。
 - (每相位开工前一行:`Phase <N> decisions: TDD=<yes/no,reason>; smoke-test=<yes/no,reason>`)
 - 预判(开工时正式确认并覆写):
   - P1/P2(改名+层级)= TDD no(机械重构,既有 smoke 是回归网); smoke yes(全 inkmon 组回归)
@@ -30,6 +31,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 
 - (每相位:`<date> - phase <N> - commit <short-sha> - review: <pass/N findings fixed> - smoke: <pass/skipped:reason>`)
 - 2026-06-01 - phase 1 - commit a77c11a - review: pass(纯机械改名,0 findings;diff cb4ee75..HEAD 全 rename) - smoke: pass(inkmon/m1+session+content+app-root+overworld-3d 7/7 PASS,reimport 注册新全局类无 parse error)
+- 2026-06-01 - phase 2 - commit aee992c - review: pass(0 findings;深查战斗-world-actor 交互:BattleProcedure 用显式 left/right team + events-only 录制,world actor 对战斗完全不可见,基类 Actor 安全默认兜底) - smoke: pass(inkmon 5 组 7/7 + -Required 9/9 PASS;app-root 新增 7-world-actor 注册断言通过)
 
 ## Open Review Findings
 

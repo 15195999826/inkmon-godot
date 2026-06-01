@@ -1,16 +1,18 @@
 class_name InkMonWorldGI
 extends WorldGameplayInstance
-## 主游戏唯一的、长命的 world GI (World-owns-Battle)。
+## 主游戏唯一的、长命的 world GI (World-owns-Battle) —— Logic 层根。
 ##
-## 承载世界数据 + 逻辑;战斗是它内跑的 InkMonBattleProcedure (短命 procedure), 不是独立 GI。
+## 承载世界运行时:session(存档根)+ 主世界 overworld grid + 玩家/NPC world actors +
+## npc 表 + (战斗期) InkMonBattleProcedure。战斗是它内跑的短命 procedure, 不是独立 GI。
 ## 持两套 grid (第一版临时方案, docs/L2-ARCHITECTURE.md §1②):
-##   - overworld_grid_model: 主世界 hex 网格 model (由 main 层 bind 进来; 玩家行走 + NPC)
+##   - overworld_grid: 主世界 hex 网格 wrapper (InkMonWorldGrid; 玩家行走 + NPC occupant)
 ##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
 ## `grid` (基类字段) = 当前 active 的那套; start_battle_procedure 切到 battle, 战斗结束切回 overworld。
-## 注: 只持 addon 层 GridMapModel, 不引 main 层 InkMonWorldGrid wrapper (保 battle 不依赖 main)。
+## overworld grid / move controller 是 Logic(无 UI 依赖),故住 Logic 层、归 GI 持有。
 ##
-## 持久: app_root 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
+## 持久: Host 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
 ## (start_battle_procedure 内 reset-on-start 清上一场)。绝不在战斗结束 end() —— end() 单向销毁世界。
+## lifecycle (save/load/reset/new-game) 由 Host 重建本实例驱动 (§0.5)。
 
 
 var tick_count := 0
@@ -22,6 +24,50 @@ var overworld_grid_model: GridMapModel = null
 ## 战斗单位不进此表(走 left_team/right_team);这些只是世界态实体,战斗对其隐形
 ## (不 equip ability、不注册 event handler,故战斗 tick / event 广播都碰不到)。
 var world_actors: Dictionary = {}
+
+# === 主世界运行时(P3 从 Host 内移;Logic 层持有真相,Host 只 delegate)===
+## 存档根 + 世界运行真相。Host(composition root)建好后交给 GI 持有(setup_overworld);
+## Host 经只读 `session` getter 委托访问,不另存一份(单一所有权)。
+var session: InkMonGameSession = null
+## 主世界 NPC 表(位置 / 显示名 / 类型)。v1 hardcode stub(CONTEXT: NPC 仍 stub)。
+var npc_defs: Dictionary = {
+	"shop": {
+		"display_name": "Shop",
+		"type": "shop",
+		"coord": Vector2i(2, 0),
+	},
+	"trainer": {
+		"display_name": "Training",
+		"type": "training",
+		"coord": Vector2i(-2, 1),
+	},
+	"cultivation": {
+		"display_name": "Cultivation",
+		"type": "cultivation",
+		"coord": Vector2i(0, 2),
+	},
+	"guild": {
+		"display_name": "Guild",
+		"type": "guild",
+		"coord": Vector2i(2, -1),
+	},
+	"advancement": {
+		"display_name": "Trainer Advancement",
+		"type": "advancement",
+		"coord": Vector2i(-2, 0),
+	},
+	"release_adopt": {
+		"display_name": "Release / Adopt",
+		"type": "release_adopt",
+		"coord": Vector2i(0, -2),
+	},
+}
+## 主世界 hex 网格 wrapper(占用 / 寻路 / 重定向)。Logic 层持有(grid 无 UI 依赖)。
+var overworld_grid: InkMonWorldGrid = null
+## 与玩家相邻(axial 距离 ≤1)的 NPC id;玩家移动后重算,"" = 无邻近。
+var near_npc_id: String = ""
+
+var _move_controller: InkMonWorldMoveController = null
 
 var _ended := false
 var _result := ""
@@ -36,12 +82,94 @@ func _init(id_value: String = "") -> void:
 	battle_finished.connect(_on_battle_finished)
 
 
-## 绑定 main 层建好的主世界 grid model 并设为 active。世界进 running 态。
-## 只收 GridMapModel (addon 类型), 不收 main 层 wrapper —— 保 battle 层不依赖 main。
-func bind_overworld_grid(model: GridMapModel) -> void:
+## P3: 主世界运行时一次性装配。Host(composition root)建好 GI 后调用 —— 把 session 交给 GI 持有,
+## GI 据此建 overworld grid + 放 occupant + 注册玩家/NPC world actor + 接 move controller + 算邻近 NPC。
+func setup_overworld(p_session: InkMonGameSession) -> void:
 	_ensure_started()
-	overworld_grid_model = model
-	grid = model
+	session = p_session
+	overworld_grid = InkMonWorldGrid.new()
+	overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
+	# load 侧读: 用存档字段把玩家放到 grid(此后 grid occupant 即运行真相, §3 不双写)。
+	overworld_grid.sync_occupants(saved_player_coord(), npc_defs)
+	overworld_grid_model = overworld_grid.model
+	grid = overworld_grid.model
+	_move_controller = InkMonWorldMoveController.new()
+	_move_controller.setup(overworld_grid)
+	_spawn_world_actors()
+	refresh_near_npc()
+
+
+## 同步移动玩家到目标格(P3 仍同步逐步;P4 改 30Hz tick 逐格推进)。返回 move_controller 结果 dict。
+func move_player_to(target_coord: Vector2i) -> Dictionary:
+	if _move_controller == null:
+		return {
+			"ok": false,
+			"message": "overworld move controller is not ready",
+			"data": {},
+		}
+	return _move_controller.move_actor_to(InkMonWorldGrid.PLAYER_ID, target_coord)
+
+
+## 运行时玩家位置真相 = 主世界 grid 的 occupant(§3 不双写)。grid 未建时回退存档字段。
+func get_player_coord() -> Vector2i:
+	if overworld_grid != null:
+		return overworld_grid.get_player_coord()
+	return saved_player_coord()
+
+
+## 存档字段里的玩家位置:只在 load 侧读(放 occupant)/ save 侧写,中间不双写(§3)。
+func saved_player_coord() -> Vector2i:
+	if session == null or session.player_state == null:
+		return Vector2i.ZERO
+	var coord := session.player_state.overworld.get("player_coord", {}) as Dictionary
+	if coord == null:
+		return Vector2i.ZERO
+	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
+
+
+## save 侧:把运行时 grid 位置写回存档字段一次(§3 不双写;P7 会并入 capture_to_session)。
+func sync_player_coord_to_session() -> void:
+	if session == null or session.player_state == null:
+		return
+	var coord := get_player_coord()
+	session.player_state.overworld["player_coord"] = {
+		"q": coord.x,
+		"r": coord.y,
+	}
+
+
+## 重算与玩家相邻(axial 距离 ≤1)的 NPC;写入 near_npc_id("" = 无邻近)。
+func refresh_near_npc() -> void:
+	near_npc_id = ""
+	var player_coord := get_player_coord()
+	for npc_id_value in npc_defs.keys():
+		var npc_def := npc_defs[npc_id_value] as Dictionary
+		var npc_coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
+		if _axial_distance(player_coord, npc_coord) <= 1:
+			near_npc_id = str(npc_id_value)
+			return
+
+
+func clear_near_npc() -> void:
+	near_npc_id = ""
+
+
+## 玩家 + 6 NPC 注册为 InkMonWorldActor 进本 GI registry(world actors 表)。
+func _spawn_world_actors() -> void:
+	spawn_world_actor(InkMonWorldGrid.PLAYER_ID, "Player", get_player_coord())
+	for npc_id_value in npc_defs.keys():
+		var npc_id := str(npc_id_value)
+		var npc_def := npc_defs[npc_id] as Dictionary
+		if npc_def == null:
+			continue
+		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
+		spawn_world_actor(npc_id, str(npc_def.get("display_name", npc_id)), coord)
+
+
+func _axial_distance(a: Vector2i, b: Vector2i) -> int:
+	var dq := a.x - b.x
+	var dr := a.y - b.y
+	return int((abs(dq) + abs(dq + dr) + abs(dr)) / 2)
 
 
 ## 注册一个主世界角色(玩家 / NPC)为 InkMonWorldActor 进 registry。

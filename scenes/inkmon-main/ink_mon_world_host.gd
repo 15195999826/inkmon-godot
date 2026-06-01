@@ -24,7 +24,10 @@ const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
 # 手动存档点 + 可多槽 (§8b); 战斗结果不自动落盘, 玩家开 save 菜单存某槽。
 const SAVE_SLOT_COUNT := 3
 
-var session: InkMonGameSession
+## session 真相在 Logic(InkMonWorldGI.session);Host 只读委托(单一所有权,§0.5)。
+var session: InkMonGameSession:
+	get:
+		return _world_gi.session if _world_gi != null else null
 var app_state: AppState = AppState.OVERWORLD
 var last_battle_result: Dictionary = {}
 
@@ -33,44 +36,17 @@ var _world_gi: InkMonWorldGI = null
 var _event_log: Array[String] = []
 var _dev_agent_bridge: Node = null
 var _active_npc_id := ""
-var _near_npc_id := ""
+## near-npc 真相在 Logic(InkMonWorldGI.near_npc_id);Host 只读委托。
+var _near_npc_id: String:
+	get:
+		return _world_gi.near_npc_id if _world_gi != null else ""
 var _last_ui_message := ""
-var _npc_defs: Dictionary = {
-	"shop": {
-		"display_name": "Shop",
-		"type": "shop",
-		"coord": Vector2i(2, 0),
-	},
-	"trainer": {
-		"display_name": "Training",
-		"type": "training",
-		"coord": Vector2i(-2, 1),
-	},
-	"cultivation": {
-		"display_name": "Cultivation",
-		"type": "cultivation",
-		"coord": Vector2i(0, 2),
-	},
-	"guild": {
-		"display_name": "Guild",
-		"type": "guild",
-		"coord": Vector2i(2, -1),
-	},
-	"advancement": {
-		"display_name": "Trainer Advancement",
-		"type": "advancement",
-		"coord": Vector2i(-2, 0),
-	},
-	"release_adopt": {
-		"display_name": "Release / Adopt",
-		"type": "release_adopt",
-		"coord": Vector2i(0, -2),
-	},
-}
+## npc 表真相在 Logic(InkMonWorldGI.npc_defs);Host 只读委托(presentation query)。
+var _npc_defs: Dictionary:
+	get:
+		return _world_gi.npc_defs if _world_gi != null else {}
 var _npc_handlers: Dictionary = {}
 
-var _overworld_grid: InkMonWorldGrid
-var _move_controller: InkMonWorldMoveController
 var _last_move_result: Dictionary = {}
 var _world_layer: InkMonWorldView3D
 var _hud_layer: CanvasLayer
@@ -108,12 +84,10 @@ var _modal_open_requested := false
 
 func _ready() -> void:
 	name = "WorldHost"
-	session = InkMonGameSession.new()
-	session.begin_new_game()
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
 	_build_npc_handlers()
-	_setup_overworld_runtime()
+	_setup_overworld_runtime(_new_game_session())
 	_build_world_and_ui()
 	_refresh_ui()
 	_add_event("InkMonMain ready")
@@ -184,20 +158,17 @@ func run_training_battle_to_completion(max_ticks: int = 8) -> Dictionary:
 
 
 func reset_session() -> Dictionary:
-	session = InkMonGameSession.new()
-	session.begin_new_game()
 	last_battle_result = {}
 	_active_instance_id = ""
 	_world_gi = null
 	_active_npc_id = ""
-	_near_npc_id = ""
 	_drawer_mode = ""
 	_last_move_result = {}
 	_last_ui_message = ""
 	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
-	_setup_overworld_runtime()
+	_setup_overworld_runtime(_new_game_session())
 	_cancel_overworld_animation()
 	_refresh_near_npc()
 	_event_log.clear()
@@ -307,26 +278,28 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 			"message": "move animation is still playing",
 			"data": get_dev_agent_state(),
 		}
-	if _move_controller == null:
+	if _world_gi == null:
 		return {
 			"ok": false,
-			"message": "overworld move controller is not ready",
+			"message": "world is not ready",
 			"data": get_dev_agent_state(),
 		}
-	var result := _move_controller.move_actor_to(InkMonWorldGrid.PLAYER_ID, target_coord)
+	# Command(写)入口:Host 转发 UI 移动意图给 Logic(P3 仍同步;P4 改 tick 逐格)。
+	var result := _world_gi.move_player_to(target_coord)
 	_last_move_result = result.duplicate(true)
 	var data := result.get("data", {}) as Dictionary
-	# move_controller 已更新 grid occupant (运行真相); 不再往 session 写位置 (§3 不双写)。
+	# Logic 已更新 grid occupant (运行真相); 不再往 session 写位置 (§3 不双写)。
 	var final_coord := _coord_from_dict(data.get("final_coord", _get_player_coord_dict()))
 	var resolved_coord := _coord_from_dict(data.get("resolved_target", _get_player_coord_dict()))
 	var path := _path_from_dicts(data.get("path", []) as Array)
 	if bool(result.get("ok", false)):
-		_near_npc_id = ""
+		_world_gi.clear_near_npc()
 		if _world_layer != null:
 			_world_layer.play_player_path(path, target_coord, resolved_coord)
 		if _world_layer == null or not _world_layer.is_move_animation_active():
 			_refresh_near_npc()
 	else:
+		_last_ui_message = str(result.get("message", ""))
 		_refresh_near_npc()
 	_refresh_ui()
 	if bool(result.get("ok", false)):
@@ -492,7 +465,8 @@ func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	# save 侧: 把运行时 grid 玩家位置写回存档字段一次, 再序列化 (§3 不双写)。
-	_sync_player_coord_to_session()
+	if _world_gi != null:
+		_world_gi.sync_player_coord_to_session()
 	var save_data := session.to_dict()
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
@@ -536,8 +510,8 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	if data == null:
 		return _scene_result(false, "save json is not an object")
 
-	session = InkMonGameSession.new()
-	var save_loaded := session.from_dict(data)
+	var loaded_session := InkMonGameSession.new()
+	var save_loaded := loaded_session.from_dict(data)
 	last_battle_result = {}
 	_active_instance_id = ""
 	_world_gi = null
@@ -546,7 +520,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
-	_setup_overworld_runtime()
+	_setup_overworld_runtime(loaded_session)
 	_cancel_overworld_animation()
 	_refresh_near_npc()
 	_refresh_ui()
@@ -622,40 +596,20 @@ func _complete_battle_if_ready() -> void:
 	_add_event("battle completed: %s" % str(last_battle_result.get("result", "")))
 
 
-func _setup_overworld_runtime() -> void:
-	# 唯一持久 world GI: 承载世界数据 + 主世界 grid + (战斗期) battle procedure (World-owns-Battle)。
+## Host = composition root:建唯一持久 world GI(World-owns-Battle),把 session 交给它装配
+## 主世界运行时(grid / world actors / move controller / npc 表 / near-npc 全在 Logic)。
+func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
 	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "failed to create InkMonWorldGI")
-	# 主世界 grid wrapper 归 main 层所有; 只把底层 GridMapModel bind 给 world GI 做 active 切换。
-	_overworld_grid = InkMonWorldGrid.new()
-	_overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
-	# load 侧读: 用存档字段把玩家放到 grid (此后 grid occupant 即运行真相)。
-	_overworld_grid.sync_occupants(_saved_player_coord(), _npc_defs)
-	_world_gi.bind_overworld_grid(_overworld_grid.model)
-	# 玩家 + NPC 进 GI registry 为 InkMonWorldActor(世界态实体)。移动暂仍走 grid occupant,
-	# P4 才让 actor.hex_position 成为推进真相;此处只建注册 + 初始位置,行为不变。
-	_spawn_world_actors()
-	_move_controller = InkMonWorldMoveController.new()
-	_move_controller.setup(_overworld_grid)
-	# move_completed 不再订阅: grid occupant 即玩家位置真相, 无需回写 session (§3)。
-	_move_controller.move_rejected.connect(_on_overworld_move_rejected)
+	_world_gi.setup_overworld(session_to_use)
 
 
-## 玩家 + 6 NPC 注册为 InkMonWorldActor 进唯一 world GI registry。
-## key = grid occupant 同款稳定标识(player / npc_id),便于 P3/P4 query 回查。
-func _spawn_world_actors() -> void:
-	if _world_gi == null:
-		return
-	_world_gi.spawn_world_actor(InkMonWorldGrid.PLAYER_ID, "Player", _get_player_coord())
-	for npc_id_value in _npc_defs.keys():
-		var npc_id := str(npc_id_value)
-		var npc_def := _npc_defs[npc_id] as Dictionary
-		if npc_def == null:
-			continue
-		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
-		_world_gi.spawn_world_actor(npc_id, str(npc_def.get("display_name", npc_id)), coord)
+func _new_game_session() -> InkMonGameSession:
+	var new_session := InkMonGameSession.new()
+	new_session.begin_new_game()
+	return new_session
 
 
 func _on_player_move_animation_finished(final_coord: Vector2i) -> void:
@@ -672,11 +626,6 @@ func _cancel_overworld_animation() -> void:
 		return
 	_world_layer.snap_player_coord(_get_player_coord())
 	_world_layer.clear_move_feedback()
-
-
-func _on_overworld_move_rejected(actor_id: String, _from_coord: Vector2i, _target_coord: Vector2i, reason: String) -> void:
-	if actor_id == InkMonWorldGrid.PLAYER_ID:
-		_last_ui_message = reason
 
 
 func _build_world_and_ui() -> void:
@@ -1202,39 +1151,15 @@ func _get_active_handler() -> InkMonNpcHandler:
 	return _npc_handlers[_active_npc_id] as InkMonNpcHandler
 
 
+## near-npc 重算委托给 Logic(InkMonWorldGI.refresh_near_npc)。
 func _refresh_near_npc() -> void:
-	_near_npc_id = ""
-	var player_coord := _get_player_coord()
-	for npc_id in _npc_defs.keys():
-		var npc_def := _npc_defs[npc_id] as Dictionary
-		var npc_coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
-		if _axial_distance(player_coord, npc_coord) <= 1:
-			_near_npc_id = str(npc_id)
-			return
+	if _world_gi != null:
+		_world_gi.refresh_near_npc()
 
 
-## 运行时玩家位置真相 = 主世界 grid 的 occupant (不双写, §3)。grid 未建时回退存档字段。
+## 运行时玩家位置真相 = Logic(InkMonWorldGI)的 grid occupant(§3 不双写)。Host 只读委托。
 func _get_player_coord() -> Vector2i:
-	if _overworld_grid != null:
-		return _overworld_grid.get_player_coord()
-	return _saved_player_coord()
-
-
-## 存档字段里的玩家位置: 只在 load 侧读 (放 occupant) / save 侧写, 中间不双写。
-func _saved_player_coord() -> Vector2i:
-	var coord := session.player_state.overworld.get("player_coord", {}) as Dictionary
-	if coord == null:
-		return Vector2i.ZERO
-	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
-
-
-## save 侧: 把运行时 grid 位置写回存档字段一次。
-func _sync_player_coord_to_session() -> void:
-	var coord := _get_player_coord()
-	session.player_state.overworld["player_coord"] = {
-		"q": coord.x,
-		"r": coord.y,
-	}
+	return _world_gi.get_player_coord() if _world_gi != null else Vector2i.ZERO
 
 
 func _get_player_coord_dict() -> Dictionary:
@@ -1320,12 +1245,6 @@ func _rect_dict(rect: Rect2) -> Dictionary:
 		"cx": rect.position.x + rect.size.x * 0.5,
 		"cy": rect.position.y + rect.size.y * 0.5,
 	}
-
-
-func _axial_distance(a: Vector2i, b: Vector2i) -> int:
-	var dq := a.x - b.x
-	var dr := a.y - b.y
-	return int((abs(dq) + abs(dq + dr) + abs(dr)) / 2)
 
 
 func _element_color(element: String) -> Color:
