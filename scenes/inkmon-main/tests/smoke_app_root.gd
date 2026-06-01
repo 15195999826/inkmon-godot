@@ -79,21 +79,21 @@ func _assert_world_actors_registered(root: InkMonWorldHost) -> String:
 
 
 func _assert_shop_flow(root: InkMonWorldHost) -> String:
+	# P4:goto/move 是异步 command —— 入队即 ok;玩家由 30Hz tick 逐格走向 (1,0)。
 	var move_result := root.move_player(Vector2i(1, 0))
 	if not bool(move_result.get("ok", false)):
-		return "move to Shop failed"
-	var started_state := root.get_dev_agent_state()
-	var started_overworld := started_state.get("overworld_3d", {}) as Dictionary
-	if started_overworld == null or not bool(started_overworld.get("move_animation_active", false)):
-		return "move to Shop should start visual animation"
-	var wait_status := await _wait_for_move_animation(root)
-	if wait_status != "":
-		return wait_status
+		return "move command to Shop should be accepted (enqueued)"
+	var reach_status := await _wait_for_player_to_reach(root, Vector2i(1, 0))
+	if reach_status != "":
+		return reach_status
+	var settle_status := await _wait_for_move_settle(root)
+	if settle_status != "":
+		return settle_status
 	var moved_state := root.get_dev_agent_state()
 	if moved_state.get("near_npc_id", "") != "shop":
 		return "moving right should put player near Shop"
 	if _visual_coord_from_state(moved_state) != _coord_from_state(moved_state):
-		return "Shop move visual coord should sync after animation"
+		return "Shop move visual coord should sync to logic coord after step tween settles"
 
 	var open_result := root.open_near_npc_menu()
 	if not bool(open_result.get("ok", false)):
@@ -228,14 +228,24 @@ func _bag_has(value: Variant, config_id: String) -> bool:
 	return false
 
 
-func _wait_for_move_animation(root: InkMonWorldHost) -> String:
-	for _i in range(60):
+## 等玩家 tick 逐格走到 target(逻辑 occupant 抵达)。
+func _wait_for_player_to_reach(root: InkMonWorldHost, target: Vector2i) -> String:
+	for _i in range(200):
+		await get_tree().create_timer(0.05).timeout
+		if _coord_from_state(root.get_dev_agent_state()) == target:
+			return ""
+	return "player did not reach target %d,%d via tick movement" % [target.x, target.y]
+
+
+## 等移动完全停下(逻辑 not moving + view 补间结束)。
+func _wait_for_move_settle(root: InkMonWorldHost) -> String:
+	for _i in range(200):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
 		var overworld := state.get("overworld_3d", {}) as Dictionary
-		if overworld != null and not bool(overworld.get("move_animation_active", false)):
+		if not bool(state.get("player_moving", false)) and not bool(overworld.get("move_animation_active", false)):
 			return ""
-	return "move animation did not finish"
+	return "movement did not settle (player still moving or view tween running)"
 
 
 func _coord_from_state(state: Dictionary) -> Vector2i:

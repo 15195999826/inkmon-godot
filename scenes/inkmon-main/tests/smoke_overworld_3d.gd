@@ -88,33 +88,21 @@ func _assert_path_move(root: InkMonWorldHost) -> String:
 	var camera_before := _camera_position_from_state(root.get_dev_agent_state())
 	var result := root.goto_tile(Vector2i(3, -1))
 	if not bool(result.get("ok", false)):
-		return "goto_tile path move failed: %s" % str(result.get("message", ""))
-	var state := root.get_dev_agent_state()
-	var overworld := state.get("overworld_3d", {}) as Dictionary
-	if not bool(overworld.get("move_animation_active", false)):
-		return "path move should start a visible movement animation"
-	if _coord_from_state(state) != Vector2i(3, -1):
-		return "player final coord should be clicked target"
-	var move_data := _last_move_data(state)
-	var step_count := int(move_data.get("step_count", 0))
-	if step_count < 3:
-		return "path move should take at least three hex steps"
-	if int(move_data.get("reservation_count", -1)) != 0:
-		return "reservation count should be zero after path move"
-	if int(move_data.get("occupant_count_before", 0)) != int(move_data.get("occupant_count_after", -1)):
-		return "occupant count should be conserved"
-	if _count_events(move_data, "started") != step_count:
-		return "move_started count should equal step count"
-	if _count_events(move_data, "applied") != step_count:
-		return "move_applied count should equal step count"
-	if _count_events(move_data, "completed") != step_count:
-		return "move_completed count should equal step count"
-	var wait_status := await _wait_for_move_animation(root)
-	if wait_status != "":
-		return wait_status
+		return "goto_tile move command should be accepted (enqueued): %s" % str(result.get("message", ""))
+	# 异步:入队后 0 tick 玩家还没到终点(move 跨 tick 推进,不瞬移)。
+	if _coord_from_state(root.get_dev_agent_state()) == Vector2i(3, -1):
+		return "async move must not teleport: player should not be at target right after enqueue"
+	var reach_status := await _wait_for_player_to_reach(root, Vector2i(3, -1))
+	if reach_status != "":
+		return reach_status
+	var settle_status := await _wait_for_move_settle(root)
+	if settle_status != "":
+		return settle_status
 	var synced_state := root.get_dev_agent_state()
+	if _coord_from_state(synced_state) != Vector2i(3, -1):
+		return "player final coord should be the commanded target"
 	if _visual_coord_from_state(synced_state) != _coord_from_state(synced_state):
-		return "visual coord should sync to logical coord after move animation"
+		return "visual coord should sync to logical coord after step tweens settle"
 	var camera_after := _camera_position_from_state(synced_state)
 	if camera_after.distance_to(camera_before) < 0.2:
 		return "camera should follow after player movement"
@@ -126,10 +114,11 @@ func _assert_blocked_npc_retarget(root: InkMonWorldHost) -> String:
 	await get_tree().process_frame
 	var result := root.goto_tile(Vector2i(2, 0))
 	if not bool(result.get("ok", false)):
-		return "right-clicking blocked Shop tile should retarget to an adjacent tile"
-	var wait_status := await _wait_for_move_animation(root)
-	if wait_status != "":
-		return wait_status
+		return "move command toward blocked Shop tile should be accepted"
+	# 目标 (2,0) 被 Shop 占;Logic retarget 到相邻空格。终点未知 → 等起步后停稳。
+	var settle_status := await _wait_for_move_to_start_then_settle(root)
+	if settle_status != "":
+		return settle_status
 	var state := root.get_dev_agent_state()
 	var final_coord := _coord_from_state(state)
 	if final_coord == Vector2i(2, 0):
@@ -138,14 +127,9 @@ func _assert_blocked_npc_retarget(root: InkMonWorldHost) -> String:
 		return "retargeted final coord should be adjacent to Shop"
 	if state.get("near_npc_id", "") != "shop":
 		return "retargeted move should set near_npc_id to shop"
-	var move_data := _last_move_data(state)
-	if not bool(move_data.get("retargeted", false)):
-		return "blocked NPC target should be marked retargeted"
 	var overworld := state.get("overworld_3d", {}) as Dictionary
-	if int(overworld.get("path_preview_count", 0)) <= 0:
-		return "retargeted move should leave visible path preview feedback"
 	if not bool(overworld.get("target_feedback_active", false)):
-		return "retargeted move should leave visible target feedback"
+		return "move command should leave a visible target marker"
 	return ""
 
 
@@ -159,15 +143,16 @@ func _assert_screen_pick_move(root: InkMonWorldHost) -> String:
 	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
 	var click_result := root.right_click_at(pos)
 	if not bool(click_result.get("ok", false)):
-		return "screen pick right_click_at failed: %s" % str(click_result.get("message", ""))
-	var wait_status := await _wait_for_move_animation(root)
-	if wait_status != "":
-		return wait_status
+		return "screen pick right_click move command failed: %s" % str(click_result.get("message", ""))
+	var reach_status := await _wait_for_player_to_reach(root, Vector2i(1, -1))
+	if reach_status != "":
+		return reach_status
+	var settle_status := await _wait_for_move_settle(root)
+	if settle_status != "":
+		return settle_status
 	var state := root.get_dev_agent_state()
-	if _coord_from_state(state) != Vector2i(1, -1):
-		return "screen pick should move to picked hex"
 	if _visual_coord_from_state(state) != Vector2i(1, -1):
-		return "screen pick visual coord should sync after animation"
+		return "screen pick visual coord should sync after step tweens settle"
 	return ""
 
 
@@ -214,10 +199,13 @@ func _assert_move_save_load(root: InkMonWorldHost) -> String:
 	await get_tree().process_frame
 	var move_result := root.goto_tile(Vector2i(-1, 1))
 	if not bool(move_result.get("ok", false)):
-		return "move before save failed"
-	var wait_status := await _wait_for_move_animation(root)
-	if wait_status != "":
-		return wait_status
+		return "move command before save should be accepted"
+	var reach_status := await _wait_for_player_to_reach(root, Vector2i(-1, 1))
+	if reach_status != "":
+		return reach_status
+	var settle_status := await _wait_for_move_settle(root)
+	if settle_status != "":
+		return settle_status
 	var save_path := "user://inkmon_l2_overworld_3d_save.json"
 	var save_result := root.save_game(save_path)
 	if not bool(save_result.get("ok", false)):
@@ -320,12 +308,13 @@ func _assert_load_during_move(root: InkMonWorldHost) -> String:
 	# tween must not overwrite the loaded coord nor leave the move flag stuck (focus 3).
 	root.reset_session()
 	await get_tree().process_frame
-	var setup_move := root.goto_tile(Vector2i(0, 1))
-	if not bool(setup_move.get("ok", false)):
-		return "setup move before save failed: %s" % str(setup_move.get("message", ""))
-	var setup_wait := await _wait_for_move_animation(root)
-	if setup_wait != "":
-		return setup_wait
+	root.goto_tile(Vector2i(0, 1))
+	var setup_reach := await _wait_for_player_to_reach(root, Vector2i(0, 1))
+	if setup_reach != "":
+		return "setup move before save failed: %s" % setup_reach
+	var setup_settle := await _wait_for_move_settle(root)
+	if setup_settle != "":
+		return setup_settle
 	var save_path := "user://inkmon_l2_load_during_move.json"
 	var save_result := root.save_game(save_path)
 	if not bool(save_result.get("ok", false)):
@@ -333,12 +322,16 @@ func _assert_load_during_move(root: InkMonWorldHost) -> String:
 
 	root.reset_session()
 	await get_tree().process_frame
-	var move := root.goto_tile(Vector2i(3, -1))
-	if not bool(move.get("ok", false)):
-		return "multi-step move before load failed: %s" % str(move.get("message", ""))
-	var mid := root.get_dev_agent_state().get("overworld_3d", {}) as Dictionary
-	if not bool(mid.get("move_animation_active", false)):
-		return "move should be animating before the mid-move load"
+	root.goto_tile(Vector2i(3, -1))
+	# 等多步移动起步(玩家正逐格移动),再在半途 load。
+	var started := false
+	for _i in range(60):
+		await get_tree().create_timer(0.05).timeout
+		if bool(root.get_dev_agent_state().get("player_moving", false)):
+			started = true
+			break
+	if not started:
+		return "multi-step move should start before the mid-move load"
 
 	var load_result := root.load_game(save_path)
 	if not bool(load_result.get("ok", false)):
@@ -346,27 +339,27 @@ func _assert_load_during_move(root: InkMonWorldHost) -> String:
 	var after := root.get_dev_agent_state()
 	if _coord_from_state(after) != Vector2i(0, 1):
 		return "load during move should restore the saved coord immediately"
+	if bool(after.get("player_moving", false)):
+		return "load must stop in-flight movement (fresh world → player idle)"
 	if _visual_coord_from_state(after) != Vector2i(0, 1):
 		return "visual coord should snap to the loaded coord after load during move"
 	var after_ow := after.get("overworld_3d", {}) as Dictionary
 	if bool(after_ow.get("move_animation_active", false)):
-		return "move animation flag must clear after load (not stuck blocking input)"
+		return "view tween must clear after load (not stuck)"
 
-	# Let the original (now-killed) tween's would-be finish time pass; coord must hold.
-	await get_tree().create_timer(0.6).timeout
+	# 让旧移动的残留(latest-wins/重建已结构性消灭)有时间作妖;坐标必须保持。
+	await get_tree().create_timer(0.5).timeout
 	var settled := root.get_dev_agent_state()
 	if _coord_from_state(settled) != Vector2i(0, 1):
-		return "stale move tween must not overwrite the loaded coord (focus 3 regression)"
+		return "stale movement must not overwrite the loaded coord (race regression)"
 	if _visual_coord_from_state(settled) != Vector2i(0, 1):
-		return "stale move tween must not move the avatar after load"
+		return "stale tween must not move the avatar after load"
 
-	# Field input must work again after the load (flag not stuck true).
-	var post_move := root.goto_tile(Vector2i(1, 0))
-	if not bool(post_move.get("ok", false)):
-		return "movement must work after load during move: %s" % str(post_move.get("message", ""))
-	var post_wait := await _wait_for_move_animation(root)
-	if post_wait != "":
-		return post_wait
+	# load 后 field 输入仍可用。
+	root.goto_tile(Vector2i(1, 0))
+	var post_reach := await _wait_for_player_to_reach(root, Vector2i(1, 0))
+	if post_reach != "":
+		return "movement must work after load during move: %s" % post_reach
 	return ""
 
 
@@ -386,26 +379,6 @@ func _click_at(position: Vector2) -> void:
 	release.position = position
 	viewport.push_input(release)
 	Input.flush_buffered_events()
-
-
-func _last_move_data(state: Dictionary) -> Dictionary:
-	var last_move := state.get("last_move_result", {}) as Dictionary
-	if last_move == null:
-		return {}
-	var data := last_move.get("data", {}) as Dictionary
-	return data if data != null else {}
-
-
-func _count_events(move_data: Dictionary, kind: String) -> int:
-	var events := move_data.get("move_events", []) as Array
-	if events == null:
-		return 0
-	var count := 0
-	for event_value in events:
-		var event := event_value as Dictionary
-		if event != null and event.get("kind", "") == kind:
-			count += 1
-	return count
 
 
 func _coord_from_state(state: Dictionary) -> Vector2i:
@@ -439,14 +412,37 @@ func _camera_position_from_state(state: Dictionary) -> Vector3:
 	)
 
 
-func _wait_for_move_animation(root: InkMonWorldHost) -> String:
-	for _i in range(60):
+## 等玩家 tick 逐格走到 target(逻辑 occupant 抵达)。
+func _wait_for_player_to_reach(root: InkMonWorldHost, target: Vector2i) -> String:
+	for _i in range(200):
+		await get_tree().create_timer(0.05).timeout
+		if _coord_from_state(root.get_dev_agent_state()) == target:
+			return ""
+	return "player did not reach target %d,%d via tick movement" % [target.x, target.y]
+
+
+## 等移动完全停下(逻辑 not moving + view 补间结束)。
+func _wait_for_move_settle(root: InkMonWorldHost) -> String:
+	for _i in range(200):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
 		var overworld := state.get("overworld_3d", {}) as Dictionary
-		if overworld != null and not bool(overworld.get("move_animation_active", false)):
+		if not bool(state.get("player_moving", false)) and not bool(overworld.get("move_animation_active", false)):
 			return ""
-	return "move animation did not finish"
+	return "movement did not settle (player still moving or view tween running)"
+
+
+## 等移动先起步(player_moving 变 true)再停稳;用于 retarget 类(终点未知)。
+func _wait_for_move_to_start_then_settle(root: InkMonWorldHost) -> String:
+	var started := false
+	for _i in range(60):
+		await get_tree().create_timer(0.05).timeout
+		if bool(root.get_dev_agent_state().get("player_moving", false)):
+			started = true
+			break
+	if not started:
+		return "move did not start after enqueue"
+	return await _wait_for_move_settle(root)
 
 
 func _wait_for_ui_transition(root: InkMonWorldHost, key: String) -> String:

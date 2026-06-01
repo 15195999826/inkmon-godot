@@ -36,7 +36,7 @@ global paths when DevAgent is enabled.
 | op | args | effect | verify with |
 | --- | --- | --- | --- |
 | `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
-| `goto_tile` | `{ "q": int, "r": int }` | direct business/data move through the same `InkMonWorldMoveController` used by right-click input, then starts the same player path animation | `state.player_coord`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord`, `state.last_move_result.data.move_events` |
+| `goto_tile` | `{ "q": int, "r": int }` | enqueues an async move command (same path right-click input takes); the 30Hz world tick advances the player cell-by-cell, emitting `actor_position_changed` which the view tweens per step | `state.player_coord` (logic occupant), `state.player_moving`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord` |
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |

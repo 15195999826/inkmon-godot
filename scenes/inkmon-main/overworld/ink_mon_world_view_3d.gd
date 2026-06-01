@@ -14,9 +14,6 @@ const GRASS_TILE_PATH := "res://art/kaykit/hexagon/addons/kaykit_medieval_hexago
 const ROAD_TILE_PATH := "res://art/kaykit/hexagon/addons/kaykit_medieval_hexagon_pack/Assets/gltf/tiles/roads/hex_road_A.gltf"
 
 
-signal player_move_animation_finished(final_coord: Vector2i)
-
-
 var player_coord := Vector2i.ZERO
 var near_npc_id := ""
 var npc_defs: Dictionary = {}
@@ -31,17 +28,12 @@ var _player_node: Node3D
 var _player_visual_root: Node3D
 var _npc_nodes: Dictionary = {}
 var _npc_visual_roots: Dictionary = {}
-var _path_preview_nodes: Array[Node3D] = []
 var _target_marker: Node3D
 var _click_pulse_nodes: Array[Node3D] = []
 var _move_tween: Tween
 var _idle_time := 0.0
 var _move_animation_active := false
 var _move_animation_finished_count := 0
-var _move_animation_started_msec := 0
-var _last_animation_path: Array[Dictionary] = []
-var _last_requested_target := INVALID_COORD
-var _last_resolved_target := INVALID_COORD
 
 
 func _ready() -> void:
@@ -73,7 +65,6 @@ func snap_player_coord(coord: Vector2i) -> void:
 
 
 func clear_move_feedback() -> void:
-	_clear_path_preview()
 	if _target_marker != null and is_instance_valid(_target_marker):
 		_target_marker.queue_free()
 	_target_marker = null
@@ -83,31 +74,33 @@ func clear_move_feedback() -> void:
 	_click_pulse_nodes.clear()
 
 
-func play_player_path(path: Array[Vector2i], requested_target: Vector2i, resolved_target: Vector2i) -> void:
-	_show_move_feedback(path, requested_target, resolved_target)
-	player_coord = resolved_target
-	_last_requested_target = requested_target
-	_last_resolved_target = resolved_target
-	_last_animation_path = _path_dicts(path)
+## P4 逐格补间:Logic 每跨一格 emit actor_position_changed → view 在相邻两格间补一步
+## (从当前视觉位置补到目标格,连续步自然衔接);非整路 tween(已退出 play_player_path)。
+func step_player(_from_cell: Vector2i, to_cell: Vector2i) -> void:
+	player_coord = to_cell
 	if _player_node == null:
-		_finish_move_animation(resolved_target)
 		return
-	if path.is_empty():
-		snap_player_coord(resolved_target)
-		_finish_move_animation(resolved_target)
-		return
-
 	_cancel_move_tween()
 	_move_animation_active = true
-	_move_animation_started_msec = Time.get_ticks_msec()
+	var to_position := _coord_to_actor_position(to_cell, PLAYER_HEIGHT)
 	_move_tween = create_tween()
-	_move_tween.set_parallel(false)
-	for step_coord in path:
-		var step_position := _coord_to_actor_position(step_coord, PLAYER_HEIGHT)
-		_move_tween.tween_property(_player_node, "global_position", step_position, MOVE_STEP_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_move_tween.finished.connect(func() -> void:
-		_finish_move_animation(resolved_target)
-	)
+	_move_tween.tween_property(_player_node, "global_position", to_position, MOVE_STEP_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_move_tween.finished.connect(_on_step_tween_finished)
+
+
+## 一步补间自然结束(未被下一步 kill):定格到当前格 + 标记不再动画。
+func _on_step_tween_finished() -> void:
+	_move_animation_active = false
+	_move_animation_finished_count += 1
+	if _player_node != null:
+		_player_node.global_position = _coord_to_actor_position(player_coord, PLAYER_HEIGHT)
+	_update_camera_follow(1.0)
+
+
+## 移动目标反馈(target marker + click pulse);P4 表演不知整路,只标目标格。
+func show_move_target(coord: Vector2i) -> void:
+	_show_target_marker(coord)
+	_spawn_click_pulse(coord)
 
 
 func is_move_animation_active() -> bool:
@@ -256,10 +249,6 @@ func get_debug_state() -> Dictionary:
 		"camera_ready": _camera != null,
 		"move_animation_active": _move_animation_active,
 		"move_animation_finished_count": _move_animation_finished_count,
-		"last_animation_path": _last_animation_path.duplicate(true),
-		"last_requested_target": {"q": _last_requested_target.x, "r": _last_requested_target.y},
-		"last_resolved_target": {"q": _last_resolved_target.x, "r": _last_resolved_target.y},
-		"path_preview_count": _path_preview_nodes.size(),
 		"target_feedback_active": _target_marker != null and is_instance_valid(_target_marker),
 		"click_pulse_count": _click_pulse_nodes.size(),
 		"idle_animation": true,
@@ -453,17 +442,6 @@ func _coord_to_actor_position(coord: Vector2i, height: float) -> Vector3:
 	return coord_to_world(coord) + Vector3(0.0, height, 0.0)
 
 
-func _show_move_feedback(path: Array[Vector2i], requested_target: Vector2i, resolved_target: Vector2i) -> void:
-	_clear_path_preview()
-	_show_target_marker(resolved_target)
-	_spawn_click_pulse(requested_target)
-	for step_coord in path:
-		var node := _create_disc_marker("PathStep", 0.16, 0.05, Color(0.26, 0.72, 1.0, 0.92))
-		_feedback_root.add_child(node)
-		node.global_position = coord_to_world(step_coord) + Vector3(0.0, 0.08, 0.0)
-		_path_preview_nodes.append(node)
-
-
 func _show_target_marker(coord: Vector2i) -> void:
 	if _target_marker != null and is_instance_valid(_target_marker):
 		_target_marker.queue_free()
@@ -499,27 +477,10 @@ func _create_disc_marker(marker_name: String, radius: float, height: float, colo
 	return marker
 
 
-func _clear_path_preview() -> void:
-	for node in _path_preview_nodes:
-		if node != null and is_instance_valid(node):
-			node.queue_free()
-	_path_preview_nodes.clear()
-
-
 func _cancel_move_tween() -> void:
 	if _move_tween != null and _move_tween.is_valid():
 		_move_tween.kill()
 	_move_tween = null
-
-
-func _finish_move_animation(final_coord: Vector2i) -> void:
-	_move_animation_active = false
-	_move_animation_finished_count += 1
-	if _player_node != null:
-		_player_node.global_position = _coord_to_actor_position(final_coord, PLAYER_HEIGHT)
-	player_coord = final_coord
-	_update_camera_follow(1.0)
-	player_move_animation_finished.emit(final_coord)
 
 
 func _update_idle_animation(delta: float) -> void:
@@ -559,13 +520,6 @@ func _transparent_material(color: Color) -> StandardMaterial3D:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
 	return mat
-
-
-func _path_dicts(path: Array[Vector2i]) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for coord in path:
-		result.append({"q": coord.x, "r": coord.y})
-	return result
 
 
 func _get_npc_idle_sample_y() -> float:

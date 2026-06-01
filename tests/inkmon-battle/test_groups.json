@@ -27,7 +27,8 @@
     "overworld-3d": {
       "default_timeout_ms": 45000,
       "scenes": [
-        "../../scenes/inkmon-main/tests/smoke_overworld_3d.tscn"
+        "../../scenes/inkmon-main/tests/smoke_overworld_3d.tscn",
+        "../../scenes/inkmon-main/tests/smoke_tick_movement.tscn"
       ]
     }
   }

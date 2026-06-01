@@ -15,6 +15,11 @@ extends WorldGameplayInstance
 ## lifecycle (save/load/reset/new-game) 由 Host 重建本实例驱动 (§0.5)。
 
 
+## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 View3D MOVE_STEP_DURATION
+## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
+const STEP_DURATION := 0.22
+
+
 var tick_count := 0
 var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
@@ -66,8 +71,8 @@ var npc_defs: Dictionary = {
 var overworld_grid: InkMonWorldGrid = null
 ## 与玩家相邻(axial 距离 ≤1)的 NPC id;玩家移动后重算,"" = 无邻近。
 var near_npc_id: String = ""
-
-var _move_controller: InkMonWorldMoveController = null
+## 主世界 command 队列(CQRS 写侧):UI enqueue → tick 的 CommandDrain System 抽干应用。
+var _command_queue: Array[Dictionary] = []
 
 var _ended := false
 var _result := ""
@@ -93,21 +98,94 @@ func setup_overworld(p_session: InkMonGameSession) -> void:
 	overworld_grid.sync_occupants(saved_player_coord(), npc_defs)
 	overworld_grid_model = overworld_grid.model
 	grid = overworld_grid.model
-	_move_controller = InkMonWorldMoveController.new()
-	_move_controller.setup(overworld_grid)
+	_register_world_systems()
 	_spawn_world_actors()
 	refresh_near_npc()
 
 
-## 同步移动玩家到目标格(P3 仍同步逐步;P4 改 30Hz tick 逐格推进)。返回 move_controller 结果 dict。
-func move_player_to(target_coord: Vector2i) -> Dictionary:
-	if _move_controller == null:
-		return {
-			"ok": false,
-			"message": "overworld move controller is not ready",
-			"data": {},
-		}
-	return _move_controller.move_actor_to(InkMonWorldGrid.PLAYER_ID, target_coord)
+## 注册主世界 tick 两阶段 System:CommandDrain(抽干命令)→ Movement(逐格推进)。
+## base_tick 按 priority 跑;有战斗时 GI.tick 走 battle 分支不跑 systems(移动战斗期冻结)。
+func _register_world_systems() -> void:
+	add_system(InkMonCommandDrainSystem.new())
+	add_system(InkMonWorldMovementSystem.new())
+
+
+## CQRS 写侧:UI 把"移动玩家到目标格"意图入队(异步)。不立即移动 —— 下个 tick 的
+## CommandDrain 抽干应用,Movement 逐格推进,经 actor_position_changed 回流给表演。
+func enqueue_move_player(target_coord: Vector2i) -> void:
+	_command_queue.append({"kind": "move_player", "target": target_coord})
+
+
+## tick 第一阶段(CommandDrain System 调):抽干命令队列,应用为 world actor 移动意图。
+func drain_commands() -> void:
+	while not _command_queue.is_empty():
+		var cmd := _command_queue.pop_front() as Dictionary
+		if str(cmd.get("kind", "")) == "move_player":
+			_apply_move_player_command(cmd.get("target", Vector2i.ZERO) as Vector2i)
+
+
+## latest-wins(方案 A):新目标 → 走完正在进入的当前格(occupant 自然 flip 到 moving_to),
+## moving_to 之后的旧路立即丢弃换 astar(moving_to, target);静止则从当前格起步。
+func _apply_move_player_command(target_coord: Vector2i) -> void:
+	var player := get_world_actor(InkMonWorldGrid.PLAYER_ID)
+	if player == null or overworld_grid == null:
+		return
+	var resolved := overworld_grid.resolve_target_for_actor(InkMonWorldGrid.PLAYER_ID, target_coord)
+	if not bool(resolved.get("ok", false)):
+		return
+	var resolved_target := resolved.get("target", target_coord) as Vector2i
+	if player.is_moving():
+		# 正在进入的当前格不打断;只替换 moving_to 之后的路。
+		player.pending_path = overworld_grid.find_path(InkMonWorldGrid.PLAYER_ID, player.moving_to.to_axial(), resolved_target)
+	else:
+		var path := overworld_grid.find_path(InkMonWorldGrid.PLAYER_ID, player.hex_position.to_axial(), resolved_target)
+		if path.is_empty():
+			return
+		player.moving_to = HexCoord.new(path[0].x, path[0].y)
+		player.pending_path = path.slice(1)
+		player.move_progress = 0.0
+
+
+## tick 第二阶段(Movement System 调):推进每个移动中 world actor 的进度,逐格跨越。
+func advance_world_movement(dt: float) -> void:
+	var player_crossed := false
+	for actor_value in world_actors.values():
+		var actor := actor_value as InkMonWorldActor
+		if actor == null or not actor.is_moving():
+			continue
+		if _advance_actor_movement(actor, dt):
+			player_crossed = true
+	if player_crossed:
+		refresh_near_npc()
+
+
+## 推进单个 actor 的逐格移动:progress += dt/步时长;≥1 → occupant 跨一格 + emit signal + 取下一格。
+## 返回本帧是否至少跨了一格(用于触发 near-npc 重算)。
+func _advance_actor_movement(actor: InkMonWorldActor, dt: float) -> bool:
+	if STEP_DURATION <= 0.0:
+		return false
+	actor.move_progress += dt / STEP_DURATION
+	var crossed := false
+	while actor.move_progress >= 1.0 and actor.is_moving():
+		var from_cell := actor.hex_position
+		var to_cell := actor.moving_to
+		if not overworld_grid.move_occupant(from_cell.to_axial(), to_cell.to_axial()):
+			# 目标格意外被占(静止 NPC + find_path 下不该发生);停在当前格。
+			actor.moving_to = HexCoord.invalid()
+			actor.move_progress = 0.0
+			break
+		actor.hex_position = to_cell
+		actor_position_changed.emit(actor.get_id(), from_cell, to_cell)
+		crossed = true
+		actor.move_progress -= 1.0
+		if not actor.pending_path.is_empty():
+			var next := actor.pending_path[0]
+			actor.pending_path = actor.pending_path.slice(1)
+			actor.moving_to = HexCoord.new(next.x, next.y)
+		else:
+			actor.moving_to = HexCoord.invalid()
+			actor.move_progress = 0.0
+	return crossed
 
 
 ## 运行时玩家位置真相 = 主世界 grid 的 occupant(§3 不双写)。grid 未建时回退存档字段。

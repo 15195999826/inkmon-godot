@@ -23,6 +23,9 @@ enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
 # 手动存档点 + 可多槽 (§8b); 战斗结果不自动落盘, 玩家开 save 菜单存某槽。
 const SAVE_SLOT_COUNT := 3
+## 主世界逻辑固定步频(§0.5):Host 每帧按累加器泵 GameWorld.tick_all(FIXED_DT)。
+const FIXED_DT := 1.0 / 30.0
+const MAX_TICKS_PER_FRAME := 8
 
 ## session 真相在 Logic(InkMonWorldGI.session);Host 只读委托(单一所有权,§0.5)。
 var session: InkMonGameSession:
@@ -33,6 +36,8 @@ var last_battle_result: Dictionary = {}
 
 var _active_instance_id := ""
 var _world_gi: InkMonWorldGI = null
+## 主世界定步泵的真实时间累加器(满 FIXED_DT 泵一 tick)。
+var _tick_accumulator := 0.0
 var _event_log: Array[String] = []
 var _dev_agent_bridge: Node = null
 var _active_npc_id := ""
@@ -100,10 +105,24 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_layout_ui()
-	if _active_instance_id == "":
+	if _active_instance_id != "":
+		_tick_active_instance(delta)
+		_complete_battle_if_ready()
 		return
-	_tick_active_instance(delta)
-	_complete_battle_if_ready()
+	_pump_world_ticks(delta)
+
+
+## 主世界 30Hz 定步泵(§0.5):累加真实 delta,每满 FIXED_DT 泵一次 GameWorld.tick_all
+## → WorldGI.base_tick → CommandDrain/Movement System 逐格推进。封顶防 spiral-of-death。
+func _pump_world_ticks(delta: float) -> void:
+	if _world_gi == null:
+		return
+	_tick_accumulator += delta
+	var ticks := 0
+	while _tick_accumulator >= FIXED_DT and ticks < MAX_TICKS_PER_FRAME:
+		_tick_accumulator -= FIXED_DT
+		GameWorld.tick_all(FIXED_DT)
+		ticks += 1
 
 
 func start_training_battle() -> Dictionary:
@@ -187,6 +206,7 @@ func get_dev_agent_state() -> Dictionary:
 		"gold": session.player_state.gold if session != null and session.player_state != null else -1,
 		"roster_size": session.player_state.roster.size() if session != null and session.player_state != null else 0,
 		"player_coord": _get_player_coord_dict(),
+		"player_moving": _is_player_moving(),
 		"near_npc_id": _near_npc_id,
 		"active_npc_id": _active_npc_id,
 		"panel_open": app_state == AppState.NPC_MENU,
@@ -272,41 +292,24 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 			"message": "cannot move while UI or battle is active",
 			"data": get_dev_agent_state(),
 		}
-	if _world_layer != null and _world_layer.is_move_animation_active():
-		return {
-			"ok": false,
-			"message": "move animation is still playing",
-			"data": get_dev_agent_state(),
-		}
 	if _world_gi == null:
 		return {
 			"ok": false,
 			"message": "world is not ready",
 			"data": get_dev_agent_state(),
 		}
-	# Command(写)入口:Host 转发 UI 移动意图给 Logic(P3 仍同步;P4 改 tick 逐格)。
-	var result := _world_gi.move_player_to(target_coord)
-	_last_move_result = result.duplicate(true)
-	var data := result.get("data", {}) as Dictionary
-	# Logic 已更新 grid occupant (运行真相); 不再往 session 写位置 (§3 不双写)。
-	var final_coord := _coord_from_dict(data.get("final_coord", _get_player_coord_dict()))
-	var resolved_coord := _coord_from_dict(data.get("resolved_target", _get_player_coord_dict()))
-	var path := _path_from_dicts(data.get("path", []) as Array)
-	if bool(result.get("ok", false)):
-		_world_gi.clear_near_npc()
-		if _world_layer != null:
-			_world_layer.play_player_path(path, target_coord, resolved_coord)
-		if _world_layer == null or not _world_layer.is_move_animation_active():
-			_refresh_near_npc()
-	else:
-		_last_ui_message = str(result.get("message", ""))
-		_refresh_near_npc()
+	# Command(写)= 异步唯一入口:入队 move 意图;tick 逐格应用,经 actor_position_changed 回流刷表演。
+	# latest-wins(方案 A):连点不打断当前格,故无"动画播放中"拦截(那条 race 被结构性消灭)。不读返回值。
+	_world_gi.enqueue_move_player(target_coord)
+	_last_move_result = {
+		"target": {"q": target_coord.x, "r": target_coord.y},
+		"enqueued": true,
+	}
+	if _world_layer != null:
+		_world_layer.show_move_target(target_coord)
+	_add_event("move command enqueued to %s,%s" % [target_coord.x, target_coord.y])
 	_refresh_ui()
-	if bool(result.get("ok", false)):
-		_add_event("player move started to %s,%s" % [final_coord.x, final_coord.y])
-	else:
-		_add_event("move rejected: %s" % str(result.get("message", "")))
-	return _scene_result(bool(result.get("ok", false)), str(result.get("message", "")))
+	return _scene_result(true, "move command enqueued")
 
 
 func right_click_at(screen_position: Vector2) -> Dictionary:
@@ -604,6 +607,8 @@ func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
 	) as InkMonWorldGI
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "failed to create InkMonWorldGI")
 	_world_gi.setup_overworld(session_to_use)
+	# 上行:Logic 逐格 mutation signal → 表演 per-step 补间(退整路 tween)。每次重建 GI 重连(旧 GI 销毁信号随之消失)。
+	_world_gi.actor_position_changed.connect(_on_world_actor_position_changed)
 
 
 func _new_game_session() -> InkMonGameSession:
@@ -612,11 +617,13 @@ func _new_game_session() -> InkMonGameSession:
 	return new_session
 
 
-func _on_player_move_animation_finished(final_coord: Vector2i) -> void:
-	# grid occupant 已是真相 (move_controller 更新); 动画结束只刷 UI / NPC 邻近, 不写 session。
-	_refresh_near_npc()
-	_refresh_ui()
-	_add_event("player move animation finished at %s,%s" % [final_coord.x, final_coord.y])
+## 上行 signal handler:玩家逐格跨越 → 表演在相邻两格间补间(≤ STEP_DURATION),非整路 tween。
+func _on_world_actor_position_changed(actor_id: String, old_coord: HexCoord, new_coord: HexCoord) -> void:
+	if _world_layer == null or _world_gi == null:
+		return
+	var player := _world_gi.get_world_actor(InkMonWorldGrid.PLAYER_ID)
+	if player != null and actor_id == player.get_id():
+		_world_layer.step_player(old_coord.to_axial(), new_coord.to_axial())
 
 
 func _cancel_overworld_animation() -> void:
@@ -632,7 +639,6 @@ func _build_world_and_ui() -> void:
 	_world_layer = InkMonWorldView3DScript.new() as InkMonWorldView3D
 	_world_layer.name = "WorldLayer"
 	_world_layer.set_npcs(_npc_defs)
-	_world_layer.player_move_animation_finished.connect(_on_player_move_animation_finished)
 	add_child(_world_layer)
 
 	_hud_layer = CanvasLayer.new()
@@ -1162,6 +1168,14 @@ func _get_player_coord() -> Vector2i:
 	return _world_gi.get_player_coord() if _world_gi != null else Vector2i.ZERO
 
 
+## 玩家是否在逐格移动中(Logic is_moving 查询)。
+func _is_player_moving() -> bool:
+	if _world_gi == null:
+		return false
+	var player := _world_gi.get_world_actor(InkMonWorldGrid.PLAYER_ID)
+	return player != null and player.is_moving()
+
+
 func _get_player_coord_dict() -> Dictionary:
 	var coord := _get_player_coord()
 	return {
@@ -1189,7 +1203,8 @@ func _is_modal_open() -> bool:
 
 
 func _is_field_input_blocked() -> bool:
-	return _drawer_mode != "" or _is_modal_open() or (_world_layer != null and _world_layer.is_move_animation_active())
+	# latest-wins:移动中也接受新 move command(不拦截);只有 UI 抽屉/弹窗挡 field 输入。
+	return _drawer_mode != "" or _is_modal_open()
 
 
 func _get_bag_snapshot() -> Array[Dictionary]:
