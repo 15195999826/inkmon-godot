@@ -97,8 +97,9 @@ func setup_overworld(p_session: InkMonGameSession) -> void:
 	_build_npc_handlers()
 	overworld_grid = InkMonWorldGrid.new()
 	overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
-	# load 侧读: 用存档字段把玩家放到 grid(此后 grid occupant 即运行真相, §3 不双写)。
-	overworld_grid.sync_occupants(saved_player_coord(), npc_defs)
+	# load/new-game 侧:从 session 把玩家 + NPC 灌回 grid occupant(§3 单读不双写)。
+	# actor 此刻未生成,hydrate 的 actor 同步被跳过;紧随的 _spawn_world_actors 据 grid 把玩家 actor 放对位。
+	hydrate_from_session()
 	overworld_grid_model = overworld_grid.model
 	grid = overworld_grid.model
 	_register_world_systems()
@@ -212,8 +213,9 @@ func saved_player_coord() -> Vector2i:
 	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
 
 
-## save 侧:把运行时 grid 位置写回存档字段一次(§3 不双写;P7 会并入 capture_to_session)。
-func sync_player_coord_to_session() -> void:
+## capture(save 侧,P7):把运行时世界态(玩家 occupant 位置)写回持有的 session 存档字段一次。
+## 单写不双写(§3):移动期间绝不写 session,只有 capture(save 触发)写这一次。
+func capture_to_session() -> void:
 	if session == null or session.player_state == null:
 		return
 	var coord := get_player_coord()
@@ -221,6 +223,22 @@ func sync_player_coord_to_session() -> void:
 		"q": coord.x,
 		"r": coord.y,
 	}
+
+
+## hydrate(load/new-game 侧,P7):把 session 存档字段灌回运行时世界态 —— 玩家 + NPC occupant,
+## 且玩家 actor hex_position 同步到存档坐标、清在途移动态。单读不双写(§3)。
+## setup_overworld 内调用时玩家 actor 尚未 spawn(get_world_actor 返回 null,actor 同步跳过)。
+func hydrate_from_session() -> void:
+	if overworld_grid == null:
+		return
+	var coord := saved_player_coord()
+	overworld_grid.sync_occupants(coord, npc_defs)
+	var player := get_world_actor(InkMonWorldGrid.PLAYER_ID)
+	if player != null:
+		player.hex_position = HexCoord.new(coord.x, coord.y)
+		player.moving_to = HexCoord.invalid()
+		player.move_progress = 0.0
+		player.pending_path = []
 
 
 ## 重算与玩家相邻(axial 距离 ≤1)的 NPC;写入 near_npc_id("" = 无邻近)。

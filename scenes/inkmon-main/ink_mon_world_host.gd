@@ -459,15 +459,12 @@ func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
-	# save 侧: 把运行时 grid 玩家位置写回存档字段一次, 再序列化 (§3 不双写)。
+	# save = Host 控台操作(非 command):capture(运行时→session 单写)→ InkMonSaveFile 落盘。
 	if _world_gi != null:
-		_world_gi.sync_player_coord_to_session()
-	var save_data := session.to_dict()
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file == null:
-		return _scene_result(false, "save open failed: %s" % str(FileAccess.get_open_error()))
-	file.store_string(JSON.stringify(save_data, "\t"))
-	file.close()
+		_world_gi.capture_to_session()
+	var write_result := InkMonSaveFile.write(save_path, session)
+	if not bool(write_result.get("ok", false)):
+		return _scene_result(false, str(write_result.get("message", "save failed")))
 	_add_event("saved game: %s" % save_path)
 	return _scene_result(true, "saved game")
 
@@ -493,17 +490,11 @@ func _slot_path(slot: int) -> String:
 
 
 func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
-	if not FileAccess.file_exists(save_path):
-		return _scene_result(false, "save not found: %s" % save_path)
-	var file := FileAccess.open(save_path, FileAccess.READ)
-	if file == null:
-		return _scene_result(false, "load open failed: %s" % str(FileAccess.get_open_error()))
-	var text := file.get_as_text()
-	file.close()
-	var parsed: Variant = JSON.parse_string(text)
-	var data := parsed as Dictionary
-	if data == null:
-		return _scene_result(false, "save json is not an object")
+	# load = Host 控台操作:InkMonSaveFile 读 → from_dict → 重建 world(setup_overworld 内 hydrate)。
+	var read_result := InkMonSaveFile.read(save_path)
+	if not bool(read_result.get("ok", false)):
+		return _scene_result(false, str(read_result.get("message", "load failed")))
+	var data := read_result.get("data", {}) as Dictionary
 
 	var loaded_session := InkMonGameSession.new()
 	var save_loaded := loaded_session.from_dict(data)
