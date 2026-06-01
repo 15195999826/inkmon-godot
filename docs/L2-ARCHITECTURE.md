@@ -12,11 +12,64 @@
 
 ---
 
+## 0.5 主世界运行模型 = 同步 tick + command + 三层 Host (2026-06-01 grill 反转)
+
+> **本节 reverses §1① 的"即时同步移动"与 §4 的"❌ 不借 command queue"。** 主世界改成 dota2-auto-battle 式同步 tick:输入 → command → 逻辑 tick 推进世界态 → 表演据 event 渲染。§1①/§4 的旧表述按本节理解。术语见 `CONTEXT.md`(World Actor 层级 / 主世界 Command·Query / 主世界三层+Host 三条)。
+
+### 三层 + Host
+
+```
+┌──────────────────────────────────────────────────┐
+│  Host (InkMonWorldHost ← 原 InkMonGameDirector)    │  composition root,在 logic/presentation 之上
+│  建两孩子 + 接线(连 command↓ / event↑) +            │  不参与 command/event 对等流
+│  生命周期(save/load/new-game/reset = 重建孩子) +     │
+│  tick 泵(GameWorld.tick_all(FIXED_DT))              │
+└─────────────┬────────────────────────┬─────────────┘
+          creates                  creates
+              ▼                        ▼
+   ┌──────────────────────┐ command↓ ┌──────────────────┐
+   │ Logic                │ ◄─────── │ Presentation      │
+   │ GameWorld (autoload) │  event↑  │ View3D / HUD /     │
+   │  └ InkMonWorldGI     │ ───────► │ drawer / modal     │
+   │     └ session /       │          │                   │
+   │       world actors /  │          │                   │
+   │       systems /       │          │                   │
+   │       overworld grid  │          │                   │
+   └──────────────────────┘          └──────────────────┘
+```
+
+- **两轴别混**:数据流(运行时)= **双向**(command 下 / event 上 ⇒ "感觉平级");代码依赖 = **单向 DAG**(Presentation→Logic;Logic 谁都不依赖、永不引用 UI;Host→两者)。⇒ Logic 是地基,Presentation 长其上,Host 在两者之上;lifecycle 重建归 Host(它建了两孩子),**非**"表演层重建逻辑层"。
+- **嵌套两 Host(§6b)**:外 `InkMonMain`(切屏 + 选 session)/ 内 `InkMonWorldHost`(建 world+view + lifecycle)。
+
+### 读写 = CQRS
+
+- **Query(读)= 同步**:UI 渲染直接调 WorldGI 只读方法(roster / gold / near-npc / 列表 enabled)。
+- **Command(写)= 异步唯一入口**:UI 改任何游戏/世界/存档态 → enqueue → tick 应用 → 结果经 event/signal 回流 → UI 被动刷(**不读返回值**)。纯 UI 状态(切 tab / 抽屉 / modal / 相机 / 菜单开着)**不算 command**,留表演本地(于是旧 `app_state` 拆成 WorldGI 的战斗 MODE + 表演的面板态)。
+- ⚠️ 此 "Command" ≠ battle 层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。上行仍用 WorldGI mutation signal,**不建全局 EventBus**。
+- **lifecycle(save/load/new-game/reset)= Host 控台操作,不进 command 队列**(它销毁/重建世界本身):save = `world.capture_to_session()` + `session.to_dict` + IO;load = IO + `session.from_dict` + 重建 world + `world.hydrate_from_session()`。
+
+### tick / 移动模型
+
+- 逻辑 **固定 30Hz**(FIXED_DT)。Host 每帧 `GameWorld.tick_all(FIXED_DT)` → `WorldGI.tick` → 无战斗走 `base_tick` → tick 注册的 System(CommandDrain → Movement);有战斗走基类阻塞 battle 分支(一帧跑完,record-then-playback 不变)。**零 addon 改动**(base_tick + mutation signal 都是基类现成的)。
+- **玩家/NPC = `InkMonWorldActor`**(进 GI registry),移动用基类 mutation signal `actor_position_changed` 喂表演。
+- **离散跳格 + view 补间**:world actor 逻辑态 = `{cell(=occupant), moving_to, progress∈[0,1), pending_path}`。每 tick `progress += dt/步时长(≈0.22s)`;`≥1` → occupant 跨一格 + emit `actor_position_changed(cell, moving_to)`,view 在两格间补间(≤0.22s)。**逻辑真相永远是离散 hex 格**,只多一个进度标量,**非**连续浮点(sim-nav 不借)。
+- **连点重算(latest-wins,方案 A)**:新 command → 走完正在进入的当前格(occupant 自然 flip 到 moving_to)→ moving_to 之后的旧路立刻丢弃换 `astar(moving_to, target)`。view 永不被打断(只补间相邻已提交格)⇒ 零 snap / 零竞态(`_assert_load_during_move` 那类 race 被结构性消灭),表演 correct-by-construction。
+
+### 命名(2026-06-01 grill)
+
+- 主世界代码前缀统一 `InkMonWorld*`(非 `InkMonOverworld*`,待重命名)。
+- World actor 层级:`InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(+ 死亡 / ability)→ `InkMonUnitActor`。玩家/NPC = `InkMonWorldActor`;`hex_position` 从 `InkMonBattleActor` 上移到基类。
+- `InkMonGameDirector` → `InkMonWorldHost`(它是 Host,非表演层)。
+
+---
+
 ## 1. 三块架构(互不混)
 
 对标 hex-atb-battle:它只有 ② battle 那一块;inkmon 主游戏多了 ① overworld 和 ③ session。
 
 ### ① 主世界 (Overworld) — hex 网格世界（现状方向基本对）
+
+> ⚠️ **移动模型已被 §0.5 反转(2026-06-01 grill)**:从"即时同步 `move_actor_to` + tween 追"改为"command → 30Hz tick 逐格推进 → event 驱动 view";玩家从"轻 occupant"升级为轻 `InkMonWorldActor`(仍无 ability/timeline)。本节 occupant/即时移动旧表述按 §0.5 理解。
 
 - 形态:玩家角色行走、承载 6 个 System NPC 的 **hex 网格世界**(= lab 设计真相)。
 - 移动:点目标 → **grid 插件寻路** → 沿路径逐步移动 → emit 事件 → 动画。
@@ -71,7 +124,7 @@
 3. 规则按模块分块(NPC 规则住进各 handler)。
 
 - 上行(逻辑→UI)= signal:battle 用 WorldGI 内建 mutation signal;overworld 用普通 Godot signal。UI connect 被动刷新。
-- ❌ 不借:ngnl 的 Command queue / 全局 EventBus autoload / System 基类 —— inkmon battle 已用 LGF event 系统,叠第二套会打架;且这些解决的是 inkmon 没有的问题。
+- ⚠️ **部分反转(§0.5, 2026-06-01 grill)**:主世界**改为采用 command(队列)+ System 驱动同步 tick**(见 §0.5),此处"不借 Command queue"已作废。仍**不借**:全局 EventBus autoload(上行仍用 WorldGI mutation signal,不建第二套总线)。"System 基类"= 复用 LGF `base_tick` 注册的 `System`,非另造一套。
 
 ---
 

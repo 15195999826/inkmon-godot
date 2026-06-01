@@ -43,6 +43,20 @@ L2 主游戏层 (现 `app_root.gd` 1593 行 God object) 的重构参照系 = ngn
 - ❌ 不借: Command queue (主游戏层操作是即时同步, 无需 ngnl 那种"延迟到 tick"的队列); 全局 EventBus autoload (会与 battle 层 LGF event 系统两套打架); System 基类 (规则用 handler 表达即可)。
 _Avoid_: 把"喜欢 ngnl 划分"解读成照搬其运行时机制。详见 memory [[feedback_anti_overengineering_inkmon]]。
 
+**主世界 (InkMonWorld) + World Actor 层级 (2026-06-01 grill 拍板)**:
+"主世界" = 非战斗的 hex 行走世界 (玩家 + 6 NPC)。**代码前缀统一 `InkMonWorld*`,不用 `InkMonOverworld*`** —— `Overworld` 是早期 AI 误读用户"用 InkMonWorld 表达主世界"造的,要逐步改回。世界里**一切有位置的实体都是 `InkMonWorldActor`** (持 `hex_position`);战斗单位是它的特化,层级 = `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`。玩家/NPC = 直接 `InkMonWorldActor` (或薄子类带 npc_type / pending move order)。`hex_position` 从 `InkMonBattleActor` 上移到 `InkMonWorldActor` (位置是三者共有、也是基类 GI `actor_position_changed` 报告的东西);死亡 `_is_dead` 留 `InkMonBattleActor` (主世界实体不死)。
+_Avoid_: `InkMonOverworld*` 前缀 (待重命名); 把"主世界 actor"与"battle actor"当两套不相干类型 (实为基类↔特化)。
+
+**主世界 Command / Query (2026-06-01 grill 拍板)**:
+L2 主世界 UI↔逻辑边界 = CQRS 式两条路。**Query (读)** = UI 同步调 WorldGI 只读方法渲染 (roster/gold/near-npc/列表 enabled),随便读。**Command (写)** = UI 改任何游戏/世界/存档状态的**唯一**入口,异步:enqueue → WorldGI tick 应用 → 结果经 event/signal 回流 → UI 被动刷 (不读返回值)。纯 UI 状态 (切 tab / 开关抽屉 / modal / 相机 / 菜单开着) 不算 command,留表演本地。这条 **reverses** 旧 §4「不借 command queue (即时同步)」(见 docs/L2-ARCHITECTURE.md §4 待改写)。
+⚠️ 与 battle 层区分:此 "Command" 是**主世界输入→世界写**,**不是** LGF battle 的 `Action` (战斗内 Command 模式) 或 `event_processor` 的 `ABILITY_ACTIVATE_EVENT`;两层各自独立,别混为一谈。
+_Avoid_: UI 直接调逻辑 mutation / 同步拿写结果; 把主世界 command 与 battle Action/event 当一回事。
+
+**主世界三层 + Host (2026-06-01 grill 拍板)**:
+L2 主世界 = **三层**,非"逻辑 vs 表演"两层。**Host (导播 = `InkMonWorldHost`)** = composition root,在 logic/presentation **之上**:建两孩子 + 接线 (连 command↓ / event↑ 的线) + 拥有它们的生命周期 (save/load/new-game/reset = 重建孩子) + tick 泵 (`GameWorld.tick_all(FIXED_DT)`);**不参与** command/event 对等流。**Logic** = `GameWorld` (autoload: event_processor + instance registry) → `InkMonWorldGI` → {session, world actors, systems, overworld grid} (+ TimelineRegistry/ItemSystem/UGridMap 等 autoload)。**Presentation** = View3D/HUD/drawer/modal。
+**两轴别混**:数据流 (运行时) = **双向** (command 下 / event 上 ⇒ "感觉平级");代码依赖 = **单向 DAG** (Presentation→Logic;Logic 谁都不依赖、永不引用 UI;Host→两者)。⇒ Logic 是地基,Presentation 长其上,Host 在两者之上。lifecycle 重建归 Host (它建了两孩子),**非**"表演层重建逻辑层"。嵌套两 Host (§6b):外 `InkMonMain` (切屏 + 选 session) / 内 `InkMonWorldHost` (游戏内组装 + lifecycle)。
+_Avoid_: 把 Director 当"表演层" (它是 Host,在表演之上); 把 logic/presentation 当真·平级 (仅数据流平级,依赖不平级)。
+
 ## 主游戏层架构 (L2 — 2026-05-31 grill 拍板)
 
 三块, 互不混 (对标 hex-atb-battle: 它只有 battle 那一块):
@@ -82,6 +96,8 @@ _Avoid_: 现状 100% 代码 `Button.new()` + 零 UI .tscn, 要改。
 ## Flagged ambiguities
 
 - "balance" 在 hex 语境被澄清: 沙盒定位下 = 一致性/可预测/可introspect, 非数值公平 (2026-05-31 grill 确认)。
+- "overworld" 命名 = AI 误读用户"用 InkMonWorld 表达主世界"的产物 (2026-06-01 grill 澄清)。解决: 代码统一 `InkMonWorld*`,prose 用"主世界",现有 `InkMonOverworld*` 待重命名。本文 §1② 早写过"不用英文 overworld",代码一直没跟上。
+- 待重命名 (2026-06-01 grill): `InkMonOverworldGrid/MoveController/View3D → InkMonWorld*`; `InkMonGameDirector → InkMonWorldHost` (它是 composition-root Host,非表演层); 新增 `InkMonWorldActor` 基类 + `hex_position` 从 `InkMonBattleActor` 上移。
 
 ## 文档约定
 
