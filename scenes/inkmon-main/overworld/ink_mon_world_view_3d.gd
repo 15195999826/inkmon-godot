@@ -1,4 +1,4 @@
-class_name InkMonOverworldView3D
+class_name InkMonWorldView3D
 extends Node3D
 
 
@@ -243,7 +243,7 @@ func get_debug_state() -> Dictionary:
 	var visual_position := _player_node.global_position if _player_node != null else Vector3.ZERO
 	var camera_position := _camera.global_position if _camera != null else Vector3.ZERO
 	return {
-		"node_type": "InkMonOverworldView3D",
+		"node_type": "InkMonWorldView3D",
 		"tile_count": _grid_model.get_tile_count() if _grid_model != null else 0,
 		"env_tile_count": _grid_renderer.get_env_tile_count() if _grid_renderer != null else 0,
 		"player_coord": {"q": player_coord.x, "r": player_coord.y},

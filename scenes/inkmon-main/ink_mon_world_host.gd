@@ -1,10 +1,10 @@
-class_name InkMonGameDirector
+class_name InkMonWorldHost
 extends Node
 
 
 const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
 const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main_agent_ops.gd")
-const InkMonOverworldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_overworld_view_3d.gd")
+const InkMonWorldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_world_view_3d.gd")
 
 # UI 动态列表组件场景 (§6: 动态列表用 instantiate 组件场景)。
 const RosterChipScene := preload("res://scenes/inkmon-main/ui/components/roster_chip.tscn")
@@ -69,10 +69,10 @@ var _npc_defs: Dictionary = {
 }
 var _npc_handlers: Dictionary = {}
 
-var _overworld_grid: InkMonOverworldGrid
-var _move_controller: InkMonOverworldMoveController
+var _overworld_grid: InkMonWorldGrid
+var _move_controller: InkMonWorldMoveController
 var _last_move_result: Dictionary = {}
-var _world_layer: InkMonOverworldView3D
+var _world_layer: InkMonWorldView3D
 var _hud_layer: CanvasLayer
 var _hud_root: Control
 var _gold_label: Label
@@ -107,7 +107,7 @@ var _modal_open_requested := false
 
 
 func _ready() -> void:
-	name = "GameDirector"
+	name = "WorldHost"
 	session = InkMonGameSession.new()
 	session.begin_new_game()
 	GameWorld.init(EventProcessorConfig.new(20, 1))
@@ -141,7 +141,7 @@ func start_training_battle() -> Dictionary:
 		}
 
 	# 持久 world GI 内起战斗 procedure (不再 per-battle create→destroy)。
-	Log.assert_crash(_world_gi != null, "InkMonGameDirector", "world GI not initialized before battle")
+	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "world GI not initialized before battle")
 	_active_instance_id = _world_gi.id
 	app_state = AppState.BATTLE
 	_world_gi.start_battle_procedure({
@@ -313,7 +313,7 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 			"message": "overworld move controller is not ready",
 			"data": get_dev_agent_state(),
 		}
-	var result := _move_controller.move_actor_to(InkMonOverworldGrid.PLAYER_ID, target_coord)
+	var result := _move_controller.move_actor_to(InkMonWorldGrid.PLAYER_ID, target_coord)
 	_last_move_result = result.duplicate(true)
 	var data := result.get("data", {}) as Dictionary
 	# move_controller 已更新 grid occupant (运行真相); 不再往 session 写位置 (§3 不双写)。
@@ -627,14 +627,14 @@ func _setup_overworld_runtime() -> void:
 	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
-	Log.assert_crash(_world_gi != null, "InkMonGameDirector", "failed to create InkMonWorldGI")
+	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "failed to create InkMonWorldGI")
 	# 主世界 grid wrapper 归 main 层所有; 只把底层 GridMapModel bind 给 world GI 做 active 切换。
-	_overworld_grid = InkMonOverworldGrid.new()
-	_overworld_grid.setup(InkMonOverworldGrid.MAP_RADIUS)
+	_overworld_grid = InkMonWorldGrid.new()
+	_overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
 	# load 侧读: 用存档字段把玩家放到 grid (此后 grid occupant 即运行真相)。
 	_overworld_grid.sync_occupants(_saved_player_coord(), _npc_defs)
 	_world_gi.bind_overworld_grid(_overworld_grid.model)
-	_move_controller = InkMonOverworldMoveController.new()
+	_move_controller = InkMonWorldMoveController.new()
 	_move_controller.setup(_overworld_grid)
 	# move_completed 不再订阅: grid occupant 即玩家位置真相, 无需回写 session (§3)。
 	_move_controller.move_rejected.connect(_on_overworld_move_rejected)
@@ -657,12 +657,12 @@ func _cancel_overworld_animation() -> void:
 
 
 func _on_overworld_move_rejected(actor_id: String, _from_coord: Vector2i, _target_coord: Vector2i, reason: String) -> void:
-	if actor_id == InkMonOverworldGrid.PLAYER_ID:
+	if actor_id == InkMonWorldGrid.PLAYER_ID:
 		_last_ui_message = reason
 
 
 func _build_world_and_ui() -> void:
-	_world_layer = InkMonOverworldView3DScript.new() as InkMonOverworldView3D
+	_world_layer = InkMonWorldView3DScript.new() as InkMonWorldView3D
 	_world_layer.name = "WorldLayer"
 	_world_layer.set_npcs(_npc_defs)
 	_world_layer.player_move_animation_finished.connect(_on_player_move_animation_finished)

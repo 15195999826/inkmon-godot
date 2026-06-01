@@ -7,7 +7,7 @@ const InkMonMainScene := preload("res://scenes/inkmon-main/ink_mon_game.tscn")
 func _ready() -> void:
 	var status := await _run()
 	if status == "":
-		print("SMOKE_TEST_RESULT: PASS - InkMonGameDirector ran a training battle and returned to overworld")
+		print("SMOKE_TEST_RESULT: PASS - InkMonWorldHost ran a training battle and returned to overworld")
 		get_tree().quit(0)
 	else:
 		print("SMOKE_TEST_RESULT: FAIL - %s" % status)
@@ -15,7 +15,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	var root := InkMonMainScene.instantiate() as InkMonGameDirector
+	var root := InkMonMainScene.instantiate() as InkMonWorldHost
 	add_child(root)
 	await get_tree().process_frame
 
@@ -52,7 +52,7 @@ func _run() -> String:
 	return ""
 
 
-func _assert_shop_flow(root: InkMonGameDirector) -> String:
+func _assert_shop_flow(root: InkMonWorldHost) -> String:
 	var move_result := root.move_player(Vector2i(1, 0))
 	if not bool(move_result.get("ok", false)):
 		return "move to Shop failed"
@@ -92,7 +92,7 @@ func _assert_shop_flow(root: InkMonGameDirector) -> String:
 	return ""
 
 
-func _assert_system_npc_flows(root: InkMonGameDirector) -> String:
+func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
 	var training_result := root.run_npc_action_for("trainer", InkMonTrainingNpcHandler.ACTION_START_BATTLE)
 	if not bool(training_result.get("ok", false)):
 		return "training NPC battle failed: %s" % str(training_result.get("message", ""))
@@ -137,11 +137,11 @@ func _assert_system_npc_flows(root: InkMonGameDirector) -> String:
 	return ""
 
 
-func _assert_multi_slot_save(root: InkMonGameDirector) -> String:
+func _assert_multi_slot_save(root: InkMonWorldHost) -> String:
 	# P8: 多槽存档 —— 存到 slot 2, reset, 从 slot 2 读回深相等。
 	var slots := root.list_save_slots()
-	if slots.size() != InkMonGameDirector.SAVE_SLOT_COUNT:
-		return "list_save_slots should report %d slots" % InkMonGameDirector.SAVE_SLOT_COUNT
+	if slots.size() != InkMonWorldHost.SAVE_SLOT_COUNT:
+		return "list_save_slots should report %d slots" % InkMonWorldHost.SAVE_SLOT_COUNT
 	var saved_gold := root.session.player_state.gold
 	var saved_roster := root.session.player_state.roster.size()
 	if not bool(root.save_to_slot(2).get("ok", false)):
@@ -160,7 +160,7 @@ func _assert_multi_slot_save(root: InkMonGameDirector) -> String:
 	return ""
 
 
-func _assert_save_load(root: InkMonGameDirector) -> String:
+func _assert_save_load(root: InkMonWorldHost) -> String:
 	var save_path := "user://inkmon_l2_smoke_save.json"
 	var saved_gold := root.session.player_state.gold
 	var saved_roster_size := root.session.player_state.roster.size()
@@ -202,7 +202,7 @@ func _bag_has(value: Variant, config_id: String) -> bool:
 	return false
 
 
-func _wait_for_move_animation(root: InkMonGameDirector) -> String:
+func _wait_for_move_animation(root: InkMonWorldHost) -> String:
 	for _i in range(60):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
@@ -229,7 +229,7 @@ func _visual_coord_from_state(state: Dictionary) -> Vector2i:
 	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
 
 
-func _cleanup(root: InkMonGameDirector, status: String) -> String:
+func _cleanup(root: InkMonWorldHost, status: String) -> String:
 	root.queue_free()
 	GameWorld.shutdown()
 	return status

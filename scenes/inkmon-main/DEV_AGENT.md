@@ -16,9 +16,9 @@ godot --path . res://scenes/inkmon-main/InkMonMain.tscn -- --dev-agent --dev-age
 ```
 
 `InkMonMain.tscn` is the thin outer screen router; it boots the inner game
-director (`ink_mon_game.tscn`, node name `GameDirector`) which installs the
+host (`ink_mon_game.tscn`, node name `WorldHost`) which installs the
 DevAgent bridge + scene ops. So the runtime tree is
-`/root/InkMonMain/GameDirector/...`. The scene prints `inbox` and `outbox`
+`/root/InkMonMain/WorldHost/...`. The scene prints `inbox` and `outbox`
 global paths when DevAgent is enabled.
 
 ## Scene Ops
@@ -36,7 +36,7 @@ global paths when DevAgent is enabled.
 | op | args | effect | verify with |
 | --- | --- | --- | --- |
 | `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
-| `goto_tile` | `{ "q": int, "r": int }` | direct business/data move through the same `InkMonOverworldMoveController` used by right-click input, then starts the same player path animation | `state.player_coord`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord`, `state.last_move_result.data.move_events` |
+| `goto_tile` | `{ "q": int, "r": int }` | direct business/data move through the same `InkMonWorldMoveController` used by right-click input, then starts the same player path animation | `state.player_coord`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord`, `state.last_move_result.data.move_events` |
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
@@ -72,7 +72,7 @@ Generic DevAgent ops remain available:
 {"id":"01","op":"scene","name":"state"}
 {"id":"02","op":"scene","name":"run_training_battle","args":{"max_ticks":8}}
 {"id":"03","op":"scene","name":"state"}
-{"id":"04","op":"inspect_tree","root":"/root/InkMonMain/GameDirector","max_depth":3}
+{"id":"04","op":"inspect_tree","root":"/root/InkMonMain/WorldHost","max_depth":3}
 {"id":"05","op":"scene","name":"npc_action","args":{"npc_id":"cultivation","action_id":"cultivate_lead"}}
 {"id":"06","op":"scene","name":"save_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
 {"id":"07","op":"scene","name":"load_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}

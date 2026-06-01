@@ -7,7 +7,7 @@ extends WorldGameplayInstance
 ##   - overworld_grid_model: 主世界 hex 网格 model (由 main 层 bind 进来; 玩家行走 + NPC)
 ##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
 ## `grid` (基类字段) = 当前 active 的那套; start_battle_procedure 切到 battle, 战斗结束切回 overworld。
-## 注: 只持 addon 层 GridMapModel, 不引 main 层 InkMonOverworldGrid wrapper (保 battle 不依赖 main)。
+## 注: 只持 addon 层 GridMapModel, 不引 main 层 InkMonWorldGrid wrapper (保 battle 不依赖 main)。
 ##
 ## 持久: app_root 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
 ## (start_battle_procedure 内 reset-on-start 清上一场)。绝不在战斗结束 end() —— end() 单向销毁世界。

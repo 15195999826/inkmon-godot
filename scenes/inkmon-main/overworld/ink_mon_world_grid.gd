@@ -1,4 +1,4 @@
-class_name InkMonOverworldGrid
+class_name InkMonWorldGrid
 extends RefCounted
 
 
@@ -22,7 +22,7 @@ func setup(radius: int = MAP_RADIUS) -> void:
 
 
 func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
-	Log.assert_crash(model != null, "InkMonOverworldGrid", "grid model is not initialized")
+	Log.assert_crash(model != null, "InkMonWorldGrid", "grid model is not initialized")
 	for coord in model.get_all_coords():
 		model.remove_occupant(coord)
 		model.cancel_reservation(coord)
@@ -36,11 +36,11 @@ func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
 		var npc_coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
 		if has_coord(npc_coord):
 			var placed := model.place_occupant(_to_hex(npc_coord), "npc:%s" % npc_id)
-			Log.assert_crash(placed, "InkMonOverworldGrid", "failed to place NPC occupant: %s" % npc_id)
+			Log.assert_crash(placed, "InkMonWorldGrid", "failed to place NPC occupant: %s" % npc_id)
 
 	if has_coord(player_coord):
 		var placed_player := model.place_occupant(_to_hex(player_coord), PLAYER_ID)
-		Log.assert_crash(placed_player, "InkMonOverworldGrid", "failed to place player occupant")
+		Log.assert_crash(placed_player, "InkMonWorldGrid", "failed to place player occupant")
 
 
 func get_player_coord() -> Vector2i:

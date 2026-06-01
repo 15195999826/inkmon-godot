@@ -22,11 +22,11 @@ func get_supported_ops() -> PackedStringArray:
 
 
 func run_scene_op(op_name: StringName, args: Dictionary) -> Dictionary:
-	var app_root := get_parent() as InkMonGameDirector
+	var app_root := get_parent() as InkMonWorldHost
 	if app_root == null:
 		return {
 			"ok": false,
-			"message": "InkMonMainAgentOps must be a child of InkMonGameDirector",
+			"message": "InkMonMainAgentOps must be a child of InkMonWorldHost",
 		}
 
 	match String(op_name):
@@ -57,8 +57,8 @@ func run_scene_op(op_name: StringName, args: Dictionary) -> Dictionary:
 		"npc_action":
 			return app_root.run_npc_action_for(str(args.get("npc_id", "")), str(args.get("action_id", "")))
 		"save_game":
-			return app_root.save_game(str(args.get("path", InkMonGameDirector.DEFAULT_SAVE_PATH)))
+			return app_root.save_game(str(args.get("path", InkMonWorldHost.DEFAULT_SAVE_PATH)))
 		"load_game":
-			return app_root.load_game(str(args.get("path", InkMonGameDirector.DEFAULT_SAVE_PATH)))
+			return app_root.load_game(str(args.get("path", InkMonWorldHost.DEFAULT_SAVE_PATH)))
 		_:
 			return super.run_scene_op(op_name, args)

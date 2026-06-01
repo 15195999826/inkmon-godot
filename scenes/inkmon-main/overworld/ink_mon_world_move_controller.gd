@@ -1,4 +1,4 @@
-class_name InkMonOverworldMoveController
+class_name InkMonWorldMoveController
 extends RefCounted
 
 
@@ -8,18 +8,18 @@ signal move_completed(actor_id: String, from_coord: Vector2i, to_coord: Vector2i
 signal move_rejected(actor_id: String, from_coord: Vector2i, target_coord: Vector2i, reason: String)
 
 
-var grid: InkMonOverworldGrid
+var grid: InkMonWorldGrid
 var last_event_log: Array[Dictionary] = []
 
 
-func setup(p_grid: InkMonOverworldGrid) -> void:
-	Log.assert_crash(p_grid != null, "InkMonOverworldMoveController", "grid cannot be null")
+func setup(p_grid: InkMonWorldGrid) -> void:
+	Log.assert_crash(p_grid != null, "InkMonWorldMoveController", "grid cannot be null")
 	grid = p_grid
 	last_event_log.clear()
 
 
 func move_actor_to(actor_id: String, requested_target: Vector2i) -> Dictionary:
-	Log.assert_crash(grid != null, "InkMonOverworldMoveController", "grid is not configured")
+	Log.assert_crash(grid != null, "InkMonWorldMoveController", "grid is not configured")
 	last_event_log.clear()
 
 	var from_coord := grid.find_actor_coord(actor_id)
@@ -62,7 +62,7 @@ func move_actor_to(actor_id: String, requested_target: Vector2i) -> Dictionary:
 		move_completed.emit(actor_id, current, step)
 		current = step
 
-	var message := "player moved" if actor_id == InkMonOverworldGrid.PLAYER_ID else "actor moved"
+	var message := "player moved" if actor_id == InkMonWorldGrid.PLAYER_ID else "actor moved"
 	return _result(true, message, requested_target, resolved_target, path, bool(target_result.get("retargeted", false)), occupant_before)
 
 

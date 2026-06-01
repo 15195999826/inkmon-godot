@@ -9,7 +9,7 @@ extends Node
 
 const GameScene := preload("res://scenes/inkmon-main/ink_mon_game.tscn")
 
-var _game_director: InkMonGameDirector = null
+var _game_director: InkMonWorldHost = null
 
 
 func _ready() -> void:
@@ -20,9 +20,9 @@ func _ready() -> void:
 func _enter_game() -> void:
 	if _game_director != null:
 		return
-	_game_director = GameScene.instantiate() as InkMonGameDirector
+	_game_director = GameScene.instantiate() as InkMonWorldHost
 	add_child(_game_director)
 
 
-func get_game_director() -> InkMonGameDirector:
+func get_game_director() -> InkMonWorldHost:
 	return _game_director
