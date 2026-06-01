@@ -18,6 +18,10 @@ var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
 var damage_mod_seen := false
 var overworld_grid_model: GridMapModel = null
+## 主世界角色(玩家 + NPC)= InkMonWorldActor,key = "player" 或 npc_id。
+## 战斗单位不进此表(走 left_team/right_team);这些只是世界态实体,战斗对其隐形
+## (不 equip ability、不注册 event handler,故战斗 tick / event 广播都碰不到)。
+var world_actors: Dictionary = {}
 
 var _ended := false
 var _result := ""
@@ -38,6 +42,25 @@ func bind_overworld_grid(model: GridMapModel) -> void:
 	_ensure_started()
 	overworld_grid_model = model
 	grid = model
+
+
+## 注册一个主世界角色(玩家 / NPC)为 InkMonWorldActor 进 registry。
+## key = 调方约定的稳定标识("player" 或 npc_id),用于 query / movement 回查。
+## 只收 string key + coord,不引 main 层 grid wrapper(保 battle 不依赖 main)。
+func spawn_world_actor(key: String, display_name: String, coord: Vector2i) -> InkMonWorldActor:
+	_ensure_started()
+	var actor := InkMonWorldActor.new()
+	actor.type = "inkmon_world_actor"
+	actor.set_display_name(display_name)
+	actor.hex_position = HexCoord.new(coord.x, coord.y)
+	add_actor(actor)
+	world_actors[key] = actor
+	return actor
+
+
+## 按稳定 key 取主世界角色(玩家 / NPC);不存在返回 null。
+func get_world_actor(key: String) -> InkMonWorldActor:
+	return world_actors.get(key, null) as InkMonWorldActor
 
 
 ## 在本 world GI 内起一场战斗 (procedure 模式)。可重复调用 (reset-on-start 清上一场)。

@@ -25,6 +25,10 @@ func _run() -> String:
 	if int(initial_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD:
 		return _cleanup(root, "new game gold should be default")
 
+	var world_actor_status := _assert_world_actors_registered(root)
+	if world_actor_status != "":
+		return _cleanup(root, world_actor_status)
+
 	var shop_status := await _assert_shop_flow(root)
 	if shop_status != "":
 		return _cleanup(root, shop_status)
@@ -49,6 +53,28 @@ func _run() -> String:
 
 	root.queue_free()
 	await get_tree().process_frame
+	return ""
+
+
+## P2: 玩家 + 6 NPC 注册为 InkMonWorldActor 进唯一 world GI registry,
+## hex_position 住基类(玩家 actor 是 base InkMonWorldActor,非 battle actor)。
+func _assert_world_actors_registered(root: InkMonWorldHost) -> String:
+	var world_gi := root._world_gi
+	if world_gi == null:
+		return "world GI should exist at boot"
+	var actors := world_gi.world_actors as Dictionary
+	if actors.size() != 7:
+		return "should register 7 world actors (player + 6 NPC), got %d" % actors.size()
+	var player_actor := world_gi.get_world_actor("player")
+	if player_actor == null:
+		return "player world actor should be registered under 'player'"
+	if player_actor is InkMonBattleActor:
+		return "player world actor must be base InkMonWorldActor, not a battle actor"
+	if not player_actor.hex_position.is_valid():
+		return "player world actor should hold a valid hex_position on the base class"
+	var shop_actor := world_gi.get_world_actor("shop")
+	if shop_actor == null or shop_actor.hex_position.to_axial() != Vector2i(2, 0):
+		return "shop NPC world actor should sit at its defined coord"
 	return ""
 
 

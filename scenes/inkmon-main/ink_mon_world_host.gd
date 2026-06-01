@@ -634,10 +634,28 @@ func _setup_overworld_runtime() -> void:
 	# load 侧读: 用存档字段把玩家放到 grid (此后 grid occupant 即运行真相)。
 	_overworld_grid.sync_occupants(_saved_player_coord(), _npc_defs)
 	_world_gi.bind_overworld_grid(_overworld_grid.model)
+	# 玩家 + NPC 进 GI registry 为 InkMonWorldActor(世界态实体)。移动暂仍走 grid occupant,
+	# P4 才让 actor.hex_position 成为推进真相;此处只建注册 + 初始位置,行为不变。
+	_spawn_world_actors()
 	_move_controller = InkMonWorldMoveController.new()
 	_move_controller.setup(_overworld_grid)
 	# move_completed 不再订阅: grid occupant 即玩家位置真相, 无需回写 session (§3)。
 	_move_controller.move_rejected.connect(_on_overworld_move_rejected)
+
+
+## 玩家 + 6 NPC 注册为 InkMonWorldActor 进唯一 world GI registry。
+## key = grid occupant 同款稳定标识(player / npc_id),便于 P3/P4 query 回查。
+func _spawn_world_actors() -> void:
+	if _world_gi == null:
+		return
+	_world_gi.spawn_world_actor(InkMonWorldGrid.PLAYER_ID, "Player", _get_player_coord())
+	for npc_id_value in _npc_defs.keys():
+		var npc_id := str(npc_id_value)
+		var npc_def := _npc_defs[npc_id] as Dictionary
+		if npc_def == null:
+			continue
+		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
+		_world_gi.spawn_world_actor(npc_id, str(npc_def.get("display_name", npc_id)), coord)
 
 
 func _on_player_move_animation_finished(final_coord: Vector2i) -> void:

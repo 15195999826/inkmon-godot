@@ -15,6 +15,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 ## Phase Decisions
 
 - Phase 1 decisions: TDD=no(纯机械改名,既有 inkmon smoke 是回归网,无新行为可先写测试); smoke-test=yes(全 inkmon 组回归确认行为不变 + reimport 后无 Parse Error)。范围:4 类名(InkMonOverworldGrid/MoveController/View3D→InkMonWorld*,InkMonGameDirector→InkMonWorldHost)+ 同名 .gd/.uid 文件 + 全引用 + .tscn ext_resource/节点名 + preload 路径 + debug node_type 字符串 + smoke PASS 文案 + DEV_AGENT.md 节点路径。保留 `overworld/` 目录与 `overworld_3d`/`overworld`/test-group 小写名词。
+- Phase 2 decisions: TDD=no(class 层级重构机械;玩家/NPC 注册是行为不变 scaffolding —— 战斗对 world actor 隐形已由基类契约分析证明,无需 red-green); smoke-test=yes(全 inkmon 组 + -Required 回归;app-root smoke 加一条 boot 注册断言锚定「玩家/NPC 进 registry」deliverable,m1 战斗即 hex_position 经继承在战斗可用的回归证)。范围:新 InkMonWorldActor(hex_position + _get_position 下沉)/InkMonBattleActor extends 之/InkMonWorldGI 加 world_actors 表 + spawn_world_actor/get_world_actor/Host _spawn_world_actors 接线。
 - (每相位开工前一行:`Phase <N> decisions: TDD=<yes/no,reason>; smoke-test=<yes/no,reason>`)
 - 预判(开工时正式确认并覆写):
   - P1/P2(改名+层级)= TDD no(机械重构,既有 smoke 是回归网); smoke yes(全 inkmon 组回归)
@@ -28,6 +29,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 ## Checkpoints
 
 - (每相位:`<date> - phase <N> - commit <short-sha> - review: <pass/N findings fixed> - smoke: <pass/skipped:reason>`)
+- 2026-06-01 - phase 1 - commit a77c11a - review: pass(纯机械改名,0 findings;diff cb4ee75..HEAD 全 rename) - smoke: pass(inkmon/m1+session+content+app-root+overworld-3d 7/7 PASS,reimport 注册新全局类无 parse error)
 
 ## Open Review Findings
 

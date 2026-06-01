@@ -1,9 +1,8 @@
 class_name InkMonBattleActor
-extends Actor
+extends InkMonWorldActor
 
 
 var ability_set: InkMonBattleAbilitySet
-var hex_position: HexCoord = HexCoord.invalid()
 var _is_dead := false
 
 
@@ -34,12 +33,6 @@ func is_pre_event_responsive() -> bool:
 
 func get_ability_set() -> InkMonBattleAbilitySet:
 	return ability_set
-
-
-func _get_position() -> Vector3:
-	if not hex_position.is_valid():
-		return Vector3.ZERO
-	return Vector3(hex_position.q, hex_position.r, 0.0)
 
 
 func get_attribute_snapshot() -> Dictionary:
