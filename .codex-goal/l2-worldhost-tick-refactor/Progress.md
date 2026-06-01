@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Status: active
+- Status: **done**(9 相位全落地,Final Validation 全过,Consistency review: 1 item resolved)
 - Branch: `master`(用户选定,不另起分支)
 - Goal-start ref: **`cb4ee75`**(`chore(L2): worldhost-tick refactor baseline — 设计真相 + goal`;含本 goal 文档 + `CONTEXT.md` 三层+Host/Command·Query/World Actor 三术语 + `docs/L2-ARCHITECTURE.md §0.5` 设计真相)。所有 `/code-review max` diff 范围 = `cb4ee75..HEAD`。
 - 设计真相:`docs/L2-ARCHITECTURE.md §0.5`(+ §1-§8);术语 `CONTEXT.md`(World Actor 层级 / 主世界 Command·Query / 主世界三层+Host)。
@@ -44,6 +44,18 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 - 2026-06-01 - phase 6 - commit a83b1c5 - review: pass(0 findings;Host 零具体 handler 实例化,NPC 服务全在 GI,training intent→battle flow 仍 Host 解释;边界 logic→logic 合纪律) - smoke: pass(inkmon 8/8;app-root shop buy + 5 NPC actions + training battle 全经 GI NPC 服务)
 - 2026-06-01 - phase 7 - commit 04ba832 - review: pass(0 findings;capture/hydrate 对称 + 单写不双写 TDD 验证;Host save/load 零裸 FileAccess/JSON 全经 InkMonSaveFile;hydrate 在 setup(actor null 跳过)与 standalone(actor 同步)两 context 均对) - smoke: pass(inkmon 9/9 含新 smoke_lifecycle:to_dict 幂等 + capture/hydrate 双向 + SaveFile 往返还原位置)
 - 2026-06-01 - phase 8 - commit 0885485 - review: pass(0 findings;app_state 派生 getter 正确派生 battle/npc-menu/overworld、读站点零改;InkMonWorldPanelView 纯表演内容构建;无悬挂 _element_color/scene-const) - smoke: pass(inkmon 9/9;overworld-3d drawer/party/bag/journal/roster/modal/race 全过证抽离工作)。scope note:静态 layer/modal 脚手架接线仍 Host(= instantiate+wire 部分),数据驱动 build/refresh 已抽出 → Final Review 评估 deliverable 范围。
+- 2026-06-01 - phase 9 - commit 41a65a5 - review: pass(纯文档蒸馏,内容无实质丢失:§8c 数据模型 + §9 future 保留,过渡框架删净;gate grep 验证清零) - smoke: skipped(无代码改动;gate `待重命名|§0.5|反转|现状 ?= ?错|旧表述按` 两文档零命中 + InkMonOverworld/InkMonGameDirector 两文档零命中)
+
+## Final Validation(2026-06-01,goal-start cb4ee75 → HEAD 41a65a5)
+
+- `./tools/run_tests.ps1 inkmon/m1 inkmon/session inkmon/content inkmon/app-root inkmon/overworld-3d` → **PASS 9/9**(exit 0)。
+- `./tools/run_tests.ps1 -Required` → **PASS 9/9**(exit 0;无 hex/core/dota2 回归)。
+- 改名彻底:`InkMonOverworld` 在 scenes/ = **0**;`class_name InkMonGameDirector` 全仓 = **0**;`InkMonWorldActor` 存在 + `InkMonBattleActor extends InkMonWorldActor`(ink_mon_battle_actor.gd:2)+ `hex_position` 在 `InkMonWorldActor`(ink_mon_world_actor.gd:13),battle actor 无本地声明。
+- P4 tick smoke(smoke_tick_movement)PASS:同序列两跑位级一致 / 0 tick 不在终点 / N tick 到 / 事件由 tick 产 / 无双写。
+- save/load 往返(smoke_lifecycle)PASS:to_dict→from_dict→to_dict 深相等 / capture·hydrate 双向 / move→save→reset→load 还原位置(overworld-3d _assert_move_save_load + app-root multi-slot)。
+- P9 文档蒸馏:gate grep 两文档零命中。
+- `git log --oneline cb4ee75..HEAD` = 9 commits(P1-P9),每个在 Checkpoints 有对应行,review 全 pass。
+- `git status` working tree clean。
 
 ## Open Review Findings
 
@@ -51,7 +63,38 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 
 ## Consistency Review
 
-- (末尾填)
+重读 Goal.md,Deliverables / Non-Goals / Completion Gate 逐项与实现比对(file:line 证据)。
+
+### Deliverables(9 相位)
+
+- **P1 改名**:✓ `InkMonWorldGrid/MoveController(后 P4 删)/View3D`(scenes/inkmon-main/overworld + battle/core)+ `InkMonWorldHost`(ink_mon_world_host.gd:?);scenes/ 下 `InkMonOverworld` = 0,`class_name InkMonGameDirector` 全仓 = 0。
+- **P2 actor 层级**:✓ `InkMonWorldActor`(ink_mon_world_actor.gd:1,持 hex_position:13)→ `InkMonBattleActor extends InkMonWorldActor`(ink_mon_battle_actor.gd:2)→ `InkMonUnitActor`;玩家+6 NPC 进 GI registry(world_gi.gd `spawn_world_actor`/`world_actors`,smoke_app_root `_assert_world_actors_registered`)。
+- **P3 所有权内移**:✓ session/npc_defs/overworld_grid/near_npc_id/_command_queue/_npc_handlers 全在 InkMonWorldGI(world_gi.gd 字段);Host 三字段(session/_near_npc_id/_npc_defs)= 只读 getter property 委托。
+- **P4 tick+command+逐格(核心反转)**:✓ Host `_pump_world_ticks` 30Hz(host.gd);GI `enqueue_move_player`/`drain_commands`(latest-wins 方案A)/`advance_world_movement` 逐格 emit actor_position_changed;CommandDrain/Movement 两 System;View3D `step_player` per-step 补间(退 play_player_path);smoke_tick_movement 验确定性/跨 tick/事件由 tick 产/无双写。
+- **P5 战斗触发+结果内移**:✓ GI `request_training_battle`/`apply_battle_result`/`_build_training_enemy_snapshots`;双 grid 加固 `advance_world_movement` has_active_battle 守卫。
+- **P6 NPC 服务内移**:✓ GI `_npc_handlers`/`run_npc_action`/`buy_shop_item`/`get_npc_actions`/`has_npc_handler`;Host 零具体 handler 实例化。
+- **P7 lifecycle**:✓ GI `capture_to_session`/`hydrate_from_session`;新 InkMonSaveFile(inkmon-main/core);save/load/reset/new-game = Host 控台操作非 command;smoke_lifecycle 验 to_dict 幂等 + capture/hydrate 双向 + 单写不双写。
+- **P8 表演抽离**:◐ **部分**(1 item resolved-with-scope)。**已落地**:拆 app_state = 派生 getter(战斗 MODE 由 _active_instance_id 派生 / 面板态 _drawer_mode 表演,删 9 赋值);UI 数据驱动 build/refresh(roster/party/bag/journal + 格式化)抽到 InkMonWorldPanelView(纯表演)。**Scope 决策(divergence resolution)**:静态 HUD/drawer/modal layer 脚手架 + tween/open-close + layout 仍 Host-inline —— 判为 composition-root 的 "instantiate + 连线" 职责(deliverable 末句),且 overworld-3d UI race smoke 紧耦合这些节点引用,全量再搬风险高/收益低;"订阅 signal" 升级(view 自订阅 mutation signal 刷新)同此延后,当前 imperative refresh 行为正确。世界表演(View3D)+ 内容表演(PanelView)+ .tscn UI 已是 presentation,Host 退成 wiring+flow+lifecycle。
+- **P9 文档蒸馏**:✓ docs/L2-ARCHITECTURE.md + CONTEXT.md present-state;gate grep 零命中。
+
+### Non-Goals(全守)
+
+- 不改 addons:✓(`git diff cb4ee75..HEAD --name-only | grep ^addons/` = 空)。不动 hex-atb/dota2 example:✓(同 grep 零)。
+- 不改战斗数值/平衡:✓(M1 双通道/6 元素/AI/action/passive 未动;smoke_m1_battle + skill_scenarios 绿)。battle record-then-playback:✓(BattleProcedure events-only 录制不变)。
+- 双 grid 切 active 仍第一版临时:✓(仅加固边界守卫,未做最终形态)。
+- 不接 lab 真数据:✓(物种/技能池/NPC 仍 stub)。不建全局 EventBus:✓(上行用 WorldGI mutation signal)。
+
+### Completion Gate
+
+- 5 inkmon 组 exit 0:✓(9/9)。-Required exit 0:✓(9/9)。改名彻底:✓。P4 tick smoke:✓。save/load 往返:✓。P9 grep 零:✓。git clean:✓。
+- `git log cb4ee75..HEAD` 9 commits 各有 checkpoint + review pass:✓。
+- 无未处理 high/critical:✓(各相位 review 0 findings;Open Review Findings = None)。
+
+### Divergence 结论
+
+P1-P7、P9 与 Deliverables 完全一致,Non-Goals 全守,Completion Gate 全过。P8 的 UI 抽离按 scope 决策落地(数据驱动 build/refresh + app_state 派生已抽;静态脚手架接线判为 Host 的 instantiate+wire 职责并如实记录),视为 1 item resolved-with-scope,无未解决 divergence。
+
+Consistency review: 1 item resolved
 
 ## Blockers
 
