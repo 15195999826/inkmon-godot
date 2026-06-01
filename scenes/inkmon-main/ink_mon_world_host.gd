@@ -50,8 +50,6 @@ var _last_ui_message := ""
 var _npc_defs: Dictionary:
 	get:
 		return _world_gi.npc_defs if _world_gi != null else {}
-var _npc_handlers: Dictionary = {}
-
 var _last_move_result: Dictionary = {}
 var _world_layer: InkMonWorldView3D
 var _hud_layer: CanvasLayer
@@ -91,7 +89,6 @@ func _ready() -> void:
 	name = "WorldHost"
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
-	_build_npc_handlers()
 	_setup_overworld_runtime(_new_game_session())
 	_build_world_and_ui()
 	_refresh_ui()
@@ -424,9 +421,8 @@ func buy_shop_item(config_id: StringName) -> Dictionary:
 			"message": "shop is not open",
 			"data": get_dev_agent_state(),
 		}
-	# 购买规则住 shop handler (收 session); 导播只转发 + 刷 UI。
-	var shop := _npc_handlers["shop"] as InkMonShopNpcHandler
-	var result := shop.buy(session, config_id)
+	# NPC 服务内移:购买规则在 GI 的 shop handler;Host 只转发 + 刷 UI。
+	var result := _world_gi.buy_shop_item(config_id)
 	var ok := bool(result.get("ok", false))
 	var message := str(result.get("message", ""))
 	if message != "":
@@ -444,12 +440,11 @@ func run_active_npc_action(action_id: String) -> Dictionary:
 
 
 func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
-	if not _npc_handlers.has(npc_id):
+	if _world_gi == null or not _world_gi.has_npc_handler(npc_id):
 		return _scene_result(false, "unknown NPC handler: %s" % npc_id)
-	var handler := _npc_handlers[npc_id] as InkMonNpcHandler
-	# handler 只收 session 自含规则; 不再反持 app_root (§5)。
-	var result := handler.run_action(action_id, session)
-	# Command-as-data: handler 返回 flow intent, 导播解释并执行 (起 battle procedure)。
+	# NPC 服务内移:GI 的 handler 收 GI 持有的 session 自含规则;Host 只转发。
+	var result := _world_gi.run_npc_action(npc_id, action_id)
+	# Command-as-data: handler 返回 flow intent, Host 解释并执行 (起 battle procedure;flow 归 Host)。
 	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
 	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
 		_active_npc_id = ""
@@ -769,17 +764,6 @@ func _register_save_slot(modal_root: Node, slot: int) -> void:
 	_load_slot_buttons[slot] = load_button
 
 
-func _build_npc_handlers() -> void:
-	_npc_handlers = {
-		"shop": InkMonShopNpcHandler.new("shop", "Shop"),
-		"trainer": InkMonTrainingNpcHandler.new("trainer", "Training"),
-		"cultivation": InkMonCultivationNpcHandler.new("cultivation", "Cultivation"),
-		"guild": InkMonGuildNpcHandler.new("guild", "Guild"),
-		"advancement": InkMonAdvancementNpcHandler.new("advancement", "Trainer Advancement"),
-		"release_adopt": InkMonReleaseAdoptNpcHandler.new("release_adopt", "Release / Adopt"),
-	}
-
-
 func _install_dev_agent() -> void:
 	var ops := InkMonMainAgentOpsScript.new() as Node
 	ops.name = "InkMonMainAgentOps"
@@ -1010,14 +994,14 @@ func _rebuild_panel_body() -> void:
 		_build_journal_panel()
 		return
 
-	var handler := _get_active_handler()
-	if handler == null:
+	if _world_gi == null or not _world_gi.has_npc_handler(_active_npc_id):
 		var placeholder := PanelMessageScene.instantiate() as Label
 		placeholder.text = "System linked"
 		_panel_body.add_child(placeholder)
 		return
 
-	var actions := handler.get_actions(session)
+	# Query(读):表演据 GI 暴露的 NPC action 列表建按钮(纯只读)。
+	var actions := _world_gi.get_npc_actions(_active_npc_id)
 	for action in actions:
 		_add_action_row(action)
 
@@ -1119,12 +1103,6 @@ func _add_action_row(action: Dictionary) -> void:
 		_shop_buy_buttons[str(action.get("item_config_id", ""))] = button
 	if action_id == InkMonTrainingNpcHandler.ACTION_START_BATTLE:
 		_trainer_button = button
-
-
-func _get_active_handler() -> InkMonNpcHandler:
-	if _active_npc_id == "" or not _npc_handlers.has(_active_npc_id):
-		return null
-	return _npc_handlers[_active_npc_id] as InkMonNpcHandler
 
 
 ## near-npc 重算委托给 Logic(InkMonWorldGI.refresh_near_npc)。

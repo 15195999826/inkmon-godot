@@ -73,6 +73,8 @@ var overworld_grid: InkMonWorldGrid = null
 var near_npc_id: String = ""
 ## 主世界 command 队列(CQRS 写侧):UI enqueue → tick 的 CommandDrain System 抽干应用。
 var _command_queue: Array[Dictionary] = []
+## NPC 服务(P6 内移):6 个 handler,自含规则、收 GI 持有的 session;Host 只转发 UI 点击。
+var _npc_handlers: Dictionary = {}
 
 var _ended := false
 var _result := ""
@@ -92,6 +94,7 @@ func _init(id_value: String = "") -> void:
 func setup_overworld(p_session: InkMonGameSession) -> void:
 	_ensure_started()
 	session = p_session
+	_build_npc_handlers()
 	overworld_grid = InkMonWorldGrid.new()
 	overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
 	# load 侧读: 用存档字段把玩家放到 grid(此后 grid occupant 即运行真相, §3 不双写)。
@@ -424,6 +427,47 @@ func _build_training_enemy_snapshots() -> Array[Dictionary]:
 			},
 		})
 	return result
+
+
+# === NPC 服务(P6 从 Host 内移;Logic 持有,Host 转发 UI 点击)===
+
+## 6 个 handler 自含规则,收 GI 持有的 session;不碰 UI / flow。
+func _build_npc_handlers() -> void:
+	_npc_handlers = {
+		"shop": InkMonShopNpcHandler.new("shop", "Shop"),
+		"trainer": InkMonTrainingNpcHandler.new("trainer", "Training"),
+		"cultivation": InkMonCultivationNpcHandler.new("cultivation", "Cultivation"),
+		"guild": InkMonGuildNpcHandler.new("guild", "Guild"),
+		"advancement": InkMonAdvancementNpcHandler.new("advancement", "Trainer Advancement"),
+		"release_adopt": InkMonReleaseAdoptNpcHandler.new("release_adopt", "Release / Adopt"),
+	}
+
+
+func has_npc_handler(npc_id: String) -> bool:
+	return _npc_handlers.has(npc_id)
+
+
+## Query(读):某 NPC 的可选 action 列表(表演据此建按钮,纯只读)。
+func get_npc_actions(npc_id: String) -> Array:
+	if not _npc_handlers.has(npc_id):
+		return []
+	return (_npc_handlers[npc_id] as InkMonNpcHandler).get_actions(session)
+
+
+## 运行 NPC action:handler 收 GI 持有的 session 自含规则;返回结果
+## (training 含 flow intent,Host 解释起战斗 —— 战斗 flow/app_state 归 Host)。
+func run_npc_action(npc_id: String, action_id: String) -> Dictionary:
+	if not _npc_handlers.has(npc_id):
+		return {"ok": false, "message": "unknown NPC handler: %s" % npc_id}
+	return (_npc_handlers[npc_id] as InkMonNpcHandler).run_action(action_id, session)
+
+
+## 购买商店物品:规则住 shop handler,收 GI 持有的 session。
+func buy_shop_item(config_id: StringName) -> Dictionary:
+	var shop := _npc_handlers.get("shop", null) as InkMonShopNpcHandler
+	if shop == null:
+		return {"ok": false, "message": "shop handler not available"}
+	return shop.buy(session, config_id)
 
 
 func is_ended() -> bool:
