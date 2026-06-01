@@ -31,6 +31,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
   - P8(表演抽离)= TDD no; smoke yes(UI 回归)
 - Phase 8 decisions: TDD=no(纯表演重构 + app_state 派生,行为不变;overworld-3d smoke 覆盖 drawer/panel/roster/modal/race 全面是回归网); smoke-test=yes(inkmon 组回归)。范围:(1) 拆 app_state = 改派生 getter property —— 战斗 MODE 由 WorldGI 的 _active_instance_id 派生(battle 是 GI 内 procedure),NPC_MENU 由 _drawer_mode 表演态派生,删 9 处赋值、读站点零改;(2) UI 内容构建抽到新 InkMonWorldPanelView(roster chips/party/bag/journal + element_color/role_short 格式化静态法),Host 委托。注:静态 layer/modal/tween 脚手架接线仍 Host 侧(= instantiate + wire 那部分),数据驱动 build/refresh 已抽出;Final Review 如实评估 deliverable 范围。
   - P9(文档蒸馏)= TDD no; smoke no(纯文档,grep 验过渡语清零)
+- Phase 9 decisions: TDD=no(纯文档蒸馏); smoke-test=no(无代码改动;gate grep 验过渡语清零)。范围:docs/L2-ARCHITECTURE.md 重写为 present-state(§0.5「反转」section 并入 §1 canonical 运行模型,删 反转/reverses/旧表述按/待重命名/现状=错/supersede/⏳-for-landed 标记,保留 §8c 数据模型 + §9 真·未定 future);CONTEXT.md 删 待重命名 + reverses-§4-待改写,World Actor / Command·Query 块改 present-state。验证:gate `待重命名|§0.5|反转|现状 ?= ?错|旧表述按` 两文档零命中 + InkMonOverworld/InkMonGameDirector 两文档零命中。
 
 ## Checkpoints
 
@@ -42,6 +43,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 - 2026-06-01 - phase 5 - commit 06df194 - review: pass(0 findings;确认 Host 零悬挂 enemy-snapshot 依赖、战斗 config+result 全在 GI、双 grid 守卫 correct-by-construction) - smoke: pass(inkmon 8/8;app-root training battle 跑通 request→apply→session 全链)
 - 2026-06-01 - phase 6 - commit a83b1c5 - review: pass(0 findings;Host 零具体 handler 实例化,NPC 服务全在 GI,training intent→battle flow 仍 Host 解释;边界 logic→logic 合纪律) - smoke: pass(inkmon 8/8;app-root shop buy + 5 NPC actions + training battle 全经 GI NPC 服务)
 - 2026-06-01 - phase 7 - commit 04ba832 - review: pass(0 findings;capture/hydrate 对称 + 单写不双写 TDD 验证;Host save/load 零裸 FileAccess/JSON 全经 InkMonSaveFile;hydrate 在 setup(actor null 跳过)与 standalone(actor 同步)两 context 均对) - smoke: pass(inkmon 9/9 含新 smoke_lifecycle:to_dict 幂等 + capture/hydrate 双向 + SaveFile 往返还原位置)
+- 2026-06-01 - phase 8 - commit 0885485 - review: pass(0 findings;app_state 派生 getter 正确派生 battle/npc-menu/overworld、读站点零改;InkMonWorldPanelView 纯表演内容构建;无悬挂 _element_color/scene-const) - smoke: pass(inkmon 9/9;overworld-3d drawer/party/bag/journal/roster/modal/race 全过证抽离工作)。scope note:静态 layer/modal 脚手架接线仍 Host(= instantiate+wire 部分),数据驱动 build/refresh 已抽出 → Final Review 评估 deliverable 范围。
 
 ## Open Review Findings
 
