@@ -29,6 +29,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
   - **P7(lifecycle)= TDD yes**(capture/hydrate 往返 + 不双写可断言); smoke yes
 - Phase 7 decisions: TDD=yes(严格 red-green —— 先写 smoke_lifecycle 定契约:session.to_dict→from_dict→to_dict 深相等 / capture(runtime→session) / hydrate(session→runtime) 双向 / InkMonSaveFile.write→read→from_dict→新 GI setup 还原位置。run red 确认 capture_to_session/hydrate_from_session/InkMonSaveFile API 缺失,再实现到 green); smoke-test=yes(smoke_lifecycle 进 inkmon/session 组被 gate 跑 + 既有 save/load smoke 保持)。范围:GI sync_player_coord_to_session→capture_to_session(rename)+ 新 hydrate_from_session(sync_occupants + 同步 player actor hex_position/清移动态);新 InkMonSaveFile(inkmon-main/core,JSON IO helper);Host save_game/load_game 用 InkMonSaveFile + GI.capture_to_session,save/load/reset/new-game = Host 控台操作(非 command,单写不双写)。
   - P8(表演抽离)= TDD no; smoke yes(UI 回归)
+- Phase 8 decisions: TDD=no(纯表演重构 + app_state 派生,行为不变;overworld-3d smoke 覆盖 drawer/panel/roster/modal/race 全面是回归网); smoke-test=yes(inkmon 组回归)。范围:(1) 拆 app_state = 改派生 getter property —— 战斗 MODE 由 WorldGI 的 _active_instance_id 派生(battle 是 GI 内 procedure),NPC_MENU 由 _drawer_mode 表演态派生,删 9 处赋值、读站点零改;(2) UI 内容构建抽到新 InkMonWorldPanelView(roster chips/party/bag/journal + element_color/role_short 格式化静态法),Host 委托。注:静态 layer/modal/tween 脚手架接线仍 Host 侧(= instantiate + wire 那部分),数据驱动 build/refresh 已抽出;Final Review 如实评估 deliverable 范围。
   - P9(文档蒸馏)= TDD no; smoke no(纯文档,grep 验过渡语清零)
 
 ## Checkpoints
@@ -40,6 +41,7 @@ baseline commit 含:`CONTEXT.md`(新增 World Actor 层级 / 主世界 Command·
 - 2026-06-01 - phase 4 - commit 433fb5c - review: pass(0 findings;recall 核 latest-wins idle/moving 分支 + moving_to==target 边界 + 回路经自占格 passable + load-during-move race 结构性消灭 + signal per-GI 无泄漏;Non-Goal 守:addon/example 零改动;STEP_DURATION↔MOVE_STEP_DURATION 对齐) - smoke: pass(inkmon 8/8 含新 smoke_tick_movement 纯逻辑 determinism + 重写 overworld-3d/app-root tick-driven;-Required 9/9。TDD red→green:旧同步模型不满足异步契约,实现后位级一致)
 - 2026-06-01 - phase 5 - commit 06df194 - review: pass(0 findings;确认 Host 零悬挂 enemy-snapshot 依赖、战斗 config+result 全在 GI、双 grid 守卫 correct-by-construction) - smoke: pass(inkmon 8/8;app-root training battle 跑通 request→apply→session 全链)
 - 2026-06-01 - phase 6 - commit a83b1c5 - review: pass(0 findings;Host 零具体 handler 实例化,NPC 服务全在 GI,training intent→battle flow 仍 Host 解释;边界 logic→logic 合纪律) - smoke: pass(inkmon 8/8;app-root shop buy + 5 NPC actions + training battle 全经 GI NPC 服务)
+- 2026-06-01 - phase 7 - commit 04ba832 - review: pass(0 findings;capture/hydrate 对称 + 单写不双写 TDD 验证;Host save/load 零裸 FileAccess/JSON 全经 InkMonSaveFile;hydrate 在 setup(actor null 跳过)与 standalone(actor 同步)两 context 均对) - smoke: pass(inkmon 9/9 含新 smoke_lifecycle:to_dict 幂等 + capture/hydrate 双向 + SaveFile 往返还原位置)
 
 ## Open Review Findings
 

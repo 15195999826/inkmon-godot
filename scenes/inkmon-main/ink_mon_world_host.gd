@@ -7,12 +7,11 @@ const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main
 const InkMonWorldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_world_view_3d.gd")
 
 # UI 动态列表组件场景 (§6: 动态列表用 instantiate 组件场景)。
-const RosterChipScene := preload("res://scenes/inkmon-main/ui/components/roster_chip.tscn")
-const PartyEntryRowScene := preload("res://scenes/inkmon-main/ui/components/party_entry_row.tscn")
-const BagItemRowScene := preload("res://scenes/inkmon-main/ui/components/bag_item_row.tscn")
+# roster/party/bag/journal 内容构建已抽到 InkMonWorldPanelView(P8);Host 只留 npc 行 + 占位。
 const NpcActionRowScene := preload("res://scenes/inkmon-main/ui/components/npc_action_row.tscn")
-const JournalPanelScene := preload("res://scenes/inkmon-main/ui/components/journal_panel.tscn")
 const PanelMessageScene := preload("res://scenes/inkmon-main/ui/components/panel_message.tscn")
+## P8 表演抽离:数据驱动 panel 内容构建器(纯表演,据数据建 Control 行)。
+var _panel_view := InkMonWorldPanelView.new()
 # 静态 UI 容器场景 (§6: HUD / drawer / modal 全 .tscn)。
 const SaveLoadModalScene := preload("res://scenes/inkmon-main/ui/save_load_modal.tscn")
 const RightDrawerScene := preload("res://scenes/inkmon-main/ui/right_drawer.tscn")
@@ -31,7 +30,15 @@ const MAX_TICKS_PER_FRAME := 8
 var session: InkMonGameSession:
 	get:
 		return _world_gi.session if _world_gi != null else null
-var app_state: AppState = AppState.OVERWORLD
+## P8 拆 app_state:不再独立存储 —— 派生 mode。战斗 MODE 归 WorldGI(由 _active_instance_id 派生,
+## battle 是 GI 内 procedure);NPC_MENU 是面板态(_drawer_mode,表演)。单一真相,无状态机漂移。
+var app_state: AppState:
+	get:
+		if _active_instance_id != "":
+			return AppState.BATTLE
+		if _drawer_mode == "npc":
+			return AppState.NPC_MENU
+		return AppState.OVERWORLD
 var last_battle_result: Dictionary = {}
 
 var _active_instance_id := ""
@@ -133,7 +140,6 @@ func start_training_battle() -> Dictionary:
 	# 持久 world GI 内起战斗 procedure (不再 per-battle create→destroy)。
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "world GI not initialized before battle")
 	_active_instance_id = _world_gi.id
-	app_state = AppState.BATTLE
 	# 战斗触发内移:GI 自建 config(player roster + 假人)起 procedure;Host 只管 flow(state/tick)。
 	_world_gi.request_training_battle()
 	_add_event("training battle started")
@@ -178,7 +184,6 @@ func reset_session() -> Dictionary:
 	_drawer_mode = ""
 	_last_move_result = {}
 	_last_ui_message = ""
-	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime(_new_game_session())
@@ -343,7 +348,6 @@ func open_npc_menu(npc_id: String) -> Dictionary:
 			"message": "unknown NPC: %s" % npc_id,
 			"data": get_dev_agent_state(),
 		}
-	app_state = AppState.NPC_MENU
 	_active_npc_id = npc_id
 	_drawer_mode = "npc"
 	_last_ui_message = "%s opened" % str((_npc_defs[npc_id] as Dictionary).get("display_name", npc_id))
@@ -357,7 +361,6 @@ func open_npc_menu(npc_id: String) -> Dictionary:
 
 
 func close_npc_menu() -> Dictionary:
-	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
 	_drawer_mode = ""
 	_last_ui_message = "closed"
@@ -375,7 +378,6 @@ func open_player_panel(panel_id: String) -> Dictionary:
 		return _scene_result(false, "unknown player panel: %s" % panel_id)
 	if app_state == AppState.BATTLE:
 		return _scene_result(false, "cannot open player panel during battle")
-	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
 	_drawer_mode = panel_id
 	_last_ui_message = "%s panel opened" % panel_id
@@ -385,7 +387,6 @@ func open_player_panel(panel_id: String) -> Dictionary:
 
 
 func close_drawer() -> Dictionary:
-	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
 	_drawer_mode = ""
 	_refresh_ui()
@@ -397,7 +398,6 @@ func open_save_load_menu() -> Dictionary:
 		return _scene_result(false, "save/load modal is not ready")
 	_drawer_mode = ""
 	_active_npc_id = ""
-	app_state = AppState.OVERWORLD
 	_modal_open_requested = true
 	_refresh_panel()
 	_animate_modal_open()
@@ -503,7 +503,6 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_world_gi = null
 	_active_npc_id = ""
 	_drawer_mode = ""
-	app_state = AppState.OVERWORLD
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime(loaded_session)
@@ -574,7 +573,6 @@ func _complete_battle_if_ready() -> void:
 	last_battle_result = _world_gi.apply_battle_result()
 	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
 	_active_instance_id = ""
-	app_state = AppState.OVERWORLD
 	_active_npc_id = ""
 	_drawer_mode = ""
 	_last_ui_message = "battle completed"
@@ -921,17 +919,7 @@ func _kill_modal_tween() -> void:
 func _refresh_roster_chips() -> void:
 	if _roster_box == null:
 		return
-	for child in _roster_box.get_children():
-		child.queue_free()
-	for entry in session.player_state.roster:
-		var chip := RosterChipScene.instantiate() as PanelContainer
-		chip.name = "RosterChip_%d" % entry.entry_id
-		# 样式在 roster_chip.tscn (local-to-scene StyleBox); 代码只填数据驱动的描边色。
-		var style := chip.get_theme_stylebox("panel") as StyleBoxFlat
-		if style != null:
-			style.border_color = _element_color(entry.elements[0] if not entry.elements.is_empty() else "")
-		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [_role_short(entry.role), entry.level]
-		_roster_box.add_child(chip)
+	_panel_view.build_roster_chips(_roster_box, session.player_state.roster)
 
 
 func _refresh_prompt() -> void:
@@ -998,79 +986,16 @@ func _rebuild_panel_body() -> void:
 
 
 func _build_party_panel() -> void:
-	for entry in session.player_state.roster:
-		var row := PartyEntryRowScene.instantiate() as HBoxContainer
-		row.name = "PartyEntry_%d" % entry.entry_id
-		(row.get_node("ElementSwatch") as ColorRect).color = _element_color(
-			entry.elements[0] if not entry.elements.is_empty() else "")
-
-		var label := row.get_node("PartyEntryLabel") as Label
-		label.text = "%s  Lv%d  %s\n%s  EXP %d  Skill %s" % [
-			entry.species,
-			entry.level,
-			entry.role,
-			", ".join(entry.elements),
-			entry.exp,
-			entry.get_primary_skill_id(),
-		]
-		label.modulate = Color(0.92, 0.88, 0.78)
-
-		var stats := row.get_node("StatsLabel") as Label
-		var derived: Dictionary = entry.derive_battle_stats()
-		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
-			int(float(derived.get("max_hp", 0.0))),
-			int(float(derived.get("ad", 0.0))),
-			int(float(derived.get("ap", 0.0))),
-			int(float(derived.get("armor", 0.0))),
-			int(float(derived.get("mr", 0.0))),
-			int(float(derived.get("speed", 0.0))),
-		]
-		stats.modulate = Color(0.82, 0.78, 0.68)
-		_panel_body.add_child(row)
+	_panel_view.build_party_panel(_panel_body, session.player_state.roster)
 
 
 func _build_bag_panel() -> void:
-	var bag_items := _get_bag_snapshot()
-	if bag_items.is_empty():
-		var empty := PanelMessageScene.instantiate() as Label
-		empty.name = "BagEmptyLabel"
-		empty.text = "Bag is empty."
-		_panel_body.add_child(empty)
-		return
-
-	for item in bag_items:
-		var row := BagItemRowScene.instantiate() as HBoxContainer
-		row.name = "BagItem_%s" % str(item.get("config_id", "unknown"))
-		var cfg := ItemSystem.get_item_config(StringName(str(item.get("config_id", ""))))
-		var label := row.get_node("BagItemLabel") as Label
-		label.text = "%s x%d\n%s" % [
-			str(cfg.get("display_name", item.get("config_id", ""))),
-			int(item.get("count", 1)),
-			str(cfg.get("description", "Inventory item")),
-		]
-		label.modulate = Color(0.92, 0.88, 0.78)
-		_panel_body.add_child(row)
+	_panel_view.build_bag_panel(_panel_body, _get_bag_snapshot())
 
 
 func _build_journal_panel() -> void:
-	var progression := session.player_state.progression
-	var lines := PackedStringArray([
-		"Trainer Rank: R%d" % int(progression.get("trainer_rank", 1)),
-		"Guild Joined: %s" % ("yes" if bool(progression.get("guild_joined", false)) else "no"),
-		"Cultivation Points: %d" % int(progression.get("cultivation_points", 0)),
-		"Guild Tasks: %d" % int(progression.get("guild_tasks_completed", 0)),
-	])
-	if not last_battle_result.is_empty():
-		lines.append("Last Battle: %s / winner %s" % [
-			str(last_battle_result.get("result", "")),
-			str(last_battle_result.get("winner_team", "")),
-		])
-	var panel := JournalPanelScene.instantiate()
-	(panel.get_node("JournalSummary") as Label).text = "\n".join(lines)
-	(panel.get_node("OpenSystemMenu") as Button).pressed.connect(func() -> void:
-		open_save_load_menu()
-	)
-	_panel_body.add_child(panel)
+	_panel_view.build_journal_panel(
+		_panel_body, session.player_state.progression, last_battle_result, open_save_load_menu)
 
 
 func _add_action_row(action: Dictionary) -> void:
@@ -1201,31 +1126,3 @@ func _rect_dict(rect: Rect2) -> Dictionary:
 	}
 
 
-func _element_color(element: String) -> Color:
-	match element:
-		InkMonElementChart.FIRE:
-			return Color(0.85, 0.30, 0.18)
-		InkMonElementChart.WATER:
-			return Color(0.18, 0.62, 0.66)
-		InkMonElementChart.LIGHT:
-			return Color(0.92, 0.74, 0.24)
-		InkMonElementChart.DARK:
-			return Color(0.44, 0.30, 0.66)
-		InkMonElementChart.WIND:
-			return Color(0.42, 0.66, 0.34)
-		InkMonElementChart.EARTH:
-			return Color(0.65, 0.50, 0.35)
-		_:
-			return Color(0.72, 0.68, 0.56)
-
-
-func _role_short(role_value: String) -> String:
-	match role_value:
-		InkMonUnitConfig.ROLE_TANK:
-			return "TNK"
-		InkMonUnitConfig.ROLE_DPS:
-			return "DPS"
-		InkMonUnitConfig.ROLE_HEALER:
-			return "HLR"
-		_:
-			return "FLX"
