@@ -107,6 +107,15 @@ func _run() -> String:
 	if not has_condition:
 		return "at least one branch edge should carry a condition (the fire branch)"
 
+	# (3c2) PER-SPECIES authority regression guard: a stub/adopted species NOT in the contract
+	# edge-list must KEEP its stub evolves_to even though contract edges (mon_0002) are loaded.
+	# A global `_evolution_edges.is_empty()` gate would strand it (return []); per-species does not.
+	var stub_edges := InkMonSpeciesCatalog.get_evolution_edges("aegis_pup")
+	if stub_edges.size() != 1:
+		return "stub species aegis_pup should keep its stub edge while a partial contract is loaded, got %d" % stub_edges.size()
+	if str(stub_edges[0].get("child_species_id", "")) != "aegis_warden":
+		return "stub aegis_pup fallback edge child should be aegis_warden, got %s" % str(stub_edges[0].get("child_species_id", ""))
+
 	# (3d) An empty-units contract is VALID (matches lab's empty-DB response units:[]).
 	var empty_errors := InkMonL2ContentContract.validate_creature_base(
 		{"schema": InkMonL2ContentContract.SCHEMA_ID, "version": InkMonL2ContentContract.VERSION, "units": []}

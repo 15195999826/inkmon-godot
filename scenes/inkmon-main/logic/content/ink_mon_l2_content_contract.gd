@@ -133,6 +133,11 @@ static func _validate_creature_units(value: Variant, errors: Array[String]) -> A
 		_validate_unit_stats(unit.get("base_stats", {}), "units[%d].base_stats" % i, errors)
 		var id_value := str(unit.get("id", ""))
 		if id_value != "":
+			# Defensive (server is the hard uniqueness gate, spec §3): catch a duplicate
+			# species_id here so it surfaces as a validation error instead of silently
+			# overwriting the earlier creature base in register_override (last-write-wins).
+			if id_value in ids:
+				errors.append("units[%d].id duplicate species_id: %s" % [i, id_value])
 			ids.append(id_value)
 	return ids
 

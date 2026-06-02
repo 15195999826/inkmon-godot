@@ -246,4 +246,7 @@ func _assert_evolved_species_derive() -> String:
 	var snapshot := entry.project_to_battle_snapshot()
 	if (snapshot.get("battle_stats", {}) as Dictionary).is_empty():
 		return "evolved entry projection must still emit battle_stats"
+	# Snapshot must carry the evolved stage so the battle actor doesn't default it to baby.
+	if str(snapshot.get("stage", "")) != InkMonSpeciesCatalog.STAGE_MATURE:
+		return "evolved entry snapshot should carry stage=mature, got %s" % str(snapshot.get("stage", ""))
 	return ""

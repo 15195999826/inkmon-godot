@@ -129,6 +129,15 @@ func _assert_creature_base_v2() -> String:
 	if not InkMonL2ContentContract.validate_creature_base(unknown_type).is_empty():
 		return "validator should ACCEPT an unknown condition type (structural-only)"
 
+	# Duplicate species_id is rejected (defensive; server is the hard uniqueness gate). Two
+	# units share mon_0001, no edges → the ONLY violation is the duplicate.
+	var dup := {
+		"schema": schema, "version": version,
+		"units": [_unit("mon_0001", "A", "baby", ["earth"]), _unit("mon_0001", "B", "mature", ["fire"])],
+	}
+	if InkMonL2ContentContract.validate_creature_base(dup).is_empty():
+		return "validator should reject a duplicate unit species_id"
+
 	# An edge-less bundle is valid (orphan-only canon).
 	var no_edges := {"schema": schema, "version": version, "units": [_unit("mon_0001", "Sprout", "baby", ["earth"])]}
 	if not InkMonL2ContentContract.validate_creature_base(no_edges).is_empty():

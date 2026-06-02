@@ -41,9 +41,10 @@ static var _overrides: Dictionary = {}
 
 ## Server evolution topology (canon→godot bridge), an edge-list forest (adr/0010) keyed by
 ## parent_species_id → Array[{child_species_id, trigger:{level, condition}}]. A `parent`
-## with multiple entries = a branch. When non-empty it is the AUTHORITATIVE topology source
-## (get_evolution_edges does NOT fall back to the stub _build_table); when empty the runtime
-## reverts to the stub's per-species evolves_to. Cleared with _overrides (clear_overrides).
+## with multiple entries = a branch. Authority is PER-SPECIES: a species_id present here uses
+## these edges (the stub _build_table is NOT consulted for it); a species_id ABSENT here falls
+## back to its stub evolves_to — so loading a partial contract does not strand stub/adopted
+## species that have no edge of their own. Cleared with _overrides (clear_overrides).
 static var _evolution_edges: Dictionary = {}
 
 
@@ -190,10 +191,13 @@ static func get_slot_pool(species: String, slot_index: int) -> Array[String]:
 
 ## 进化出边查询: 返回该物种全部出边 Array[{child_species_id, trigger:{level, condition}}];
 ## 无出边 / 孤儿 / override-only 物种 → []。支持多子分支 (同 parent 多条边)。
-## contract edge-list (register_evolution_edges 灌过, _evolution_edges 非空) = 权威真相源,
-## 不回退 stub; 无 edge-list 时降级用 _build_table 的 evolves_to 单边 (无 condition) 作 fallback。
+## 权威性是 **per-species** (plan item 2「无 override 时回退 stub」): 该 species_id 在 contract
+## 边表中 → 用边表 (权威, 不碰 stub); 不在 → 降级 _build_table 的 evolves_to 单边 (无 condition)
+## 作 fallback。⚠ 不能用 `_evolution_edges.is_empty()` 做全局门: 那样一旦灌入任一 contract 边,
+## 所有未列入边表的 stub/领养物种 (cinder_kit 等) 就再也查不到自己的 stub 进化链 (混合/过渡态 bug)。
+## contract 孤儿 (有 override 无边) → 不在边表 → 走 stub fallback → _node_or_empty 给 {} → [] (正确无进化)。
 static func get_evolution_edges(species_id: String) -> Array[Dictionary]:
-	if not _evolution_edges.is_empty():
+	if _evolution_edges.has(species_id):
 		var out: Array[Dictionary] = []
 		for edge_value in (_evolution_edges.get(species_id, []) as Array):
 			out.append(edge_value as Dictionary)
@@ -236,7 +240,7 @@ static func roll_birth_skill_slots(species: String, roll_seed: int) -> Array[Dic
 ## 进化 (模型 B, 森林多子): 遍历 species_id 的出边 → entry.level >= trigger.level 过滤 →
 ## 确定性选边 (_select_evolution_edge) → 改写 species_id/name_en/stage, 保留旧 slot, X->X2
 ## 升级, 新阶段补槽 roll。entry_id 不变 (进化是变身非换只)。返回是否发生进化。
-## 阈值 trigger.level 来自 contract edge-list (无 contract 时 stub evolves_to fallback),
+## 阈值 trigger.level 来自 contract edge-list (该物种无 contract 边时 stub evolves_to fallback),
 ## godot 不再硬编码进化阈值 (adr/0010); 单位运行时等级 entry.level 仍 godot 持有。
 static func evolve_entry(entry: InkMonRosterEntry) -> bool:
 	var edges := get_evolution_edges(entry.species_id)

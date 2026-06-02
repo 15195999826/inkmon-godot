@@ -119,6 +119,9 @@ func project_to_battle_snapshot() -> Dictionary:
 		# (显示)。其 species 词汇 = 本层 species_id (跨层映射在此边界翻译), 故 battle 层零改动。
 		"species": species_id,
 		"display_name": name_en,
+		# stage 投影: actor 读 snapshot.get("stage", BABY); 不发会让进化后的 mature/adult 单位
+		# 在 battle 层退回 baby。entry.stage 进化时已更新 (evolve_entry), 此处随身份一并过边界。
+		"stage": stage,
 		"role": role,
 		"elements": elements.duplicate(),
 		"skill_slots": _dup_dict_array(skill_slots),

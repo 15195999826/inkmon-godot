@@ -18,7 +18,7 @@ const DEFAULT_PATH := "res://data/inkmon_content.json"
 ## Apply the content at `path` to the runtime catalog.
 ## Returns {loaded: bool, source: String, species: Array[String]} where `source`
 ## is the path on success or "stub" on any fallback, and `species` lists the
-## normalized keys that were registered as overrides.
+## species_ids (unit.id, mon_NNNN) that were registered as overrides.
 static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
 	# Clean slate: each apply replaces ALL prior overrides so the catalog reflects
 	# exactly this source. A missing/invalid file therefore reverts to pure stub
@@ -67,8 +67,10 @@ static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
 			registered.append(species_id)
 
 	# Evolution topology = a root-level edge-list forest (adr/0010), separate from units.
-	# apply_to_runtime already cleared edges at the top (clear_overrides); registering an
-	# empty/absent list therefore leaves the catalog on its stub evolves_to fallback.
+	# apply_to_runtime already cleared edges at the top (clear_overrides). Authority is
+	# per-species (see get_evolution_edges): species WITH an edge here use it; species without
+	# (incl. every stub/adopted species) keep their stub evolves_to, so a partial contract
+	# does not strand them.
 	var edges_value: Variant = data.get("evolution_edges", [])
 	if edges_value is Array:
 		InkMonSpeciesCatalog.register_evolution_edges(edges_value as Array)
