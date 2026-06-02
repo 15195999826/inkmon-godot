@@ -70,6 +70,10 @@ static func build_current_stub_export() -> Dictionary:
 	}
 
 
+static func skill_metadata_exports() -> Array[Dictionary]:
+	return _skill_exports()
+
+
 static func validate_export(data: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	if str(data.get("schema", "")) != SCHEMA_ID:
@@ -300,6 +304,7 @@ static func _validate_skills(value: Variant, errors: Array[String]) -> void:
 			continue
 		_require_string(skill, "id", "skills[%d]" % i, errors)
 		_require_string(skill, "implementation_key", "skills[%d]" % i, errors)
+		_require_string(skill, "display_name", "skills[%d]" % i, errors)
 		_require_enum(skill, "channel", VALID_SKILL_CHANNELS, "skills[%d]" % i, errors)
 		_validate_elements([str(skill.get("element", ""))], "skills[%d].element" % i, errors)
 
@@ -412,18 +417,31 @@ static func _skill_pool_id(stage: String, slot: int) -> String:
 
 static func _skill_exports() -> Array[Dictionary]:
 	return [
-		_skill_export(InkMonStun.CONFIG_ID, "InkMonStun", InkMonElementChart.WATER, "utility"),
-		_skill_export(InkMonFireball.CONFIG_ID, "InkMonFireball", InkMonElementChart.FIRE, "magical"),
-		_skill_export(InkMonHolyHeal.CONFIG_ID, "InkMonHolyHeal", InkMonElementChart.LIGHT, "utility"),
-		_skill_export(InkMonChainLightning.CONFIG_ID, "InkMonChainLightning", InkMonElementChart.WIND, "magical"),
-		_skill_export(InkMonPoison.CONFIG_ID, "InkMonPoison", InkMonElementChart.DARK, "utility"),
+		_skill_export(InkMonStun.CONFIG_ID, "InkMonStun", "Stun", InkMonElementChart.WATER, "utility"),
+		_skill_export(InkMonFireball.CONFIG_ID, "InkMonFireball", "Fireball", InkMonElementChart.FIRE, "magical"),
+		_skill_export(InkMonHolyHeal.CONFIG_ID, "InkMonHolyHeal", "Holy Heal", InkMonElementChart.LIGHT, "utility"),
+		_skill_export(
+			InkMonChainLightning.CONFIG_ID,
+			"InkMonChainLightning",
+			"Chain Lightning",
+			InkMonElementChart.WIND,
+			"magical"
+		),
+		_skill_export(InkMonPoison.CONFIG_ID, "InkMonPoison", "Poison", InkMonElementChart.DARK, "utility"),
 	]
 
 
-static func _skill_export(id_value: String, implementation_key: String, element: String, channel: String) -> Dictionary:
+static func _skill_export(
+	id_value: String,
+	implementation_key: String,
+	display_name: String,
+	element: String,
+	channel: String
+) -> Dictionary:
 	return {
 		"id": id_value,
 		"implementation_key": implementation_key,
+		"display_name": display_name,
 		"element": element,
 		"channel": channel,
 	}

@@ -14,11 +14,13 @@
   "status": "ok",                      // 既有字段，保留
   "units": [ /* §1 */ ],
   "evolution_edges": [ /* §2 */ ],     // ← 新增根级数组（非 per-unit）
-  "skill_pools": [], "skills": [], "items": []  // 既有，本 spec 不改、原样保留
+  "skill_pools": [],
+  "skills": [ /* metadata-only, from godot→server; no .gd source */ ],
+  "items": []
 }
 ```
 
-- 本 spec 只冻结 **`units`（creature 基底）** 与 **`evolution_edges`**。`skill_pools` / `skills` / `items` 形状不变（另见 adr/0009），不在本次改动面。
+- 本 spec 只冻结 **`units`（creature 基底）** 与 **`evolution_edges`**。`skills` 只允许 metadata（`id` / `implementation_key` / `display_name` / `element` / `channel` / `icon_key?`），来源是 Godot editor tool `godot→server` 上传；server/contract 绝不承载 `.gd` 源码（另见 adr/0009）。`skill_pools` / `items` 不在本次改动面。
 
 ## 1. `units[]` — creature 基底
 

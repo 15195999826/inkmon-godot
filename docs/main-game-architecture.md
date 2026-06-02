@@ -202,6 +202,11 @@
 - 读档直接读 `skill_slots`,不依赖技能池在场,不重 roll。
 - 进化:旧 slot 保留;新阶段新增 slot → roll 一次写 skill_id。
 
+**技能代码/元数据流向(adr/0009)**:
+- 技能实现 = Godot 内的 `AbilityConfig` / GDScript 代码,住本仓并编译进 export;运行时不从 server 拉 `.gd`,不动态加载。
+- server 只存 skill metadata:`id` / `implementation_key` / `display_name` / `element` / `channel` / `icon_key?`,供 lab 展示和 `skill_pools` 引用。
+- 流向与 inkmon/item 相反:skill metadata 是 `godot -> server -> lab`;Godot editor menu `Project -> Tools -> InkMon: 上传技能元数据` 主动 POST 到 server。
+
 **进化 = species_id 字段改写 + edge-list 森林(adr/0010)**:
 - 身份 = `species_id`(全局唯一不可变 `mon_NNNN`,住 canon);`name_en` 降级为可改显示名。进化时 entry 的 `species_id`(及 `name_en`/`stage`)改写成所选下一形态,`entry_id` 不变(同一只)。
 - 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 editor import 写入本地静态 content `res://data/inkmon_content.json`,由 `InkMonSpeciesCatalog` 读取。一个低阶可多子分支;孤儿 = 无边物种。权威是 **per-species**:某物种在边表中→用边表;不在→降级用 stub `_build_table` 的 `evolves_to` 单边 fallback(故加载部分 content 不会让 stub/领养物种丢失自己的进化链)。
