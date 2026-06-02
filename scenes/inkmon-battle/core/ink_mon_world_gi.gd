@@ -20,6 +20,11 @@ extends WorldGameplayInstance
 ## (会读到陈旧 near);改挂本信号 —— emit 时 near_npc_id 已是新值。
 signal near_npc_changed(near_npc_id: String)
 
+## 上行信号(CQRS 方案 A 的结果回流):buy/npc-action command 在 tick drain 生效后,把结果
+## (含 message,可含 flow intent)emit 上行。Host connect 后刷 UI message / 解释 flow intent
+## (start_battle 等)。"写不走同步返回值"靠此 —— 写路径只 submit,结果异步回流。
+signal command_applied(result: Dictionary)
+
 
 ## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 View3D MOVE_STEP_DURATION
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
@@ -77,8 +82,9 @@ var npc_defs: Dictionary = {
 var overworld_grid: InkMonWorldGrid = null
 ## 与玩家相邻(axial 距离 ≤1)的 NPC id;玩家移动后重算,"" = 无邻近。
 var near_npc_id: String = ""
-## 主世界 command 队列(CQRS 写侧):UI enqueue → tick 的 CommandDrain System 抽干应用。
-var _command_queue: Array[Dictionary] = []
+## 主世界 command 队列(CQRS 写侧):UI/Host submit(InkMonWorldCommand) → tick 的 CommandDrain System
+## 抽干, drain_commands 多态 cmd.apply(self)。持对象化命令(非无类型 dict)。
+var _command_queue: Array[InkMonWorldCommand] = []
 ## NPC 服务(P6 内移):6 个 handler,自含规则、收 GI 持有的 session;Host 只转发 UI 点击。
 var _npc_handlers: Dictionary = {}
 
@@ -120,23 +126,32 @@ func _register_world_systems() -> void:
 	add_system(InkMonWorldMovementSystem.new())
 
 
-## CQRS 写侧:UI 把"移动玩家到目标格"意图入队(异步)。不立即移动 —— 下个 tick 的
-## CommandDrain 抽干应用,Movement 逐格推进,经 actor_position_changed 回流给表演。
-func enqueue_move_player(target_coord: Vector2i) -> void:
-	_command_queue.append({"kind": "move_player", "target": target_coord})
+## CQRS 写侧唯一入口:UI/Host submit(InkMonWorldCommand) 入队(异步)。不立即生效 ——
+## 下个 tick 的 CommandDrain 抽干, drain_commands 多态 cmd.apply(self),结果经 command_applied / 位置信号回流。
+func submit(command: InkMonWorldCommand) -> void:
+	if command == null:
+		return
+	_command_queue.append(command)
 
 
-## tick 第一阶段(CommandDrain System 调):抽干命令队列,应用为 world actor 移动意图。
+## tick 第一阶段(CommandDrain System 调):抽干命令队列, 多态派发 cmd.apply(self)。
+## 加新命令只加一个 InkMonWorldCommand 子类 —— 此处不动(替掉了旧的无类型 {"kind":...} + if kind== 阶梯)。
 func drain_commands() -> void:
 	while not _command_queue.is_empty():
-		var cmd := _command_queue.pop_front() as Dictionary
-		if str(cmd.get("kind", "")) == "move_player":
-			_apply_move_player_command(cmd.get("target", Vector2i.ZERO) as Vector2i)
+		var command := _command_queue.pop_front() as InkMonWorldCommand
+		if command != null:
+			command.apply(self)
+
+
+## command_applied 单一 emit 入口:buy/npc-action command apply 后把结果(含 message / flow intent)回流。
+func emit_command_applied(result: Dictionary) -> void:
+	command_applied.emit(result)
 
 
 ## latest-wins(方案 A):新目标 → 走完正在进入的当前格(occupant 自然 flip 到 moving_to),
 ## moving_to 之后的旧路立即丢弃换 astar(moving_to, target);静止则从当前格起步。
-func _apply_move_player_command(target_coord: Vector2i) -> void:
+## 由 InkMonMoveCommand.apply 调用(写路径:submit(InkMonMoveCommand) → tick drain → 此)。
+func apply_move_player(target_coord: Vector2i) -> void:
 	var player := get_world_actor(InkMonWorldGrid.PLAYER_ID)
 	if player == null or overworld_grid == null:
 		return
@@ -494,6 +509,7 @@ func get_npc_actions(npc_id: String) -> Array:
 
 ## 运行 NPC action:handler 收 GI 持有的 session 自含规则;返回结果
 ## (training 含 flow intent,Host 解释起战斗 —— 战斗 flow/app_state 归 Host)。
+## 写路径请走 submit(InkMonNpcActionCommand) —— 本方法是其 apply 目标(tick drain 内调用),结果经 command_applied 回流。
 func run_npc_action(npc_id: String, action_id: String) -> Dictionary:
 	if not _npc_handlers.has(npc_id):
 		return {"ok": false, "message": "unknown NPC handler: %s" % npc_id}
@@ -501,6 +517,7 @@ func run_npc_action(npc_id: String, action_id: String) -> Dictionary:
 
 
 ## 购买商店物品:规则住 shop handler,收 GI 持有的 session。
+## 写路径请走 submit(InkMonBuyCommand) —— 本方法是其 apply 目标(tick drain 内调用),结果经 command_applied 回流。
 func buy_shop_item(config_id: StringName) -> Dictionary:
 	var shop := _npc_handlers.get("shop", null) as InkMonShopNpcHandler
 	if shop == null:

@@ -33,7 +33,7 @@ func _run() -> String:
 	if shop_status != "":
 		return _cleanup(root, shop_status)
 
-	var systems_status := _assert_system_npc_flows(root)
+	var systems_status := await _assert_system_npc_flows(root)
 	if systems_status != "":
 		return _cleanup(root, systems_status)
 
@@ -101,12 +101,16 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 	if root.get_dev_agent_state().get("active_npc_id", "") != "shop":
 		return "active NPC should be Shop"
 
+	# P3 方案 A:buy 是异步 command —— 入队即 ok;tick drain 才扣金币 + 入袋,经 command_applied 回流。
+	var gold_before_buy := root.session.player_state.gold
 	var buy_result := root.buy_shop_item(InkMonItemCatalog.MINOR_RUNE)
 	if not bool(buy_result.get("ok", false)):
-		return "buy Minor Rune failed: %s" % str(buy_result.get("message", ""))
+		return "buy Minor Rune command should be accepted (enqueued)"
+	var spent := await _wait_until(func() -> bool:
+		return root.session.player_state.gold == gold_before_buy - 10)
+	if not spent:
+		return "buying Minor Rune should spend 10 gold (async command drain)"
 	var bought_state := root.get_dev_agent_state()
-	if int(bought_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD - 10:
-		return "buying Minor Rune should spend 10 gold"
 	if not _bag_has(bought_state.get("bag", []), "minor_rune"):
 		return "bag should contain minor_rune after buy"
 
@@ -118,11 +122,17 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 	return ""
 
 
+## P3 方案 A:npc-action 全异步入队 —— Host 方法回 enqueue ack,tick drain 才执行规则;
+## trainer 的 start_battle flow intent 经 command_applied → Host call_deferred 起战斗。逐个 pump-wait mutation 落地。
 func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
-	var training_result := root.run_npc_action_for("trainer", InkMonTrainingNpcHandler.ACTION_START_BATTLE)
-	if not bool(training_result.get("ok", false)):
-		return "training NPC battle failed: %s" % str(training_result.get("message", ""))
-
+	if not bool(root.run_npc_action_for("trainer", InkMonTrainingNpcHandler.ACTION_START_BATTLE).get("ok", false)):
+		return "training NPC action command should be accepted (enqueued)"
+	var battle_done := await _wait_until(func() -> bool:
+		var s := root.get_dev_agent_state()
+		return str(s.get("state", "")) == "OVERWORLD" \
+			and not (s.get("last_battle_result", {}) as Dictionary).is_empty())
+	if not battle_done:
+		return "training battle did not complete via async command + deferred flow"
 	var after_training := root.get_dev_agent_state()
 	if int(after_training.get("gold", 0)) <= InkMonPlayerState.DEFAULT_GOLD:
 		return "training NPC should award gold"
@@ -132,35 +142,42 @@ func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
 
 	var lead := root.session.player_state.roster[0]
 	var level_before := lead.level
-	var cultivate_result := root.run_npc_action_for("cultivation", InkMonCultivationNpcHandler.ACTION_CULTIVATE_LEAD)
-	if not bool(cultivate_result.get("ok", false)):
-		return "cultivation NPC failed: %s" % str(cultivate_result.get("message", ""))
-	if lead.level != level_before + 1:
-		return "cultivation should level the lead InkMon"
+	root.run_npc_action_for("cultivation", InkMonCultivationNpcHandler.ACTION_CULTIVATE_LEAD)
+	if not await _wait_until(func() -> bool: return lead.level == level_before + 1):
+		return "cultivation should level the lead InkMon (async command)"
 	if int(root.session.player_state.progression.get("cultivation_points", 0)) != 1:
 		return "cultivation should increment cultivation_points"
 
-	var rank_result := root.run_npc_action_for("advancement", InkMonAdvancementNpcHandler.ACTION_RANK_UP)
-	if not bool(rank_result.get("ok", false)):
-		return "trainer advancement failed: %s" % str(rank_result.get("message", ""))
-	if int(root.session.player_state.progression.get("trainer_rank", 1)) != 2:
-		return "trainer advancement should set rank to 2"
+	root.run_npc_action_for("advancement", InkMonAdvancementNpcHandler.ACTION_RANK_UP)
+	if not await _wait_until(func() -> bool:
+		return int(root.session.player_state.progression.get("trainer_rank", 1)) == 2):
+		return "trainer advancement should set rank to 2 (async command)"
 
-	var guild_result := root.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_GUILD_TASK)
-	if not bool(guild_result.get("ok", false)):
-		return "guild NPC failed: %s" % str(guild_result.get("message", ""))
-	if not bool(root.session.player_state.progression.get("guild_joined", false)):
-		return "guild NPC should set guild_joined"
+	root.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_GUILD_TASK)
+	if not await _wait_until(func() -> bool:
+		return bool(root.session.player_state.progression.get("guild_joined", false))):
+		return "guild NPC should set guild_joined (async command)"
 	if int(root.session.player_state.progression.get("guild_tasks_completed", 0)) != 1:
 		return "guild NPC should increment task marker"
 
 	var roster_before := root.session.player_state.roster.size()
-	var adopt_result := root.run_npc_action_for("release_adopt", InkMonReleaseAdoptNpcHandler.ACTION_ADOPT_STUB)
-	if not bool(adopt_result.get("ok", false)):
-		return "release/adopt NPC failed: %s" % str(adopt_result.get("message", ""))
-	if root.session.player_state.roster.size() != roster_before + 1:
-		return "adopt should add a roster entry"
+	root.run_npc_action_for("release_adopt", InkMonReleaseAdoptNpcHandler.ACTION_ADOPT_STUB)
+	if not await _wait_until(func() -> bool:
+		return root.session.player_state.roster.size() == roster_before + 1):
+		return "adopt should add a roster entry (async command)"
 	return ""
+
+
+## 泵 tick(real-time wait 驱动 Host._process → tick_all → drain;并让 call_deferred 的 flow 跑)
+## 直到 predicate 成立或超时。返回是否成立。50ms/iter 保证每轮 ≥1 个 FIXED_DT tick。
+func _wait_until(predicate: Callable, max_iters: int = 80) -> bool:
+	if bool(predicate.call()):
+		return true
+	for _i in range(max_iters):
+		await get_tree().create_timer(0.05).timeout
+		if bool(predicate.call()):
+			return true
+	return false
 
 
 func _assert_multi_slot_save(root: InkMonWorldHost) -> String:

@@ -112,7 +112,7 @@ func _run_scenario() -> Dictionary:
 		near_events.append(npc_id)
 	)
 
-	gi.enqueue_move_player(TARGET)
+	gi.submit(InkMonMoveCommand.new(TARGET))
 	var events_at_enqueue := visited.size()
 	var near_events_at_enqueue := near_events.size()
 	var before_tick := gi.get_player_coord()

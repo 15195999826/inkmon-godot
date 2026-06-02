@@ -40,7 +40,7 @@ global paths when DevAgent is enabled.
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
-| `npc_action` | `{ "npc_id": string, "action_id": string }` | runs a system NPC handler action for smoke/data validation | action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
+| `npc_action` | `{ "npc_id": string, "action_id": string }` | **enqueues** a system NPC handler action command (async, 方案 A); the mutation lands on the next world tick, and training's `start_battle` flow intent starts a deferred battle | poll `state` after a short `wait_frames`: action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
 | `save_game` | `{ "path": string }` | writes `InkMonGameSession.to_dict()` JSON to `user://` path | `ok == true` |
 | `load_game` | `{ "path": string }` | reads JSON, rebuilds session runtime containers, returns to `OVERWORLD` | restored `gold`, `roster`, `progression`, `bag` |
 
@@ -48,8 +48,8 @@ Player-facing UI paths must use raw real input:
 
 - `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` moves toward the occupied Shop tile, retargets to an adjacent free tile, starts `overworld_3d.move_animation_active`, and after the animation should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC drawer.
-- `click_at` on `layout_state.shop_buy_buttons.minor_rune` buys Minor Rune and should reduce gold by 10.
-- `click_at` on `layout_state.npc_action_buttons.start_training_battle` starts and completes the Training battle.
+- `click_at` on `layout_state.shop_buy_buttons.minor_rune` enqueues a Minor Rune buy command (方案 A); after a world tick drains it, gold reduces by 10 — poll `state` after a short `wait_frames`, do not assert synchronously.
+- `click_at` on `layout_state.npc_action_buttons.start_training_battle` enqueues a training NPC action; the battle starts (deferred, off the drain tick) and completes after a few ticks — poll `state` for `active_instance_id == ""` and `last_battle_result.winner_team`.
 - `click_at` on `layout_state.close_button` closes the side sheet.
 - `click_at` on `layout_state.tool_buttons.party`, `.bag`, `.journal`, and `.menu` opens the player drawer tabs and save/load modal.
 
@@ -99,13 +99,15 @@ UI input check:
 {"id":"18","op":"wait_frames","frames":12}
 {"id":"19","op":"scene","name":"layout_state"}
 {"id":"20","op":"click_at","x":<minor_rune buy cx>,"y":<minor_rune buy cy>}
+{"id":"20b","op":"wait_frames","frames":6}
 {"id":"21","op":"scene","name":"state"}
 ```
 
 Pass criteria: command `13` shows `overworld_3d.move_animation_active == true`;
 command `15` shows `near_npc_id == "shop"` and
 `overworld_3d.player_visual_coord == player_coord`; the drawer opens through a
-real prompt click, and gold becomes `90` with a `minor_rune` item in `bag`.
+real prompt click, and after the buy command drains (`wait_frames` at `20b`,
+方案 A 异步写) gold becomes `90` with a `minor_rune` item in `bag`.
 
 Player-owned UI input check:
 

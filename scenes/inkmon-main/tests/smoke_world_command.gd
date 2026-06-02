@@ -1,0 +1,136 @@
+extends Node
+## Phase 3 契约 (Logic 级,直接驱动 InkMonWorldGI,无 Host/View):主世界写路径 = 对象化 command。
+##
+## 断言:
+##   1. submit(InkMonMoveCommand) → tick drain → 玩家逐格走到目标 (移动 command 走多态 apply)。
+##   2. 方案 A:command 在 tick drain 一处生效 —— submit 后未 tick 时世界态不变、command_applied 不 fire。
+##   3. submit(InkMonBuyCommand) drain 后扣金币 + 入袋, 经 command_applied signal 回流 ok 结果。
+##   4. submit(InkMonNpcActionCommand cultivation) drain 后练级 lead。
+##   5. 训练 flow intent 经 command_applied 浮现, 但 GI 自己不起战斗 (flow 归 Host)。
+##   6. IWorldQuery 只读协议成立 (InkMonWorldGI 鸭子实现)。
+
+
+const FIXED_DT := 1.0 / 30.0
+const MINOR_RUNE_PRICE := 10
+
+
+func _ready() -> void:
+	var status := _run()
+	if status == "":
+		print("SMOKE_TEST_RESULT: PASS - submit(InkMonWorldCommand) drains polymorphically in tick (A); intent surfaces via signal; IWorldQuery holds")
+		get_tree().quit(0)
+	else:
+		print("SMOKE_TEST_RESULT: FAIL - %s" % status)
+		get_tree().quit(1)
+
+
+func _run() -> String:
+	GameWorld.init(EventProcessorConfig.new(20, 1))
+	TimelineRegistry.reset()
+
+	var checks := [
+		_test_move_command,
+		_test_buy_command_is_async_and_signals,
+		_test_cultivation_command,
+		_test_trainer_intent_surfaces_without_gi_flow,
+		_test_iworldquery_protocol,
+	]
+	for check in checks:
+		var status := (check as Callable).call() as String
+		if status != "":
+			GameWorld.shutdown()
+			return status
+
+	GameWorld.shutdown()
+	return ""
+
+
+func _make_gi() -> InkMonWorldGI:
+	var gi := GameWorld.create_instance(func() -> GameplayInstance:
+		return InkMonWorldGI.new()
+	) as InkMonWorldGI
+	var session := InkMonGameSession.new()
+	session.begin_new_game()
+	gi.setup_overworld(session)
+	return gi
+
+
+## 1 + 2(move 侧):submit 后未 tick 不动;tick drain 多态 apply MoveCommand → 逐格抵达。
+func _test_move_command() -> String:
+	var gi := _make_gi()
+	var start := gi.get_player_coord()
+	gi.submit(InkMonMoveCommand.new(Vector2i(1, 0)))
+	if gi.get_player_coord() != start:
+		return "MoveCommand must not apply before tick (A: mutation only in tick drain)"
+	for _i in range(40):
+		gi.tick(FIXED_DT)
+	if gi.get_player_coord() != Vector2i(1, 0):
+		return "submit(MoveCommand) + ticks should walk player to (1,0), got %s" % str(gi.get_player_coord())
+	GameWorld.destroy_all_instances()
+	return ""
+
+
+## 2 + 3:buy 是 A(入队不立即生效),drain 后扣金币 + 入袋, 结果经 command_applied 回流。
+func _test_buy_command_is_async_and_signals() -> String:
+	var gi := _make_gi()
+	var results: Array[Dictionary] = []
+	gi.command_applied.connect(func(result: Dictionary) -> void:
+		results.append(result)
+	)
+	var gold_before := gi.session.player_state.gold
+	gi.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
+	if gi.session.player_state.gold != gold_before:
+		return "BuyCommand must not spend gold before tick (A)"
+	if not results.is_empty():
+		return "command_applied must not fire before tick drain"
+	gi.tick(FIXED_DT)
+	if gi.session.player_state.gold != gold_before - MINOR_RUNE_PRICE:
+		return "BuyCommand drain should spend %d gold" % MINOR_RUNE_PRICE
+	if results.size() != 1 or not bool(results[0].get("ok", false)):
+		return "BuyCommand should emit exactly one ok command_applied result"
+	GameWorld.destroy_all_instances()
+	return ""
+
+
+## 4:cultivation npc-action command drain 后 lead 升一级。
+func _test_cultivation_command() -> String:
+	var gi := _make_gi()
+	var lead := gi.session.player_state.roster[0]
+	var level_before := lead.level
+	gi.submit(InkMonNpcActionCommand.new("cultivation", InkMonCultivationNpcHandler.ACTION_CULTIVATE_LEAD))
+	if lead.level != level_before:
+		return "NpcActionCommand must not apply before tick (A)"
+	gi.tick(FIXED_DT)
+	if lead.level != level_before + 1:
+		return "cultivation NpcActionCommand drain should level the lead"
+	GameWorld.destroy_all_instances()
+	return ""
+
+
+## 5:训练 action 的 flow intent 经 command_applied 浮现,但 GI 不执行 flow(不起战斗)。
+func _test_trainer_intent_surfaces_without_gi_flow() -> String:
+	var gi := _make_gi()
+	var results: Array[Dictionary] = []
+	gi.command_applied.connect(func(result: Dictionary) -> void:
+		results.append(result)
+	)
+	gi.submit(InkMonNpcActionCommand.new("trainer", InkMonTrainingNpcHandler.ACTION_START_BATTLE))
+	gi.tick(FIXED_DT)
+	if results.size() != 1:
+		return "trainer NpcActionCommand should emit one command_applied"
+	var intent := results[0].get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
+	if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) != InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+		return "trainer command result must carry start_battle flow intent"
+	if gi.has_active_battle():
+		return "GI must NOT start battle itself — flow (start battle) belongs to Host"
+	GameWorld.destroy_all_instances()
+	return ""
+
+
+## 6:InkMonWorldGI 满足 IWorldQuery 只读协议(鸭子实现)。
+func _test_iworldquery_protocol() -> String:
+	var gi := _make_gi()
+	if not IWorldQuery.is_implemented(gi):
+		return "InkMonWorldGI should satisfy the IWorldQuery read protocol"
+	GameWorld.destroy_all_instances()
+	return ""

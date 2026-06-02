@@ -297,9 +297,9 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 			"message": "world is not ready",
 			"data": get_dev_agent_state(),
 		}
-	# Command(写)= 异步唯一入口:入队 move 意图;tick 逐格应用,经 actor_position_changed 回流刷表演。
+	# Command(写)= 异步唯一入口:submit(InkMonMoveCommand);tick drain 逐格应用,经 actor_position_changed 回流刷表演。
 	# latest-wins(方案 A):连点不打断当前格,故无"动画播放中"拦截(那条 race 被结构性消灭)。不读返回值。
-	_world_gi.enqueue_move_player(target_coord)
+	_world_gi.submit(InkMonMoveCommand.new(target_coord))
 	_last_move_result = {
 		"target": {"q": target_coord.x, "r": target_coord.y},
 		"enqueued": true,
@@ -421,16 +421,11 @@ func buy_shop_item(config_id: StringName) -> Dictionary:
 			"message": "shop is not open",
 			"data": get_dev_agent_state(),
 		}
-	# NPC 服务内移:购买规则在 GI 的 shop handler;Host 只转发 + 刷 UI。
-	var result := _world_gi.buy_shop_item(config_id)
-	var ok := bool(result.get("ok", false))
-	var message := str(result.get("message", ""))
-	if message != "":
-		_last_ui_message = message
-		if ok:
-			_add_event(message)
-	_refresh_ui()
-	return _scene_result(ok, message)
+	# 方案 A:购买写入队(InkMonBuyCommand),tick drain 才扣金币 + 入袋;结果经 command_applied
+	# 回流到 _on_command_applied 刷 UI。Host 不读返回值 —— 这里只回 enqueue ack。
+	_world_gi.submit(InkMonBuyCommand.new(config_id))
+	_add_event("buy command enqueued: %s" % str(config_id))
+	return _scene_result(true, "buy command enqueued")
 
 
 func run_active_npc_action(action_id: String) -> Dictionary:
@@ -442,20 +437,11 @@ func run_active_npc_action(action_id: String) -> Dictionary:
 func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 	if _world_gi == null or not _world_gi.has_npc_handler(npc_id):
 		return _scene_result(false, "unknown NPC handler: %s" % npc_id)
-	# NPC 服务内移:GI 的 handler 收 GI 持有的 session 自含规则;Host 只转发。
-	var result := _world_gi.run_npc_action(npc_id, action_id)
-	# Command-as-data: handler 返回 flow intent, Host 解释并执行 (起 battle procedure;flow 归 Host)。
-	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
-	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
-		_active_npc_id = ""
-		return run_training_battle_to_completion(8)
-	var ok := bool(result.get("ok", false))
-	var message := str(result.get("message", ""))
-	if message != "":
-		_last_ui_message = message
-		_add_event(message)
-	_refresh_ui()
-	return _scene_result(ok, message)
+	# 方案 A:NPC action 写入队(InkMonNpcActionCommand),tick drain 才执行 handler 规则;结果
+	# (含 flow intent)经 command_applied 回流到 _on_command_applied 刷 UI / 解释 flow。Host 不读返回值。
+	_world_gi.submit(InkMonNpcActionCommand.new(npc_id, action_id))
+	_add_event("npc action enqueued: %s/%s" % [npc_id, action_id])
+	return _scene_result(true, "npc action enqueued")
 
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
@@ -592,6 +578,8 @@ func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
 	_world_gi.actor_position_changed.connect(_on_world_actor_position_changed)
 	# 上行:Logic near-npc 真相变 → 表演同步 NPC 高亮 + prompt 可见性(移动 tick 内 near 在位置信号之后才更新)。
 	_world_gi.near_npc_changed.connect(_on_near_npc_changed)
+	# 上行(方案 A 结果回流):buy/npc-action command 在 tick drain 生效后,把结果(含 message / flow intent)回流。
+	_world_gi.command_applied.connect(_on_command_applied)
 
 
 func _new_game_session() -> InkMonGameSession:
@@ -617,6 +605,31 @@ func _on_near_npc_changed(_npc_id: String) -> void:
 		return
 	_world_layer.set_near_npc_id(_near_npc_id)
 	_refresh_prompt()
+
+
+## 上行 signal handler(方案 A 结果回流):buy/npc-action command 在 tick drain 生效后,Host 据结果
+## 刷 UI message;若结果含 start_battle flow intent → 起训练战 flow(flow 归 Host,不归 command/handler)。
+func _on_command_applied(result: Dictionary) -> void:
+	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
+	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+		# flow 起在 command drain 之外:call_deferred 脱离 tick_all,避免 drain(在 base_tick 内)期间
+		# flip grid / 起 battle procedure 造成 mid-tick re-entrancy。
+		_active_npc_id = ""
+		call_deferred("_begin_training_battle_flow")
+		return
+	var message := str(result.get("message", ""))
+	if message != "":
+		_last_ui_message = message
+		if bool(result.get("ok", false)):
+			_add_event(message)
+	_refresh_ui()
+
+
+## 训练战 flow(Host 控制面,非 CQRS):由 command_applied 的 start_battle intent 经 call_deferred 触发。
+## 同步跑完(record-then-playback);_complete_battle_if_ready 写回结果 + 清回主世界态。
+func _begin_training_battle_flow() -> void:
+	run_training_battle_to_completion(8)
+	_refresh_ui()
 
 
 func _cancel_overworld_animation() -> void:

@@ -49,7 +49,7 @@ func _run() -> String:
 	var start := gi.get_player_coord()
 
 	# 走到 TARGET(运行时改,session 存档字段未动 —— 单写不双写)。
-	gi.enqueue_move_player(TARGET)
+	gi.submit(InkMonMoveCommand.new(TARGET))
 	for _i in range(TICKS):
 		gi.tick(FIXED_DT)
 	if gi.get_player_coord() != TARGET:
@@ -73,7 +73,7 @@ func _run() -> String:
 		return "hydrate must clear in-flight movement state"
 
 	# capture:走到 TARGET 再 capture → session 存档字段 = runtime。
-	gi.enqueue_move_player(TARGET)
+	gi.submit(InkMonMoveCommand.new(TARGET))
 	for _i in range(TICKS):
 		gi.tick(FIXED_DT)
 	gi.capture_to_session()
