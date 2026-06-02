@@ -66,7 +66,7 @@
 - **Query(读)= 同步**:表演渲染经 `IWorldQuery` facade 直接调只读方法(roster / gold / near-npc / npc actions)。
 - **Command(写)= 异步唯一入口**:表演改任何游戏/世界态 → `submit(cmd)` 入队 → Host tick drain 应用(`cmd.apply(gi)`)→ 结果经 event/signal 回流 → 表演被动刷(**不读返回值**)。
   - **Command = 对象,不是无类型 dict**:`InkMonWorldCommand` 基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类;`drain_commands` 多态派发 `cmd.apply(gi)`(替掉 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action **全收进队列**(方案 A:世界一切 mutation 只在 tick 一处发生 = 单一变更时间线)。
-  - 纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE 由 WorldGI 的 `_active_instance_id` 派生,面板态 = 表演的 `_drawer_mode`)。
+  - 纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE = Host 控制面的 `_active_instance_id`(战斗 flow 真相)推入 Presentation 的 `_battle_active` 后派生,面板态 = 表演的 `_drawer_mode`;Presentation 据二者派生 `app_state`)。
 - ⚠️ 此 "Command" ≠ battle 层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。上行用 WorldGI mutation signal,**不建全局 EventBus**。
 - **lifecycle(save/load/new-game/reset)= Host 控制面操作,不进 command 队列**(它销毁/重建世界本身,非世界内 mutation):save = `world.capture_to_session()` + `InkMonSaveFile.write`;load = `InkMonSaveFile.read` + `session.from_dict` + 重建 world + `world.hydrate_from_session()`。
 

@@ -24,6 +24,9 @@ var session: InkMonGameSession:
 
 ## 战斗 flow 真相(_active_instance_id != "" ⇒ 战斗中);Host 控制面持有,推给 Presentation 派生 app_state。
 var _active_instance_id := ""
+## 训练战 flow 去重锁:从收到 start_battle intent 到 _begin_training_battle_flow 跑完之间为 true,
+## 挡掉同帧双击/重复 intent 起多场战斗(方案 A 异步去掉了旧同步路径的隐式单飞保护)。
+var _battle_flow_pending := false
 var _world_gi: InkMonWorldGI = null
 var _presentation: InkMonWorldPresentation = null
 ## 主世界定步泵的真实时间累加器(满 FIXED_DT 泵一 tick)。
@@ -113,14 +116,22 @@ func run_training_battle_to_completion(max_ticks: int = 8) -> Dictionary:
 ## Presentation 上抛 flow intent(training 的 start_battle)→ Host 起 flow。
 ## call_deferred 脱离 tick_all(intent 经 command_applied 在 drain 内浮现),避免 mid-tick flip grid 的 re-entrancy。
 func _on_flow_intent_raised(intent: Dictionary) -> void:
-	if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
-		call_deferred("_begin_training_battle_flow")
+	if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) != InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+		return
+	# 去重:方案 A 下同帧双击会 enqueue 两条 start_battle command,同 tick drain → 两次 intent。
+	# 旧同步路径靠"第一场跑完即切回主世界态"自然挡掉第二次;async 下两次 deferred 会起两场(双倍奖励)。
+	# 故只认第一次 intent,_begin 跑完才解锁。
+	if _battle_flow_pending:
+		return
+	_battle_flow_pending = true
+	call_deferred("_begin_training_battle_flow")
 
 
 ## 训练战 flow(Host 控制面):由 flow_intent_raised 经 call_deferred 触发。
 ## 同步跑完(record-then-playback);_complete_battle_if_ready 写回结果 + 经 Presentation 清回主世界态。
 func _begin_training_battle_flow() -> void:
 	run_training_battle_to_completion(8)
+	_battle_flow_pending = false
 
 
 func _tick_active_instance(dt: float) -> void:

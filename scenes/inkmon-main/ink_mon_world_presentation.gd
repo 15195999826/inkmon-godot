@@ -36,7 +36,7 @@ signal load_slot_requested(slot: int)
 var _world_query: InkMonWorldGI = null
 ## 战斗 flow 状态由 Host 推入(set_battle_active);表演据此派生 app_state,不自持 _active_instance_id。
 var _battle_active := false
-## 最近一场战斗结果由 Host 推入(set_last_battle_result),用于 journal 面板 + debug 表面。
+## 最近一场战斗结果由 Host 经 on_battle_completed 推入,用于 journal 面板 + debug 表面。
 var _last_battle_result: Dictionary = {}
 
 ## 数据驱动 panel 内容构建器(纯表演,据数据建 Control 行)。
@@ -379,14 +379,18 @@ func _on_near_npc_changed(_npc_id: String) -> void:
 func _on_command_applied(result: Dictionary) -> void:
 	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
 	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+		# 进战斗即关 NPC 抽屉:清 _active_npc_id + _drawer_mode 并刷新,避免 _drawer_mode=="npc" 与
+		# _active_npc_id=="" 的不一致态残留(否则 _refresh_panel 的 _npc_defs[_active_npc_id] 会索引 "" 崩溃)。
 		_active_npc_id = ""
+		_drawer_mode = ""
+		_refresh_ui()
 		flow_intent_raised.emit(intent)
 		return
 	var message := str(result.get("message", ""))
 	if message != "":
 		_last_ui_message = message
-		if bool(result.get("ok", false)):
-			add_event(message)
+		# 无条件记事件(含失败消息),对齐重构前 run_npc_action_for 的行为(它不按 ok 门控日志)。
+		add_event(message)
 	_refresh_ui()
 
 

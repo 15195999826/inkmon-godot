@@ -31,7 +31,7 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `near_npc_id`, `active_npc_id`, `drawer_open`, `drawer_mode`, `modal_open`, `bag`, `overworld_3d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_3d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
 | `layout_state` | none | viewport and clickable rects for prompt, drawer close, NPC action buttons, Shop buy buttons, top-right tool buttons, drawer tabs, and save/load modal buttons |
 | `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for a 3D hex tile center, used with raw `click_at` + `button:"right"` |
 
@@ -78,6 +78,7 @@ Generic DevAgent ops remain available:
 {"id":"03","op":"scene","name":"state"}
 {"id":"04","op":"inspect_tree","root":"/root/InkMonMain/WorldHost","max_depth":3}
 {"id":"05","op":"scene","name":"npc_action","args":{"npc_id":"cultivation","action_id":"cultivate_lead"}}
+{"id":"05b","op":"wait_frames","frames":6}
 {"id":"06","op":"scene","name":"save_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
 {"id":"07","op":"scene","name":"load_game","args":{"path":"user://inkmon_l2_devagent_save.json"}}
 ```
