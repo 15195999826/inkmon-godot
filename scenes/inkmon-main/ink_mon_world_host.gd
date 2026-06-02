@@ -13,11 +13,11 @@ const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
 # 手动存档点 + 可多槽 (§8b); 战斗结果不自动落盘, 玩家开 save 菜单存某槽。
 const SAVE_SLOT_COUNT := 3
-## 主世界逻辑固定步频(§0.5):Host 每帧按累加器泵 GameWorld.tick_all(FIXED_DT)。
+## 主世界逻辑固定步频(§1 tick/移动模型):Host 每帧按累加器泵 GameWorld.tick_all(FIXED_DT)。
 const FIXED_DT := 1.0 / 30.0
 const MAX_TICKS_PER_FRAME := 8
 
-## session 真相在 Logic(InkMonWorldGI.session);Host 只读委托(单一所有权,§0.5)。
+## session 真相在 Logic(InkMonWorldGI.session);Host 只读委托(单一所有权,§3 不双写)。
 var session: InkMonGameSession:
 	get:
 		return _world_gi.session if _world_gi != null else null
@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 	_pump_world_ticks(delta)
 
 
-## 主世界 30Hz 定步泵(§0.5):累加真实 delta,每满 FIXED_DT 泵一次 GameWorld.tick_all
+## 主世界 30Hz 定步泵(§1 tick/移动模型):累加真实 delta,每满 FIXED_DT 泵一次 GameWorld.tick_all
 ## → WorldGI.base_tick → CommandDrain/Movement System 逐格推进。封顶防 spiral-of-death。
 func _pump_world_ticks(delta: float) -> void:
 	if _world_gi == null:

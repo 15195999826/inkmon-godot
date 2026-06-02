@@ -32,7 +32,7 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 | op | args | data |
 | --- | --- | --- |
 | `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_3d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
-| `layout_state` | none | viewport and clickable rects for prompt, drawer close, NPC action buttons, Shop buy buttons, top-right tool buttons, drawer tabs, and save/load modal buttons |
+| `layout_state` | none | viewport and clickable rects for: prompt button, NPC panel + drawer close, NPC action buttons, Shop buy buttons, the `start_training_battle` trainer button, top-right tool buttons, drawer tabs, and the save/load modal panel + slot/close buttons (full key set: `prompt_button`/`npc_panel`/`close_button`/`npc_action_buttons`/`shop_buy_buttons`/`trainer_button`/`tool_buttons`/`tab_buttons`/`save_load_modal`/`save_slot_buttons`/`load_slot_buttons`/`modal_close_button`) |
 | `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for a 3D hex tile center, used with raw `click_at` + `button:"right"` |
 
 ### Action
@@ -50,7 +50,7 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 Player-facing UI paths must use raw real input:
 
-- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` moves toward the occupied Shop tile, retargets to an adjacent free tile, starts `overworld_3d.move_animation_active`, and after the animation should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
+- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` enqueues an async move toward the occupied Shop tile (retargets to an adjacent free tile). The click is async (方案 A): it **immediately** drops the target marker (`overworld_3d.target_feedback_active == true`); `move_animation_active` only goes true after a later world tick drains the move command (→ `actor_position_changed` → view `step_player`). After the move settles it should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC drawer.
 - `click_at` on `layout_state.shop_buy_buttons.minor_rune` enqueues a Minor Rune buy command (方案 A); after a world tick drains it, gold reduces by 10 — poll `state` after a short `wait_frames`, do not assert synchronously.
 - `click_at` on `layout_state.npc_action_buttons.start_training_battle` enqueues a training NPC action; the battle starts (deferred, off the drain tick) and completes after a few ticks — poll `state` for `active_instance_id == ""` and `last_battle_result.winner_team`.
@@ -108,7 +108,10 @@ UI input check:
 {"id":"21","op":"scene","name":"state"}
 ```
 
-Pass criteria: command `13` shows `overworld_3d.move_animation_active == true`;
+Pass criteria: command `13` (right after the async right-click) shows
+`overworld_3d.target_feedback_active == true` (the click drops the target marker
+synchronously; `move_animation_active` is NOT guaranteed yet — it needs a later
+tick to drain the move command, so assert it only after a `wait_frames`);
 command `15` shows `near_npc_id == "shop"` and
 `overworld_3d.player_visual_coord == player_coord`; the drawer opens through a
 real prompt click, and after the buy command drains (`wait_frames` at `20b`,

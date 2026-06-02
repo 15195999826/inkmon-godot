@@ -12,7 +12,7 @@ extends WorldGameplayInstance
 ##
 ## 持久: Host 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
 ## (start_battle_procedure 内 reset-on-start 清上一场)。绝不在战斗结束 end() —— end() 单向销毁世界。
-## lifecycle (save/load/reset/new-game) 由 Host 重建本实例驱动 (§0.5)。
+## lifecycle (save/load/reset/new-game) 由 Host 重建本实例驱动 (§1 运行模型)。
 
 
 ## 上行信号:near_npc_id 真相变化时 emit(空 = 离开所有 NPC 邻域)。

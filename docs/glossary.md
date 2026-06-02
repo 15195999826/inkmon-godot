@@ -34,15 +34,15 @@
 
 **4.1 World Actor 层级** — 主世界一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`。玩家/NPC = 直接 `InkMonWorldActor`(无 ability/timeline)。
 
-**4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**调只读方法(roster/gold/near-npc/列表)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
+**4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**读(`session`/`near_npc_id`/`npc_defs`/player-coord/world-actor/npc-actions;roster/gold 经 `session` getter 间接读,facade 无 roster/gold 方法)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
 
-**4.2a InkMonWorldCommand** — 主世界写路径的**对象化命令**:基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类。表演 `submit(cmd)` 入队,`drain_commands` 多态派发 `cmd.apply(gi)`(替代旧的无类型 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action 全收进队列(方案 A:世界一切 mutation 只在 tick 一处发生)。
+**4.2a InkMonWorldCommand** — 主世界写路径的**对象化命令**:基类 + `InkMonMoveCommand`/`InkMonBuyCommand`/`InkMonNpcActionCommand` 子类。表演 `submit(cmd)` 入队,`drain_commands` 多态派发 `cmd.apply(gi)`(替代旧的无类型 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action 全收进队列(方案 A:世界一切 mutation 只在 tick 一处发生)。
 
-**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 query + submit facade 对象**(`RefCounted`,私有包 `InkMonWorldGI`,转发 roster/gold/near-npc/npc actions 读 + `submit(cmd)` 写)。结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 受控表面),但**无 `get_gi()` 逃逸口** → Presentation 物理上够不到 concrete GI / flow / lifecycle(**结构隔离**,非纯约定级)。GDScript 无 interface 关键字 + GI 单继承位被 `WorldGameplayInstance` 占,故用此 Facade 实现"持接口不持实现";mutation signal 由 Host 连(表演不持 gi)。
+**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 query + submit facade 对象**(`RefCounted`,私有包 `InkMonWorldGI`,转发 `session`/`near_npc_id`/`npc_defs`/`get_player_coord`/`get_world_actor`/`get_npc_actions`/`has_npc_handler` 读 + `submit(cmd)` 写;roster/gold 经 `session` 间接,无直接 getter)。结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 受控表面),但**无 `get_gi()` 逃逸口** → Presentation 物理上够不到 concrete GI / flow / lifecycle(**结构隔离**,非纯约定级)。GDScript 无 interface 关键字 + GI 单继承位被 `WorldGameplayInstance` 占,故用此 Facade 实现"持接口不持实现";mutation signal 由 Host 连(表演不持 gi)。
 
 **4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + 控制面(lifecycle/flow/tick)。**Host 不在 CQRS 调用路径上**(不发 Query / 不收 Event),但握**命令生效时机**(Command 在 Host tick 泵 drain 那一刻生效)。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
 
-**4.3a InkMonWorldPresentation** — Presentation 层根节点,持 View3D / HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` + `submit`,不见 concrete GI;Host 不再直接持 UI 节点 ref。
+**4.3a InkMonWorldPresentation** — Presentation 层根节点,持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` facade(类型层面够不到 concrete GI);mutation signal 由 Host 连;Host 不再直接持 UI 节点 ref。
 
 **4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + session,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
 

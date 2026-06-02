@@ -63,9 +63,9 @@
 
 ### 读写 = CQRS（三通道）
 
-- **Query(读)= 同步**:表演渲染经 `IWorldQuery` facade 直接调只读方法(roster / gold / near-npc / npc actions)。
+- **Query(读)= 同步**:表演经 `IWorldQuery` facade 同步读 —— facade 直接转发 `session` / `near_npc_id` / `npc_defs` / `get_player_coord` / `get_world_actor` / `get_npc_actions` / `has_npc_handler`;roster / gold 经 `session` getter 间接读(facade **不**另设 roster/gold 方法)。
 - **Command(写)= 异步唯一入口**:表演改任何游戏/世界态 → `submit(cmd)` 入队 → Host tick drain 应用(`cmd.apply(gi)`)→ 结果经 event/signal 回流 → 表演被动刷(**不读返回值**)。
-  - **Command = 对象,不是无类型 dict**:`InkMonWorldCommand` 基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类;`drain_commands` 多态派发 `cmd.apply(gi)`(替掉 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action **全收进队列**(方案 A:世界一切 mutation 只在 tick 一处发生 = 单一变更时间线)。
+  - **Command = 对象,不是无类型 dict**:`InkMonWorldCommand` 基类 + `InkMonMoveCommand`/`InkMonBuyCommand`/`InkMonNpcActionCommand` 子类;`drain_commands` 多态派发 `cmd.apply(gi)`(替掉 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action **全收进队列**(方案 A:世界一切 mutation 只在 tick 一处发生 = 单一变更时间线)。
   - 纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE = Host 控制面的 `_active_instance_id`(战斗 flow 真相)推入 Presentation 的 `_battle_active` 后派生,面板态 = 表演的 `_drawer_mode`;Presentation 据二者派生 `app_state`)。
 - ⚠️ 此 "Command" ≠ battle 层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。上行用 WorldGI mutation signal,**不建全局 EventBus**。
 - **lifecycle(save/load/new-game/reset)= Host 控制面操作,不进 command 队列**(它销毁/重建世界本身,非世界内 mutation):save = `world.capture_to_session()` + `InkMonSaveFile.write`;load = `InkMonSaveFile.read` + `session.from_dict` + 重建 world + `world.hydrate_from_session()`。
@@ -138,9 +138,9 @@
 
 ## 5. NPC handler 契约
 
-- 6 handler 统一**只收 `session`**,规则住 handler 内;纯数据 NPC(shop / cultivation / guild / advancement / release_adopt)直接读写 session;handler **不碰 UI / flow**。
+- 6 handler 统一**只收 `session`**,规则住 handler 内;纯数据 NPC(shop / cultivation / guild / advancement / release_adopt)直接读写 session;第 6 个 `trainer` = training→战斗(command-as-data,见下条);handler **不碰 UI / flow**。
 - handler 由 `InkMonWorldGI` 持有(`_npc_handlers`,setup 内建);UI 点击 → Presentation `submit(InkMonNpcActionCommand / InkMonBuyCommand)` → tick drain 时 `cmd.apply(gi)` 调 GI 的 `run_npc_action` / `buy_shop_item`(handler 收 GI 持有的 session),结果经 `command_applied` 回流。
-- training→战斗 = **command-as-data**:handler 返回 `{ok, message, intent?}`,training 的 `intent = {kind:"start_battle", config}`;Host 读 `intent.kind` 解释起 battle flow(app_state / tick 归 Host),handler 自己绝不碰 flow。
+- training→战斗 = **command-as-data**:handler 返回 `{ok, message, intent?}`,training 的 `intent = {kind:"start_battle"}`(**无 config** —— 战斗 config 由 `InkMonWorldGI.request_training_battle()` 自建:player roster 投影自 session + 训练假人,不经 intent 携带)。回流路径多一跳:GI `command_applied(result)` → Host 连到 `Presentation._on_command_applied` → 表演检出 intent、经 `flow_intent_raised` signal 上抛给 Host(单向 DAG,表演不引用 Host)→ `Host._on_flow_intent_raised` 读 `intent.kind`,`call_deferred(_begin_training_battle_flow, _world_generation)` 起 battle flow(app_state / tick 归 Host);handler / command / 表演都不碰 flow。
 
 ---
 
@@ -148,7 +148,7 @@
 
 - 全 `.tscn`(尽量编辑器设计),代码只填文字 / 绑数据,动态列表(roster/bag/NPC 行)用 instantiate 组件场景。
 - UI 在 presentation 层,只订阅 signal / 调窄 `IWorldQuery` + `submit(cmd)`,不直接改逻辑、不见 concrete GI。
-- presentation 根 = `InkMonWorldPresentation`(节点),持 View3D / HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
+- presentation 根 = `InkMonWorldPresentation`(节点),持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
 - 数据驱动内容构建(roster chips / party / bag / journal)抽在 `InkMonWorldPanelView`(纯表演 builder)。
 
 ### HUD 布局(corner-only;密集信息进单一右抽屉)
@@ -242,7 +242,8 @@
 
 ## 9. 待用户给设计后再定(未覆盖)
 
-- **PlayerState 结构**:`medals`(玩家级)+ `progression`(无类型 Dict 袋子)要不要类型化。
+- **InkMonWorldGI god-object 拆分(#3,下一轮)**:GI 仍把 session / overworld(grid·actors·movement·npc) / battle(procedure·teams) 同塞一类。本轮 Command 对象化只把**写派发**挪出 GI(submit/drain 多态),未拆本体。下一轮拆成 `overworld-runtime` / `battle` / `session-store` + GI 退薄协调器(与 §7 god-object 映射表呼应)。
+- **PlayerState 内的无类型 Dict 袋子**:`InkMonPlayerState` 本身已是 typed class(`gold`/`roster`/`medals`/… 均 typed);待定的是其中 `progression` / `overworld` 两个无类型 Dict 袋子要不要进一步类型化。
 - **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。
 - **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性,公式调整不影响 entry 结构。
 - **刻印的实现框架**:存储形状已定;实现走 LGF 被动 ability(hook 目标技能事件)还是挂在 skill_slot 上的 modifier,留实现时定。
