@@ -17,13 +17,13 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Log="*res://addons/lomolib/utils/logger.gd"
-IdGenerator="*res://addons/lomolib/utils/id_generator.gd"
 GameWorld="*res://addons/logic-game-framework/core/world/game_world.gd"
 TimelineRegistry="*res://addons/logic-game-framework/core/timeline/timeline.gd"
-WaitGroupManager="*res://addons/lomolib/wait_group/wait_group_manager.gd"
-ItemSystem="*res://addons/lomolib/inventoryKit/item_system.gd"
-UGridMap="*res://addons/ultra-grid-map/u_grid_map.gd"
+Log="*uid://dap8bfepbh5du"
+IdGenerator="*uid://cchxqn1hnsgvu"
+WaitGroupManager="*uid://cy7dn7m0i0ukt"
+ItemSystem="*uid://cgxpcwgfq8pol"
+UGridMap="*uid://c6feumxg3g88o"
 
 [display]
 
@@ -34,7 +34,7 @@ window/size/window_height_override=1080
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg", "res://scenes/inkmon-main/tools/editor_plugin/plugin.cfg")
+enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/sim-nav-map/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg", "res://scenes/inkmon-main/tools/editor_plugin/plugin.cfg")
 
 [logic_game_framework]
 

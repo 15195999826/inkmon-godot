@@ -1,0 +1,273 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="StyleBoxFlat" id="card_style"]
+bg_color = Color(0.960784, 0.941176, 0.901961, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 12
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="portrait_style"]
+bg_color = Color(0.909804, 0.878431, 0.815686, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.101961, 0.101961, 0.180392, 0.22)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="dex_style"]
+bg_color = Color(0.909804, 0.878431, 0.815686, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.101961, 0.101961, 0.180392, 0.18)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="badge_style"]
+bg_color = Color(0.866667, 0.831373, 0.745098, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 0.18)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="stat_style"]
+bg_color = Color(0.909804, 0.878431, 0.815686, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.101961, 0.101961, 0.180392, 0.16)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="swatch_style"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.35)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="placeholder_line_style"]
+bg_color = Color(0.101961, 0.101961, 0.180392, 0.08)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="InspectorCard" type="PanelContainer"]
+custom_minimum_size = Vector2(236, 278)
+mouse_default_cursor_shape = 2
+theme_override_styles/panel = SubResource("card_style")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Inner" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="ImagePanel" type="PanelContainer" parent="Margin/Inner"]
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("portrait_style")
+
+[node name="ImageStack" type="Control" parent="Margin/Inner/ImagePanel"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ImageTint" type="ColorRect" parent="Margin/Inner/ImagePanel/ImageStack"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.65098, 0.501961, 0.34902, 1)
+
+[node name="PlaceholderLineA" type="Panel" parent="Margin/Inner/ImagePanel/ImageStack"]
+layout_mode = 1
+anchor_left = 0.12
+anchor_top = 0.18
+anchor_right = 0.88
+anchor_bottom = 0.2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("placeholder_line_style")
+
+[node name="PlaceholderLineB" type="Panel" parent="Margin/Inner/ImagePanel/ImageStack"]
+layout_mode = 1
+anchor_left = 0.22
+anchor_top = 0.8
+anchor_right = 0.78
+anchor_bottom = 0.82
+mouse_filter = 2
+theme_override_styles/panel = SubResource("placeholder_line_style")
+
+[node name="PortraitInitial" type="Label" parent="Margin/Inner/ImagePanel/ImageStack"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.72)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.22)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 56
+text = "M"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Content" type="VBoxContainer" parent="Margin/Inner"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="MetaRow" type="HBoxContainer" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="DexLabel" type="Label" parent="Margin/Inner/Content/MetaRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.058824, 0.203922, 0.376471, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("dex_style")
+text = "#001"
+
+[node name="MetaSpacer" type="Control" parent="Margin/Inner/Content/MetaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="StageLabel" type="Label" parent="Margin/Inner/Content/MetaRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.419608, 0.435294, 0.52549, 1)
+theme_override_font_sizes/font_size = 11
+text = "成长期"
+
+[node name="TitleLabel" type="Label" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 20
+text = "Title"
+
+[node name="SubtitleLabel" type="Label" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.419608, 0.435294, 0.52549, 1)
+theme_override_font_sizes/font_size = 12
+text = "mon_0001"
+
+[node name="ElementRow" type="HBoxContainer" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="ElementBadge1" type="PanelContainer" parent="Margin/Inner/Content/ElementRow"]
+visible = false
+custom_minimum_size = Vector2(36, 20)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("badge_style")
+
+[node name="Label" type="Label" parent="Margin/Inner/Content/ElementRow/ElementBadge1"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.027451, 0.070588, 0.058824, 1)
+theme_override_font_sizes/font_size = 11
+text = "火"
+horizontal_alignment = 1
+
+[node name="ElementBadge2" type="PanelContainer" parent="Margin/Inner/Content/ElementRow"]
+visible = false
+custom_minimum_size = Vector2(36, 20)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("badge_style")
+
+[node name="Label" type="Label" parent="Margin/Inner/Content/ElementRow/ElementBadge2"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.027451, 0.070588, 0.058824, 1)
+theme_override_font_sizes/font_size = 11
+text = "水"
+horizontal_alignment = 1
+
+[node name="PaletteRow" type="HBoxContainer" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="PaletteSwatch1" type="Panel" parent="Margin/Inner/Content/PaletteRow"]
+visible = false
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("swatch_style")
+
+[node name="PaletteSwatch2" type="Panel" parent="Margin/Inner/Content/PaletteRow"]
+visible = false
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("swatch_style")
+
+[node name="PaletteSwatch3" type="Panel" parent="Margin/Inner/Content/PaletteRow"]
+visible = false
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("swatch_style")
+
+[node name="PaletteSwatch4" type="Panel" parent="Margin/Inner/Content/PaletteRow"]
+visible = false
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("swatch_style")
+
+[node name="TagLabel" type="Label" parent="Margin/Inner/Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.231373, 0.247059, 0.341176, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("stat_style")
+text = "HP 80  AD 30  AP 20"

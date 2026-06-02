@@ -26,6 +26,11 @@
         "../../scenes/inkmon-main/tests/smoke_content_loader.tscn"
       ]
     },
+    "inspector": {
+      "scenes": [
+        "../../scenes/inkmon-main/tests/smoke_data_inspector.tscn"
+      ]
+    },
     "overworld-3d": {
       "default_timeout_ms": 45000,
       "scenes": [

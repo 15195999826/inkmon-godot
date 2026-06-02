@@ -1,0 +1,442 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scenes/inkmon-main/tools/ink_mon_data_inspector.gd" id="1_insp"]
+
+[sub_resource type="StyleBoxFlat" id="bg_style"]
+bg_color = Color(0.909804, 0.878431, 0.815686, 1)
+
+[sub_resource type="StyleBoxFlat" id="header_style"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 12
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="button_style"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="button_hover_style"]
+bg_color = Color(0.866667, 0.831373, 0.745098, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="tab_active_style"]
+bg_color = Color(0.058824, 0.203922, 0.376471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="input_style"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="column_style"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.101961, 0.101961, 0.180392, 0.7)
+corner_radius_top_left = 8
+corner_radius_top_right = 12
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="evo_style"]
+bg_color = Color(0.960784, 0.941176, 0.901961, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.101961, 0.101961, 0.180392, 0.28)
+corner_radius_top_left = 4
+corner_radius_top_right = 6
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="grid_message_style"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.101961, 0.101961, 0.180392, 0.24)
+corner_radius_top_left = 8
+corner_radius_top_right = 12
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="scrollbar_grabber"]
+bg_color = Color(0.101961, 0.101961, 0.180392, 0.22)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="InkMonDataInspector" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_insp")
+
+[node name="Background" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("bg_style")
+
+[node name="Margin" type="MarginContainer" parent="Background"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 22
+
+[node name="Root" type="VBoxContainer" parent="Background/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Header" type="PanelContainer" parent="Background/Margin/Root"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("header_style")
+
+[node name="HeaderMargin" type="MarginContainer" parent="Background/Margin/Root/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="HeaderRoot" type="VBoxContainer" parent="Background/Margin/Root/Header/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleRow" type="HBoxContainer" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleBlock" type="VBoxContainer" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="TitleLabel" type="Label" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/TitleRow/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 28
+text = "InkMon 图鉴检查器"
+
+[node name="StatusLabel" type="Label" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/TitleRow/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.419608, 0.435294, 0.52549, 1)
+theme_override_font_sizes/font_size = 12
+text = "…"
+
+[node name="RefreshButton" type="Button" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/TitleRow"]
+custom_minimum_size = Vector2(58, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+text = "刷新"
+
+[node name="LoadFileButton" type="Button" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/TitleRow"]
+custom_minimum_size = Vector2(104, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+text = "选择 JSON…"
+
+[node name="ToolRow" type="HBoxContainer" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TabSpecies" type="Button" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.980392, 0.972549, 0.952941, 1)
+theme_override_styles/normal = SubResource("tab_active_style")
+theme_override_styles/hover = SubResource("tab_active_style")
+theme_override_styles/pressed = SubResource("tab_active_style")
+text = "图鉴"
+
+[node name="TabItems" type="Button" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+text = "道具"
+
+[node name="SearchBox" type="LineEdit" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_colors/font_placeholder_color = Color(0.419608, 0.435294, 0.52549, 0.75)
+theme_override_styles/normal = SubResource("input_style")
+theme_override_styles/focus = SubResource("input_style")
+placeholder_text = "搜索名称或图鉴号…"
+
+[node name="ElementFilter" type="OptionButton" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+custom_minimum_size = Vector2(116, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+
+[node name="StageFilter" type="OptionButton" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+custom_minimum_size = Vector2(116, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+
+[node name="ClearFilterButton" type="Button" parent="Background/Margin/Root/Header/HeaderMargin/HeaderRoot/ToolRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+text = "清除"
+
+[node name="Body" type="Control" parent="Background/Margin/Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="GridView" type="ScrollContainer" parent="Background/Margin/Root/Body"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+theme_override_styles/scroll = SubResource("scrollbar_grabber")
+theme_override_styles/scroll_focus = SubResource("scrollbar_grabber")
+theme_override_styles/grabber = SubResource("scrollbar_grabber")
+theme_override_styles/grabber_highlight = SubResource("scrollbar_grabber")
+theme_override_styles/grabber_pressed = SubResource("scrollbar_grabber")
+
+[node name="CardGrid" type="HFlowContainer" parent="Background/Margin/Root/Body/GridView"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+
+[node name="DetailView" type="ScrollContainer" parent="Background/Margin/Root/Body"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="DetailRoot" type="VBoxContainer" parent="Background/Margin/Root/Body/DetailView"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="DetailHeader" type="PanelContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("header_style")
+
+[node name="DetailHeaderMargin" type="MarginContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="DetailHeaderRoot" type="HBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader/DetailHeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="BackButton" type="Button" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader/DetailHeaderMargin/DetailHeaderRoot"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.058824, 0.203922, 0.376471, 1)
+theme_override_styles/normal = SubResource("button_style")
+theme_override_styles/hover = SubResource("button_hover_style")
+theme_override_styles/pressed = SubResource("button_hover_style")
+text = "← 返回"
+
+[node name="DetailTitleBlock" type="VBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader/DetailHeaderMargin/DetailHeaderRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="DetailTitle" type="Label" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader/DetailHeaderMargin/DetailHeaderRoot/DetailTitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 30
+text = "—"
+
+[node name="DetailSubtitle" type="Label" parent="Background/Margin/Root/Body/DetailView/DetailRoot/DetailHeader/DetailHeaderMargin/DetailHeaderRoot/DetailTitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.419608, 0.435294, 0.52549, 1)
+theme_override_font_sizes/font_size = 12
+text = "—"
+
+[node name="CompareRow" type="HBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="RawColPanel" type="PanelContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("column_style")
+
+[node name="RawColMargin" type="MarginContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/RawColPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="RawCol" type="VBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/RawColPanel/RawColMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="ColHeader" type="Label" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/RawColPanel/RawColMargin/RawCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 16
+text = "服务器原始 JSON"
+
+[node name="ConvertedColPanel" type="PanelContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("column_style")
+
+[node name="ConvertedColMargin" type="MarginContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/ConvertedColPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="ConvertedCol" type="VBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/ConvertedColPanel/ConvertedColMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="ColHeader" type="Label" parent="Background/Margin/Root/Body/DetailView/DetailRoot/CompareRow/ConvertedColPanel/ConvertedColMargin/ConvertedCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 16
+text = "godot 转化后"
+
+[node name="EvolutionPanel" type="PanelContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("evo_style")
+
+[node name="EvolutionMargin" type="MarginContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/EvolutionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="EvolutionSection" type="VBoxContainer" parent="Background/Margin/Root/Body/DetailView/DetailRoot/EvolutionPanel/EvolutionMargin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="EvoHeader" type="Label" parent="Background/Margin/Root/Body/DetailView/DetailRoot/EvolutionPanel/EvolutionMargin/EvolutionSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101961, 0.101961, 0.180392, 1)
+theme_override_font_sizes/font_size = 16
+text = "进化树"
+
+[node name="GridMessagePanel" type="PanelContainer" parent="Background/Margin/Root/Body"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -46.0
+offset_right = 260.0
+offset_bottom = 46.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("grid_message_style")
+
+[node name="GridMessageMargin" type="MarginContainer" parent="Background/Margin/Root/Body/GridMessagePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="GridMessageLabel" type="Label" parent="Background/Margin/Root/Body/GridMessagePanel/GridMessageMargin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.419608, 0.435294, 0.52549, 1)
+theme_override_font_sizes/font_size = 13
+text = "—"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="FileDialog" type="FileDialog" parent="."]
+title = "选择契约 JSON"
+initial_position = 1
+size = Vector2i(760, 520)
+ok_button_text = "打开"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.json ; JSON")
