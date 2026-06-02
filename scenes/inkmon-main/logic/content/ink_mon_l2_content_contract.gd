@@ -100,10 +100,12 @@ static func _validate_creature_units(value: Variant, errors: Array[String]) -> v
 	# server JSON, so it must use `is` type tests. (validate_export's internal-only
 	# helpers still use the older as/null idiom; harmless there because they only ever
 	# see the well-formed output of build_current_stub_export, never external input.)
-	var units: Array = value if value is Array else []
-	if units.is_empty():
-		errors.append("units must be a non-empty array")
+	if not (value is Array):
+		errors.append("units must be an array")
 		return
+	# Empty units is VALID: a fresh/empty canon still serves a valid (creature-less)
+	# contract (lab returns units:[] for an empty DB). Only malformed entries fail.
+	var units: Array = value
 	for i in range(units.size()):
 		if not (units[i] is Dictionary):
 			errors.append("units[%d] must be an object" % i)

@@ -62,18 +62,34 @@ static func get_base_stats(species: String) -> Dictionary:
 	return scaled
 
 
+## 物种元素。命中 canon override → server 投影的 elements;否则委托 battle 层 UnitConfig
+## (stub 物种行为不变)。catalog 是物种内容真相, 故元素也由它统一供给(见 RosterEntry.from_birth)。
+static func get_elements(species: String) -> Array[String]:
+	var ov := _override_for(species)
+	if not ov.is_empty():
+		var result: Array[String] = []
+		for element_value in (ov.get("elements", []) as Array):
+			result.append(str(element_value))
+		return result
+	return InkMonUnitConfig.get_elements_for_species(species)
+
+
 ## Register a server creature base as a runtime override (see _overrides). Stored
 ## under both the original key and its snake_case form so callers can query either.
-## Stats are float-coerced to match the stub path's guarantee (JSON integer literals
-## parse to int); an empty species/base_stats is ignored so a malformed entry falls
-## through to the normal unknown-species assert rather than spawning a zero-stat unit.
-static func register_override(species: String, base_stats: Dictionary, stage: String) -> void:
+## The FULL validated creature base is kept (stats + stage + elements) — nothing the
+## contract carries is silently dropped. Stats are float-coerced to match the stub
+## path's guarantee (JSON integer literals parse to int); an empty species/base_stats
+## is ignored so a malformed entry falls through to the normal unknown-species assert
+## rather than spawning a zero-stat unit.
+static func register_override(
+	species: String, base_stats: Dictionary, stage: String, elements: Array[String]
+) -> void:
 	if species == "" or base_stats.is_empty():
 		return
 	var stats := {}
 	for key in base_stats:
 		stats[key] = float(base_stats[key])
-	var payload := {"base_stats": stats, "stage": stage}
+	var payload := {"base_stats": stats, "stage": stage, "elements": elements.duplicate()}
 	_overrides[species] = payload
 	var norm := normalize_species_key(species)
 	if norm != species:
@@ -113,12 +129,15 @@ static func _override_for(species: String) -> Dictionary:
 	return {}
 
 
+## 技能池 / 进化只在 stub 表里。override-only 的 server 物种(creature 基底, 无技能/进化元数据,
+## skill 是后续阶段 Non-Goal) → 优雅返回 0 槽 / 空池 / 无进化, 而非 assert。用 _node_or_empty
+## 而非 _species_node: override-only 给 {}, 真未知才 assert。
 static func get_slot_count(species: String) -> int:
-	return (_species_node(species).get("pools", []) as Array).size()
+	return (_node_or_empty(species).get("pools", []) as Array).size()
 
 
 static func get_slot_pool(species: String, slot_index: int) -> Array[String]:
-	var pools := _species_node(species).get("pools", []) as Array
+	var pools := _node_or_empty(species).get("pools", []) as Array
 	var result: Array[String] = []
 	if slot_index < 0 or slot_index >= pools.size():
 		return result
@@ -127,9 +146,9 @@ static func get_slot_pool(species: String, slot_index: int) -> Array[String]:
 	return result
 
 
-## 进化链查询: 返回 {species, level} 或空 {} (无下一形态)。
+## 进化链查询: 返回 {species, level} 或空 {} (无下一形态 / override-only 物种)。
 static func get_evolution(species: String) -> Dictionary:
-	var evo := _species_node(species).get("evolves_to", {}) as Dictionary
+	var evo := _node_or_empty(species).get("evolves_to", {}) as Dictionary
 	if evo == null or evo.is_empty():
 		return {}
 	return {"species": str(evo.get("species", "")), "level": int(evo.get("level", 0))}
@@ -199,6 +218,19 @@ static func _species_node(species: String) -> Dictionary:
 	var table := _species_table()
 	Log.assert_crash(table.has(species), "InkMonSpeciesCatalog", "unknown species: %s" % species)
 	return table[species]
+
+
+## stub 表节点, 或 {} 表示 override-only 物种(有 override 但不在 stub 表 → 无技能池/无进化:
+## 契约只搬 creature 基底, 技能/进化元数据是后续阶段)。仅"既非 stub 又无 override"的真未知
+## 物种 assert(保留响亮失败)。供 get_slot_count/get_slot_pool/get_evolution 用。
+static func _node_or_empty(species: String) -> Dictionary:
+	var table := _species_table()
+	if table.has(species):
+		return table[species]
+	if not _override_for(species).is_empty():
+		return {}
+	Log.assert_crash(false, "InkMonSpeciesCatalog", "unknown species: %s" % species)
+	return {}
 
 
 static func _species_table() -> Dictionary:

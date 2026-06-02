@@ -52,7 +52,12 @@ static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
 		var base_stats_value: Variant = unit.get("base_stats", {})
 		var base_stats: Dictionary = base_stats_value if base_stats_value is Dictionary else {}
 		var stage := str(unit.get("stage", ""))
-		InkMonSpeciesCatalog.register_override(species, base_stats, stage)
+		var elements: Array[String] = []
+		var elements_value: Variant = unit.get("elements", [])
+		if elements_value is Array:
+			for element_value in (elements_value as Array):
+				elements.append(str(element_value))
+		InkMonSpeciesCatalog.register_override(species, base_stats, stage, elements)
 		var norm := InkMonSpeciesCatalog.normalize_species_key(species)
 		if not norm in registered:
 			registered.append(norm)

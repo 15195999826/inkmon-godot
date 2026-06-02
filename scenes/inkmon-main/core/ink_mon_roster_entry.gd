@@ -45,7 +45,9 @@ static func from_birth(p_entry_id: int, p_species: String, p_roll_seed: int) -> 
 	entry.species = p_species
 	entry.stage = InkMonSpeciesCatalog.get_stage(p_species)
 	entry.role = InkMonUnitConfig.get_role_for_species(p_species)
-	entry.elements = InkMonUnitConfig.get_elements_for_species(p_species)
+	# Elements via the catalog so a server-override (canon) species gets its projected
+	# elements; stub species delegate back to UnitConfig (identical behaviour).
+	entry.elements = InkMonSpeciesCatalog.get_elements(p_species)
 	entry.skill_slots = InkMonSpeciesCatalog.roll_birth_skill_slots(p_species, p_roll_seed)
 	entry.engravings = []
 	entry.equipment_container = "equip:%d" % p_entry_id

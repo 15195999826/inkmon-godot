@@ -63,6 +63,36 @@ func _run() -> String:
 	if not InkMonSpeciesCatalog.has_species("TestRockGolem"):
 		return "catalog should resolve the original CamelCase key TestRockGolem"
 
+	# (3b) FULL creature base consumed: elements stored (not dropped); and an
+	# override-only species is gracefully poolless / evolutionless (no assert).
+	var elements := InkMonSpeciesCatalog.get_elements(EXPECT_SPECIES)
+	if elements.size() != 1 or elements[0] != "earth":
+		return "get_elements(%s) = %s, expected [earth]" % [EXPECT_SPECIES, JSON.stringify(elements)]
+	if InkMonSpeciesCatalog.get_slot_count(EXPECT_SPECIES) != 0:
+		return "override-only species should have 0 skill slots, got %d" % InkMonSpeciesCatalog.get_slot_count(EXPECT_SPECIES)
+	if not InkMonSpeciesCatalog.get_slot_pool(EXPECT_SPECIES, 0).is_empty():
+		return "override-only species slot pool should be empty"
+	if not InkMonSpeciesCatalog.get_evolution(EXPECT_SPECIES).is_empty():
+		return "override-only species should have no evolution"
+
+	# (3c) An empty-units contract is VALID (matches lab's empty-DB response units:[]).
+	var empty_errors := InkMonL2ContentContract.validate_creature_base(
+		{"schema": InkMonL2ContentContract.SCHEMA_ID, "version": InkMonL2ContentContract.VERSION, "units": []}
+	)
+	if not empty_errors.is_empty():
+		return "empty-units contract should validate, got %s" % JSON.stringify(empty_errors)
+
+	# (3d) RosterEntry.from_birth on an override-only species: no crash, projected
+	# elements + stage flow through, gracefully no skill slots. (Battle-SPAWNING such a
+	# species still needs skill data — the unit actor requires skills — out of P1 scope.)
+	var birth := InkMonRosterEntry.from_birth(9001, EXPECT_SPECIES, 42)
+	if birth.elements.size() != 1 or birth.elements[0] != "earth":
+		return "from_birth(%s).elements = %s, expected [earth]" % [EXPECT_SPECIES, JSON.stringify(birth.elements)]
+	if birth.stage != EXPECT_STAGE:
+		return "from_birth(%s).stage = %s, expected %s" % [EXPECT_SPECIES, birth.stage, EXPECT_STAGE]
+	if not birth.skill_slots.is_empty():
+		return "override-only from_birth should have no skill slots (skills are a later phase)"
+
 	# (4) missing file → loaded == false, silent stub fallback (no crash).
 	var missing := InkMonContentLoader.apply_to_runtime(MISSING_PATH)
 	if bool(missing.get("loaded", true)):
