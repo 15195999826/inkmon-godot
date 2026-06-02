@@ -4,7 +4,7 @@ extends Node
 
 const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
 const InkMonMainAgentOpsScript := preload("res://scenes/inkmon-main/ink_mon_main_agent_ops.gd")
-const InkMonWorldView3DScript := preload("res://scenes/inkmon-main/overworld/ink_mon_world_view_3d.gd")
+const InkMonOverworldViewScript := preload("res://scenes/inkmon-main/overworld/ink_mon_overworld_view.gd")
 
 # UI 动态列表组件场景 (§6: 动态列表用 instantiate 组件场景)。
 # roster/party/bag/journal 内容构建已抽到 InkMonWorldPanelView(P8);Host 只留 npc 行 + 占位。
@@ -58,7 +58,7 @@ var _npc_defs: Dictionary:
 	get:
 		return _world_gi.npc_defs if _world_gi != null else {}
 var _last_move_result: Dictionary = {}
-var _world_layer: InkMonWorldView3D
+var _world_layer: InkMonOverworldView
 var _hud_layer: CanvasLayer
 var _hud_root: Control
 var _gold_label: Label
@@ -629,7 +629,7 @@ func _cancel_overworld_animation() -> void:
 
 
 func _build_world_and_ui() -> void:
-	_world_layer = InkMonWorldView3DScript.new() as InkMonWorldView3D
+	_world_layer = InkMonOverworldViewScript.new() as InkMonOverworldView
 	_world_layer.name = "WorldLayer"
 	_world_layer.set_npcs(_npc_defs)
 	add_child(_world_layer)

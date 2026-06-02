@@ -64,7 +64,7 @@ func _run() -> String:
 func _assert_3d_visual_state(root: InkMonWorldHost) -> String:
 	var state := root.get_dev_agent_state()
 	var overworld := state.get("overworld_3d", {}) as Dictionary
-	if overworld == null or overworld.get("node_type", "") != "InkMonWorldView3D":
+	if overworld == null or overworld.get("node_type", "") != "InkMonOverworldView":
 		return "overworld view should be 3D"
 	if int(overworld.get("tile_count", 0)) <= 0:
 		return "3D overworld should have tiles"
