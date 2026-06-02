@@ -1105,7 +1105,8 @@ func _get_roster_snapshot() -> Array[Dictionary]:
 	for entry in session.player_state.roster:
 		result.append({
 			"entry_id": entry.entry_id,
-			"species": entry.species,
+			"species_id": entry.species_id,
+			"name_en": entry.name_en,
 			"role": entry.role,
 			"level": entry.level,
 			"exp": entry.exp,

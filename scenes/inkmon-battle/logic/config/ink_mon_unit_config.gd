@@ -82,6 +82,13 @@ static func get_role_for_species(species: String) -> String:
 	return cfg.role if cfg != null else ROLE_FLEX
 
 
+## stub 物种显示名 (name_en 风格), 无配置则 ""。供 SpeciesCatalog.get_display_name 在
+## 无 canon override 时回退 (override-only / server 物种走 override 的 display_name)。
+static func get_display_name_for_species(species: String) -> String:
+	var cfg := _find_config_by_species(species)
+	return cfg.display_name if cfg != null else ""
+
+
 static func get_elements_for_species(species: String) -> Array[String]:
 	var cfg := _find_config_by_species(species)
 	var result: Array[String] = []

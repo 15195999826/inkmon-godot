@@ -38,7 +38,7 @@ func build_party_panel(container: VBoxContainer, roster: Array) -> void:
 
 		var label := row.get_node("PartyEntryLabel") as Label
 		label.text = "%s  Lv%d  %s\n%s  EXP %d  Skill %s" % [
-			entry.species,
+			entry.name_en,
 			entry.level,
 			entry.role,
 			", ".join(entry.elements),

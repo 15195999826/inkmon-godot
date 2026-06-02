@@ -10,7 +10,11 @@ const LEVEL_GROWTH := 0.05
 
 
 var entry_id := 0
-var species := ""
+## 全局唯一身份键 (adr/0010)。stub 模式 = 物种字符串 (cinder_kit); contract 模式 = mon_NNNN。
+## 一切寻址 (SpeciesCatalog 查询 / 进化) 走它; 进化只改它不换 entry_id。
+var species_id := ""
+## 显示名 (name_en)。仅展示用, 非 key; 进化时随 species_id 一并更新。
+var name_en := ""
 var stage := ""
 var role := ""
 var elements: Array[String] = []
@@ -27,7 +31,8 @@ static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterE
 	var cfg := InkMonUnitConfig.get_unit_config(unit_key)
 	var entry := InkMonRosterEntry.new()
 	entry.entry_id = p_entry_id
-	entry.species = cfg.species
+	entry.species_id = cfg.species
+	entry.name_en = cfg.display_name
 	entry.stage = cfg.stage
 	entry.role = cfg.role
 	entry.elements.assign(cfg.elements)
@@ -39,16 +44,18 @@ static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterE
 
 ## 出生 = 确定性 roll 每槽技能 (§8c)。用于程序化出生 (领养/未来捕获);
 ## 起始队伍仍走 from_unit_config (设计出生, 不 roll, 保 M1 平衡)。
-static func from_birth(p_entry_id: int, p_species: String, p_roll_seed: int) -> InkMonRosterEntry:
+static func from_birth(p_entry_id: int, p_species_id: String, p_roll_seed: int) -> InkMonRosterEntry:
 	var entry := InkMonRosterEntry.new()
 	entry.entry_id = p_entry_id
-	entry.species = p_species
-	entry.stage = InkMonSpeciesCatalog.get_stage(p_species)
-	entry.role = InkMonUnitConfig.get_role_for_species(p_species)
-	# Elements via the catalog so a server-override (canon) species gets its projected
-	# elements; stub species delegate back to UnitConfig (identical behaviour).
-	entry.elements = InkMonSpeciesCatalog.get_elements(p_species)
-	entry.skill_slots = InkMonSpeciesCatalog.roll_birth_skill_slots(p_species, p_roll_seed)
+	entry.species_id = p_species_id
+	# Display name + stage + elements via the catalog so a server-override (canon) species
+	# gets its projected values; stub species delegate back to UnitConfig (identical
+	# behaviour). get_display_name falls back to the species_id itself when no name exists.
+	entry.name_en = InkMonSpeciesCatalog.get_display_name(p_species_id)
+	entry.stage = InkMonSpeciesCatalog.get_stage(p_species_id)
+	entry.role = InkMonUnitConfig.get_role_for_species(p_species_id)
+	entry.elements = InkMonSpeciesCatalog.get_elements(p_species_id)
+	entry.skill_slots = InkMonSpeciesCatalog.roll_birth_skill_slots(p_species_id, p_roll_seed)
 	entry.engravings = []
 	entry.equipment_container = "equip:%d" % p_entry_id
 	return entry
@@ -57,7 +64,8 @@ static func from_birth(p_entry_id: int, p_species: String, p_roll_seed: int) -> 
 static func from_dict(data: Dictionary) -> InkMonRosterEntry:
 	var entry := InkMonRosterEntry.new()
 	entry.entry_id = int(data.get("entry_id", 0))
-	entry.species = str(data.get("species", ""))
+	entry.species_id = str(data.get("species_id", ""))
+	entry.name_en = str(data.get("name_en", ""))
 	entry.stage = str(data.get("stage", ""))
 	entry.role = str(data.get("role", ""))
 	entry.elements = _string_array(data.get("elements", []))
@@ -72,7 +80,8 @@ static func from_dict(data: Dictionary) -> InkMonRosterEntry:
 func to_dict() -> Dictionary:
 	return {
 		"entry_id": entry_id,
-		"species": species,
+		"species_id": species_id,
+		"name_en": name_en,
 		"stage": stage,
 		"role": role,
 		"elements": elements.duplicate(),
@@ -87,7 +96,7 @@ func to_dict() -> Dictionary:
 ## 六维属性 = f(species, level) 运行时派生, 不进 entry (§8c-decision)。
 ## base 走 SpeciesCatalog (覆盖进化形态; baby 委托回 unit_config)。
 func derive_battle_stats() -> Dictionary:
-	var base := InkMonSpeciesCatalog.get_base_stats(species)
+	var base := InkMonSpeciesCatalog.get_base_stats(species_id)
 	var scale := 1.0 + float(level - 1) * LEVEL_GROWTH
 	var stats := {}
 	for key in STAT_KEYS:
@@ -106,7 +115,10 @@ func project_to_battle_snapshot() -> Dictionary:
 	# P8: 投影 engravings (刻印), actor grant 刻印被动强化技能。
 	return {
 		"source_entry_id": entry_id,
-		"species": species,
+		# battle 层 InkMonUnitActor 读 snapshot["species"] (身份/显示兜底) + snapshot["display_name"]
+		# (显示)。其 species 词汇 = 本层 species_id (跨层映射在此边界翻译), 故 battle 层零改动。
+		"species": species_id,
+		"display_name": name_en,
 		"role": role,
 		"elements": elements.duplicate(),
 		"skill_slots": _dup_dict_array(skill_slots),

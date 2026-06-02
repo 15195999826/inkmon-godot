@@ -1,12 +1,12 @@
 {
-  "schema": "inkmon.l2.content.v1",
-  "version": 1,
+  "schema": "inkmon.l2.content.v2",
+  "version": 2,
   "source": "lab-canon-projection",
+  "status": "ok",
   "units": [
     {
-      "id": "TestRockGolem",
-      "display_name": "测试岩巨人",
-      "species": "TestRockGolem",
+      "id": "mon_0001",
+      "display_name": "Test Rock Golem",
       "stage": "mature",
       "elements": ["earth"],
       "base_stats": {
@@ -16,8 +16,64 @@
         "armor": 44,
         "mr": 55,
         "speed": 66
-      },
-      "evolves_to": []
+      }
+    },
+    {
+      "id": "mon_0002",
+      "display_name": "Sprout",
+      "stage": "baby",
+      "elements": ["earth"],
+      "base_stats": {
+        "max_hp": 60,
+        "ad": 30,
+        "ap": 20,
+        "armor": 25,
+        "mr": 20,
+        "speed": 45
+      }
+    },
+    {
+      "id": "mon_0007",
+      "display_name": "Emberling",
+      "stage": "mature",
+      "elements": ["earth", "fire"],
+      "base_stats": {
+        "max_hp": 90,
+        "ad": 55,
+        "ap": 30,
+        "armor": 35,
+        "mr": 30,
+        "speed": 60
+      }
+    },
+    {
+      "id": "mon_0009",
+      "display_name": "Aquling",
+      "stage": "mature",
+      "elements": ["earth", "water"],
+      "base_stats": {
+        "max_hp": 95,
+        "ad": 35,
+        "ap": 55,
+        "armor": 30,
+        "mr": 40,
+        "speed": 55
+      }
+    }
+  ],
+  "evolution_edges": [
+    {
+      "parent_species_id": "mon_0002",
+      "child_species_id": "mon_0007",
+      "trigger": {
+        "level": 18,
+        "condition": { "type": "element", "params": { "primary": "fire" } }
+      }
+    },
+    {
+      "parent_species_id": "mon_0002",
+      "child_species_id": "mon_0009",
+      "trigger": { "level": 12 }
     }
   ]
 }

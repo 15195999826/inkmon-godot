@@ -34,7 +34,7 @@ func _cultivate_lead(session: InkMonGameSession) -> Dictionary:
 	player_state.progression["cultivation_points"] = int(
 		player_state.progression.get("cultivation_points", 0)
 	) + 1
-	var message := "cultivated %s to Lv%d" % [entry.species, entry.level]
+	var message := "cultivated %s to Lv%d" % [entry.name_en, entry.level]
 	if evolved:
 		message += " — evolved!"
 	return _result(true, message)

@@ -103,5 +103,6 @@ static func _species_of(data: Dictionary) -> PackedStringArray:
 		return result
 	for unit_value in (units_value as Array):
 		if unit_value is Dictionary:
-			result.append(str((unit_value as Dictionary).get("species", "?")))
+			# v2: identity = unit.id (= species_id). Reported for the dev import log.
+			result.append(str((unit_value as Dictionary).get("id", "?")))
 	return result

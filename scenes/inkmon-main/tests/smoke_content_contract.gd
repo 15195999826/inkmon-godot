@@ -46,7 +46,101 @@ func _run() -> String:
 	var no_species_errors := InkMonL2ContentContract.validate_export(no_species)
 	if no_species_errors.is_empty():
 		return "validator should reject a unit without species"
+
+	var creature_base_status := _assert_creature_base_v2()
+	if creature_base_status != "":
+		return creature_base_status
 	return ""
+
+
+## v2 (adr/0010) creature-base = the server canon projection (validate_creature_base):
+## identity = id (= species_id, ^mon_\d+$), display_name = name_en, topology = root
+## evolution_edges. Distinct from build_current_stub_export/validate_export (godot's richer
+## internal self-export, which still carries species + skill bindings).
+func _assert_creature_base_v2() -> String:
+	var schema := InkMonL2ContentContract.SCHEMA_ID
+	var version := InkMonL2ContentContract.VERSION
+
+	# A valid v2 creature-base (mon_NNNN ids + display_name + root evolution_edges) validates.
+	var valid := {
+		"schema": schema, "version": version,
+		"units": [
+			_unit("mon_0001", "Sprout", "baby", ["earth"]),
+			_unit("mon_0007", "Emberling", "mature", ["earth", "fire"]),
+		],
+		"evolution_edges": [{
+			"parent_species_id": "mon_0001", "child_species_id": "mon_0007",
+			"trigger": {"level": 16, "condition": {"type": "element", "params": {"primary": "fire"}}},
+		}],
+	}
+	if not InkMonL2ContentContract.validate_creature_base(valid).is_empty():
+		return "valid v2 creature-base should pass, errors=%s" % JSON.stringify(InkMonL2ContentContract.validate_creature_base(valid))
+
+	# id must be a species_id (^mon_\d+$): a snake/name_en id (v1 shape) is rejected.
+	var bad_id := valid.duplicate(true)
+	(bad_id["units"][0] as Dictionary)["id"] = "cinder_kit"
+	if InkMonL2ContentContract.validate_creature_base(bad_id).is_empty():
+		return "validator should reject a non-mon_NNNN id (cinder_kit)"
+
+	# display_name (name_en) is required.
+	var no_name := valid.duplicate(true)
+	(no_name["units"][0] as Dictionary).erase("display_name")
+	if InkMonL2ContentContract.validate_creature_base(no_name).is_empty():
+		return "validator should reject a unit without display_name"
+
+	# A full v1-shaped unit (species + per-unit evolves_to, snake id, no display_name) is
+	# rejected: identity moved to id=species_id, topology moved to root evolution_edges
+	# (per-unit evolves_to is no longer the source of truth — it is not validated/consumed).
+	var v1 := {
+		"schema": schema, "version": version,
+		"units": [{
+			"id": "cinder_kit", "species": "cinder_kit", "stage": "baby", "elements": ["fire"],
+			"base_stats": {"max_hp": 60, "ad": 30, "ap": 20, "armor": 25, "mr": 20, "speed": 45},
+			"evolves_to": ["cinder_fox"],
+		}],
+	}
+	if InkMonL2ContentContract.validate_creature_base(v1).is_empty():
+		return "validator should reject the v1 unit shape (snake id + missing display_name)"
+
+	# Edge with a dangling child reference (not in this bundle) is rejected.
+	var dangling := valid.duplicate(true)
+	(dangling["evolution_edges"][0] as Dictionary)["child_species_id"] = "mon_9999"
+	if InkMonL2ContentContract.validate_creature_base(dangling).is_empty():
+		return "validator should reject an edge with a dangling child reference"
+
+	# trigger.level required + positive.
+	var no_level := valid.duplicate(true)
+	((no_level["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary).erase("level")
+	if InkMonL2ContentContract.validate_creature_base(no_level).is_empty():
+		return "validator should reject an edge trigger without level"
+	var zero_level := valid.duplicate(true)
+	((zero_level["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary)["level"] = 0
+	if InkMonL2ContentContract.validate_creature_base(zero_level).is_empty():
+		return "validator should reject a non-positive trigger.level"
+
+	# condition is structural-only: empty type is rejected, but an UNKNOWN type is ACCEPTED
+	# (canon is semantics-blind; godot dispatches by type — adding a type does not bump schema).
+	var empty_type := valid.duplicate(true)
+	(((empty_type["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary)["condition"] as Dictionary)["type"] = ""
+	if InkMonL2ContentContract.validate_creature_base(empty_type).is_empty():
+		return "validator should reject a condition with an empty type"
+	var unknown_type := valid.duplicate(true)
+	(((unknown_type["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary)["condition"] as Dictionary)["type"] = "weather"
+	if not InkMonL2ContentContract.validate_creature_base(unknown_type).is_empty():
+		return "validator should ACCEPT an unknown condition type (structural-only)"
+
+	# An edge-less bundle is valid (orphan-only canon).
+	var no_edges := {"schema": schema, "version": version, "units": [_unit("mon_0001", "Sprout", "baby", ["earth"])]}
+	if not InkMonL2ContentContract.validate_creature_base(no_edges).is_empty():
+		return "edge-less creature-base should validate"
+	return ""
+
+
+func _unit(id_value: String, display_name: String, stage: String, elements: Array) -> Dictionary:
+	return {
+		"id": id_value, "display_name": display_name, "stage": stage, "elements": elements,
+		"base_stats": {"max_hp": 60, "ad": 30, "ap": 20, "armor": 25, "mr": 20, "speed": 45},
+	}
 
 
 func _has_key_recursive(value: Variant, key: String) -> bool:

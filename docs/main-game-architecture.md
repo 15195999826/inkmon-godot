@@ -178,13 +178,15 @@
 - 读档直接读 `skill_slots`,不依赖技能池在场,不重 roll。
 - 进化:旧 slot 保留;新阶段新增 slot → roll 一次写 skill_id。
 
-**进化 = species 字段改写 + 进化链表**:
-- 进化时 entry 的 `species` 改写成下一形态;需一张进化链映射表(species → 下一形态 + 阈值)。
-- 每形态 = 一条独立 species 数据(独立立绘/名/属性档/技能池/槽数)。"同一只"靠 `entry_id` 认。
-- 属性派生 key = `species`(已编码形态),即 `f(species, level)`。
+**进化 = species_id 字段改写 + edge-list 森林(adr/0010)**:
+- 身份 = `species_id`(全局唯一不可变 `mon_NNNN`,住 canon);`name_en` 降级为可改显示名。进化时 entry 的 `species_id`(及 `name_en`/`stage`)改写成所选下一形态,`entry_id` 不变(同一只)。
+- 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 contract 投影灌入 `InkMonSpeciesCatalog.register_evolution_edges`。一个低阶可多子分支;孤儿 = 无边物种。无 contract 时降级用 stub `_build_table` 的 `evolves_to` 单边 fallback。
+- **阈值 `trigger.level` = 设计数据,住 canon**(adr/0010 修订 0007);godot 只持有单位**运行时 current level**(`entry.level`)。进化触发 = `entry.level >= trigger.level`。
+- **分支确定性选边住 godot**:在 level 达标的边里 —— 有 `condition` 且评估通过者优先 → 否则取无 condition 的默认枝(canon 语义盲)。`condition {type, params}` 按 `type` 分派评估(`element`/`stat` 真评估;`item` 待 item 域迁 server,先 stub false)。
+- 每形态 = 一条独立 species 数据(独立立绘/名/属性档/技能池/槽数)。属性派生 key = `species_id`,即 `f(species_id, level)`。
 
 **stats = 派生,只存 level,不存六维**:
-- entry 存 `{species, stage, level, exp}`;六维属性 = `f(species, level)` 运行时派生,不进 entry。
+- entry 存 `{species_id, name_en, stage, level, exp}`;六维属性 = `f(species_id, level)` 运行时派生,不进 entry。
 - 培养(花金币)= +level(+刻印),不直接改属性数。
 
 **刻印 = v1 只做"技能强化"**:
@@ -204,13 +206,13 @@
 
 **RosterEntry v1 目标字段**:
 ```
-{ entry_id, species, stage, level, exp,
+{ entry_id, species_id, name_en, stage, level, exp,
   skill_slots: [{slot_index, skill_id}],     # 无 variance
   engravings: [{engraving_id, target_slot}], # 刻印(v1 只强化某技能)
   equipment_container: "equip:<id>",         # 逻辑容器名
 }
 ```
-六维 stats = `f(species, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。
+六维 stats = `f(species_id, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。
 
 ---
 

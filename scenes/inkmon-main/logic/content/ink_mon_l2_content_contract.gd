@@ -1,11 +1,15 @@
 class_name InkMonL2ContentContract
 
 
-const SCHEMA_ID := "inkmon.l2.content.v1"
-const VERSION := 1
+const SCHEMA_ID := "inkmon.l2.content.v2"
+const VERSION := 2
 const REQUIRED_UNIT_STATS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
 const VALID_STAGES: Array[String] = ["baby", "mature", "adult"]
 const VALID_SKILL_CHANNELS: Array[String] = ["physical", "magical", "utility"]
+
+## species_id 形状 `^mon_\d+$` (adr/0010): canon 在 POST 时 MAX+1 发号, godot 防御性复检。
+## 编译一次复用 (校验是冷路径, RegEx 开销可接受)。
+static var _species_id_re: RegEx = null
 
 
 static func build_current_stub_export() -> Dictionary:
@@ -51,6 +55,10 @@ static func build_current_stub_export() -> Dictionary:
 		"version": VERSION,
 		"status": "stub_contract",
 		"units": units,
+		# v2 (adr/0010): 进化拓扑 = 根级 edge-list 森林, 不再 per-unit evolves_to。godot 的
+		# stub 自描述里物种=8 个 baby default-roster, 其进化目标 (cinder_fox 等) 不在 units 内,
+		# 发边会悬空引用 → 自描述发空森林。stub 模式真实进化拓扑住 catalog _build_table fallback。
+		"evolution_edges": [],
 		"skill_pools": skill_pools,
 		"skills": _skill_exports(),
 		"items": _item_exports(),
@@ -78,57 +86,131 @@ static func validate_export(data: Dictionary) -> Array[String]:
 	return errors
 
 
-# Validates a creature-base contract (the server canon projection): schema/version
-# + per-unit id/species/stage/elements/base_stats only. Unlike validate_export it
-# does NOT require role, skill bindings, skill_pools, skills, or items — the server
-# projects creature bases alone (godot owns role derivation + skill data). evolves_to
-# is optional; when present it must be an array of non-empty species strings.
+# Validates a v2 creature-base contract (the server canon projection): schema/version
+# + per-unit id(=species_id `^mon_\d+$`)/display_name/stage/elements/base_stats, plus the
+# root-level evolution_edges forest. Unlike validate_export it does NOT require role,
+# skill bindings, skill_pools, skills, or items — the server projects creature bases +
+# topology alone (godot owns role derivation + skill data + condition evaluation).
+# v2 break (adr/0010): identity moved species→id, per-unit evolves_to removed (topology
+# is now the root edge-list). Edge checks are DEFENSIVE (structure + bundle-local
+# references); single-parent/acyclic/stage-monotonic are the server's hard gate (spec §3).
 static func validate_creature_base(data: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	if str(data.get("schema", "")) != SCHEMA_ID:
 		errors.append("schema must be %s" % SCHEMA_ID)
 	if int(data.get("version", 0)) != VERSION:
 		errors.append("version must be %d" % VERSION)
-	_validate_creature_units(data.get("units", []), errors)
+	var unit_ids := _validate_creature_units(data.get("units", []), errors)
+	_validate_evolution_edges(data.get("evolution_edges", []), unit_ids, errors)
 	return errors
 
 
-static func _validate_creature_units(value: Variant, errors: Array[String]) -> void:
-	# NOTE: `value as Array` on a wrong-typed value raises "Invalid cast" and ABORTS
-	# this function (it does NOT return null) — so a `== null` guard is dead code and
-	# malformed input would be silently accepted. This validator gates untrusted
-	# server JSON, so it must use `is` type tests. (validate_export's internal-only
-	# helpers still use the older as/null idiom; harmless there because they only ever
-	# see the well-formed output of build_current_stub_export, never external input.)
+# Returns the collected valid unit ids (for the edge reference check). Empty units is
+# VALID: a fresh/empty canon serves a valid (creature-less) contract (lab returns
+# units:[] for an empty DB). Only malformed entries fail.
+# NOTE: `value as Array` on a wrong-typed value raises "Invalid cast" and ABORTS this
+# function — so a `== null` guard is dead code and malformed input would be silently
+# accepted. This validator gates untrusted server JSON, so it must use `is` type tests.
+# (validate_export's internal-only helpers still use the older as/null idiom; harmless
+# there because they only ever see build_current_stub_export output, never external input.)
+static func _validate_creature_units(value: Variant, errors: Array[String]) -> Array[String]:
+	var ids: Array[String] = []
 	if not (value is Array):
 		errors.append("units must be an array")
-		return
-	# Empty units is VALID: a fresh/empty canon still serves a valid (creature-less)
-	# contract (lab returns units:[] for an empty DB). Only malformed entries fail.
+		return ids
 	var units: Array = value
 	for i in range(units.size()):
 		if not (units[i] is Dictionary):
 			errors.append("units[%d] must be an object" % i)
 			continue
 		var unit: Dictionary = units[i]
-		_require_string(unit, "id", "units[%d]" % i, errors)
-		_require_string(unit, "species", "units[%d]" % i, errors)
+		# id = species_id (mon_NNNN). display_name = name_en (display, non-empty). No
+		# `species` field in v2 (identity is the id).
+		_require_species_id(unit.get("id"), "units[%d].id" % i, errors)
+		_require_string(unit, "display_name", "units[%d]" % i, errors)
 		_require_enum(unit, "stage", VALID_STAGES, "units[%d]" % i, errors)
 		_validate_elements(unit.get("elements", []), "units[%d].elements" % i, errors)
 		_validate_unit_stats(unit.get("base_stats", {}), "units[%d].base_stats" % i, errors)
-		if unit.has("evolves_to"):
-			_validate_evolves_to(unit.get("evolves_to"), "units[%d].evolves_to" % i, errors)
+		var id_value := str(unit.get("id", ""))
+		if id_value != "":
+			ids.append(id_value)
+	return ids
 
 
-static func _validate_evolves_to(value: Variant, label: String, errors: Array[String]) -> void:
+# Root-level evolution forest (edge-list). OPTIONAL: a chain-less/creature-less canon
+# serves [] (or omits it). Defensive checks only — each edge's parent/child must be a
+# species_id shape AND reference a unit in THIS bundle; trigger.level required positive
+# int; trigger.condition optional + STRUCTURAL only (type non-empty string, params object
+# — canon is semantics-blind, godot evaluates by type at runtime, see adr/0010 + spec §2.1).
+static func _validate_evolution_edges(value: Variant, unit_ids: Array[String], errors: Array[String]) -> void:
 	if not (value is Array):
-		errors.append("%s must be an array" % label)
+		errors.append("evolution_edges must be an array")
 		return
-	var entries: Array = value
-	for entry in entries:
-		if not (entry is String) or str(entry) == "":
-			errors.append("%s entries must be non-empty species strings" % label)
-			return
+	var edges: Array = value
+	for i in range(edges.size()):
+		if not (edges[i] is Dictionary):
+			errors.append("evolution_edges[%d] must be an object" % i)
+			continue
+		var edge: Dictionary = edges[i]
+		var label := "evolution_edges[%d]" % i
+		_require_edge_ref(edge.get("parent_species_id"), "%s.parent_species_id" % label, unit_ids, errors)
+		_require_edge_ref(edge.get("child_species_id"), "%s.child_species_id" % label, unit_ids, errors)
+		_validate_edge_trigger(edge.get("trigger"), "%s.trigger" % label, errors)
+
+
+static func _validate_edge_trigger(value: Variant, label: String, errors: Array[String]) -> void:
+	if not (value is Dictionary):
+		errors.append("%s must be an object" % label)
+		return
+	var trigger: Dictionary = value
+	if not trigger.has("level"):
+		errors.append("%s.level is required" % label)
+	else:
+		var level: Variant = trigger.get("level")
+		if not (level is int or level is float) or int(level) <= 0:
+			errors.append("%s.level must be a positive integer" % label)
+	if trigger.has("condition"):
+		_validate_edge_condition(trigger.get("condition"), "%s.condition" % label, errors)
+
+
+static func _validate_edge_condition(value: Variant, label: String, errors: Array[String]) -> void:
+	# Structure only: canon does NOT enum-check `type` nor inspect `params` semantics
+	# (so adding a condition type does not bump the schema). godot dispatches by type.
+	if not (value is Dictionary):
+		errors.append("%s must be an object" % label)
+		return
+	var condition: Dictionary = value
+	if str(condition.get("type", "")) == "":
+		errors.append("%s.type must be a non-empty string" % label)
+	if not (condition.get("params", {}) is Dictionary):
+		errors.append("%s.params must be an object" % label)
+
+
+# species_id shape check (`^mon_\d+$`). Used for unit.id and edge parent/child refs.
+static func _require_species_id(value: Variant, label: String, errors: Array[String]) -> void:
+	var id_value := str(value) if (value is String) else ""
+	if id_value == "":
+		errors.append("%s must be a non-empty species_id string" % label)
+		return
+	if not _is_species_id(id_value):
+		errors.append("%s must match ^mon_\\d+$ (species_id), got: %s" % [label, id_value])
+
+
+# Edge endpoint: species_id shape AND must reference a unit present in this bundle.
+static func _require_edge_ref(value: Variant, label: String, unit_ids: Array[String], errors: Array[String]) -> void:
+	var before := errors.size()
+	_require_species_id(value, label, errors)
+	if errors.size() != before:
+		return  # already malformed; skip the reference check to avoid double noise
+	var id_value := str(value)
+	if not id_value in unit_ids:
+		errors.append("%s references unknown unit: %s" % [label, id_value])
+
+
+static func _is_species_id(value: String) -> bool:
+	if _species_id_re == null:
+		_species_id_re = RegEx.create_from_string("^mon_[0-9]+$")
+	return _species_id_re.search(value) != null
 
 
 static func _validate_units(
