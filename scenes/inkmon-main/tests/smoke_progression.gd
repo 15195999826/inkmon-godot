@@ -167,8 +167,9 @@ func _assert_from_birth_round_trips() -> String:
 		return "from_birth should set species_id"
 	if entry.stage != InkMonSpeciesCatalog.STAGE_BABY:
 		return "from_birth gale_mote should be baby stage"
-	if entry.role == "":
-		return "from_birth should resolve role from species"
+	# adr/0008: role 已删;AI personality 不存 entry,投影时由 species 派生(interim)。
+	if str(entry.project_to_battle_snapshot().get("personality", "")) == "":
+		return "battle-snapshot projection should derive an interim AI personality from species"
 	if entry.elements.is_empty():
 		return "from_birth should resolve elements from species"
 	if entry.skill_slots.is_empty():

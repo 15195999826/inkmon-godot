@@ -6,8 +6,8 @@ class_name InkMonContentLoader
 ##
 ## Missing file = the normal dev state before any import has run → silent stub
 ## fallback (no warning, no crash). Invalid file → Log.warning + stub fallback.
-## The override is additive: godot keeps its own skill pools + role derivation +
-## evolution condition evaluation + runtime level; the creature base (stats/stage/
+## The override is additive: godot keeps its own skill pools + AI personality derivation
+## (interim, adr/0008) + evolution condition evaluation + runtime level; the creature base (stats/stage/
 ## identity = species_id) AND the evolution topology + thresholds (edge-list forest,
 ## adr/0010) come from the server.
 

@@ -18,7 +18,7 @@
 
 **2.2 元素克制** — 按克制表算伤害乘数(具体元素集与倍率以代码 `InkMonElementChart` 为准)。
 
-**2.3 role(角色定位)** — tank / dps / healer / flex,驱动战斗 AI 行为。
+**2.3 personality(AI 行为倾向,interim)** — `aggressive` / `frontline` / `support`,驱动战斗 AI 选 `choose_skill_target` 策略(`InkMonAIStrategyFactory`)。⚠️ 取代已废弃的 `role`(tank/dps/healer/flex 战斗定位,lab **adr/0008** 彻底废弃)。**当前是 godot-internal 临时实现**:由 species 派生(`get_personality_for_species`)+ 投影进 battle snapshot;adr/0008 的 proper 设计 = canon `personality` 字段投影到 godot,语义明确后再做(非 role 的重命名/兼容层)。
 
 **2.4 stage(形态阶段)** — baby / mature / adult,随进化推进。
 

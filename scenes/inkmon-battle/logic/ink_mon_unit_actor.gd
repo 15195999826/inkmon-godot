@@ -9,7 +9,8 @@ var unit_key: String
 var source_entry_id := -1
 var species: String
 var stage: String
-var role: String
+## AI 行为倾向(驱动选策);adr/0008 后取代 role。interim:由 species 派生 + 走 snapshot。
+var personality: String
 var elements: Array[String] = []
 # 技能槽 [{slot_index, skill_id}]; primary = slot0 作 active skill (多技能 equip 留 future)。
 var skill_slots: Array[Dictionary] = []
@@ -35,7 +36,7 @@ func _init(p_unit_key: String = "", battle_snapshot: Dictionary = {}) -> void:
 	else:
 		_setup_from_unit_config(p_unit_key)
 	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
-	ai_strategy = InkMonAIStrategyFactory.get_strategy(role)
+	ai_strategy = InkMonAIStrategyFactory.get_strategy(personality)
 
 
 static func from_battle_snapshot(battle_snapshot: Dictionary) -> InkMonUnitActor:
@@ -48,7 +49,7 @@ func _setup_from_unit_config(p_unit_key: String) -> void:
 	_display_name = cfg.display_name
 	species = cfg.species
 	stage = cfg.stage
-	role = cfg.role
+	personality = cfg.personality
 	elements.assign(cfg.elements)
 	_active_skill_config_id = cfg.active_skill_id
 	skill_slots = [{"slot_index": 0, "skill_id": cfg.active_skill_id}]
@@ -67,7 +68,7 @@ func _setup_from_battle_snapshot(battle_snapshot: Dictionary) -> void:
 	source_entry_id = int(battle_snapshot.get("source_entry_id", -1))
 	Log.assert_crash(source_entry_id >= 0, "InkMonUnitActor", "battle snapshot missing source_entry_id")
 	species = str(battle_snapshot.get("species", ""))
-	role = str(battle_snapshot.get("role", ""))
+	personality = str(battle_snapshot.get("personality", InkMonUnitConfig.PERSONALITY_AGGRESSIVE))
 	stage = str(battle_snapshot.get("stage", InkMonUnitConfig.STAGE_BABY))
 	unit_key = "snapshot:%d" % source_entry_id
 	_display_name = str(battle_snapshot.get("display_name", species))
@@ -229,7 +230,7 @@ func get_attribute_snapshot() -> Dictionary:
 	var snap := get_stats()
 	snap["unit_key"] = unit_key
 	snap["source_entry_id"] = source_entry_id
-	snap["role"] = role
+	snap["personality"] = personality
 	snap["elements"] = elements.duplicate()
 	return snap
 
@@ -238,6 +239,6 @@ func serialize() -> Dictionary:
 	var base := super.serialize()
 	base["unit_key"] = unit_key
 	base["source_entry_id"] = source_entry_id
-	base["role"] = role
+	base["personality"] = personality
 	base["atb_gauge"] = _atb_gauge
 	return base

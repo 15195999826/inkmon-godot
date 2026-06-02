@@ -49,4 +49,4 @@
 
 ## 顺带发现（不在本计划范围）
 
-`core/ink_mon_roster_entry.gd` 仍有 `role` 字段 + `InkMonUnitConfig.get_role_for_species()` 调用——与 lab `adr/0008`（role 彻底废弃、非 godot 持有）不一致。疑似 0008 在 godot 侧未清干净，建议另行核实清理，**不混进本进化树计划**。
+~~`core/ink_mon_roster_entry.gd` 仍有 `role` 字段 + `InkMonUnitConfig.get_role_for_species()` 调用——与 lab `adr/0008`（role 彻底废弃、非 godot 持有）不一致。~~ **已清理(2026-06-02)**:role 概念整个从 godot 删除(entry/config/UI/snapshot);AI 选策改由 **interim `personality`**(由 species 派生,godot-internal)接管,保留 per-unit AI 差异。adr/0008 的 proper canon `personality` 字段仍 deferred(见 glossary 2.3)。

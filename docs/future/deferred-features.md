@@ -70,7 +70,7 @@
 
 ### 必需导出形状(schema `inkmon.l2.content.v1`,version `1`)
 - 顶层:`schema`(恰为 `inkmon.l2.content.v1`)/ `version`(1)/ 非空数组 `units` / `skill_pools` / `skills` / `items`。
-- unit:`id` / `display_name` / `species` / `stage`(baby|mature|adult)/ `role`(tank|dps|healer|flex)/ `elements`(fire|water|wind|light|dark,一个或多个)/ `base_stats`(max_hp,ad,ap,armor,mr,speed)/ `skill_slots`(slot 号 + pool_id)/ `fallback_active_skill_id`(当前单技能运行时的临时桥)。
+- unit:`id` / `display_name` / `species` / `stage`(baby|mature|adult)/ `elements`(fire|water|wind|light|dark,一个或多个)/ `base_stats`(max_hp,ad,ap,armor,mr,speed)/ `skill_slots`(slot 号 + pool_id)/ `fallback_active_skill_id`(当前单技能运行时的临时桥)。(⚠️ `role` 已删 —— lab adr/0008 彻底废弃战斗定位字段;AI 行为未来走 canon `personality`,见 glossary 2.3。)
 
 ### 显式 deferred 字段(必须留文档,不许悄悄出现在运行时数据里)
 多槽 active kit 选择 / 技能 variance 值 / 进化表 / 刻印·勋章效果 payload / canon Equipment 映射(若 lab item domain 变化)。

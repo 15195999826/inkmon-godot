@@ -233,7 +233,7 @@ func _build_weak_enemy_snapshots() -> Array[Dictionary]:
 		result.append({
 			"source_entry_id": 1000 + i,
 			"species": "training_dummy_%d" % i,
-			"role": InkMonUnitConfig.ROLE_DPS,
+			"personality": InkMonUnitConfig.PERSONALITY_AGGRESSIVE,
 			"elements": [InkMonElementChart.WATER],
 			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
 			"battle_stats": {

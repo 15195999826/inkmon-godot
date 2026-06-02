@@ -875,7 +875,6 @@ func _get_roster_snapshot() -> Array[Dictionary]:
 			"entry_id": entry.entry_id,
 			"species_id": entry.species_id,
 			"name_en": entry.name_en,
-			"role": entry.role,
 			"level": entry.level,
 			"exp": entry.exp,
 		})

@@ -1,5 +1,6 @@
-class_name InkMonRoleHealerStrategy
+class_name InkMonSupportStrategy
 extends InkMonAIStrategy
+## personality=support(原 healer 行为):有 heal 技能则奶血量比最低队友(≤0.72),否则打血量最低敌人。
 
 
 func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonWorldGI) -> InkMonUnitActor:

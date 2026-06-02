@@ -25,7 +25,7 @@ func build_roster_chips(container: HBoxContainer, roster: Array) -> void:
 		var style := chip.get_theme_stylebox("panel") as StyleBoxFlat
 		if style != null:
 			style.border_color = element_color(entry.elements[0] if not entry.elements.is_empty() else "")
-		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [role_short(entry.role), entry.level]
+		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [short_name(entry.name_en), entry.level]
 		container.add_child(chip)
 
 
@@ -37,10 +37,9 @@ func build_party_panel(container: VBoxContainer, roster: Array) -> void:
 			entry.elements[0] if not entry.elements.is_empty() else "")
 
 		var label := row.get_node("PartyEntryLabel") as Label
-		label.text = "%s  Lv%d  %s\n%s  EXP %d  Skill %s" % [
+		label.text = "%s  Lv%d\n%s  EXP %d  Skill %s" % [
 			entry.name_en,
 			entry.level,
-			entry.role,
 			", ".join(entry.elements),
 			entry.exp,
 			entry.get_primary_skill_id(),
@@ -120,13 +119,10 @@ static func element_color(element: String) -> Color:
 			return Color(0.72, 0.68, 0.56)
 
 
-static func role_short(role_value: String) -> String:
-	match role_value:
-		InkMonUnitConfig.ROLE_TANK:
-			return "TNK"
-		InkMonUnitConfig.ROLE_DPS:
-			return "DPS"
-		InkMonUnitConfig.ROLE_HEALER:
-			return "HLR"
-		_:
-			return "FLX"
+## roster chip 紧凑标签:取 name_en 首词前 4 字母大写(adr/0008:不再显示 role badge,改显示单位名)。
+static func short_name(name_en: String) -> String:
+	var trimmed := name_en.strip_edges()
+	if trimmed == "":
+		return "???"
+	var first_word := trimmed.split(" ", false)[0] as String
+	return first_word.substr(0, 4).to_upper()

@@ -16,7 +16,6 @@ var species_id := ""
 ## 显示名 (name_en)。仅展示用, 非 key; 进化时随 species_id 一并更新。
 var name_en := ""
 var stage := ""
-var role := ""
 var elements: Array[String] = []
 var level := 1
 var exp := 0
@@ -34,7 +33,6 @@ static func from_unit_config(p_entry_id: int, unit_key: String) -> InkMonRosterE
 	entry.species_id = cfg.species
 	entry.name_en = cfg.display_name
 	entry.stage = cfg.stage
-	entry.role = cfg.role
 	entry.elements.assign(cfg.elements)
 	entry.skill_slots = [{"slot_index": 0, "skill_id": cfg.active_skill_id}]
 	entry.engravings = []
@@ -53,7 +51,6 @@ static func from_birth(p_entry_id: int, p_species_id: String, p_roll_seed: int) 
 	# behaviour). get_display_name falls back to the species_id itself when no name exists.
 	entry.name_en = InkMonSpeciesCatalog.get_display_name(p_species_id)
 	entry.stage = InkMonSpeciesCatalog.get_stage(p_species_id)
-	entry.role = InkMonUnitConfig.get_role_for_species(p_species_id)
 	entry.elements = InkMonSpeciesCatalog.get_elements(p_species_id)
 	entry.skill_slots = InkMonSpeciesCatalog.roll_birth_skill_slots(p_species_id, p_roll_seed)
 	entry.engravings = []
@@ -67,7 +64,6 @@ static func from_dict(data: Dictionary) -> InkMonRosterEntry:
 	entry.species_id = str(data.get("species_id", ""))
 	entry.name_en = str(data.get("name_en", ""))
 	entry.stage = str(data.get("stage", ""))
-	entry.role = str(data.get("role", ""))
 	entry.elements = _string_array(data.get("elements", []))
 	entry.level = int(data.get("level", 1))
 	entry.exp = int(data.get("exp", 0))
@@ -83,7 +79,6 @@ func to_dict() -> Dictionary:
 		"species_id": species_id,
 		"name_en": name_en,
 		"stage": stage,
-		"role": role,
 		"elements": elements.duplicate(),
 		"level": level,
 		"exp": exp,
@@ -122,7 +117,9 @@ func project_to_battle_snapshot() -> Dictionary:
 		# stage 投影: actor 读 snapshot.get("stage", BABY); 不发会让进化后的 mature/adult 单位
 		# 在 battle 层退回 baby。entry.stage 进化时已更新 (evolve_entry), 此处随身份一并过边界。
 		"stage": stage,
-		"role": role,
+		# INTERIM(adr/0008):AI personality 投影时由 species 派生(不存 entry,§8c 派生不存);
+		# 未来 personality 走 canon 字段,这里换成投影的 canon 值。
+		"personality": InkMonUnitConfig.get_personality_for_species(species_id),
 		"elements": elements.duplicate(),
 		"skill_slots": _dup_dict_array(skill_slots),
 		"engravings": _dup_dict_array(engravings),

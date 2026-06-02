@@ -88,9 +88,9 @@ static func validate_export(data: Dictionary) -> Array[String]:
 
 # Validates a v2 creature-base contract (the server canon projection): schema/version
 # + per-unit id(=species_id `^mon_\d+$`)/display_name/stage/elements/base_stats, plus the
-# root-level evolution_edges forest. Unlike validate_export it does NOT require role,
+# root-level evolution_edges forest. Unlike validate_export it does NOT require
 # skill bindings, skill_pools, skills, or items — the server projects creature bases +
-# topology alone (godot owns role derivation + skill data + condition evaluation).
+# topology alone (godot owns AI personality derivation [interim, adr/0008] + skill data + condition evaluation).
 # v2 break (adr/0010): identity moved species→id, per-unit evolves_to removed (topology
 # is now the root edge-list). Edge checks are DEFENSIVE (structure + bundle-local
 # references); single-parent/acyclic/stage-monotonic are the server's hard gate (spec §3).
