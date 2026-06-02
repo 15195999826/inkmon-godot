@@ -37,6 +37,10 @@ func _run() -> String:
 	if systems_status != "":
 		return _cleanup(root, systems_status)
 
+	var guard_status := _assert_stale_battle_intent_guard(root)
+	if guard_status != "":
+		return _cleanup(root, guard_status)
+
 	var save_status := _assert_save_load(root)
 	if save_status != "":
 		return _cleanup(root, save_status)
@@ -200,6 +204,21 @@ func _assert_multi_slot_save(root: InkMonWorldHost) -> String:
 		return "load_from_slot should restore gold"
 	if root.session.player_state.roster.size() != saved_roster:
 		return "load_from_slot should restore roster"
+	return ""
+
+
+## Codex P2 回归守卫:deferred 训练战 flow 带世界代际;若 deferred 跑前 reset/load 重建过世界(代际变),
+## 旧 intent 必须作废,绝不在当前世界结算。以过期代际直接调 _begin(避开 call_deferred 时序不确定性),断言不起战斗。
+func _assert_stale_battle_intent_guard(root: InkMonWorldHost) -> String:
+	var gold_before := root.session.player_state.gold
+	root._begin_training_battle_flow(root._world_generation - 1)  # 过期代际
+	var s := root.get_dev_agent_state()
+	if str(s.get("state", "")) != "OVERWORLD":
+		return "stale-generation battle intent must NOT start a battle (state must stay OVERWORLD)"
+	if str(s.get("active_instance_id", "")) != "":
+		return "stale-generation battle intent must NOT set an active battle instance"
+	if int(s.get("gold", 0)) != gold_before:
+		return "stale-generation battle intent must NOT award gold (no battle should run)"
 	return ""
 
 

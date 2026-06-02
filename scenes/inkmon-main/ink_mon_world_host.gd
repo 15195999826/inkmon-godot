@@ -27,6 +27,9 @@ var _active_instance_id := ""
 ## 训练战 flow 去重锁:从收到 start_battle intent 到 _begin_training_battle_flow 跑完之间为 true,
 ## 挡掉同帧双击/重复 intent 起多场战斗(方案 A 异步去掉了旧同步路径的隐式单飞保护)。
 var _battle_flow_pending := false
+## 世界代际:每次(重)建 world GI 自增。deferred 的训练战 flow 带提交时的代际,若 deferred 期间
+## reset/load 重建了世界(代际变),旧 intent 作废 —— 不在新 session 上结算旧训练战(Codex P2)。
+var _world_generation := 0
 var _world_gi: InkMonWorldGI = null
 var _presentation: InkMonWorldPresentation = null
 ## 主世界定步泵的真实时间累加器(满 FIXED_DT 泵一 tick)。
@@ -124,14 +127,18 @@ func _on_flow_intent_raised(intent: Dictionary) -> void:
 	if _battle_flow_pending:
 		return
 	_battle_flow_pending = true
-	call_deferred("_begin_training_battle_flow")
+	# 带提交时的世界代际:deferred 跑前若 reset/load 重建世界,代际不匹配 → 作废旧 intent。
+	call_deferred("_begin_training_battle_flow", _world_generation)
 
 
 ## 训练战 flow(Host 控制面):由 flow_intent_raised 经 call_deferred 触发。
 ## 同步跑完(record-then-playback);_complete_battle_if_ready 写回结果 + 经 Presentation 清回主世界态。
-func _begin_training_battle_flow() -> void:
-	run_training_battle_to_completion(8)
+## generation = 提交时的世界代际;若已被 reset/load 重建(代际变)则丢弃,绝不在新 session 上结算旧训练战。
+func _begin_training_battle_flow(generation: int) -> void:
 	_battle_flow_pending = false
+	if generation != _world_generation:
+		return
+	run_training_battle_to_completion(8)
 
 
 func _tick_active_instance(dt: float) -> void:
@@ -156,6 +163,7 @@ func _complete_battle_if_ready() -> void:
 
 func reset_session() -> Dictionary:
 	_set_active_instance("")
+	_battle_flow_pending = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime(_new_game_session())
@@ -208,6 +216,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	var loaded_session := InkMonGameSession.new()
 	var save_loaded := loaded_session.from_dict(data)
 	_set_active_instance("")
+	_battle_flow_pending = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_setup_overworld_runtime(loaded_session)
@@ -227,6 +236,8 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 ## 主世界运行时(grid / world actors / move controller / npc 表 / near-npc 全在 Logic)。
 ## 信号接线与 refresh 由 Presentation.bind_world 负责(调方在创建/重建 GI 后调用)。
 func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
+	# 世界(重)建的唯一入口:自增代际 → 作废任何指向旧世界的 in-flight deferred flow(stale-intent guard)。
+	_world_generation += 1
 	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI

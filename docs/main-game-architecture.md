@@ -139,7 +139,7 @@
 ## 5. NPC handler 契约
 
 - 6 handler 统一**只收 `session`**,规则住 handler 内;纯数据 NPC(shop / cultivation / guild / advancement / release_adopt)直接读写 session;handler **不碰 UI / flow**。
-- handler 由 `InkMonWorldGI` 持有(`_npc_handlers`,setup 内建);Host 转发 UI 点击为 `run_npc_action` / `buy_shop_item` 调用。
+- handler 由 `InkMonWorldGI` 持有(`_npc_handlers`,setup 内建);UI 点击 → Presentation `submit(InkMonNpcActionCommand / InkMonBuyCommand)` → tick drain 时 `cmd.apply(gi)` 调 GI 的 `run_npc_action` / `buy_shop_item`(handler 收 GI 持有的 session),结果经 `command_applied` 回流。
 - training→战斗 = **command-as-data**:handler 返回 `{ok, message, intent?}`,training 的 `intent = {kind:"start_battle", config}`;Host 读 `intent.kind` 解释起 battle flow(app_state / tick 归 Host),handler 自己绝不碰 flow。
 
 ---
