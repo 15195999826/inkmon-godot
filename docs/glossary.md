@@ -34,9 +34,17 @@
 
 **4.1 World Actor 层级** — 主世界一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`。玩家/NPC = 直接 `InkMonWorldActor`(无 ability/timeline)。
 
-**4.2 主世界 Command / Query** — CQRS 两条路。**Query(读)**= UI 同步调 WorldGI 只读方法(roster/gold/near-npc/列表)。**Command(写)**= UI 改任何游戏/世界/存档态的**唯一入口**,异步(enqueue → tick 应用 → event 回流 → UI 被动刷,不读返回值)。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
+**4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**调只读方法(roster/gold/near-npc/列表)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
 
-**4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + lifecycle(save/load/reset = 重建孩子)+ tick 泵,**不参与** command/event 对等流。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
+**4.2a InkMonWorldCommand** — 主世界写路径的**对象化命令**:基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类。表演 `submit(cmd)` 入队,`drain_commands` 多态派发 `cmd.apply(gi)`(替代旧的无类型 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action 全收进队列(方案 A:世界一切 mutation 只在 tick 一处发生)。
+
+**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 facade**(roster/gold/near-npc/npc actions)。配 `submit(cmd)` 写入口构成表演侧能看到的全部 GI 表面;表演**不见 concrete GI**。约定级 seam(GDScript 拦不住 cast,靠 review 守),非编译级铁墙。
+
+**4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + 控制面(lifecycle/flow/tick)。**Host 不在 CQRS 调用路径上**(不发 Query / 不收 Event),但握**命令生效时机**(Command 在 Host tick 泵 drain 那一刻生效)。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
+
+**4.3a InkMonWorldPresentation** — Presentation 层根节点,持 View3D / HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` + `submit`,不见 concrete GI;Host 不再直接持 UI 节点 ref。
+
+**4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + session,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
 
 **4.4 InkMonGameSession** — 存档根,持 `roster / gold / progression`,由 `InkMonWorldGI` 持有(非 autoload)。
 

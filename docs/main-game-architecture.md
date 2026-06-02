@@ -15,40 +15,60 @@
 
 ## 1. 主世界运行模型 = 同步 tick + command + 三层 Host
 
-主世界采用 dota2-auto-battle 式同步 tick:输入 → command → 逻辑 tick 推进世界态 → 表演据 event 渲染。术语见 `glossary.md`(World Actor 层级 / 主世界 Command·Query / 主世界三层+Host)。
+主世界采用 dota2-auto-battle 式同步 tick:输入 → `submit(command)` → 逻辑 tick drain 推进世界态 → 表演据 event 渲染。术语见 `glossary.md`(World Actor 层级 / 主世界 CQRS 三通道 / InkMonWorldCommand / IWorldQuery / 主世界三层+Host / InkMonWorldPresentation)。
 
-### 三层 + Host
+### 三层 + Host（理想图）
 
 ```
-┌──────────────────────────────────────────────────┐
-│  Host (InkMonWorldHost)                            │  composition root,在 logic/presentation 之上
-│  建两孩子 + 接线(连 command↓ / event↑) +            │  不参与 command/event 对等流
-│  生命周期(save/load/new-game/reset = 重建孩子) +     │
-│  tick 泵(GameWorld.tick_all(FIXED_DT))              │
-└─────────────┬────────────────────────┬─────────────┘
-          creates                  creates
-              ▼                        ▼
-   ┌──────────────────────┐ command↓ ┌──────────────────┐
-   │ Logic                │ ◄─────── │ Presentation      │
-   │ GameWorld (autoload) │  event↑  │ View3D / HUD /     │
-   │  └ InkMonWorldGI     │ ───────► │ drawer / modal     │
-   │     └ session /       │          │                   │
-   │       world actors /  │          │                   │
-   │       systems /       │          │                   │
-   │       overworld grid /│          │                   │
-   │       npc 服务         │          │                   │
-   └──────────────────────┘          └──────────────────┘
+外层 Host: InkMonMain (screen router) — 标题/菜单/选 session,建内层 (v1 直接进游戏,结构留好)
+                        │ creates
+                        ▼
+╔═══════════════════════════════════════════════════════════════════════╗
+║  Host (InkMonWorldHost) — composition root, 在 Logic/Presentation 之上    ║
+║  ◇ 不在 CQRS 调用路径上 (不发 Query / 不收 Event), 但:                      ║
+║  ① composition  建 Logic GI + Presentation 两孩子 + 接线 (signal→刷新)     ║
+║  ② 控制面(Host 专属, 非 CQRS, 单向 Host→Logic):                            ║
+║     · lifecycle  save/load/new-game/reset = 销毁/重建两孩子               ║
+║     · flow       起/收 battle procedure; app_state 派生 (非独立状态机)      ║
+║     · tick 泵    每帧 GameWorld.tick_all(FIXED_DT)  ◄── 命令生效时机在此     ║
+╚═══════════╤═══════════════════════════════════════════╤═══════════════════╝
+        creates                                      creates
+            ▼                                            ▼
+┌────────────────────────────┐                ┌──────────────────────────────┐
+│ Logic (地基 · 不依赖任何上层)   │                │ Presentation                  │
+│ GameWorld (autoload)        │                │ InkMonWorldPresentation (节点) │
+│  └ InkMonWorldGI            │                │  持 View3D / HUD / drawer /    │
+│    ┌ 两张脸 (facade seam):   │                │     modal / InkMonWorldPanelView│
+│    │  concrete  → Host/内部  │                │  + layout/animation/build/     │
+│    └  IWorldQuery → 表演只读  │                │     refresh                    │
+│    持有:                     │                │  只握 IWorldQuery + submit     │
+│     session(存档根)           │  ① Query 同步读 │  绝不见 concrete GI / 域类型   │
+│     world actors             │ ◄────────────── │  (约定级 seam, 见下注)         │
+│     systems                  │   (IWorldQuery) │                              │
+│      (CommandDrain→Movement) │                │                              │
+│     overworld grid (域)       │  ② Command 异步 │                              │
+│     npc handlers             │ ◄────────────── │                              │
+│     _command_queue           │  submit(Command)│                              │
+│      持 InkMonWorldCommand 对象│                │                              │
+│      tick drain: cmd.apply(gi)│  ③ Event 上行    │                              │
+│     (battle procedure)        │ ──────────────► │  (被动刷新, 不读返回值)        │
+└────────────────────────────┘  mutation signal └──────────────────────────────┘
 ```
 
+- **三通道(运行时数据流)**:① **Query** = 表演经窄 `IWorldQuery` facade **同步读**(roster/gold/near-npc/npc actions);② **Command** = 表演 `submit(InkMonWorldCommand)` **异步入队**,Host tick drain 时 `cmd.apply(gi)` 生效;③ **Event** = Logic mutation signal **上行**,表演被动刷新。
 - **两轴别混**:数据流(运行时)= **双向**(command 下 / event 上 ⇒ "感觉平级");代码依赖 = **单向 DAG**(Presentation→Logic;Logic 谁都不依赖、永不引用 UI;Host→两者)。⇒ Logic 是地基,Presentation 长其上,Host 在两者之上;lifecycle 重建归 Host(它建了两孩子),**非**"表演层重建逻辑层"。
-- **嵌套两 Host**:外 `InkMonMain`(切屏 + 选 session)/ 内 `InkMonWorldHost`(建 world+view + lifecycle)。
+- **Host 不在对等流上,但握命令生效时机**:Host 不发 Query、不收 Event(那是表演↔逻辑的事);它持**控制面**(lifecycle/flow/tick,单向 Host→Logic,非 CQRS),且 Command 的**生效时机 = Host 的 tick 泵 drain 那一刻**。
+- **GI 两张脸(facade seam)**:同一个 `InkMonWorldGI` 实例,对 Host/内部暴露 concrete 全貌(含写/控制面),对 Presentation 只暴露 `IWorldQuery` 只读 + `submit(cmd)` 写入口。seam 是**约定级**(GDScript 拦不住 cast 穿透,靠 review 守),不是编译级铁墙。
+- **嵌套两 Host**:外 `InkMonMain`(切屏 + 选 session)/ 内 `InkMonWorldHost`(建 world+presentation + lifecycle)。
 
-### 读写 = CQRS
+### 读写 = CQRS（三通道）
 
-- **Query(读)= 同步**:UI 渲染直接调 WorldGI 只读方法(roster / gold / near-npc / npc actions)。
-- **Command(写)= 异步唯一入口**:UI 改任何游戏/世界态 → enqueue → tick 应用 → 结果经 event/signal 回流 → UI 被动刷(**不读返回值**)。纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE 由 WorldGI 的 `_active_instance_id` 派生,面板态 = 表演的 `_drawer_mode`)。
+- **Query(读)= 同步**:表演渲染经 `IWorldQuery` facade 直接调只读方法(roster / gold / near-npc / npc actions)。
+- **Command(写)= 异步唯一入口**:表演改任何游戏/世界态 → `submit(cmd)` 入队 → Host tick drain 应用(`cmd.apply(gi)`)→ 结果经 event/signal 回流 → 表演被动刷(**不读返回值**)。
+  - **Command = 对象,不是无类型 dict**:`InkMonWorldCommand` 基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类;`drain_commands` 多态派发 `cmd.apply(gi)`(替掉 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action **全收进队列**(方案 A:世界一切 mutation 只在 tick 一处发生 = 单一变更时间线)。
+  - 纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE 由 WorldGI 的 `_active_instance_id` 派生,面板态 = 表演的 `_drawer_mode`)。
 - ⚠️ 此 "Command" ≠ battle 层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。上行用 WorldGI mutation signal,**不建全局 EventBus**。
-- **lifecycle(save/load/new-game/reset)= Host 控台操作,不进 command 队列**(它销毁/重建世界本身):save = `world.capture_to_session()` + `InkMonSaveFile.write`;load = `InkMonSaveFile.read` + `session.from_dict` + 重建 world + `world.hydrate_from_session()`。
+- **lifecycle(save/load/new-game/reset)= Host 控制面操作,不进 command 队列**(它销毁/重建世界本身,非世界内 mutation):save = `world.capture_to_session()` + `InkMonSaveFile.write`;load = `InkMonSaveFile.read` + `session.from_dict` + 重建 world + `world.hydrate_from_session()`。
 
 ### tick / 移动模型
 
@@ -59,9 +79,11 @@
 
 ### 命名
 
-- 主世界代码前缀统一 `InkMonWorld*`。
+- **概念分层(命名审计的轴)**:`InkMonWorld` = **世界容器** = overworld + battle + session(World-owns-Battle,§2);`overworld` = 容器内的"**行走域**",跟 battle 平级。⇒ overworld **不是残渣**,大体保留;容器层概念用 `World` 前缀(GI/Host/Command/Presentation/Actor 基类),纯 overworld 域专属的东西用 `overworld` 前缀(如只 overworld 用、battle 不碰的 3D view)。审计 = 逐标识符判它住容器层还是域层,只改**站错层**的名字。
+- **`overworld_grid` 必留**:GI 持两套 grid(主世界 grid vs 战斗翻转 grid,§2②),`overworld_grid` 这名字正是区分二者的关键(`ink_mon_world_gi.gd` 主世界 movement 只读它,绝不读战斗期翻转的基类 `grid`)。**不做 overworld→world 全局 sed**。
+- 主世界**容器层**代码前缀统一 `InkMonWorld*`。
 - World actor 层级:`InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(+ 死亡 / ability)→ `InkMonUnitActor`。玩家/NPC = `InkMonWorldActor`(直接,无 ability/timeline);`hex_position` 住基类(三者共有,也是 GI `actor_position_changed` 报告的东西)。
-- Host = `InkMonWorldHost`(composition root,非表演层)。
+- Host = `InkMonWorldHost`(composition root,非表演层);Presentation 根 = `InkMonWorldPresentation`(节点,持全部 UI 子树)。
 
 ---
 
@@ -110,7 +132,7 @@
 3. 规则按模块分块(NPC 规则住进各 handler)。
 
 - 上行(逻辑→UI)= signal:WorldGI mutation signal(`actor_position_changed` 等);UI connect 被动刷新。**不建全局 EventBus autoload**。
-- 主世界下行用 **command 队列 + System 驱动同步 tick**(CommandDrain → Movement,复用 LGF `base_tick` 注册的 `System`,非另造一套)。
+- 主世界下行用 **`submit(InkMonWorldCommand)` 入队 + System 驱动同步 tick**(CommandDrain `drain_commands` 多态 `cmd.apply(gi)` → Movement,复用 LGF `base_tick` 注册的 `System`,非另造一套)。
 
 ---
 
@@ -125,7 +147,8 @@
 ## 6. UI 搭建
 
 - 全 `.tscn`(尽量编辑器设计),代码只填文字 / 绑数据,动态列表(roster/bag/NPC 行)用 instantiate 组件场景。
-- UI 在 presentation 层,只订阅 signal / 调窄 API,不直接改逻辑。
+- UI 在 presentation 层,只订阅 signal / 调窄 `IWorldQuery` + `submit(cmd)`,不直接改逻辑、不见 concrete GI。
+- presentation 根 = `InkMonWorldPresentation`(节点),持 View3D / HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
 - 数据驱动内容构建(roster chips / party / bag / journal)抽在 `InkMonWorldPanelView`(纯表演 builder)。
 
 ### HUD 布局(corner-only;密集信息进单一右抽屉)
@@ -153,11 +176,12 @@
 | NPC 规则(cultivate/advance/buy/adopt) | 各 NPC handler(收 session),由 InkMonWorldGI 持有 |
 | 战斗实例生命周期 | 唯一 InkMonWorldGI 内的 InkMonBattleProcedure(无独立 battle GI) |
 | overworld grid / move | InkMonWorldGrid + tick Movement System(InkMonWorldGI 持有) |
-| 数据驱动 UI 内容 | InkMonWorldPanelView(presentation) |
+| UI 子树持有 + layout/animation/build/refresh | InkMonWorldPresentation(presentation 根节点) |
+| 数据驱动 UI 内容 | InkMonWorldPanelView(presentation,由 Presentation 持有) |
 | 持久数据 | InkMonGameSession(InkMonWorldGI 持有) |
 | 存档 IO | InkMonSaveFile |
 
-`InkMonWorldHost` 只剩:wiring(建 world GI/view、连 signal、挂 UI)+ 输入转发为 command + flow 切换(主世界 ↔ 在同一 world GI 内起 battle procedure)+ lifecycle 控台操作。
+`InkMonWorldHost` 只剩:composition(建 world GI + `InkMonWorldPresentation` 两孩子、连 signal)+ 控制面(lifecycle 控台操作 + flow 切换 + tick 泵);**不再直接持 UI 节点 ref**(那归 Presentation)。输入→`submit(cmd)`、Query 读、Event 刷新全在 Presentation 与 Logic 之间走 CQRS 三通道,Host 不在其上。
 
 ---
 
