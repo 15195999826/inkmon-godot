@@ -4,12 +4,6 @@ class_name InkMonL2ContentContract
 const SCHEMA_ID := "inkmon.l2.content.v1"
 const VERSION := 1
 const REQUIRED_UNIT_STATS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
-const VALID_ROLES: Array[String] = [
-	InkMonUnitConfig.ROLE_TANK,
-	InkMonUnitConfig.ROLE_DPS,
-	InkMonUnitConfig.ROLE_HEALER,
-	InkMonUnitConfig.ROLE_FLEX,
-]
 const VALID_STAGES: Array[String] = ["baby", "mature", "adult"]
 const VALID_SKILL_CHANNELS: Array[String] = ["physical", "magical", "utility"]
 
@@ -22,13 +16,12 @@ static func build_current_stub_export() -> Dictionary:
 
 	for unit_key in unit_keys:
 		var cfg := InkMonUnitConfig.get_unit_config(unit_key)
-		var pool_id := _skill_pool_id(cfg.stage, cfg.role, 1)
+		var pool_id := _skill_pool_id(cfg.stage, 1)
 		units.append({
 			"id": cfg.key,
 			"display_name": cfg.display_name,
 			"species": cfg.species,
 			"stage": cfg.stage,
-			"role": cfg.role,
 			"elements": cfg.elements.duplicate(),
 			"base_stats": _export_unit_stats(cfg.stats),
 			"fallback_active_skill_id": cfg.active_skill_id,
@@ -41,7 +34,6 @@ static func build_current_stub_export() -> Dictionary:
 			skill_pools_by_id[pool_id] = {
 				"id": pool_id,
 				"stage": cfg.stage,
-				"role": cfg.role,
 				"slot": 1,
 				"skill_ids": [cfg.active_skill_id],
 			}
@@ -86,6 +78,57 @@ static func validate_export(data: Dictionary) -> Array[String]:
 	return errors
 
 
+# Validates a creature-base contract (the server canon projection): schema/version
+# + per-unit id/species/stage/elements/base_stats only. Unlike validate_export it
+# does NOT require role, skill bindings, skill_pools, skills, or items — the server
+# projects creature bases alone (godot owns role derivation + skill data). evolves_to
+# is optional; when present it must be an array of non-empty species strings.
+static func validate_creature_base(data: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if str(data.get("schema", "")) != SCHEMA_ID:
+		errors.append("schema must be %s" % SCHEMA_ID)
+	if int(data.get("version", 0)) != VERSION:
+		errors.append("version must be %d" % VERSION)
+	_validate_creature_units(data.get("units", []), errors)
+	return errors
+
+
+static func _validate_creature_units(value: Variant, errors: Array[String]) -> void:
+	# NOTE: `value as Array` on a wrong-typed value raises "Invalid cast" and ABORTS
+	# this function (it does NOT return null) — so a `== null` guard is dead code and
+	# malformed input would be silently accepted. This validator gates untrusted
+	# server JSON, so it must use `is` type tests. (validate_export's internal-only
+	# helpers still use the as/null idiom; they only ever see well-formed self-check
+	# input — see Progress.md Open Review Findings.)
+	var units: Array = value if value is Array else []
+	if units.is_empty():
+		errors.append("units must be a non-empty array")
+		return
+	for i in range(units.size()):
+		if not (units[i] is Dictionary):
+			errors.append("units[%d] must be an object" % i)
+			continue
+		var unit: Dictionary = units[i]
+		_require_string(unit, "id", "units[%d]" % i, errors)
+		_require_string(unit, "species", "units[%d]" % i, errors)
+		_require_enum(unit, "stage", VALID_STAGES, "units[%d]" % i, errors)
+		_validate_elements(unit.get("elements", []), "units[%d].elements" % i, errors)
+		_validate_unit_stats(unit.get("base_stats", {}), "units[%d].base_stats" % i, errors)
+		if unit.has("evolves_to"):
+			_validate_evolves_to(unit.get("evolves_to"), "units[%d].evolves_to" % i, errors)
+
+
+static func _validate_evolves_to(value: Variant, label: String, errors: Array[String]) -> void:
+	if not (value is Array):
+		errors.append("%s must be an array" % label)
+		return
+	var entries: Array = value
+	for entry in entries:
+		if not (entry is String) or str(entry) == "":
+			errors.append("%s entries must be non-empty species strings" % label)
+			return
+
+
 static func _validate_units(
 	value: Variant,
 	skill_ids: Array[String],
@@ -104,7 +147,6 @@ static func _validate_units(
 		_require_string(unit, "id", "units[%d]" % i, errors)
 		_require_string(unit, "species", "units[%d]" % i, errors)
 		_require_enum(unit, "stage", VALID_STAGES, "units[%d]" % i, errors)
-		_require_enum(unit, "role", VALID_ROLES, "units[%d]" % i, errors)
 		_validate_elements(unit.get("elements", []), "units[%d].elements" % i, errors)
 		_validate_unit_stats(unit.get("base_stats", {}), "units[%d].base_stats" % i, errors)
 
@@ -139,7 +181,6 @@ static func _validate_skill_pools(value: Variant, skill_ids: Array[String], erro
 			continue
 		_require_string(pool, "id", "skill_pools[%d]" % i, errors)
 		_require_enum(pool, "stage", VALID_STAGES, "skill_pools[%d]" % i, errors)
-		_require_enum(pool, "role", VALID_ROLES, "skill_pools[%d]" % i, errors)
 		if int(pool.get("slot", 0)) <= 0:
 			errors.append("skill_pools[%d].slot must be positive" % i)
 		var pool_skill_ids := pool.get("skill_ids", []) as Array
@@ -207,10 +248,13 @@ static func _collect_ids(value: Variant, label: String, errors: Array[String]) -
 
 
 static func _validate_unit_stats(value: Variant, label: String, errors: Array[String]) -> void:
-	var stats := value as Dictionary
-	if stats == null:
+	# `is` guard, not `value as Dictionary` (which aborts on wrong type — see
+	# _validate_creature_units). Shared by validate_creature_base (untrusted) and
+	# validate_export, so it must reject a non-object base_stats cleanly.
+	if not (value is Dictionary):
 		errors.append("%s must be an object" % label)
 		return
+	var stats: Dictionary = value
 	for stat_key in REQUIRED_UNIT_STATS:
 		if not stats.has(stat_key):
 			errors.append("%s missing %s" % [label, stat_key])
@@ -223,8 +267,10 @@ static func _validate_unit_stats(value: Variant, label: String, errors: Array[St
 
 
 static func _validate_elements(value: Variant, label: String, errors: Array[String]) -> void:
-	var elements := value as Array
-	if elements == null or elements.is_empty():
+	# `is` guard, not `value as Array` (which aborts on wrong type — see
+	# _validate_creature_units). Shared by validate_creature_base (untrusted).
+	var elements: Array = value if value is Array else []
+	if elements.is_empty():
 		errors.append("%s must be a non-empty array" % label)
 		return
 	var valid_elements := InkMonElementChart.all_elements()
@@ -258,8 +304,8 @@ static func _export_unit_stats(stats: Dictionary) -> Dictionary:
 	return result
 
 
-static func _skill_pool_id(stage: String, role: String, slot: int) -> String:
-	return "%s.%s.slot_%d" % [stage, role, slot]
+static func _skill_pool_id(stage: String, slot: int) -> String:
+	return "%s.slot_%d" % [stage, slot]
 
 
 static func _skill_exports() -> Array[Dictionary]:

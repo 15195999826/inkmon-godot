@@ -31,27 +31,37 @@ func _run() -> String:
 	if not round_trip_errors.is_empty():
 		return "round-tripped export should validate: %s" % JSON.stringify(round_trip_errors)
 
-	var invalid := export_data.duplicate(true)
-	var invalid_units := invalid.get("units", []) as Array
-	var first_unit := invalid_units[0] as Dictionary
-	first_unit.erase("role")
-	var invalid_errors := InkMonL2ContentContract.validate_export(invalid)
-	if invalid_errors.is_empty():
-		return "validator should reject a unit without role"
+	# role is no longer part of the contract: a unit stripped of role must still validate.
+	var role_free := export_data.duplicate(true)
+	var role_free_units := role_free.get("units", []) as Array
+	(role_free_units[0] as Dictionary).erase("role")
+	var role_free_errors := InkMonL2ContentContract.validate_export(role_free)
+	if not role_free_errors.is_empty():
+		return "validator should accept a unit without role (role removed from contract): %s" % JSON.stringify(role_free_errors)
+
+	# species is still required: stripping it must fail validation.
+	var no_species := export_data.duplicate(true)
+	var no_species_units := no_species.get("units", []) as Array
+	(no_species_units[0] as Dictionary).erase("species")
+	var no_species_errors := InkMonL2ContentContract.validate_export(no_species)
+	if no_species_errors.is_empty():
+		return "validator should reject a unit without species"
 	return ""
 
 
 func _has_key_recursive(value: Variant, key: String) -> bool:
-	var dict_value := value as Dictionary
-	if dict_value != null:
+	# `is` tests, not `value as Dictionary/Array`: the latter raises a (non-fatal but
+	# noisy) "Invalid cast" on every scalar leaf during recursion.
+	if value is Dictionary:
+		var dict_value: Dictionary = value
 		if dict_value.has(key):
 			return true
 		for child in dict_value.values():
 			if _has_key_recursive(child, key):
 				return true
 		return false
-	var array_value := value as Array
-	if array_value != null:
+	if value is Array:
+		var array_value: Array = value
 		for child in array_value:
 			if _has_key_recursive(child, key):
 				return true
