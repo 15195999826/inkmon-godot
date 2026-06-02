@@ -5,3 +5,10 @@
 .claude/tmp/
 art/kaykit
 .claude-goal/*
+
+# Imported server content projection (editor tool writes it; not a checked-in asset —
+# committing would silently override stub stats / battle balance). See canon→godot bridge.
+/data/
+
+# Bash crash dumps (Git-Bash junk on Windows)
+bash.exe.stackdump

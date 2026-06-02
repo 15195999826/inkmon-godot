@@ -1,0 +1,23 @@
+{
+  "schema": "inkmon.l2.content.v1",
+  "version": 1,
+  "source": "lab-canon-projection",
+  "units": [
+    {
+      "id": "TestRockGolem",
+      "display_name": "测试岩巨人",
+      "species": "TestRockGolem",
+      "stage": "mature",
+      "elements": ["earth"],
+      "base_stats": {
+        "max_hp": 111,
+        "ad": 22,
+        "ap": 33,
+        "armor": 44,
+        "mr": 55,
+        "speed": 66
+      },
+      "evolves_to": []
+    }
+  ]
+}

@@ -21,17 +21,33 @@ const SKILL_EVOLUTIONS := {
 
 static var _table: Dictionary = {}
 
+## Server creature-base overrides (canon→godot bridge). Keyed by BOTH the original
+## species key and its snake_case normalization → {base_stats, stage}. When an
+## override is present, has_species/get_stage/get_base_stats serve the EXPLICIT
+## canon values (bypassing root×mult); skill pools / SKILL_EVOLUTIONS stay stub.
+## Written by InkMonContentLoader at boot; never serialized into the stub table.
+static var _overrides: Dictionary = {}
+
 
 static func has_species(species: String) -> bool:
+	if not _override_for(species).is_empty():
+		return true
 	return _species_table().has(species)
 
 
 static func get_stage(species: String) -> String:
+	var ov := _override_for(species)
+	if not ov.is_empty():
+		return str(ov.get("stage", STAGE_BABY))
 	return str(_species_node(species).get("stage", STAGE_BABY))
 
 
 ## 物种 base 六维 = root(baby) base × stat_mult。baby 自身 root=self / mult=1.0 → 等于 unit_config 值。
+## 命中 server override 时直接返回显式 base_stats (绕过 root×mult)。
 static func get_base_stats(species: String) -> Dictionary:
+	var ov := _override_for(species)
+	if not ov.is_empty():
+		return (ov.get("base_stats", {}) as Dictionary).duplicate(true)
 	var node := _species_node(species)
 	var root := str(node.get("root", species))
 	var mult := float(node.get("mult", 1.0))
@@ -40,6 +56,57 @@ static func get_base_stats(species: String) -> Dictionary:
 	for key in base:
 		scaled[key] = float(base[key]) * mult
 	return scaled
+
+
+## Register a server creature base as a runtime override (see _overrides). Stored
+## under both the original key and its snake_case form so callers can query either.
+## Stats are float-coerced to match the stub path's guarantee (JSON integer literals
+## parse to int); an empty species/base_stats is ignored so a malformed entry falls
+## through to the normal unknown-species assert rather than spawning a zero-stat unit.
+static func register_override(species: String, base_stats: Dictionary, stage: String) -> void:
+	if species == "" or base_stats.is_empty():
+		return
+	var stats := {}
+	for key in base_stats:
+		stats[key] = float(base_stats[key])
+	var payload := {"base_stats": stats, "stage": stage}
+	_overrides[species] = payload
+	var norm := normalize_species_key(species)
+	if norm != species:
+		_overrides[norm] = payload
+
+
+## Drop all server overrides (revert to pure stub). Tests must call this to isolate
+## the static override table between scenes sharing a process.
+static func clear_overrides() -> void:
+	_overrides.clear()
+
+
+## CamelCase / mixed → snake_case species key, e.g. "MossBear" → "moss_bear".
+## Idempotent on already-snake keys. Char-based (no RegEx alloc on the stat path).
+static func normalize_species_key(name: String) -> String:
+	var out := ""
+	for i in range(name.length()):
+		var ch := name[i]
+		var is_upper := ch != ch.to_lower() and ch == ch.to_upper()
+		if is_upper and i > 0:
+			out += "_"
+		out += ch.to_lower()
+	return out
+
+
+## Override payload for `species` (exact key first, then normalized), or {} if none.
+static func _override_for(species: String) -> Dictionary:
+	# Fast path: no imports applied (the default — res://data absent) → never pay the
+	# normalize_species_key string build on the runtime stat-read path.
+	if _overrides.is_empty():
+		return {}
+	if _overrides.has(species):
+		return _overrides[species]
+	var norm := normalize_species_key(species)
+	if _overrides.has(norm):
+		return _overrides[norm]
+	return {}
 
 
 static func get_slot_count(species: String) -> int:

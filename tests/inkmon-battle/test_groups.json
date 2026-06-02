@@ -22,7 +22,8 @@
     },
     "content": {
       "scenes": [
-        "../../scenes/inkmon-main/tests/smoke_content_contract.tscn"
+        "../../scenes/inkmon-main/tests/smoke_content_contract.tscn",
+        "../../scenes/inkmon-main/tests/smoke_content_loader.tscn"
       ]
     },
     "overworld-3d": {

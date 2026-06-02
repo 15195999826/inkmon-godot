@@ -13,6 +13,9 @@ var _game_director: InkMonWorldHost = null
 
 
 func _ready() -> void:
+	# Apply the server creature-base projection (res://data/inkmon_content.json) onto
+	# the catalog before the game spawns anything. Missing file = silent stub fallback.
+	InkMonContentLoader.apply_to_runtime()
 	_enter_game()
 
 
