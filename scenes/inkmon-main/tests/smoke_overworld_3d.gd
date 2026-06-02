@@ -297,9 +297,11 @@ func _assert_drawer_quick_toggle(root: InkMonWorldHost) -> String:
 
 func _assert_overlay_layering_and_dismiss(root: InkMonWorldHost) -> String:
 	# C5: toolbar (HUD) must draw above the drawer dim; the modal must draw above the HUD.
-	if root._hud_layer.layer <= root._panel_layer.layer:
+	# UI 子树 P10 移入 InkMonWorldPresentation;经 root._presentation 访问。
+	var pres := root._presentation
+	if pres._hud_layer.layer <= pres._panel_layer.layer:
 		return "HUD layer must sit above the drawer/panel layer so the toolbar stays clickable"
-	if root._modal_layer.layer <= root._hud_layer.layer:
+	if pres._modal_layer.layer <= pres._hud_layer.layer:
 		return "modal layer must sit above the HUD layer so the modal is exclusive"
 
 	# C5: clicking the dim overlay (outside the drawer) dismisses the drawer (real mouse input).
@@ -317,8 +319,8 @@ func _assert_overlay_layering_and_dismiss(root: InkMonWorldHost) -> String:
 		return "drawer should be open before the dim-dismiss click"
 	# Click a point inside the dim overlay but clear of the right-side drawer panel,
 	# computed from the actual headless layout (hardcoded coords are viewport-size fragile).
-	var dim_rect := (root._dim_overlay as Control).get_global_rect()
-	var panel_rect := (root._npc_panel as Control).get_global_rect()
+	var dim_rect := (root._presentation._dim_overlay as Control).get_global_rect()
+	var panel_rect := (root._presentation._npc_panel as Control).get_global_rect()
 	var click_x := (dim_rect.position.x + panel_rect.position.x) * 0.5
 	if click_x >= panel_rect.position.x:
 		click_x = dim_rect.position.x + 4.0

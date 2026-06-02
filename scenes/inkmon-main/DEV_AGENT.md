@@ -17,9 +17,13 @@ godot --path . res://scenes/inkmon-main/InkMonMain.tscn -- --dev-agent --dev-age
 
 `InkMonMain.tscn` is the thin outer screen router; it boots the inner game
 host (`ink_mon_game.tscn`, node name `WorldHost`) which installs the
-DevAgent bridge + scene ops. So the runtime tree is
-`/root/InkMonMain/WorldHost/...`. The scene prints `inbox` and `outbox`
-global paths when DevAgent is enabled.
+DevAgent bridge + scene ops. The `WorldHost` (composition + lifecycle + flow +
+tick) owns no UI directly — the UI subtree (3D overworld view, HUD, drawer,
+modal) lives under its `Presentation` child (`InkMonWorldPresentation`). So the
+runtime tree is `/root/InkMonMain/WorldHost/{Presentation/...,
+InkMonMainAgentOps, DevAgentBridge}`. The scene ops + introspection still go
+through `WorldHost` (it aggregates Presentation's UI debug surface). The scene
+prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 ## Scene Ops
 
