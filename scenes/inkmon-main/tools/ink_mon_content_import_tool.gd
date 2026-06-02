@@ -3,10 +3,10 @@ class_name InkMonContentImportTool
 extends EditorScript
 ## Dev-time import tool for the canon→godot bridge. Fetches the server creature-base
 ## contract, validates it through the shared importer, and writes it to
-## res://data/inkmon_content.json — the file InkMonContentLoader applies at boot.
+## res://data/inkmon_content.json — the local static content file read by
+## InkMonSpeciesCatalog at runtime.
 ##
-## Run it from the editor: open this script, then Tools → Run (autoloads are live,
-## so the validator's dependency graph compiles). Auth + URL come from the
+## Run it from the editor via Project → Tools → InkMon: 同步服务器内容. Auth + URL come from the
 ## environment so no secret is ever committed:
 ##   INKMON_CONTRACT_AUTH = "user:pass"   (Basic Auth credentials — REQUIRED)
 ##   INKMON_CONTRACT_URL  = full contract URL (OPTIONAL; defaults to the public one)
@@ -18,26 +18,59 @@ extends EditorScript
 const DEFAULT_URL := "https://lomo.inkmon.cloud/inkmon/contract"
 const OUTPUT_DIR := "res://data"
 const OUTPUT_PATH := "res://data/inkmon_content.json"
+const LOCAL_ENV_PATHS := ["res://.env.local", "res://.env"]
 
 
 func _run() -> void:
-	var auth := OS.get_environment("INKMON_CONTRACT_AUTH")
-	if auth == "":
-		push_error("[inkmon-import] INKMON_CONTRACT_AUTH env var not set (expected 'user:pass'); aborting.")
-		return
-	var url := OS.get_environment("INKMON_CONTRACT_URL")
-	if url == "":
-		url = DEFAULT_URL
-
-	var result: Dictionary = await import_contract(EditorInterface.get_base_control(), url, auth)
+	var result: Dictionary = await import_from_environment(EditorInterface.get_base_control())
 	if not bool(result.get("ok", false)):
 		push_error("[inkmon-import] %s" % str(result.get("error", "import failed")))
 		return
+	InkMonSpeciesCatalog.clear_static_content_cache()
+	print(format_result_message(result))
+
+
+## Fetch the configured contract URL using credentials from environment variables.
+## Coroutine: await it. Returns {ok, path, species, error}.
+static func import_from_environment(parent: Node) -> Dictionary:
+	var auth := configured_auth()
+	if auth == "":
+		return {
+			"ok": false,
+			"error": "INKMON_CONTRACT_AUTH env var not set (expected 'user:pass'); aborting.",
+		}
+	return await import_contract(parent, configured_url(), auth)
+
+
+static func configured_url() -> String:
+	var env_url := OS.get_environment("INKMON_CONTRACT_URL")
+	if env_url != "":
+		return env_url
+	return local_env_value("INKMON_CONTRACT_URL", DEFAULT_URL)
+
+
+static func configured_auth() -> String:
+	var env_auth := OS.get_environment("INKMON_CONTRACT_AUTH")
+	if env_auth != "":
+		return env_auth
+	return local_env_value("INKMON_CONTRACT_AUTH", "")
+
+
+static func local_env_value(key: String, fallback: String = "") -> String:
+	for path in LOCAL_ENV_PATHS:
+		var value := _read_local_env_value(path, key)
+		if value != "":
+			return value
+	return fallback
+
+
+static func format_result_message(result: Dictionary) -> String:
 	var species := result.get("species", PackedStringArray()) as PackedStringArray
-	print(
-		"[inkmon-import] wrote %s (%d unit(s): %s)"
-			% [str(result.get("path", OUTPUT_PATH)), species.size(), ", ".join(species)]
-	)
+	return "[inkmon-import] wrote %s (%d unit(s): %s)" % [
+		str(result.get("path", OUTPUT_PATH)),
+		species.size(),
+		", ".join(species),
+	]
 
 
 ## Fetch the contract from `url` (Basic `auth` = "user:pass"), validate it, and write
@@ -83,6 +116,9 @@ static func import_contract(parent: Node, url: String, auth: String) -> Dictiona
 
 
 static func _write_output(data: Dictionary) -> String:
+	var non_finite_path := _first_non_finite_path(data, "$")
+	if non_finite_path != "":
+		return "contract contains NaN/INF at %s; refusing to write JSON" % non_finite_path
 	if not DirAccess.dir_exists_absolute(OUTPUT_DIR):
 		var mkdir_err := DirAccess.make_dir_recursive_absolute(OUTPUT_DIR)
 		if mkdir_err != OK:
@@ -94,6 +130,58 @@ static func _write_output(data: Dictionary) -> String:
 	file.store_string(JSON.stringify(data, "\t"))
 	file.close()
 	return ""
+
+
+static func _first_non_finite_path(value: Variant, path: String) -> String:
+	if value is float:
+		var number := float(value)
+		if is_nan(number) or is_inf(number):
+			return path
+		return ""
+	if value is Dictionary:
+		var dict_value: Dictionary = value
+		for key in dict_value.keys():
+			var found := _first_non_finite_path(dict_value[key], "%s.%s" % [path, str(key)])
+			if found != "":
+				return found
+		return ""
+	if value is Array:
+		var array_value: Array = value
+		for i in range(array_value.size()):
+			var found := _first_non_finite_path(array_value[i], "%s[%d]" % [path, i])
+			if found != "":
+				return found
+	return ""
+
+
+static func _read_local_env_value(path: String, key: String) -> String:
+	if not FileAccess.file_exists(path):
+		return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	while not file.eof_reached():
+		var line := file.get_line().strip_edges()
+		if line == "" or line.begins_with("#"):
+			continue
+		var separator := line.find("=")
+		if separator < 0:
+			continue
+		var line_key := line.substr(0, separator).strip_edges()
+		if line_key != key:
+			continue
+		return _unquote_env_value(line.substr(separator + 1).strip_edges())
+	return ""
+
+
+static func _unquote_env_value(value: String) -> String:
+	if value.length() < 2:
+		return value
+	var first := value.substr(0, 1)
+	var last := value.substr(value.length() - 1, 1)
+	if (first == "\"" and last == "\"") or (first == "'" and last == "'"):
+		return value.substr(1, value.length() - 2)
+	return value
 
 
 static func _species_of(data: Dictionary) -> PackedStringArray:

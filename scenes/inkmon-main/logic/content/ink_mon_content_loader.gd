@@ -1,29 +1,20 @@
 class_name InkMonContentLoader
-## Boot-time consumer of the server creature-base contract. Reads the imported
-## projection at `res://data/inkmon_content.json` (written by the editor import
-## tool) and applies each creature base as a species override on the catalog, so
-## the runtime stat path serves canon values instead of the hardcoded stub.
+## Local static content reader. Reads the imported creature-base projection at
+## `res://data/inkmon_content.json` (written by the editor import tool) and
+## returns normalized catalog data.
 ##
 ## Missing file = the normal dev state before any import has run → silent stub
 ## fallback (no warning, no crash). Invalid file → Log.warning + stub fallback.
-## The override is additive: godot keeps its own skill pools + AI personality derivation
-## (interim, adr/0008) + evolution condition evaluation + runtime level; the creature base (stats/stage/
-## identity = species_id) AND the evolution topology + thresholds (edge-list forest,
-## adr/0010) come from the server.
+## The loaded content is local/static at runtime. The editor tool is the only
+## server-fetching step.
 
 
 const DEFAULT_PATH := "res://data/inkmon_content.json"
 
 
-## Apply the content at `path` to the runtime catalog.
-## Returns {loaded: bool, source: String, species: Array[String]} where `source`
-## is the path on success or "stub" on any fallback, and `species` lists the
-## species_ids (unit.id, mon_NNNN) that were registered as overrides.
-static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
-	# Clean slate: each apply replaces ALL prior overrides so the catalog reflects
-	# exactly this source. A missing/invalid file therefore reverts to pure stub
-	# (not "keep whatever was loaded before").
-	InkMonSpeciesCatalog.clear_overrides()
+## Read local static content at `path`.
+## Returns {loaded, source, species, species_table, evolution_edges}.
+static func load_static_content(path: String = DEFAULT_PATH) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return _stub_result()
 
@@ -44,6 +35,7 @@ static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
 		return _stub_result()
 
 	var registered: Array[String] = []
+	var species_table := {}
 	for unit_value in (units_value as Array):
 		if not (unit_value is Dictionary):
 			continue
@@ -62,21 +54,73 @@ static func apply_to_runtime(path: String = DEFAULT_PATH) -> Dictionary:
 		if elements_value is Array:
 			for element_value in (elements_value as Array):
 				elements.append(str(element_value))
-		InkMonSpeciesCatalog.register_override(species_id, base_stats, stage, elements, display_name)
+		species_table[species_id] = _species_record(base_stats, stage, elements, display_name)
 		if not species_id in registered:
 			registered.append(species_id)
 
 	# Evolution topology = a root-level edge-list forest (adr/0010), separate from units.
-	# apply_to_runtime already cleared edges at the top (clear_overrides). Authority is
-	# per-species (see get_evolution_edges): species WITH an edge here use it; species without
-	# (incl. every stub/adopted species) keep their stub evolves_to, so a partial contract
-	# does not strand them.
-	var edges_value: Variant = data.get("evolution_edges", [])
-	if edges_value is Array:
-		InkMonSpeciesCatalog.register_evolution_edges(edges_value as Array)
+	var evolution_edges := _normalize_evolution_edges(data.get("evolution_edges", []))
 
-	return {"loaded": true, "source": path, "species": registered}
+	return {
+		"loaded": true,
+		"source": path,
+		"species": registered,
+		"species_table": species_table,
+		"evolution_edges": evolution_edges,
+	}
+
+
+static func _species_record(
+	base_stats: Dictionary,
+	stage: String,
+	elements: Array[String],
+	display_name: String
+) -> Dictionary:
+	var stats := {}
+	for key in base_stats:
+		stats[key] = float(base_stats[key])
+	return {
+		"base_stats": stats,
+		"stage": stage,
+		"elements": elements.duplicate(),
+		"display_name": display_name,
+	}
+
+
+static func _normalize_evolution_edges(value: Variant) -> Dictionary:
+	var result := {}
+	if not (value is Array):
+		return result
+	for edge_value in (value as Array):
+		if not (edge_value is Dictionary):
+			continue
+		var edge: Dictionary = edge_value
+		var parent := str(edge.get("parent_species_id", ""))
+		var child := str(edge.get("child_species_id", ""))
+		if parent == "" or child == "":
+			continue
+		var trigger_value: Variant = edge.get("trigger", {})
+		var trigger: Dictionary = trigger_value if trigger_value is Dictionary else {}
+		var condition_value: Variant = trigger.get("condition", {})
+		var condition: Dictionary = condition_value if condition_value is Dictionary else {}
+		var normalized := {
+			"child_species_id": child,
+			"trigger": {
+				"level": int(trigger.get("level", 0)),
+				"condition": condition.duplicate(true),
+			},
+		}
+		if not result.has(parent):
+			result[parent] = []
+		(result[parent] as Array).append(normalized)
+	return result
 
 
 static func _stub_result() -> Dictionary:
-	return {"loaded": false, "source": "stub", "species": []}
+	return {
+		"loaded": false,
+		"source": "stub",
+		"species": [],
+		"species_table": {},
+		"evolution_edges": {},
+	}

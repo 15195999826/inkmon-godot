@@ -135,7 +135,7 @@ static func _validate_creature_units(value: Variant, errors: Array[String]) -> A
 		if id_value != "":
 			# Defensive (server is the hard uniqueness gate, spec §3): catch a duplicate
 			# species_id here so it surfaces as a validation error instead of silently
-			# overwriting the earlier creature base in register_override (last-write-wins).
+			# overwriting the earlier creature base in the static content table.
 			if id_value in ids:
 				errors.append("units[%d].id duplicate species_id: %s" % [i, id_value])
 			ids.append(id_value)
@@ -172,7 +172,13 @@ static func _validate_edge_trigger(value: Variant, label: String, errors: Array[
 		errors.append("%s.level is required" % label)
 	else:
 		var level: Variant = trigger.get("level")
-		if not (level is int or level is float) or int(level) <= 0:
+		var level_number := float(level) if (level is int or level is float) else NAN
+		if (
+			is_nan(level_number)
+			or is_inf(level_number)
+			or level_number <= 0.0
+			or absf(level_number - float(int(level_number))) > 0.0
+		):
 			errors.append("%s.level must be a positive integer" % label)
 	if trigger.has("condition"):
 		_validate_edge_condition(trigger.get("condition"), "%s.condition" % label, errors)
@@ -348,7 +354,14 @@ static func _validate_unit_stats(value: Variant, label: String, errors: Array[St
 		if not stats.has(stat_key):
 			errors.append("%s missing %s" % [label, stat_key])
 			continue
-		var stat_value := float(stats.get(stat_key, 0.0))
+		var raw_stat: Variant = stats.get(stat_key)
+		if not (raw_stat is int or raw_stat is float):
+			errors.append("%s.%s must be a number" % [label, stat_key])
+			continue
+		var stat_value := float(raw_stat)
+		if is_nan(stat_value) or is_inf(stat_value):
+			errors.append("%s.%s must be finite" % [label, stat_key])
+			continue
 		if stat_key in ["max_hp", "speed"] and stat_value <= 0.0:
 			errors.append("%s.%s must be > 0" % [label, stat_key])
 		elif stat_value < 0.0:

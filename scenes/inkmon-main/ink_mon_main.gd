@@ -4,18 +4,16 @@ extends Node
 ##
 ## v1 stub: 直接进游戏 (实例化内层游戏导播)。结构留好 —— 将来加标题/菜单只在此插一层,
 ## 不必重接入口 (project.godot run/main_scene 已指向本场景)。
-## 内层游戏导播 (现 ink_mon_game.tscn) 只管游戏内 (主世界 ↔ 战斗 ↔ NPC ↔ save), 零规则零数据零 UI 自绘。
+## 内层游戏导播 (scenes/inkmon-game/ink_mon_game.tscn) 只管游戏内
+## (主世界 ↔ 战斗 ↔ NPC ↔ save), 零规则零数据零 UI 自绘。
 
 
-const GameScene := preload("res://scenes/inkmon-main/ink_mon_game.tscn")
+const GameScene := preload("res://scenes/inkmon-game/ink_mon_game.tscn")
 
 var _game_director: InkMonWorldHost = null
 
 
 func _ready() -> void:
-	# Apply the server creature-base projection (res://data/inkmon_content.json) onto
-	# the catalog before the game spawns anything. Missing file = silent stub fallback.
-	InkMonContentLoader.apply_to_runtime()
 	_enter_game()
 
 

@@ -1,7 +1,7 @@
 extends Node
-## Smoke: server-projection (v2) content import → catalog override → runtime stat read.
+## Smoke: server-projection (v2) content import → local static content → catalog read.
 ## Proves the canon→godot bridge consumer side: a v2 creature-base contract (mon_NNNN ids +
-## root evolution_edges) is parsed, validated, applied as species overrides, and read back via
+## root evolution_edges) is parsed, validated, loaded as static content, and read back via
 ## the catalog's stat path with the EXPLICIT res:// values (not the stub root×mult), and the
 ## evolution forest is registered (branch reachable via get_evolution_edges).
 
@@ -24,8 +24,8 @@ const BRANCH_ROOT := "mon_0002"
 
 func _ready() -> void:
 	var status := _run()
-	# (5) Always isolate the catalog's static override/edge state for the next scene.
-	InkMonSpeciesCatalog.clear_overrides()
+	# (5) Always isolate the catalog's static content cache for the next scene.
+	InkMonSpeciesCatalog.clear_static_content_cache_for_tests()
 	if status == "":
 		print("SMOKE_TEST_RESULT: PASS - content importer/loader applies res:// creature base + evolution forest into catalog")
 		get_tree().quit(0)
@@ -46,19 +46,19 @@ func _run() -> String:
 	if not direct_errors.is_empty():
 		return "validate_creature_base should pass on fixture, errors=%s" % JSON.stringify(direct_errors)
 
-	# (2) apply_to_runtime(fixture) → loaded == true, species reported by id (mon_NNNN).
-	var applied := InkMonContentLoader.apply_to_runtime(FIXTURE_PATH)
-	if not bool(applied.get("loaded", false)):
-		return "apply_to_runtime should load the fixture, got %s" % JSON.stringify(applied)
-	var reported := applied.get("species", []) as Array
+	# (2) reload_static_content_for_tests(fixture) → loaded == true, species reported by id (mon_NNNN).
+	var loaded := InkMonSpeciesCatalog.reload_static_content_for_tests(FIXTURE_PATH)
+	if not bool(loaded.get("loaded", false)):
+		return "reload_static_content_for_tests should load the fixture, got %s" % JSON.stringify(loaded)
+	var reported := loaded.get("species", []) as Array
 	if not EXPECT_SPECIES in reported:
-		return "apply_to_runtime should report species_id %s, got %s" % [EXPECT_SPECIES, JSON.stringify(reported)]
+		return "static content should report species_id %s, got %s" % [EXPECT_SPECIES, JSON.stringify(reported)]
 	if not BRANCH_ROOT in reported:
-		return "apply_to_runtime should report branch root %s, got %s" % [BRANCH_ROOT, JSON.stringify(reported)]
+		return "static content should report branch root %s, got %s" % [BRANCH_ROOT, JSON.stringify(reported)]
 
 	# (3) catalog stat path returns the EXPLICIT fixture values (proves res:// source, not stub).
 	if not InkMonSpeciesCatalog.has_species(EXPECT_SPECIES):
-		return "catalog should know overridden species %s" % EXPECT_SPECIES
+		return "catalog should know static-content species %s" % EXPECT_SPECIES
 	var stats := InkMonSpeciesCatalog.get_base_stats(EXPECT_SPECIES)
 	for stat_key in EXPECT_STATS:
 		var got := float(stats.get(stat_key, -999.0))
@@ -71,15 +71,15 @@ func _run() -> String:
 	if InkMonSpeciesCatalog.get_display_name(EXPECT_SPECIES) != EXPECT_DISPLAY:
 		return "get_display_name(%s) = %s, expected %s" % [EXPECT_SPECIES, InkMonSpeciesCatalog.get_display_name(EXPECT_SPECIES), EXPECT_DISPLAY]
 
-	# (3b) FULL creature base consumed: elements stored (not dropped); and an override-only
+	# (3b) FULL creature base consumed: elements stored (not dropped); and a content-only
 	# ORPHAN species is gracefully poolless / evolutionless (no assert, no outgoing edges).
 	var elements := InkMonSpeciesCatalog.get_elements(EXPECT_SPECIES)
 	if elements.size() != 1 or elements[0] != "earth":
 		return "get_elements(%s) = %s, expected [earth]" % [EXPECT_SPECIES, JSON.stringify(elements)]
 	if InkMonSpeciesCatalog.get_slot_count(EXPECT_SPECIES) != 0:
-		return "override-only species should have 0 skill slots, got %d" % InkMonSpeciesCatalog.get_slot_count(EXPECT_SPECIES)
+		return "content-only species should have 0 skill slots, got %d" % InkMonSpeciesCatalog.get_slot_count(EXPECT_SPECIES)
 	if not InkMonSpeciesCatalog.get_slot_pool(EXPECT_SPECIES, 0).is_empty():
-		return "override-only species slot pool should be empty"
+		return "content-only species slot pool should be empty"
 	if not InkMonSpeciesCatalog.get_evolution_edges(EXPECT_SPECIES).is_empty():
 		return "orphan species should have no outgoing evolution edges"
 
@@ -109,7 +109,7 @@ func _run() -> String:
 
 	# (3c2) PER-SPECIES authority regression guard: a stub/adopted species NOT in the contract
 	# edge-list must KEEP its stub evolves_to even though contract edges (mon_0002) are loaded.
-	# A global `_evolution_edges.is_empty()` gate would strand it (return []); per-species does not.
+	# A global `_static_evolution_edges.is_empty()` gate would strand it (return []); per-species does not.
 	var stub_edges := InkMonSpeciesCatalog.get_evolution_edges("aegis_pup")
 	if stub_edges.size() != 1:
 		return "stub species aegis_pup should keep its stub edge while a partial contract is loaded, got %d" % stub_edges.size()
@@ -123,7 +123,7 @@ func _run() -> String:
 	if not empty_errors.is_empty():
 		return "empty-units contract should validate, got %s" % JSON.stringify(empty_errors)
 
-	# (3e) RosterEntry.from_birth on an override-only species: no crash, projected elements +
+	# (3e) RosterEntry.from_birth on a content-only species: no crash, projected elements +
 	# stage + name_en flow through, gracefully no skill slots. (Battle-SPAWNING such a species
 	# still needs skill data — the unit actor requires skills — out of P1 scope.)
 	var birth := InkMonRosterEntry.from_birth(9001, EXPECT_SPECIES, 42)
@@ -136,10 +136,10 @@ func _run() -> String:
 	if birth.name_en != EXPECT_DISPLAY:
 		return "from_birth(%s).name_en = %s, expected %s" % [EXPECT_SPECIES, birth.name_en, EXPECT_DISPLAY]
 	if not birth.skill_slots.is_empty():
-		return "override-only from_birth should have no skill slots (skills are a later phase)"
+		return "content-only from_birth should have no skill slots (skills are a later phase)"
 
 	# (4) missing file → loaded == false, silent stub fallback (no crash).
-	var missing := InkMonContentLoader.apply_to_runtime(MISSING_PATH)
+	var missing := InkMonSpeciesCatalog.reload_static_content_for_tests(MISSING_PATH)
 	if bool(missing.get("loaded", true)):
 		return "missing file should not load, got %s" % JSON.stringify(missing)
 	if str(missing.get("source", "")) != "stub":

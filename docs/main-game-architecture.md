@@ -164,7 +164,7 @@
 ## 6b. 场景入口 / 接线层
 
 - **薄场景 Node = 接线员**,不是 God object:只做 ① 开机(`GameWorld.init` + 建 world GI)② 接线(GI signal → UI view;玩家输入 → command)③ 切台(主世界 ↔ 战斗 ↔ NPC ↔ save)。
-- **场景分层 = 两层**:外层 screen 路由 `InkMonMain`(标题 → 菜单 → 进游戏,v1 直接进游戏但结构留好);内层游戏导播 `InkMonWorldHost`(游戏内组装 + lifecycle)。
+- **场景分层 = 两层**:外层 screen 路由 `InkMonMain`(标题 → 菜单 → 进游戏,v1 直接进游戏但结构留好);内层游戏导播 `InkMonWorldHost`(游戏内组装 + lifecycle),场景文件在 `scenes/inkmon-game/ink_mon_game.tscn`,由 `InkMonMain.tscn` instantiate。
 - `project.godot run/main_scene` = `InkMonMain.tscn`;`Simulation.tscn` 退成纯 web 桥。
 
 ---
@@ -204,7 +204,7 @@
 
 **进化 = species_id 字段改写 + edge-list 森林(adr/0010)**:
 - 身份 = `species_id`(全局唯一不可变 `mon_NNNN`,住 canon);`name_en` 降级为可改显示名。进化时 entry 的 `species_id`(及 `name_en`/`stage`)改写成所选下一形态,`entry_id` 不变(同一只)。
-- 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 contract 投影灌入 `InkMonSpeciesCatalog.register_evolution_edges`。一个低阶可多子分支;孤儿 = 无边物种。权威是 **per-species**:某物种在边表中→用边表;不在→降级用 stub `_build_table` 的 `evolves_to` 单边 fallback(故灌入部分 contract 不会让 stub/领养物种丢失自己的进化链)。
+- 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 editor import 写入本地静态 content `res://data/inkmon_content.json`,由 `InkMonSpeciesCatalog` 读取。一个低阶可多子分支;孤儿 = 无边物种。权威是 **per-species**:某物种在边表中→用边表;不在→降级用 stub `_build_table` 的 `evolves_to` 单边 fallback(故加载部分 content 不会让 stub/领养物种丢失自己的进化链)。
 - **阈值 `trigger.level` = 设计数据,住 canon**(adr/0010 修订 0007);godot 只持有单位**运行时 current level**(`entry.level`)。进化触发 = `entry.level >= trigger.level`。
 - **分支确定性选边住 godot**:在 level 达标的边里 —— 有 `condition` 且评估通过者优先 → 否则取无 condition 的默认枝(canon 语义盲)。`condition {type, params}` 按 `type` 分派评估(`element`/`stat` 真评估;`item` 待 item 域迁 server,先 stub false)。
 - 每形态 = 一条独立 species 数据(独立立绘/名/属性档/技能池/槽数)。属性派生 key = `species_id`,即 `f(species_id, level)`。

@@ -102,6 +102,19 @@ func _assert_creature_base_v2() -> String:
 	if InkMonL2ContentContract.validate_creature_base(v1).is_empty():
 		return "validator should reject the v1 unit shape (snake id + missing display_name)"
 
+	# Non-finite / non-number base_stats must fail before import writes JSON. Otherwise
+	# JSON.stringify would silently replace NaN with null.
+	var nan_stat := valid.duplicate(true)
+	var nan_stats := (nan_stat["units"][0] as Dictionary)["base_stats"] as Dictionary
+	nan_stats["max_hp"] = NAN
+	if InkMonL2ContentContract.validate_creature_base(nan_stat).is_empty():
+		return "validator should reject a NaN base stat"
+	var string_stat := valid.duplicate(true)
+	var string_stats := (string_stat["units"][0] as Dictionary)["base_stats"] as Dictionary
+	string_stats["ad"] = "30"
+	if InkMonL2ContentContract.validate_creature_base(string_stat).is_empty():
+		return "validator should reject a string base stat"
+
 	# Edge with a dangling child reference (not in this bundle) is rejected.
 	var dangling := valid.duplicate(true)
 	(dangling["evolution_edges"][0] as Dictionary)["child_species_id"] = "mon_9999"
@@ -117,6 +130,10 @@ func _assert_creature_base_v2() -> String:
 	((zero_level["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary)["level"] = 0
 	if InkMonL2ContentContract.validate_creature_base(zero_level).is_empty():
 		return "validator should reject a non-positive trigger.level"
+	var nan_level := valid.duplicate(true)
+	((nan_level["evolution_edges"][0] as Dictionary)["trigger"] as Dictionary)["level"] = NAN
+	if InkMonL2ContentContract.validate_creature_base(nan_level).is_empty():
+		return "validator should reject a NaN trigger.level"
 
 	# condition is structural-only: empty type is rejected, but an UNKNOWN type is ACCEPTED
 	# (canon is semantics-blind; godot dispatches by type — adding a type does not bump schema).

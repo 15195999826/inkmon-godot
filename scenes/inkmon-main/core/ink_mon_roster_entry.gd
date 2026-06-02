@@ -46,7 +46,7 @@ static func from_birth(p_entry_id: int, p_species_id: String, p_roll_seed: int) 
 	var entry := InkMonRosterEntry.new()
 	entry.entry_id = p_entry_id
 	entry.species_id = p_species_id
-	# Display name + stage + elements via the catalog so a server-override (canon) species
+	# Display name + stage + elements via the catalog so a static-content species
 	# gets its projected values; stub species delegate back to UnitConfig (identical
 	# behaviour). get_display_name falls back to the species_id itself when no name exists.
 	entry.name_en = InkMonSpeciesCatalog.get_display_name(p_species_id)

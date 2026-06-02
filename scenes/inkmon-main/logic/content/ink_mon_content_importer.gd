@@ -1,7 +1,8 @@
 class_name InkMonContentImporter
 ## Pure parse+validate for a server creature-base contract (the canon→godot bridge
 ## projection). Shared by the editor import tool (dev-time fetch→write) and the
-## runtime loader (boot-time read→apply) so both gate content the same way.
+## local static content loader (runtime read-only file load) so both gate content
+## the same way.
 ##
 ## No file/network/runtime side effects — give it text, get a verdict back.
 
