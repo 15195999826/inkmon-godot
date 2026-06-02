@@ -14,15 +14,15 @@ const STAGE_BABY := "baby"
 ## 派生属性用的六维 key (本层自有词汇, 不上引 main 层的 RosterEntry.STAT_KEYS)。
 const BASE_STAT_KEYS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
 
-# Demo M1 队伍槽位 key (内部标识 8 个 demo 单位, 非战斗定位字段)。
-const LEFT_TANK := "left_tank"
-const LEFT_MAGE_DPS := "left_mage_dps"
-const LEFT_HEALER := "left_healer"
-const LEFT_FLEX := "left_flex"
-const RIGHT_TANK := "right_tank"
-const RIGHT_MAGE_DPS := "right_mage_dps"
-const RIGHT_HEALER := "right_healer"
-const RIGHT_FLEX := "right_flex"
+# Demo M1 队伍槽位 key (内部标识 8 个 demo 单位, 按 team + species 命名; 非战斗定位字段)。
+const LEFT_AEGIS_PUP := "left_aegis_pup"
+const LEFT_CINDER_KIT := "left_cinder_kit"
+const LEFT_HALO_SPROUT := "left_halo_sprout"
+const LEFT_GALE_MOTE := "left_gale_mote"
+const RIGHT_BRINE_BULWARK := "right_brine_bulwark"
+const RIGHT_EMBER_WISP := "right_ember_wisp"
+const RIGHT_LUMEN_BUD := "right_lumen_bud"
+const RIGHT_UMBRAL_PIN := "right_umbral_pin"
 
 
 class UnitConfigItem:
@@ -59,8 +59,8 @@ class UnitConfigItem:
 
 static func get_default_roster(team_id: int) -> Array[String]:
 	if team_id == 0:
-		return [LEFT_TANK, LEFT_MAGE_DPS, LEFT_HEALER, LEFT_FLEX]
-	return [RIGHT_TANK, RIGHT_MAGE_DPS, RIGHT_HEALER, RIGHT_FLEX]
+		return [LEFT_AEGIS_PUP, LEFT_CINDER_KIT, LEFT_HALO_SPROUT, LEFT_GALE_MOTE]
+	return [RIGHT_BRINE_BULWARK, RIGHT_EMBER_WISP, RIGHT_LUMEN_BUD, RIGHT_UMBRAL_PIN]
 
 
 static func get_unit_config(unit_key: String) -> UnitConfigItem:
@@ -114,28 +114,28 @@ static func _find_config_by_species(species: String) -> UnitConfigItem:
 
 static func _configs() -> Dictionary:
 	return {
-		LEFT_TANK: UnitConfigItem.new(LEFT_TANK, "Aegis Pup", "aegis_pup", STAGE_BABY, PERSONALITY_FRONTLINE, [InkMonElementChart.WATER], {
+		LEFT_AEGIS_PUP: UnitConfigItem.new(LEFT_AEGIS_PUP, "Aegis Pup", "aegis_pup", STAGE_BABY, PERSONALITY_FRONTLINE, [InkMonElementChart.WATER], {
 			"hp": 220.0, "max_hp": 220.0, "ad": 34.0, "ap": 24.0, "armor": 62.0, "mr": 40.0, "speed": 112.0,
 		}, InkMonStun.CONFIG_ID),
-		LEFT_MAGE_DPS: UnitConfigItem.new(LEFT_MAGE_DPS, "Cinder Kit", "cinder_kit", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.FIRE], {
+		LEFT_CINDER_KIT: UnitConfigItem.new(LEFT_CINDER_KIT, "Cinder Kit", "cinder_kit", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.FIRE], {
 			"hp": 138.0, "max_hp": 138.0, "ad": 24.0, "ap": 92.0, "armor": 20.0, "mr": 34.0, "speed": 108.0,
 		}, InkMonFireball.CONFIG_ID),
-		LEFT_HEALER: UnitConfigItem.new(LEFT_HEALER, "Halo Sprout", "halo_sprout", STAGE_BABY, PERSONALITY_SUPPORT, [InkMonElementChart.LIGHT], {
+		LEFT_HALO_SPROUT: UnitConfigItem.new(LEFT_HALO_SPROUT, "Halo Sprout", "halo_sprout", STAGE_BABY, PERSONALITY_SUPPORT, [InkMonElementChart.LIGHT], {
 			"hp": 152.0, "max_hp": 152.0, "ad": 22.0, "ap": 76.0, "armor": 26.0, "mr": 48.0, "speed": 104.0,
 		}, InkMonHolyHeal.CONFIG_ID),
-		LEFT_FLEX: UnitConfigItem.new(LEFT_FLEX, "Gale Mote", "gale_mote", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.WIND], {
+		LEFT_GALE_MOTE: UnitConfigItem.new(LEFT_GALE_MOTE, "Gale Mote", "gale_mote", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.WIND], {
 			"hp": 156.0, "max_hp": 156.0, "ad": 34.0, "ap": 82.0, "armor": 26.0, "mr": 32.0, "speed": 118.0,
 		}, InkMonChainLightning.CONFIG_ID),
-		RIGHT_TANK: UnitConfigItem.new(RIGHT_TANK, "Brine Bulwark", "brine_bulwark", STAGE_BABY, PERSONALITY_FRONTLINE, [InkMonElementChart.WATER], {
+		RIGHT_BRINE_BULWARK: UnitConfigItem.new(RIGHT_BRINE_BULWARK, "Brine Bulwark", "brine_bulwark", STAGE_BABY, PERSONALITY_FRONTLINE, [InkMonElementChart.WATER], {
 			"hp": 178.0, "max_hp": 178.0, "ad": 30.0, "ap": 20.0, "armor": 48.0, "mr": 34.0, "speed": 96.0,
 		}, InkMonStun.CONFIG_ID),
-		RIGHT_MAGE_DPS: UnitConfigItem.new(RIGHT_MAGE_DPS, "Ember Wisp", "ember_wisp", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.FIRE], {
+		RIGHT_EMBER_WISP: UnitConfigItem.new(RIGHT_EMBER_WISP, "Ember Wisp", "ember_wisp", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.FIRE], {
 			"hp": 118.0, "max_hp": 118.0, "ad": 20.0, "ap": 66.0, "armor": 18.0, "mr": 28.0, "speed": 98.0,
 		}, InkMonFireball.CONFIG_ID),
-		RIGHT_HEALER: UnitConfigItem.new(RIGHT_HEALER, "Lumen Bud", "lumen_bud", STAGE_BABY, PERSONALITY_SUPPORT, [InkMonElementChart.LIGHT], {
+		RIGHT_LUMEN_BUD: UnitConfigItem.new(RIGHT_LUMEN_BUD, "Lumen Bud", "lumen_bud", STAGE_BABY, PERSONALITY_SUPPORT, [InkMonElementChart.LIGHT], {
 			"hp": 124.0, "max_hp": 124.0, "ad": 18.0, "ap": 56.0, "armor": 20.0, "mr": 36.0, "speed": 96.0,
 		}, InkMonHolyHeal.CONFIG_ID),
-		RIGHT_FLEX: UnitConfigItem.new(RIGHT_FLEX, "Umbral Pin", "umbral_pin", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.DARK], {
+		RIGHT_UMBRAL_PIN: UnitConfigItem.new(RIGHT_UMBRAL_PIN, "Umbral Pin", "umbral_pin", STAGE_BABY, PERSONALITY_AGGRESSIVE, [InkMonElementChart.DARK], {
 			"hp": 132.0, "max_hp": 132.0, "ad": 28.0, "ap": 58.0, "armor": 22.0, "mr": 28.0, "speed": 102.0,
 		}, InkMonPoison.CONFIG_ID),
 	}

@@ -73,7 +73,7 @@ func _assert_roster_model(session: InkMonGameSession) -> String:
 	# Stats are derived f(species, level): level-1 derive must equal species base (battle balance unchanged).
 	if lead.level != 1:
 		return "seeded lead should start at level 1"
-	var base_max_hp := float(InkMonUnitConfig.get_unit_config(InkMonUnitConfig.LEFT_TANK).stats["max_hp"])
+	var base_max_hp := float(InkMonUnitConfig.get_unit_config(InkMonUnitConfig.LEFT_AEGIS_PUP).stats["max_hp"])
 	var projected := lead.project_to_battle_snapshot().get("battle_stats", {}) as Dictionary
 	if projected == null:
 		return "projection must still emit battle_stats"

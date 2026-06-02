@@ -111,7 +111,7 @@ func _make_contract_entry(species_id: String, elements: Array[String], entry_lev
 
 func _assert_engraving_projection() -> String:
 	# P8: 刻印 entry→dict 往返 + entry→snapshot→actor 投影/吸收 (grant 在 equip 时, 见战斗 smoke)。
-	var entry := InkMonRosterEntry.from_unit_config(11, InkMonUnitConfig.LEFT_MAGE_DPS)
+	var entry := InkMonRosterEntry.from_unit_config(11, InkMonUnitConfig.LEFT_CINDER_KIT)
 	entry.engravings = [{"engraving_id": "amp", "target_slot": 0}]
 
 	var loaded := InkMonRosterEntry.from_dict(entry.to_dict())
@@ -187,7 +187,7 @@ func _assert_from_birth_round_trips() -> String:
 
 func _assert_evolution() -> String:
 	# Below threshold: no evolution.
-	var young := InkMonRosterEntry.from_unit_config(3, InkMonUnitConfig.LEFT_MAGE_DPS)  # cinder_kit
+	var young := InkMonRosterEntry.from_unit_config(3, InkMonUnitConfig.LEFT_CINDER_KIT)  # cinder_kit
 	young.level = 1
 	if InkMonSpeciesCatalog.evolve_entry(young):
 		return "cinder_kit should not evolve below the level threshold"
@@ -195,7 +195,7 @@ func _assert_evolution() -> String:
 		return "below-threshold entry species_id must stay unchanged"
 
 	# At threshold: evolves, rewrites species/stage, keeps entry_id, applies X->X2, adds a slot.
-	var evolving := InkMonRosterEntry.from_unit_config(3, InkMonUnitConfig.LEFT_MAGE_DPS)
+	var evolving := InkMonRosterEntry.from_unit_config(3, InkMonUnitConfig.LEFT_CINDER_KIT)
 	evolving.level = 5
 	# Pin slot 0 to fireball so the X->X2 upgrade is observable.
 	evolving.skill_slots = [{"slot_index": 0, "skill_id": InkMonFireball.CONFIG_ID}]
@@ -237,7 +237,7 @@ func _assert_evolved_species_derive() -> String:
 			return "evolved species base should exceed baby base for key: %s" % key
 
 	# A live evolved entry projects to battle without crashing and yields scaled stats.
-	var entry := InkMonRosterEntry.from_unit_config(9, InkMonUnitConfig.LEFT_MAGE_DPS)
+	var entry := InkMonRosterEntry.from_unit_config(9, InkMonUnitConfig.LEFT_CINDER_KIT)
 	entry.level = 5
 	entry.skill_slots = [{"slot_index": 0, "skill_id": InkMonFireball.CONFIG_ID}]
 	InkMonSpeciesCatalog.evolve_entry(entry)

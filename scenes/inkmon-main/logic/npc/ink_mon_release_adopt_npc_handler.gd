@@ -26,7 +26,7 @@ func _adopt(session: InkMonGameSession) -> Dictionary:
 	if not player_state.try_spend_gold(ADOPT_COST):
 		return _result(false, "not enough gold to adopt")
 	var entry_id := player_state.get_next_roster_entry_id()
-	var unit_key := InkMonUnitConfig.RIGHT_FLEX if entry_id % 2 == 0 else InkMonUnitConfig.LEFT_FLEX
+	var unit_key := InkMonUnitConfig.RIGHT_UMBRAL_PIN if entry_id % 2 == 0 else InkMonUnitConfig.LEFT_GALE_MOTE
 	var species_id := InkMonUnitConfig.get_unit_config(unit_key).species
 	var entry := InkMonRosterEntry.from_birth(entry_id, species_id, entry_id)
 	player_state.add_roster_entry(entry)
