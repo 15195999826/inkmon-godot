@@ -43,7 +43,7 @@
 │    └  IWorldQuery → 表演只读  │                │     refresh                    │
 │    持有:                     │                │  只握 IWorldQuery + submit     │
 │     session(存档根)           │  ① Query 同步读 │  绝不见 concrete GI / 域类型   │
-│     world actors             │ ◄────────────── │  (约定级 seam, 见下注)         │
+│     world actors             │ ◄────────────── │  (IWorldQuery facade 对象,见注)│
 │     systems                  │   (IWorldQuery) │                              │
 │      (CommandDrain→Movement) │                │                              │
 │     overworld grid (域)       │  ② Command 异步 │                              │
@@ -58,7 +58,7 @@
 - **三通道(运行时数据流)**:① **Query** = 表演经窄 `IWorldQuery` facade **同步读**(roster/gold/near-npc/npc actions);② **Command** = 表演 `submit(InkMonWorldCommand)` **异步入队**,Host tick drain 时 `cmd.apply(gi)` 生效;③ **Event** = Logic mutation signal **上行**,表演被动刷新。
 - **两轴别混**:数据流(运行时)= **双向**(command 下 / event 上 ⇒ "感觉平级");代码依赖 = **单向 DAG**(Presentation→Logic;Logic 谁都不依赖、永不引用 UI;Host→两者)。⇒ Logic 是地基,Presentation 长其上,Host 在两者之上;lifecycle 重建归 Host(它建了两孩子),**非**"表演层重建逻辑层"。
 - **Host 不在对等流上,但握命令生效时机**:Host 不发 Query、不收 Event(那是表演↔逻辑的事);它持**控制面**(lifecycle/flow/tick,单向 Host→Logic,非 CQRS),且 Command 的**生效时机 = Host 的 tick 泵 drain 那一刻**。
-- **GI 两张脸(facade seam)**:同一个 `InkMonWorldGI` 实例,对 Host/内部暴露 concrete 全貌(含写/控制面),对 Presentation 只暴露 `IWorldQuery` 只读 + `submit(cmd)` 写入口。seam 是**约定级**(GDScript 拦不住 cast 穿透,靠 review 守),不是编译级铁墙。
+- **GI 两张脸(facade seam)**:Host/内部直接持 concrete `InkMonWorldGI`(含写/控制面);Presentation 只持一个独立的 **`IWorldQuery` facade 对象**(`RefCounted`,私有包 gi,只转发只读 query + `submit(cmd)`)。`IWorldQuery` 结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 暴露受控表面),但**无 `get_gi()` 逃逸口** → 表演**物理上够不到** concrete GI / flow / lifecycle(GDScript 无 interface 关键字 + GI 单继承位被占,故用此 Facade 对象实现"持接口不持实现")。⇒ 对 Presentation 是**结构隔离**(非纯约定级);Host 因合法持 concrete GI,其穿透仍靠纪律。mutation signal 由 Host 连 `gi.signal → Presentation._on_*`(表演不持 gi,故 signal 也不经表演连)。
 - **嵌套两 Host**:外 `InkMonMain`(切屏 + 选 session)/ 内 `InkMonWorldHost`(建 world+presentation + lifecycle)。
 
 ### 读写 = CQRS（三通道）

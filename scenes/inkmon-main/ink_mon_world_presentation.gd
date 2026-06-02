@@ -4,10 +4,11 @@ extends Node
 ## (View3D / HUD / drawer / modal / InkMonWorldPanelView) + 其 layout/animation/build/refresh,
 ## 以及 dev-agent 的 UI debug 表面。
 ##
-## CQRS 三通道:① Query 经 _world_query 只读读 (roster/gold/near-npc/npc actions);
-## ② Command 经 _world_query.submit(InkMonWorldCommand) 写;③ Event 订阅 _world_query 的 mutation
-## signal 被动刷新。**只经 IWorldQuery 协议 + submit 用 _world_query,不碰 flow/lifecycle/concrete-only
-## (那是 Host 控制面)**。约定级 seam(GDScript 拦不住 cast,靠 review),非编译级铁墙。
+## CQRS 三通道:① Query 经 _world_query(IWorldQuery facade)只读读 (roster/gold/near-npc/npc actions);
+## ② Command 经 _world_query.submit(InkMonWorldCommand) 写;③ Event 由 Host 连 gi.mutation signal 到本节点
+## 的 _on_* handler(表演不持 GI,故 signal 也不经表演连)被动刷新。
+## **_world_query 是 IWorldQuery facade(私有持 gi),表演物理上够不到 concrete GI / flow / lifecycle**
+## —— 不再是约定级,而是结构隔离(无 get_gi 逃逸口)。flow/lifecycle 归 Host 控制面。
 ##
 ## 需要 Host 做 flow/lifecycle 的(起战斗 / 存读档槽)经信号上抛给 Host —— 表演不依赖 Host(单向 DAG)。
 
@@ -32,8 +33,8 @@ signal flow_intent_raised(intent: Dictionary)
 signal save_slot_requested(slot: int)
 signal load_slot_requested(slot: int)
 
-## CQRS 读+写句柄(InkMonWorldGI,经 IWorldQuery 协议 + submit 用;不碰 flow/lifecycle)。
-var _world_query: InkMonWorldGI = null
+## CQRS 读+写句柄 = IWorldQuery facade(私有持 gi,只暴露 read+submit)。表演物理上够不到 concrete GI / flow / lifecycle。
+var _world_query: IWorldQuery = null
 ## 战斗 flow 状态由 Host 推入(set_battle_active);表演据此派生 app_state,不自持 _active_instance_id。
 var _battle_active := false
 ## 最近一场战斗结果由 Host 经 on_battle_completed 推入,用于 journal 面板 + debug 表面。
@@ -116,15 +117,10 @@ func _process(_delta: float) -> void:
 
 # === Host 接线 / 控制面推入 (Host → Presentation, 单向) ===
 
-## 绑定 Logic 读写句柄并连其 mutation signal。Host 每次(重)建 GI 后调用;旧 GI 销毁信号随之消失。
-func bind_world(query: InkMonWorldGI) -> void:
+## 绑定 IWorldQuery facade(read+submit 句柄)。Host 每次(重)建 GI 后调用,并由 Host 另行连 mutation signal
+## 到本节点的 _on_* handler(Host 持 concrete GI 做接线;表演不持 GI,故 signal 也不经表演连)。
+func bind_world(query: IWorldQuery) -> void:
 	_world_query = query
-	# 上行:Logic 逐格 mutation signal → 表演 per-step 补间(退整路 tween)。
-	query.actor_position_changed.connect(_on_world_actor_position_changed)
-	# 上行:Logic near-npc 真相变 → 表演同步 NPC 高亮 + prompt 可见性。
-	query.near_npc_changed.connect(_on_near_npc_changed)
-	# 上行(方案 A 结果回流):buy/npc-action command 在 tick drain 生效后,把结果(含 message / flow intent)回流。
-	query.command_applied.connect(_on_command_applied)
 	# NPC 视觉节点建一次(npc_defs 是常量 stub,跨 world 重建不变);避免每帧 refresh 重建。
 	if _world_layer != null and not _npcs_initialized:
 		_world_layer.set_npcs(_npc_defs)

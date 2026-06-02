@@ -38,7 +38,7 @@
 
 **4.2a InkMonWorldCommand** — 主世界写路径的**对象化命令**:基类 + `MoveCommand`/`BuyCommand`/`NpcActionCommand` 子类。表演 `submit(cmd)` 入队,`drain_commands` 多态派发 `cmd.apply(gi)`(替代旧的无类型 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action 全收进队列(方案 A:世界一切 mutation 只在 tick 一处发生)。
 
-**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 facade**(roster/gold/near-npc/npc actions)。配 `submit(cmd)` 写入口构成表演侧能看到的全部 GI 表面;表演**不见 concrete GI**。约定级 seam(GDScript 拦不住 cast,靠 review 守),非编译级铁墙。
+**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 query + submit facade 对象**(`RefCounted`,私有包 `InkMonWorldGI`,转发 roster/gold/near-npc/npc actions 读 + `submit(cmd)` 写)。结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 受控表面),但**无 `get_gi()` 逃逸口** → Presentation 物理上够不到 concrete GI / flow / lifecycle(**结构隔离**,非纯约定级)。GDScript 无 interface 关键字 + GI 单继承位被 `WorldGameplayInstance` 占,故用此 Facade 实现"持接口不持实现";mutation signal 由 Host 连(表演不持 gi)。
 
 **4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + 控制面(lifecycle/flow/tick)。**Host 不在 CQRS 调用路径上**(不发 Query / 不收 Event),但握**命令生效时机**(Command 在 Host tick 泵 drain 那一刻生效)。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
 

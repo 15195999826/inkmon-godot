@@ -33,7 +33,7 @@ func _run() -> String:
 		_test_buy_command_is_async_and_signals,
 		_test_cultivation_command,
 		_test_trainer_intent_surfaces_without_gi_flow,
-		_test_iworldquery_protocol,
+		_test_iworldquery_facade,
 	]
 	for check in checks:
 		var status := (check as Callable).call() as String
@@ -127,10 +127,25 @@ func _test_trainer_intent_surfaces_without_gi_flow() -> String:
 	return ""
 
 
-## 6:InkMonWorldGI 满足 IWorldQuery 只读协议(鸭子实现)。
-func _test_iworldquery_protocol() -> String:
+## 6:IWorldQuery facade 转发 read + submit,且不暴露 concrete GI(无 get_gi 逃逸口)。
+func _test_iworldquery_facade() -> String:
 	var gi := _make_gi()
-	if not IWorldQuery.is_implemented(gi):
-		return "InkMonWorldGI should satisfy the IWorldQuery read protocol"
+	var query := IWorldQuery.new(gi)
+	# 只读转发与底层一致。
+	if query.get_player_coord() != gi.get_player_coord():
+		return "IWorldQuery should forward get_player_coord to the gi"
+	if query.session != gi.session:
+		return "IWorldQuery should forward the session getter"
+	if not query.has_npc_handler("shop") or query.get_world_actor(InkMonWorldGrid.PLAYER_ID) == null:
+		return "IWorldQuery should forward has_npc_handler / get_world_actor"
+	# submit 经 facade 入队,tick drain 后等价于直接 submit(扣金币)。
+	var gold_before := gi.session.player_state.gold
+	query.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
+	gi.tick(FIXED_DT)
+	if gi.session.player_state.gold != gold_before - MINOR_RUNE_PRICE:
+		return "IWorldQuery.submit should reach the command queue (gold spent on drain)"
+	# 隔离:facade 不暴露 concrete GI / flow(无 get_gi);表演只能经 read+submit。
+	if query.has_method("get_gi") or query.has_method("request_training_battle") or query.has_method("setup_overworld"):
+		return "IWorldQuery must NOT expose concrete GI / flow / lifecycle (isolation)"
 	GameWorld.destroy_all_instances()
 	return ""

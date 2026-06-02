@@ -48,7 +48,7 @@ func _ready() -> void:
 	_presentation.flow_intent_raised.connect(_on_flow_intent_raised)
 	_presentation.save_slot_requested.connect(_on_save_slot_requested)
 	_presentation.load_slot_requested.connect(_on_load_slot_requested)
-	_presentation.bind_world(_world_gi)
+	_bind_world_to_presentation()
 	_presentation.add_event("InkMonMain ready")
 	_install_dev_agent()
 
@@ -168,7 +168,7 @@ func reset_session() -> Dictionary:
 	TimelineRegistry.reset()
 	_setup_overworld_runtime(_new_game_session())
 	_presentation.reset_ui_state(true)
-	_presentation.bind_world(_world_gi)
+	_bind_world_to_presentation()
 	_presentation.cancel_overworld_animation()
 	_world_gi.refresh_near_npc()
 	_presentation.add_event("session reset")
@@ -222,7 +222,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_setup_overworld_runtime(loaded_session)
 	# load 读档:轻清 UI(保留 move_result/ui_message/events,对齐重构前 load 行为)。
 	_presentation.reset_ui_state(false)
-	_presentation.bind_world(_world_gi)
+	_bind_world_to_presentation()
 	_presentation.cancel_overworld_animation()
 	_world_gi.refresh_near_npc()
 	if not save_loaded:
@@ -249,6 +249,16 @@ func _new_game_session() -> InkMonGameSession:
 	var new_session := InkMonGameSession.new()
 	new_session.begin_new_game()
 	return new_session
+
+
+## 把当前 world GI 接到 Presentation:造 IWorldQuery facade 交给它(read+submit),并由 Host 连 GI 的 3 个
+## mutation signal 到 Presentation 的 _on_* handler。Host 合法持 concrete GI 做接线;表演只拿 facade、不持 GI。
+## 每次(重)建 GI 后调用;旧 GI 销毁后其信号连接随之消失,故无需显式 disconnect。
+func _bind_world_to_presentation() -> void:
+	_world_gi.actor_position_changed.connect(_presentation._on_world_actor_position_changed)
+	_world_gi.near_npc_changed.connect(_presentation._on_near_npc_changed)
+	_world_gi.command_applied.connect(_presentation._on_command_applied)
+	_presentation.bind_world(IWorldQuery.new(_world_gi))
 
 
 # === 存读档槽:Presentation 上抛(UI 在表演,lifecycle 操作在 Host)===
