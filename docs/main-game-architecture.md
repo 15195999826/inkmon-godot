@@ -1,7 +1,8 @@
-# L2 主游戏架构 — 当前真相
+# 主游戏架构 — 当前真相
 
-> 本文 = inkmon-godot **主游戏(L2)代码架构**的当前唯一真相。
-> 范围:主游戏代码结构 / 所有权边界 / 运行模型。**不含**玩法设计(玩法真相在 lab `docs/plan/current/L2/`)、LGF 框架设计(在 `addons/logic-game-framework/docs/`)。
+> 本文 = 本仓**主游戏代码架构**的当前唯一真相。
+> "主游戏" = 在 LGF 框架(`addons/logic-game-framework/`)之上自建的那一层:hex 行走世界 + 战斗 + 存档(git 历史里代号 "L2",本文不再用代号)。
+> 范围:主游戏代码结构 / 所有权边界 / 运行模型。**不含**玩法数值设计(那部分真相在 lab 仓 inkmon-lab)、LGF 框架设计(在 `addons/logic-game-framework/docs/`)。
 > 历史轨迹归 git;本文只描述现状。
 
 ---
@@ -14,7 +15,7 @@
 
 ## 1. 主世界运行模型 = 同步 tick + command + 三层 Host
 
-主世界采用 dota2-auto-battle 式同步 tick:输入 → command → 逻辑 tick 推进世界态 → 表演据 event 渲染。术语见 `CONTEXT.md`(World Actor 层级 / 主世界 Command·Query / 主世界三层+Host)。
+主世界采用 dota2-auto-battle 式同步 tick:输入 → command → 逻辑 tick 推进世界态 → 表演据 event 渲染。术语见 `glossary.md`(World Actor 层级 / 主世界 Command·Query / 主世界三层+Host)。
 
 ### 三层 + Host
 
@@ -72,13 +73,15 @@
 
 - 形态:玩家角色行走、承载 6 个 System NPC 的 **hex 网格世界**(= lab 设计真相)。
 - 移动:点目标 → **grid 插件 astar 寻路**(`InkMonWorldGrid.find_path` 走 `GridPathfinding.astar`)→ command 入队 → 30Hz tick 逐格推进 → `actor_position_changed` 驱动 view per-step 补间(§1)。
+- **寻路边界(项目本地,刻意不外借)**:hex astar 来自 `ultra-grid-map` 插件;**不借** `addons/sim-nav-map`(那是 RTS 连续坐标寻路)、**不依赖** hex-atb-battle 的 Move 类、**不为**主世界另起独立 LGF GameplayInstance。
+- **NPC 格阻塞 + 重定向**:NPC 占格不可走;右键点 NPC 格 / 任意阻塞格 → 解析到该格**最短可达空邻格**(`resolve_target_for_actor`),平手按 axial `(q, r)` 确定性 tie-break。落格后由 GI `refresh_near_npc` 重算邻近,view 永不直接调 NPC 服务。
 - 玩家 = 轻 `InkMonWorldActor`(进 GI registry,无 ability/timeline)。
 
 ### ② Battle — 唯一 world GI 内的 procedure(无独立 battle GI)
 
 **LGF World-owns-Battle**:整个主游戏**只有一个** `InkMonWorldGI`(extends `WorldGameplayInstance`)承载逻辑 + 世界数据;**战斗是它内跑的 `InkMonBattleProcedure`**(短命 procedure),不是独立 GI。
 
-- **复用**:`InkMonBattleProcedure` + M1 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive)。战斗 actor(`InkMonUnitActor`)从 roster snapshot 现造。
+- **复用**:`InkMonBattleProcedure` + 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive,首个里程碑已落地)。战斗 actor(`InkMonUnitActor`)从 roster snapshot 现造。
 - **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 自建 config(player roster 投影自持有的 session + 训练假人)起 procedure;`apply_battle_result()` 战斗结束把结果写回持有的 session。Host 只管 flow(app_state / tick)。
 - **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → `FrontendBattleAnimator` 回放(复用 hex-atb animator/visualizer 栈)。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
 
@@ -115,7 +118,7 @@
 
 - 6 handler 统一**只收 `session`**,规则住 handler 内;纯数据 NPC(shop / cultivation / guild / advancement / release_adopt)直接读写 session;handler **不碰 UI / flow**。
 - handler 由 `InkMonWorldGI` 持有(`_npc_handlers`,setup 内建);Host 转发 UI 点击为 `run_npc_action` / `buy_shop_item` 调用。
-- training→战斗:handler 返回 `intent`(start_battle),Host 解释起 battle flow(app_state / tick 归 Host)。
+- training→战斗 = **command-as-data**:handler 返回 `{ok, message, intent?}`,training 的 `intent = {kind:"start_battle", config}`;Host 读 `intent.kind` 解释起 battle flow(app_state / tick 归 Host),handler 自己绝不碰 flow。
 
 ---
 
@@ -124,6 +127,16 @@
 - 全 `.tscn`(尽量编辑器设计),代码只填文字 / 绑数据,动态列表(roster/bag/NPC 行)用 instantiate 组件场景。
 - UI 在 presentation 层,只订阅 signal / 调窄 API,不直接改逻辑。
 - 数据驱动内容构建(roster chips / party / bag / journal)抽在 `InkMonWorldPanelView`(纯表演 builder)。
+
+### HUD 布局(corner-only;密集信息进单一右抽屉)
+
+3D 棋盘是主表面,常驻 UI 只占角落、紧凑;密集信息集中在一个共享右抽屉,不堆叠多窗。
+- **左上**:玩家状态(头像占位 / rank / gold)+ party strip(≤6 roster 槽,带等级 + 紧凑 HP/进度条)。
+- **右上**:工具按钮 Party / Bag / Journal / Menu。
+- **世界定位**:靠近 NPC 浮出交互 prompt(不自动开抽屉)。
+- **右抽屉(单一共享)**:scrim 挡住场景输入;Party/Bag/Journal 用 tab 栏;NPC 模式复用同一抽屉、隐藏 tab。
+- **modal 层**:save/load 由 Menu / `Esc` 开。`Esc` 先关抽屉,抽屉已关才开 modal。
+- 行为默认:首屏 HUD 可见 / 抽屉关 / 可移动;战斗奖励只刷 HUD 数值,不自动弹面板。
 
 ## 6b. 场景入口 / 接线层
 
@@ -179,13 +192,14 @@
 - 存储形状:`engravings: [{engraving_id, target_slot}]` —— 每条显式指明强化哪个 skill_slot。
 - 刻印**不进 battle_stats 数值折叠**(它改技能行为)。
 
-**装备 = LGF Phase-G 系统**:
-- 用 lomolib Phase-G:`EquipmentManager` + `StatAggregator`(flat 累加)+ `AbilityGrantor`。
-- Phase-G `equip()` 一次同时读 item config 的 `stats`(→数值聚合)和 `granted_abilities`(→能力授予)。
+**装备 = 项目本地 stat 折叠(非 lomolib Phase-G)**:
+- lomolib 只有 inventoryKit,**无 Phase-G**(`EquipmentManager`/`StatAggregator`/`AbilityGrantor` 只存在于 hex-atb-battle 示例 = Non-Goal,不引入主游戏)。
+- 装备数值生效 = 投影时 `InkMonGameSession._fold_equipment_stats`:遍历 entry 的 `equipment_container` 物品,把各物品 config 的 `stat_mods` flat 累加进 `battle_stats`(× 数量)。
+- 装备**授予 ability**(granted_abilities)= 设计意图,**主游戏暂未落地**(示例层有参考实现);v1 装备只做数值。
 
 **battle_stats 折叠**:
-- `battle_stats = base(f(species, level)) + StatAggregator 累加的装备 stats`。flat 加法。
-- ability 来源(走 grant,不进 stats 折叠):skill_slots 技能 + 普攻 + move + 刻印被动 + 装备 granted_abilities。
+- `battle_stats = base(f(species, level)) + 装备 stat_mods 累加`(项目本地 `_fold_equipment_stats`,flat 加法)。
+- ability 来源(走 grant,不进 stats 折叠):skill_slots 技能 + 普攻 + 刻印被动(+ 未来:装备授予 ability)。
 - 折叠发生在 `project_to_battle_snapshot`(投影时算,不存进 entry,合 §3)。
 
 **RosterEntry v1 目标字段**:

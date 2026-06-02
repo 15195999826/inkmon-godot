@@ -1,0 +1,55 @@
+# 术语表
+
+> 本仓常用概念的速查定义。架构细节见 [`main-game-architecture.md`](main-game-architecture.md),全项目关系见 [`project-overview.md`](project-overview.md)。
+
+## 1. 项目结构
+
+**1.1 LGF(Logic Game Framework)** — `addons/logic-game-framework/`,纯模拟战斗框架(无渲染)。三层:Core Logic → Game Logic → Presentation,**上层依赖下层,下层绝不引用上层**。是本仓所有玩法的地基。
+
+**1.2 示例(example)** — LGF 之上两个独立可跑示例,共享 LGF core:
+- **hex-atb-battle** — 回合制 + hex grid + Timeline 技能。定位 = **技能系统展示 + AI 技能沙盒**(逻辑层零玩家输入;消费方 = AI-vs-AI demo + skill-preview 沙盒 + SkillValidator),**不是**要平衡的可玩对战。
+- **dota2-auto-battle** — 实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter(首个垂直切片)。
+
+**1.3 主游戏** — 在 LGF 之上自建的那一层(hex 行走世界 + 战斗 + 存档),git 历史代号 "L2"。架构见 `main-game-architecture.md`。
+
+## 2. 战斗 / 数值
+
+**2.1 双通道 stats** — 物理 `ad` vs `armor`、法术 `ap` vs `mr`,两条独立减伤通道。
+
+**2.2 元素克制** — 按克制表算伤害乘数(具体元素集与倍率以代码 `InkMonElementChart` 为准)。
+
+**2.3 role(角色定位)** — tank / dps / healer / flex,驱动战斗 AI 行为。
+
+**2.4 stage(形态阶段)** — baby / mature / adult,随进化推进。
+
+**2.5 balance(hex 沙盒语境)** — 验收标准 = **范式一致 + 行为可预测 + 可被 validator/AI introspect**,**不是**数值公平。判 hex 的 balance finding 时别当成"调公平数值"的任务。
+
+## 3. 技能
+
+**3.1 active ability(技能)** — 代码里类名是 **ability / AbilityConfig**(口语叫 "skill")。声明式:`static var ABILITY := AbilityConfig.builder()...build()`,无 .tres 数据层。执行链:`ABILITY_ACTIVATE_EVENT → active_use timeline → on_tag([Action]) → 共享 Action.execute → pre/post event`。
+
+**3.2 SkillValidator**(`scripts/SkillValidator.gd`)— 校验 AI 生成技能脚本的五级验证器(编译 → 接口 → 运行 → 结构 → advisory)。生产入口 = web JS 桥 `godot_validate_skill`。技能契约 = `static var ABILITY`。
+
+## 4. 主游戏概念(详见 `main-game-architecture.md`)
+
+**4.1 World Actor 层级** — 主世界一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`。玩家/NPC = 直接 `InkMonWorldActor`(无 ability/timeline)。
+
+**4.2 主世界 Command / Query** — CQRS 两条路。**Query(读)**= UI 同步调 WorldGI 只读方法(roster/gold/near-npc/列表)。**Command(写)**= UI 改任何游戏/世界/存档态的**唯一入口**,异步(enqueue → tick 应用 → event 回流 → UI 被动刷,不读返回值)。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
+
+**4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + lifecycle(save/load/reset = 重建孩子)+ tick 泵,**不参与** command/event 对等流。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
+
+**4.4 InkMonGameSession** — 存档根,持 `roster / gold / progression`,由 `InkMonWorldGI` 持有(非 autoload)。
+
+**4.5 InkMonRosterEntry** — 一只己方 InkMon 的持久化表示(非 battle actor)。核心原则:**只存"身份+选择+进度",不存"算出的最终值"**。六维 stats = `f(species, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。字段细节见 `main-game-architecture.md` §8c。
+
+## 5. 设计取向
+
+**5.1 InkMon(养成深度)** — 长期目标 = **深度英雄(Dota 向)**:每只多技能槽 + 装备 + 刻印 + 勋章 + 进化 stage。**不是** TFT 浅棋子(无羁绊/费用/reroll)。真实形态 = "hex 棋盘上一队 Dota 深度英雄的 ATB 自走战"。存档数据模型按这一档设计(浅用法只是少填字段)。
+
+**5.2 存档兼容策略** — **v1 永不需要向后兼容**:`from_dict` 遇旧版直接丢弃重开,不写迁移。⇒ 数据模型可放心边做边改。
+
+**5.3 职责纪律(借自 no-game-no-life,取形不取器)** — ① 逻辑层不引用 UI ② UI 不直接改逻辑(走 command/query)③ 规则按模块分块(NPC 规则住各 handler,只收 `session`)。上行(逻辑→UI)用 Godot signal / WorldGI mutation signal,**不建全局 EventBus autoload**。
+
+## 6. 关键不变量
+
+**6.1 死者留 registry** — 战斗中 hp≤0 的单位**留在 world registry**(`get_actor()` 非 null、`hex_position` 字段保留),只清 grid occupant。这是判"目标死亡 → 技能 fizzle?"类问题的不变量。

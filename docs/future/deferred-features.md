@@ -1,8 +1,8 @@
-# L2 v1 占位项 — 刻印 / X→X2（待 lab 内容落地时补全）
+# 待实现 / 占位功能（待 lab 内容落地时补全）
 
-> 本文记录 L2 主游戏重构 v1 里**有意留作占位**的两个机制：刻印 per-skill scoping、技能进化 X→X2。
-> 目的是把「当前是什么 / 设计本意是什么 / 为何延后 / 将来怎么补」一次说清，避免又被当成「已完成」。
-> 关联：`.codex-goal/l2-architecture-refactor/Progress.md` 的 Known Divergences (F1) + `docs/L2-ARCHITECTURE.md` §8c。
+> 本文记录主游戏 v1 里**有意留作占位 / 尚未实现**的机制:① 刻印 per-skill scoping ② 技能进化 X→X2 ③ lab 内容导入契约。
+> 目的是把「当前是什么 / 设计本意是什么 / 为何延后 / 将来怎么补」一次说清,避免又被当成「已完成」。
+> 关联:[`main-game-architecture.md`](../main-game-architecture.md) §8c(数据模型);历史决策轨迹见 git。
 
 ---
 
@@ -15,7 +15,7 @@
 - `scenes/inkmon-battle/logic/ink_mon_unit_actor.gd:119-122` 每条 engraving grant 一个**同款** passive，`target_slot` 没传进 ability。
 - `target_slot` 数据全程存在（entry→snapshot→actor 都带），只是被 passive 忽略。
 
-### 设计本意（Goal.md:16 / docs/L2-ARCHITECTURE.md:160）
+### 设计本意（见 `main-game-architecture.md` §8c）
 - 「v1 **只强化指定 `skill_slot` 的技能**」；`target_slot` 对应 `skill_slots[].slot_index`。
 - 即「给火球开小灶」应只让火球更疼，普攻和其它技能不变。
 
@@ -40,7 +40,7 @@
   - `evolve_entry`（`:104-108`）：进化时遍历旧 slot，凡 skill_id 命中 SKILL_EVOLUTIONS 就改写为进化后 skill_id。
 - 机制通、确定性、有测：`smoke_progression.gd:137-138` 断言「cinder_kit lv5 进化 → slot0 火球升级成 chain_lightning」。
 
-### 设计本意（docs/L2-ARCHITECTURE.md §8c / species_catalog 头注 :8-9）
+### 设计本意（`main-game-architecture.md` §8c / species_catalog 头注 :8-9）
 - 「v1 X2 目标**复用现有真实技能（占位）**；真正独立的 X2 ability 随 lab 内容落地。」
 - 即：现在的「进化后技能」是**借现成技能冒充**，不是真·进化技能；映射也只有一条。
 
@@ -56,3 +56,24 @@
 - 多段链 `cinder_kit → cinder_fox → cinder_drake`：fox 阶段 slot1 若 roll 到火球，会在 drake 进化时**再被** SKILL_EVOLUTIONS 升级一次（后期才长出的技能也吃升级）。
 - 非崩溃、结果在合法池内、语义可辩（进一步进化继续强化）；仅 cinder 这一条两段链触发。
 - 将来定 X→X2 是否**只作用于「出生原始携带槽」**时再收敛。
+
+---
+
+## 3. lab 内容导入契约（stub → lab 导出的边界，**尚未接入**）
+
+当前主游戏跑在**项目本地手写 stub 配置**(`InkMonUnitConfig` / `InkMonItemCatalog` / `scenes/inkmon-battle/` 下技能类)。这是**有意**的,直到 lab 仓 inkmon-lab 完成 canon schema + exporter。在那之前主游戏**绝不消费部分迁移的 canon 数据** —— lab 导出要么整体通过校验、要么留在运行时之外。
+
+### 校验入口
+- `InkMonL2ContentContract.validate_export(data) -> Array[String]`(返回错误列表,空 = 通过)。
+- `InkMonL2ContentContract.build_current_stub_export()` 把当前 stub 打成同一 JSON 形状,用同一 validator 自检。
+- smoke:`./tools/run_tests.ps1 inkmon/content`(含 `JSON.stringify` / `parse_string` 往返 + 断言旧 canon key 如 `bst` / `special_attack` 不出现)。
+
+### 必需导出形状(schema `inkmon.l2.content.v1`,version `1`)
+- 顶层:`schema`(恰为 `inkmon.l2.content.v1`)/ `version`(1)/ 非空数组 `units` / `skill_pools` / `skills` / `items`。
+- unit:`id` / `display_name` / `species` / `stage`(baby|mature|adult)/ `role`(tank|dps|healer|flex)/ `elements`(fire|water|wind|light|dark,一个或多个)/ `base_stats`(max_hp,ad,ap,armor,mr,speed)/ `skill_slots`(slot 号 + pool_id)/ `fallback_active_skill_id`(当前单技能运行时的临时桥)。
+
+### 显式 deferred 字段(必须留文档,不许悄悄出现在运行时数据里)
+多槽 active kit 选择 / 技能 variance 值 / 进化表 / 刻印·勋章效果 payload / canon Equipment 映射(若 lab item domain 变化)。
+
+### 将来替换步骤
+1. lab exporter 写出 `inkmon.l2.content.v1`。2. 从 inkmon-lab 拿一份 fixture 导出。3. 运行时导入前先跑 `validate_export()` smoke。4. 校验通过后,才加 mapper 把导出的 units/items/skills 映射进项目运行时 config。

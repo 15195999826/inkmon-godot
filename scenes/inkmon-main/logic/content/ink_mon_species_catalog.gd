@@ -1,5 +1,5 @@
 class_name InkMonSpeciesCatalog
-## 物种数据 = 主游戏内容真相 (出生 / 进化)。每形态 = 一条独立 species 条目 (docs/L2-ARCHITECTURE.md §8c)。
+## 物种数据 = 主游戏内容真相 (出生 / 进化)。每形态 = 一条独立 species 条目 (docs/main-game-architecture.md §8c)。
 ##
 ## - baby 物种 base 六维委托 battle 层 InkMonUnitConfig (M1 单一真相, level-1 平衡不变);
 ##   进化形态 base = root(baby) base × stat_mult (v1 stub, 不手敲数值)。

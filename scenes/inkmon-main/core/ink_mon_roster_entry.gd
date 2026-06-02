@@ -5,7 +5,7 @@ extends RefCounted
 const STAT_KEYS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
 
 ## v1 占位线性成长: level-1 = 物种 base (战斗平衡不变), 之后每级 +LEVEL_GROWTH 倍。
-## 公式由 lab 待定 (docs/L2-ARCHITECTURE.md §9); 调整不影响 entry 结构 (只存 level)。
+## 公式由 lab 待定 (docs/main-game-architecture.md §9); 调整不影响 entry 结构 (只存 level)。
 const LEVEL_GROWTH := 0.05
 
 

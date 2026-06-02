@@ -4,7 +4,7 @@ extends WorldGameplayInstance
 ##
 ## 承载世界运行时:session(存档根)+ 主世界 overworld grid + 玩家/NPC world actors +
 ## npc 表 + (战斗期) InkMonBattleProcedure。战斗是它内跑的短命 procedure, 不是独立 GI。
-## 持两套 grid (第一版临时方案, docs/L2-ARCHITECTURE.md §1②):
+## 持两套 grid (第一版临时方案, docs/main-game-architecture.md §1②):
 ##   - overworld_grid: 主世界 hex 网格 wrapper (InkMonWorldGrid; 玩家行走 + NPC occupant)
 ##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
 ## `grid` (基类字段) = 当前 active 的那套; start_battle_procedure 切到 battle, 战斗结束切回 overworld。

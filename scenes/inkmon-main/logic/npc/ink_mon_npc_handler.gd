@@ -1,6 +1,6 @@
 class_name InkMonNpcHandler
 extends RefCounted
-## NPC handler 基类: 只收 session, 规则住 handler 内, 不碰 UI / flow / app_root (docs/L2-ARCHITECTURE.md §5)。
+## NPC handler 基类: 只收 session, 规则住 handler 内, 不碰 UI / flow / app_root (docs/main-game-architecture.md §5)。
 ##
 ## 纯数据 NPC (shop/cultivation/guild/advancement/release_adopt) 直接读写 session。
 ## 要触发流程的 NPC (training→战斗) 在 run_action 结果里带 intent 字段 (Command-as-data),

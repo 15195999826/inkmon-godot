@@ -99,7 +99,7 @@ godot --headless --path . <scene.tscn> > /tmp/godot_out.txt 2>&1
 - **别用** `godot --headless --script <file>.gd`：`--script` 模式不触发 autoload，`Log`/`GameWorld` 全报错。始终用 `.tscn` 入口。
 - **别用** `godot ... | grep`：pipe buffering bug，见上面"跑测试"段。
 - Godot 退出时 `ObjectDB instances leaked` / `N resources still in use` 警告是 main.tscn 流程的既有资源泄漏，**不影响退出码**，修要去 LGF addon 内部排。
-- `TEST_README.md` 的 AutoLoad 配置步骤已随 `project.godot` 配置完成，**无需再手工设置**。
+- AutoLoad 已由 `project.godot` 完整配置，**无需手工设置**（不存在需要手敲 AutoLoad 的步骤）。
 
 ## Web / JS 桥接
 
