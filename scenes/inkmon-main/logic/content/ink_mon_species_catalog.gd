@@ -1,8 +1,11 @@
 class_name InkMonSpeciesCatalog
 ## 物种数据 = 主游戏内容真相 (出生 / 进化)。每形态 = 一条独立 species 条目 (docs/main-game-architecture.md §8c)。
 ##
-## - baby 物种 base 六维委托 battle 层 InkMonUnitConfig (M1 单一真相, level-1 平衡不变);
-##   进化形态 base = root(baby) base × stat_mult (v1 stub, 不手敲数值)。
+## - 物种 base 六维 (level-1 baseline): 正确模型 = 每形态独立物种、有自己的显式 base。
+##   v1 stub 占位: baby 委托 battle 层 InkMonUnitConfig; 进化形态 = root(baby) base × stat_mult
+##   (没真数据时凑数, 不手敲)。canon override (server 桥) 命中时改用该物种自己的显式 base,
+##   取代上面的 stub 占位 (见 _overrides)。最终战斗属性 = base × 等级缩放 (见
+##   ink_mon_roster_entry.gd::derive_battle_stats), 不在本类。
 ## - 技能池: per-(species, slot) 候选 skill_id; 出生每槽确定性 roll 一个。
 ## - 进化链: species -> {species: <next>, level: <阈值>}; species 字段改写, entry_id 不变。
 ## - X->X2: SKILL_EVOLUTIONS 把某技能映射到进化后技能 (改对应 slot 的 skill_id)。
@@ -22,10 +25,11 @@ const SKILL_EVOLUTIONS := {
 static var _table: Dictionary = {}
 
 ## Server creature-base overrides (canon→godot bridge). Keyed by BOTH the original
-## species key and its snake_case normalization → {base_stats, stage}. When an
-## override is present, has_species/get_stage/get_base_stats serve the EXPLICIT
-## canon values (bypassing root×mult); skill pools / SKILL_EVOLUTIONS stay stub.
-## Written by InkMonContentLoader at boot; never serialized into the stub table.
+## species key and its snake_case normalization → {base_stats, stage}. An override IS
+## the canonical per-species base (each stage is its own species with explicit stats);
+## it supersedes the v1 stub's placeholder root×mult derivation for that species.
+## has_species/get_stage/get_base_stats consult it first; skill pools / SKILL_EVOLUTIONS
+## stay stub. Written by InkMonContentLoader at boot; never serialized into the stub table.
 static var _overrides: Dictionary = {}
 
 
@@ -42,8 +46,8 @@ static func get_stage(species: String) -> String:
 	return str(_species_node(species).get("stage", STAGE_BABY))
 
 
-## 物种 base 六维 = root(baby) base × stat_mult。baby 自身 root=self / mult=1.0 → 等于 unit_config 值。
-## 命中 server override 时直接返回显式 base_stats (绕过 root×mult)。
+## 物种 base 六维 (level-1 baseline)。命中 canon override → 直接返回该物种自己的显式 base
+## (每形态独立)。否则走 v1 stub 占位: root(baby) base × stat_mult (baby root=self / mult=1.0)。
 static func get_base_stats(species: String) -> Dictionary:
 	var ov := _override_for(species)
 	if not ov.is_empty():

@@ -98,8 +98,8 @@ static func _validate_creature_units(value: Variant, errors: Array[String]) -> v
 	# this function (it does NOT return null) — so a `== null` guard is dead code and
 	# malformed input would be silently accepted. This validator gates untrusted
 	# server JSON, so it must use `is` type tests. (validate_export's internal-only
-	# helpers still use the as/null idiom; they only ever see well-formed self-check
-	# input — see Progress.md Open Review Findings.)
+	# helpers still use the older as/null idiom; harmless there because they only ever
+	# see the well-formed output of build_current_stub_export, never external input.)
 	var units: Array = value if value is Array else []
 	if units.is_empty():
 		errors.append("units must be a non-empty array")
