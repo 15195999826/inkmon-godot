@@ -72,6 +72,20 @@ func _run() -> String:
 	if run_a["session_coord_after"] == run_a["final"]:
 		return "session stored coord must stay stale vs runtime during move (proves no double-write)"
 
+	# 5. near-npc 同步信号:TARGET(3,-1)与 Shop 邻接 → tick 期间 near 真相变,emit near_npc_changed。
+	#    与 actor_position_changed 同源契约:由 tick 产(非 enqueue)、携新值、可位级重放。
+	if str(run_a["near_final"]) == "":
+		return "TARGET should leave the player adjacent to an NPC (near_npc_id must be set), else this assertion is vacuous"
+	if int(run_a["near_events_at_enqueue"]) != 0:
+		return "enqueue must not emit near_npc_changed (near sync is produced by tick movement, not the command)"
+	var near_events_a := run_a["near_events"] as Array
+	if near_events_a.is_empty():
+		return "walking adjacent to an NPC must emit near_npc_changed during tick movement"
+	if str(near_events_a[near_events_a.size() - 1]) != str(run_a["near_final"]):
+		return "last near_npc_changed payload must equal the final near_npc_id truth"
+	if str(near_events_a) != str(run_b["near_events"]):
+		return "non-deterministic near_npc_changed sequence across two identical command runs"
+
 	return ""
 
 
@@ -91,9 +105,16 @@ func _run_scenario() -> Dictionary:
 		if actor_id == player_id:
 			visited.append(new_coord.to_axial())
 	)
+	# near-npc 同步契约:真相变化时 emit(空 = 离开邻域)。表演挂此信号刷 prompt/高亮,
+	# 故"由 tick 产、携新值、可确定重放"必须成立。
+	var near_events: Array[String] = []
+	gi.near_npc_changed.connect(func(npc_id: String) -> void:
+		near_events.append(npc_id)
+	)
 
 	gi.enqueue_move_player(TARGET)
 	var events_at_enqueue := visited.size()
+	var near_events_at_enqueue := near_events.size()
 	var before_tick := gi.get_player_coord()
 
 	gi.tick(FIXED_DT)
@@ -102,6 +123,7 @@ func _run_scenario() -> Dictionary:
 	for _i in range(TICKS_TO_COMPLETE):
 		gi.tick(FIXED_DT)
 	var final_cell := gi.get_player_coord()
+	var near_final := gi.near_npc_id
 
 	var session_coord_after := _session_player_coord(session)
 
@@ -112,6 +134,9 @@ func _run_scenario() -> Dictionary:
 		"final": final_cell,
 		"events_at_enqueue": events_at_enqueue,
 		"visited": visited,
+		"near_events_at_enqueue": near_events_at_enqueue,
+		"near_events": near_events,
+		"near_final": near_final,
 		"session_coord_before": session_coord_before,
 		"session_coord_after": session_coord_after,
 	}

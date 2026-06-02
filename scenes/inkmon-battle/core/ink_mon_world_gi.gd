@@ -15,6 +15,12 @@ extends WorldGameplayInstance
 ## lifecycle (save/load/reset/new-game) 由 Host 重建本实例驱动 (§0.5)。
 
 
+## 上行信号:near_npc_id 真相变化时 emit(空 = 离开所有 NPC 邻域)。
+## 移动 tick 内 refresh_near_npc 在 actor_position_changed 之后才跑,故表演不能挂位置信号刷 prompt
+## (会读到陈旧 near);改挂本信号 —— emit 时 near_npc_id 已是新值。
+signal near_npc_changed(near_npc_id: String)
+
+
 ## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 View3D MOVE_STEP_DURATION
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
 const STEP_DURATION := 0.22
@@ -241,20 +247,34 @@ func hydrate_from_session() -> void:
 		player.pending_path = []
 
 
-## 重算与玩家相邻(axial 距离 ≤1)的 NPC;写入 near_npc_id("" = 无邻近)。
+## 重算与玩家相邻(axial 距离 ≤1)的 NPC;写入 near_npc_id("" = 无邻近),变化则 emit。
 func refresh_near_npc() -> void:
-	near_npc_id = ""
+	_set_near_npc(_compute_near_npc())
+
+
+## 当前玩家邻域(axial 距离 ≤1)第一个 NPC id;无邻近返回 ""。
+## npc_defs 插入序稳定 → 多 NPC 同时相邻时结果确定(取首个)。
+func _compute_near_npc() -> String:
 	var player_coord := get_player_coord()
 	for npc_id_value in npc_defs.keys():
 		var npc_def := npc_defs[npc_id_value] as Dictionary
 		var npc_coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
 		if _axial_distance(player_coord, npc_coord) <= 1:
-			near_npc_id = str(npc_id_value)
-			return
+			return str(npc_id_value)
+	return ""
 
 
 func clear_near_npc() -> void:
-	near_npc_id = ""
+	_set_near_npc("")
+
+
+## near-npc 真相单一写入口:仅在值变化时落地并 emit near_npc_changed。
+## 集中于此 → 任何改 near 的路径(tick 重算 / reset / load / clear)都自动通知表演,无遗漏。
+func _set_near_npc(value: String) -> void:
+	if near_npc_id == value:
+		return
+	near_npc_id = value
+	near_npc_changed.emit(near_npc_id)
 
 
 ## 玩家 + 6 NPC 注册为 InkMonWorldActor 进本 GI registry(world actors 表)。

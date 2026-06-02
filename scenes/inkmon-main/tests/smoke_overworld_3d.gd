@@ -127,9 +127,42 @@ func _assert_blocked_npc_retarget(root: InkMonWorldHost) -> String:
 		return "retargeted final coord should be adjacent to Shop"
 	if state.get("near_npc_id", "") != "shop":
 		return "retargeted move should set near_npc_id to shop"
+	# P1 回归:tick 走到 NPC 邻格后,Logic near_npc_id 变了,表演必须同步 ——
+	# prompt 按钮要变可见(layout_state.prompt_button 非空),否则记录的真实点击路径走不通。
+	var prompt_rect := root.get_dev_agent_layout_state().get("prompt_button", {}) as Dictionary
+	if prompt_rect.is_empty():
+		return "walking adjacent to an NPC via tick movement must reveal the Enter prompt (prompt_button stayed hidden)"
+	if float(prompt_rect.get("w", 0.0)) <= 0.0 or float(prompt_rect.get("h", 0.0)) <= 0.0:
+		return "revealed prompt button must have a non-zero clickable rect"
 	var overworld := state.get("overworld_3d", {}) as Dictionary
 	if not bool(overworld.get("target_feedback_active", false)):
 		return "move command should leave a visible target marker"
+	# 高亮另一半:handler 同时把 near 推给 view(set_near_npc_id)。断 view 真高亮了 Shop 节点
+	# (放大 scale>1),否则 handler 漏掉高亮也能蒙混过 prompt 断言。
+	if str(overworld.get("near_npc_highlight", "")) != "shop":
+		return "view must highlight the adjacent NPC after tick movement (near_npc_highlight)"
+	if float(overworld.get("near_npc_highlight_scale", 0.0)) <= 1.0:
+		return "highlighted NPC node should be visually emphasized (scale > 1) after tick movement"
+
+	# 对称面(离开邻域):走回原点(距所有 NPC ≥2)→ near 真相清空 → prompt 隐藏 + 高亮撤除。
+	# 守护"setter 只在非空值 emit"这类回归(那会让 prompt 走开后仍卡可见)。
+	var leave_result := root.goto_tile(Vector2i(0, 0))
+	if not bool(leave_result.get("ok", false)):
+		return "move command back to origin should be accepted"
+	var leave_reach := await _wait_for_player_to_reach(root, Vector2i(0, 0))
+	if leave_reach != "":
+		return leave_reach
+	var leave_settle := await _wait_for_move_settle(root)
+	if leave_settle != "":
+		return leave_settle
+	var left_state := root.get_dev_agent_state()
+	if str(left_state.get("near_npc_id", "")) != "":
+		return "walking away from all NPCs should clear near_npc_id"
+	if not (root.get_dev_agent_layout_state().get("prompt_button", {}) as Dictionary).is_empty():
+		return "prompt must hide after walking away from the NPC (leave-neighborhood sync)"
+	var left_overworld := left_state.get("overworld_3d", {}) as Dictionary
+	if str(left_overworld.get("near_npc_highlight", "")) != "":
+		return "view highlight must clear after walking away from the NPC"
 	return ""
 
 

@@ -590,6 +590,8 @@ func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
 	_world_gi.setup_overworld(session_to_use)
 	# 上行:Logic 逐格 mutation signal → 表演 per-step 补间(退整路 tween)。每次重建 GI 重连(旧 GI 销毁信号随之消失)。
 	_world_gi.actor_position_changed.connect(_on_world_actor_position_changed)
+	# 上行:Logic near-npc 真相变 → 表演同步 NPC 高亮 + prompt 可见性(移动 tick 内 near 在位置信号之后才更新)。
+	_world_gi.near_npc_changed.connect(_on_near_npc_changed)
 
 
 func _new_game_session() -> InkMonGameSession:
@@ -605,6 +607,16 @@ func _on_world_actor_position_changed(actor_id: String, old_coord: HexCoord, new
 	var player := _world_gi.get_world_actor(InkMonWorldGrid.PLAYER_ID)
 	if player != null and actor_id == player.get_id():
 		_world_layer.step_player(old_coord.to_axial(), new_coord.to_axial())
+
+
+## 上行 signal handler:Logic near-npc 真相变 → scoped UI sync(只刷 NPC 高亮 + prompt,不整屏 refresh)。
+## 走独立 signal 而非位置 handler:advance_world_movement 内 refresh_near_npc 在 actor_position_changed
+## 之后才跑,故位置 handler 读 near_npc_id 会陈旧一步 —— 玩家走进邻格那一刻 prompt 永不显形(P1 修复)。
+func _on_near_npc_changed(_npc_id: String) -> void:
+	if _world_layer == null or _world_gi == null:
+		return
+	_world_layer.set_near_npc_id(_near_npc_id)
+	_refresh_prompt()
 
 
 func _cancel_overworld_animation() -> void:
@@ -1124,5 +1136,3 @@ func _rect_dict(rect: Rect2) -> Dictionary:
 		"cx": rect.position.x + rect.size.x * 0.5,
 		"cy": rect.position.y + rect.size.y * 0.5,
 	}
-
-

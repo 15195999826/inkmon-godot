@@ -122,6 +122,14 @@ func set_near_npc_id(npc_id: String) -> void:
 		node.scale = Vector3.ONE * (1.18 if str(key) == near_npc_id else 1.0)
 
 
+## 当前高亮 NPC 节点的 scale.x(>1 = 已放大强调);无高亮返回 1.0。debug-only,供 smoke 断言高亮已生效。
+func _get_highlight_scale() -> float:
+	if near_npc_id == "":
+		return 1.0
+	var node := _npc_nodes.get(near_npc_id, null) as Node3D
+	return node.scale.x if node != null else 0.0
+
+
 func set_npcs(defs: Dictionary) -> void:
 	npc_defs = defs.duplicate(true)
 	if _units_root == null:
@@ -246,6 +254,8 @@ func get_debug_state() -> Dictionary:
 		"npc_idle_sample_y": _get_npc_idle_sample_y(),
 		"camera_position": {"x": camera_position.x, "y": camera_position.y, "z": camera_position.z},
 		"npc_count": _npc_nodes.size(),
+		"near_npc_highlight": near_npc_id,
+		"near_npc_highlight_scale": _get_highlight_scale(),
 		"camera_ready": _camera != null,
 		"move_animation_active": _move_animation_active,
 		"move_animation_finished_count": _move_animation_finished_count,
