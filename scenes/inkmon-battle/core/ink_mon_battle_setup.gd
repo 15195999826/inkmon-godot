@@ -62,3 +62,50 @@ static func build_training_dummies(gi: InkMonWorldGI) -> Array[InkMonUnitActor]:
 		gi.add_actor(actor)
 		result.append(actor)
 	return result
+
+
+# === 布阵 ===
+
+## 按 preferred_coords 定点布阵, 占位/越界/已占时回退到 available_coords 首个可用格。
+static func place_team_fixed(gi: InkMonWorldGI, team: Array[InkMonUnitActor], preferred_coords: Array[HexCoord]) -> void:
+	var fallback := available_coords(gi)
+	for i in range(team.size()):
+		var coord := preferred_coords[i] if i < preferred_coords.size() else null
+		if coord == null or not gi.grid.has_tile(coord) or gi.grid.is_occupied(coord):
+			coord = pop_first_available(gi, fallback)
+		if coord == null:
+			continue
+		gi.grid.place_occupant(coord, team[i])
+		team[i].hex_position = coord.duplicate()
+
+
+static func available_coords(gi: InkMonWorldGI) -> Array[HexCoord]:
+	var result: Array[HexCoord] = []
+	for coord in gi.grid.get_all_coords():
+		if gi.grid.is_passable(coord) and not gi.grid.is_reserved(coord):
+			result.append(coord)
+	result.sort_custom(func(a: HexCoord, b: HexCoord) -> bool:
+		if a.q == b.q:
+			return a.r < b.r
+		return a.q < b.q
+	)
+	return result
+
+
+static func pop_first_available(gi: InkMonWorldGI, coords: Array[HexCoord]) -> HexCoord:
+	while not coords.is_empty():
+		var coord := coords.pop_front() as HexCoord
+		if gi.grid.has_tile(coord) and gi.grid.is_passable(coord):
+			return coord
+	return null
+
+
+## 找出某 actor 在 grid 上持有的所有 reservation 坐标 (battle teardown 清理用)。
+static func find_reservations_by(gi: InkMonWorldGI, actor_id: String) -> Array[HexCoord]:
+	var result: Array[HexCoord] = []
+	if gi.grid == null:
+		return result
+	for coord in gi.grid.get_all_coords():
+		if gi.grid.get_reservation(coord) == actor_id:
+			result.append(coord)
+	return result

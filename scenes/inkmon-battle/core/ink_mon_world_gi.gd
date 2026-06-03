@@ -501,10 +501,10 @@ func _configure_battle_grid(config: Dictionary) -> void:
 func _begin_battle_with_current_teams() -> void:
 	for actor in get_all_units():
 		_prepare_actor_for_battle(actor)
-	_place_team_fixed(left_team, [
+	InkMonBattleSetup.place_team_fixed(self, left_team, [
 		HexCoord.new(-3, -1), HexCoord.new(-3, 0), HexCoord.new(-3, 1), HexCoord.new(-2, 0),
 	])
-	_place_team_fixed(right_team, [
+	InkMonBattleSetup.place_team_fixed(self, right_team, [
 		HexCoord.new(3, -1), HexCoord.new(3, 0), HexCoord.new(3, 1), HexCoord.new(2, 0),
 	])
 	InkMonAllSkills.register_all_timelines()
@@ -552,7 +552,7 @@ func _clear_battle_grid_state(battle_actor: InkMonBattleActor) -> void:
 		# 故对 overworld grid 此处天然 no-op (battle grid 每场 reconfigure 重置占用)。
 		if occupant is InkMonBattleActor and occupant == battle_actor:
 			grid.remove_occupant(battle_actor.hex_position)
-	for coord in _find_reservations_by(battle_actor.get_id()):
+	for coord in InkMonBattleSetup.find_reservations_by(self, battle_actor.get_id()):
 		grid.cancel_reservation(coord)
 
 
@@ -751,49 +751,6 @@ func _reset_battle_state() -> void:
 func _ensure_started() -> void:
 	if get_state() == "created":
 		super.start()
-
-
-func _place_team_fixed(team: Array[InkMonUnitActor], preferred_coords: Array[HexCoord]) -> void:
-	var fallback := _available_coords()
-	for i in range(team.size()):
-		var coord := preferred_coords[i] if i < preferred_coords.size() else null
-		if coord == null or not grid.has_tile(coord) or grid.is_occupied(coord):
-			coord = _pop_first_available(fallback)
-		if coord == null:
-			continue
-		grid.place_occupant(coord, team[i])
-		team[i].hex_position = coord.duplicate()
-
-
-func _available_coords() -> Array[HexCoord]:
-	var result: Array[HexCoord] = []
-	for coord in grid.get_all_coords():
-		if grid.is_passable(coord) and not grid.is_reserved(coord):
-			result.append(coord)
-	result.sort_custom(func(a: HexCoord, b: HexCoord) -> bool:
-		if a.q == b.q:
-			return a.r < b.r
-		return a.q < b.q
-	)
-	return result
-
-
-func _pop_first_available(coords: Array[HexCoord]) -> HexCoord:
-	while not coords.is_empty():
-		var coord := coords.pop_front() as HexCoord
-		if grid.has_tile(coord) and grid.is_passable(coord):
-			return coord
-	return null
-
-
-func _find_reservations_by(actor_id: String) -> Array[HexCoord]:
-	var result: Array[HexCoord] = []
-	if grid == null:
-		return result
-	for coord in grid.get_all_coords():
-		if grid.get_reservation(coord) == actor_id:
-			result.append(coord)
-	return result
 
 
 func _build_default_grid_config() -> GridMapConfig:
