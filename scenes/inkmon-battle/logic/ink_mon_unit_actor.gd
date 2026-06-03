@@ -36,7 +36,6 @@ var _basic_attack_ability_id := ""
 var _skill_ability_id := ""
 var _team_id := -1
 var _atb_gauge := 0.0
-var _active_skill_config_id := ""
 
 
 func _init(p_unit_key: String = "", p_save_data: Dictionary = {}, p_combat_data: Dictionary = {}) -> void:
@@ -77,7 +76,6 @@ func _setup_from_unit_config(p_unit_key: String) -> void:
 	elements.assign(cfg.elements)
 	level = 1
 	exp = 0
-	_active_skill_config_id = cfg.active_skill_id
 	skill_slots = [{"slot_index": 0, "skill_id": cfg.active_skill_id}]
 
 	var stats := cfg.stats
@@ -102,8 +100,7 @@ func _setup_combat_unit(combat_data: Dictionary) -> void:
 	exp = 0
 	skill_slots = _read_skill_slots(combat_data.get("skill_slots", []))
 	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "combat unit missing skill_slots")
-	_active_skill_config_id = str(skill_slots[0].get("skill_id", ""))
-	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "combat unit primary slot missing skill_id")
+	Log.assert_crash(get_primary_skill_id() != "", "InkMonUnitActor", "combat unit primary slot missing skill_id")
 	engravings = _read_engravings(combat_data.get("engravings", []))
 	elements.clear()
 	var raw_elements := combat_data.get("elements", []) as Array
@@ -141,8 +138,7 @@ func _setup_from_save_data(data: Dictionary) -> void:
 	exp = maxi(0, int(data.get("exp", 0)))
 	skill_slots = _read_skill_slots(data.get("skill_slots", []))
 	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "save data missing skill_slots")
-	_active_skill_config_id = str(skill_slots[0].get("skill_id", ""))
-	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "save data primary slot missing skill_id")
+	Log.assert_crash(get_primary_skill_id() != "", "InkMonUnitActor", "save data primary slot missing skill_id")
 	engravings = _read_engravings(data.get("engravings", []))
 	elements.clear()
 	var raw_elements := data.get("elements", []) as Array
@@ -160,9 +156,11 @@ func equip_abilities(game_state_provider: Variant = null) -> void:
 	ability_set.grant_ability(basic_attack, game_state_provider)
 	_basic_attack_ability_id = basic_attack.id
 
-	# primary skill = slot0; basic_attack 已无条件授予, 不重复授予 (防 primary==basic)。
-	if _active_skill_config_id != "" and _active_skill_config_id != InkMonBasicAttack.CONFIG_ID:
-		var skill_config := InkMonAllSkills.get_skill_config(_active_skill_config_id)
+	# primary skill = 当前 skill_slots[0] (单一真相; 局内进化改写 slot0 后此处即取到升级技能, 无陈旧缓存)。
+	# basic_attack 已无条件授予, 不重复授予 (防 primary==basic)。
+	var primary_skill := get_primary_skill_id()
+	if primary_skill != "" and primary_skill != InkMonBasicAttack.CONFIG_ID:
+		var skill_config := InkMonAllSkills.get_skill_config(primary_skill)
 		var skill_ability := Ability.new(skill_config, get_id())
 		ability_set.grant_ability(skill_ability, game_state_provider)
 		_skill_ability_id = skill_ability.id
@@ -306,6 +304,9 @@ func apply_derived_stats(species_base: Dictionary) -> void:
 	attribute_set.set_armor_base(float(species_base.get("armor", 0.0)) * scale + float(mods.get("armor", 0.0)))
 	attribute_set.set_mr_base(float(species_base.get("mr", 0.0)) * scale + float(mods.get("mr", 0.0)))
 	attribute_set.set_speed_base(float(species_base.get("speed", 0.0)) * scale + float(mods.get("speed", 0.0)))
+	# set_max_hp_base 只改上限、不回钳已有 hp (cross-attr clamp 仅在 set hp 时触发); max 下调后 hp 可能越界。
+	# 重算后把当前 HP 钳回 [0, max_hp] 保派生幂等 (set_current_hp 经 set_hp_base 触发 clamp + 同步 downed)。
+	set_current_hp(minf(attribute_set.hp, attribute_set.max_hp))
 
 
 ## 设置当前 HP (carryover)。value < 0 = 满血 (= max_hp);否则按值设 (attribute_set 对 hp>max_hp 自动 clamp)。

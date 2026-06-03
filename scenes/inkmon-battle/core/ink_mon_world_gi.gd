@@ -564,7 +564,16 @@ func _clear_battle_grid_state(battle_actor: InkMonBattleActor) -> void:
 		grid.cancel_reservation(coord)
 
 
-func get_actor(actor_id: String) -> InkMonBattleActor:
+## registry lookup (adr/0001: 一切实体常驻 registry, 标准 lookup 须能取回 player/NPC/unit)。
+## 返回 InkMonWorldActor 广义基类 (player_actor/NPC = InkMonWorldActor, unit = InkMonUnitActor 均 is-a);
+## 绝不窄化成 InkMonBattleActor —— 否则非战斗 actor 被 as 转成 null, GameWorld.get_actor(player_id) 拿不到。
+## 战斗调用点 (需 is_dead/attribute_set/ability_set) 走 get_battle_actor / get_unit_actor。
+func get_actor(actor_id: String) -> InkMonWorldActor:
+	return super.get_actor(actor_id) as InkMonWorldActor
+
+
+## 战斗 actor 窄化 lookup (需 is_dead / attribute_set / ability_set 的战斗调用点用)。非战斗 actor 返回 null。
+func get_battle_actor(actor_id: String) -> InkMonBattleActor:
 	return super.get_actor(actor_id) as InkMonBattleActor
 
 

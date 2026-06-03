@@ -31,7 +31,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var damage_type_str := InkMonBattleEvents.damage_type_to_string(_damage_type)
 
 	for target_id in targets:
-		var target_actor := battle.get_actor(target_id) if battle != null else null
+		var target_actor := battle.get_battle_actor(target_id) if battle != null else null
 		if target_actor == null or target_actor.is_dead():
 			continue
 

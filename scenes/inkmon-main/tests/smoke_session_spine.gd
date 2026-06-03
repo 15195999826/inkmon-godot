@@ -33,6 +33,12 @@ func _run() -> String:
 	var downed_status := _assert_downed_state_survives_round_trip()
 	if downed_status != "":
 		return _shutdown(downed_status)
+	var lookup_status := _assert_registry_lookup()
+	if lookup_status != "":
+		return _shutdown(lookup_status)
+	var evo_skill_status := _assert_in_session_evolution_equips_upgraded_skill()
+	if evo_skill_status != "":
+		return _shutdown(evo_skill_status)
 	var battle_status := _assert_battle_on_live_roster()
 	if battle_status != "":
 		return _shutdown(battle_status)
@@ -216,6 +222,54 @@ func _assert_old_save_discarded() -> String:
 	var loaded2 := _new_gi()
 	if loaded2.from_dict(future_save):
 		return "save with future version should be discarded, not loaded"
+	return ""
+
+
+## adr/0001 "一切实体常驻 registry": 标准 lookup (gi.get_actor / GameWorld.get_actor) 须能取回
+## 非战斗 actor (player/NPC = InkMonWorldActor), 不被窄化成 null (回归守卫: get_actor 曾误返 InkMonBattleActor)。
+func _assert_registry_lookup() -> String:
+	GameWorld.destroy_all_instances()
+	var gi := _new_gi()
+	gi.new_game()
+	var player_id := gi.player_actor.get_id()
+	if gi.get_actor(player_id) != gi.player_actor:
+		return "gi.get_actor(player_id) must return the live player actor (not null-narrowed)"
+	if GameWorld.get_actor(player_id) != gi.player_actor:
+		return "GameWorld.get_actor(player_id) must resolve player actor via registry delegation"
+	var shop := gi.get_world_actor("shop")
+	if shop == null or gi.get_actor(shop.get_id()) != shop:
+		return "gi.get_actor must return NPC world actors too"
+	var unit := gi.roster[0]
+	if gi.get_battle_actor(unit.get_id()) != unit:
+		return "gi.get_battle_actor must return a roster unit (battle-actor lookup)"
+	if gi.get_battle_actor(player_id) != null:
+		return "get_battle_actor(player) should be null (player_actor is not a battle actor)"
+	return ""
+
+
+## 回归守卫 (adr/0001 持久复用 actor 暴露): 局内进化改写 skill_slots[0] (X->X2) 后, 下一场复用战斗
+## equip 的必须是升级技能 (从 skill_slots[0] 派生), 不是构造期缓存的旧技能。旧投影模型每战重投影无此问题。
+func _assert_in_session_evolution_equips_upgraded_skill() -> String:
+	GameWorld.destroy_all_instances()
+	var gi := _new_gi()
+	gi.new_game()
+	var mon := gi.roster[1]  # 默认 roster[1] = cinder_kit (primary = fireball)
+	if mon.species != "cinder_kit":
+		return "expected default roster[1] to be cinder_kit for evolution test, got %s" % mon.species
+	mon.level = 5
+	if not InkMonSpeciesCatalog.evolve_actor(mon):
+		return "cinder_kit at level 5 should evolve in-session"
+	gi.refresh_unit_stats(mon)
+	if mon.get_primary_skill_id() != InkMonChainLightning.CONFIG_ID:
+		return "evolution should upgrade skill_slots[0] to chain_lightning, got %s" % mon.get_primary_skill_id()
+
+	# 关键: 局内进化后出战 → equip 必须装当前 slot0 升级技能 (非陈旧缓存)。
+	gi.request_training_battle()
+	var skill := mon.get_skill_ability()
+	if skill == null:
+		return "evolved unit should have a primary skill ability equipped"
+	if str(skill.config_id) != mon.get_primary_skill_id():
+		return "in-session evolved unit equipped stale skill: equipped=%s slot0=%s" % [str(skill.config_id), mon.get_primary_skill_id()]
 	return ""
 
 

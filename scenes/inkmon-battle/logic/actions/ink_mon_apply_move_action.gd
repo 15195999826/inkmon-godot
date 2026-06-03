@@ -20,7 +20,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var all_events: Array[Dictionary] = []
 
 	for target_id in get_targets(ctx):
-		var actor := battle.get_actor(target_id) if battle != null else null
+		var actor := battle.get_battle_actor(target_id) if battle != null else null
 		if actor == null or actor.is_dead() or not actor.hex_position.is_valid():
 			continue
 		var from_hex := actor.hex_position

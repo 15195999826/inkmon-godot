@@ -40,6 +40,21 @@ func _run() -> String:
 	var s5 := _check_player_actor_round_trip()
 	if s5 != "":
 		return s5
+	var s6 := _check_apply_derived_stats_clamps_hp()
+	if s6 != "":
+		return s6
+	return ""
+
+
+## 回归守卫: apply_derived_stats 重算 max_hp 后须把当前 HP 钳回 [0, max] (set_max_hp_base 不回钳已有 hp)。
+func _check_apply_derived_stats_clamps_hp() -> String:
+	var actor := InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)  # 满血 (cfg hp)
+	var low_base := {"max_hp": 50.0, "ad": 10.0, "ap": 10.0, "armor": 5.0, "mr": 5.0, "speed": 80.0}
+	actor.apply_derived_stats(low_base)
+	if absf(actor.attribute_set.max_hp - 50.0) > 0.01:
+		return "apply_derived_stats should set max_hp from base, got %f" % actor.attribute_set.max_hp
+	if actor.attribute_set.hp > actor.attribute_set.max_hp + 0.01:
+		return "apply_derived_stats must clamp current hp to recomputed max_hp (hp=%f max=%f)" % [actor.attribute_set.hp, actor.attribute_set.max_hp]
 	return ""
 
 

@@ -16,7 +16,7 @@ static func apply_damage(
 	var result := DamageResult.new()
 	var target_id := damage_event.target_actor_id
 	var source_actor_id := damage_event.source_actor_id
-	var target_actor := battle.get_actor(target_id) if battle != null else null
+	var target_actor := battle.get_battle_actor(target_id) if battle != null else null
 
 	var damage_dict: Dictionary = ctx.event_collector.push(damage_event.to_dict())
 	result.damage_event_dict = damage_dict
