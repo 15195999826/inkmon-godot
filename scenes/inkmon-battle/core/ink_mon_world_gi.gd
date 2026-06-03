@@ -472,7 +472,7 @@ func get_world_actor(key: String) -> InkMonWorldActor:
 func start_battle_procedure(config: Dictionary = {}) -> void:
 	_reset_battle_state()
 	_recording_enabled = config.get("recording", true)
-	_configure_battle_grid(config)
+	InkMonBattleSetup.configure_battle_grid(self, config)
 	InkMonBattleSetup.setup_teams(self, config)
 	_begin_battle_with_current_teams()
 
@@ -482,19 +482,10 @@ func start_battle_procedure(config: Dictionary = {}) -> void:
 func request_training_battle() -> void:
 	_reset_battle_state()
 	_recording_enabled = false
-	_configure_battle_grid({})
+	InkMonBattleSetup.configure_battle_grid(self, {})
 	left_team = InkMonBattleSetup.battle_roster_slice(self)
 	right_team = InkMonBattleSetup.build_training_dummies(self)
 	_begin_battle_with_current_teams()
-
-
-## 战斗 grid 配置 (config.map_config 或默认)。
-func _configure_battle_grid(config: Dictionary) -> void:
-	_ensure_started()
-	var grid_config := config.get("map_config", null) as GridMapConfig
-	if grid_config == null:
-		grid_config = _build_default_grid_config()
-	configure_grid(grid_config)
 
 
 ## 用当前 left_team/right_team 起战斗: 每只备战 (全新 ability_set + 装技能 + 归零 ATB) → 布阵 → 注册 timeline → 开打。
@@ -751,13 +742,3 @@ func _reset_battle_state() -> void:
 func _ensure_started() -> void:
 	if get_state() == "created":
 		super.start()
-
-
-func _build_default_grid_config() -> GridMapConfig:
-	var config := GridMapConfig.new()
-	config.grid_type = GridMapConfig.GridType.HEX
-	config.draw_mode = GridMapConfig.DrawMode.RADIUS
-	config.radius = 5
-	config.size = 10.0
-	config.orientation = GridMapConfig.Orientation.FLAT
-	return config

@@ -109,3 +109,24 @@ static func find_reservations_by(gi: InkMonWorldGI, actor_id: String) -> Array[H
 		if gi.grid.get_reservation(coord) == actor_id:
 			result.append(coord)
 	return result
+
+
+# === battle grid 配置 ===
+
+## 战斗 grid 配置 (config.map_config 或默认)。configure_grid 是 LGF battle-host 钩子, 留 GI、此处委派回去。
+static func configure_battle_grid(gi: InkMonWorldGI, config: Dictionary) -> void:
+	gi._ensure_started()
+	var grid_config := config.get("map_config", null) as GridMapConfig
+	if grid_config == null:
+		grid_config = build_default_grid_config()
+	gi.configure_grid(grid_config)
+
+
+static func build_default_grid_config() -> GridMapConfig:
+	var config := GridMapConfig.new()
+	config.grid_type = GridMapConfig.GridType.HEX
+	config.draw_mode = GridMapConfig.DrawMode.RADIUS
+	config.radius = 5
+	config.size = 10.0
+	config.orientation = GridMapConfig.Orientation.FLAT
+	return config
