@@ -2,7 +2,7 @@ class_name InkMonWorldPanelView
 extends RefCounted
 ## P8 表演抽离:主世界 HUD / 抽屉的数据驱动内容构建(roster chips / party / bag / journal)。
 ##
-## 纯表演 —— 据传入的 session 数据 + 容器建 Control 行,不持 flow / 命令态(那些归 Host)。
+## 纯表演 —— 据传入的活 actor (roster) + 容器建 Control 行,不持 flow / 命令态(那些归 Host)。
 ## Host instantiate 一份并调用;动态列表用 instantiate 组件场景(§6)。
 
 
@@ -13,48 +13,51 @@ const JournalPanelScene := preload("res://scenes/inkmon-main/ui/components/journ
 const PanelMessageScene := preload("res://scenes/inkmon-main/ui/components/panel_message.tscn")
 
 
-## 顶部 roster chips(描边色 = 首元素;样式在 .tscn 的 local-to-scene StyleBox)。
-func build_roster_chips(container: HBoxContainer, roster: Array) -> void:
+## 顶部 roster chips(描边色 = 首元素;样式在 .tscn 的 local-to-scene StyleBox)。adr/0001: 读活 actor。
+func build_roster_chips(container: HBoxContainer, roster: Array[InkMonUnitActor]) -> void:
 	if container == null:
 		return
 	for child in container.get_children():
 		child.queue_free()
-	for entry in roster:
+	for i in range(roster.size()):
+		var actor := roster[i]
 		var chip := RosterChipScene.instantiate() as PanelContainer
-		chip.name = "RosterChip_%d" % entry.entry_id
+		chip.name = "RosterChip_%d" % i
 		var style := chip.get_theme_stylebox("panel") as StyleBoxFlat
 		if style != null:
-			style.border_color = element_color(entry.elements[0] if not entry.elements.is_empty() else "")
-		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [short_name(entry.name_en), entry.level]
+			style.border_color = element_color(actor.elements[0] if not actor.elements.is_empty() else "")
+		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [short_name(actor.get_display_name()), actor.level]
 		container.add_child(chip)
 
 
-func build_party_panel(container: VBoxContainer, roster: Array) -> void:
-	for entry in roster:
+## 队伍面板: 每只活 actor 一行。六维显示活 attribute (= f(species,level) + 装备, get_stats 实时值)。
+func build_party_panel(container: VBoxContainer, roster: Array[InkMonUnitActor]) -> void:
+	for i in range(roster.size()):
+		var actor := roster[i]
 		var row := PartyEntryRowScene.instantiate() as HBoxContainer
-		row.name = "PartyEntry_%d" % entry.entry_id
+		row.name = "PartyEntry_%d" % i
 		(row.get_node("ElementSwatch") as ColorRect).color = element_color(
-			entry.elements[0] if not entry.elements.is_empty() else "")
+			actor.elements[0] if not actor.elements.is_empty() else "")
 
 		var label := row.get_node("PartyEntryLabel") as Label
 		label.text = "%s  Lv%d\n%s  EXP %d  Skill %s" % [
-			entry.name_en,
-			entry.level,
-			", ".join(entry.elements),
-			entry.exp,
-			entry.get_primary_skill_id(),
+			actor.get_display_name(),
+			actor.level,
+			", ".join(actor.elements),
+			actor.exp,
+			actor.get_primary_skill_id(),
 		]
 		label.modulate = Color(0.92, 0.88, 0.78)
 
 		var stats := row.get_node("StatsLabel") as Label
-		var derived: Dictionary = entry.derive_battle_stats()
+		var live: Dictionary = actor.get_stats()
 		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
-			int(float(derived.get("max_hp", 0.0))),
-			int(float(derived.get("ad", 0.0))),
-			int(float(derived.get("ap", 0.0))),
-			int(float(derived.get("armor", 0.0))),
-			int(float(derived.get("mr", 0.0))),
-			int(float(derived.get("speed", 0.0))),
+			int(float(live.get("max_hp", 0.0))),
+			int(float(live.get("ad", 0.0))),
+			int(float(live.get("ap", 0.0))),
+			int(float(live.get("armor", 0.0))),
+			int(float(live.get("mr", 0.0))),
+			int(float(live.get("speed", 0.0))),
 		]
 		stats.modulate = Color(0.82, 0.78, 0.68)
 		container.add_child(row)

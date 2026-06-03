@@ -22,7 +22,7 @@ func _run() -> String:
 	var initial_state := root.get_dev_agent_state()
 	if initial_state.get("state", "") != "OVERWORLD":
 		return _cleanup(root, "initial state should be OVERWORLD")
-	if int(initial_state.get("gold", 0)) != InkMonPlayerState.DEFAULT_GOLD:
+	if int(initial_state.get("gold", 0)) != InkMonPlayerActor.DEFAULT_GOLD:
 		return _cleanup(root, "new game gold should be default")
 
 	var world_actor_status := _assert_world_actors_registered(root)
@@ -106,12 +106,12 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 		return "active NPC should be Shop"
 
 	# P3 方案 A:buy 是异步 command —— 入队即 ok;tick drain 才扣金币 + 入袋,经 command_applied 回流。
-	var gold_before_buy := root.session.player_state.gold
+	var gold_before_buy := root.get_player_actor().gold
 	var buy_result := root.buy_shop_item(InkMonItemCatalog.MINOR_RUNE)
 	if not bool(buy_result.get("ok", false)):
 		return "buy Minor Rune command should be accepted (enqueued)"
 	var spent := await _wait_until(func() -> bool:
-		return root.session.player_state.gold == gold_before_buy - 10)
+		return root.get_player_actor().gold == gold_before_buy - 10)
 	if not spent:
 		return "buying Minor Rune should spend 10 gold (async command drain)"
 	var bought_state := root.get_dev_agent_state()
@@ -138,36 +138,36 @@ func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
 	if not battle_done:
 		return "training battle did not complete via async command + deferred flow"
 	var after_training := root.get_dev_agent_state()
-	if int(after_training.get("gold", 0)) <= InkMonPlayerState.DEFAULT_GOLD:
+	if int(after_training.get("gold", 0)) <= InkMonPlayerActor.DEFAULT_GOLD:
 		return "training NPC should award gold"
 	var battle_result := after_training.get("last_battle_result", {}) as Dictionary
 	if battle_result == null or battle_result.get("winner_team", "") != "left":
 		return "training NPC battle should end as a left win"
 
-	var lead := root.session.player_state.roster[0]
+	var lead := root.get_roster()[0]
 	var level_before := lead.level
 	root.run_npc_action_for("cultivation", InkMonCultivationNpcHandler.ACTION_CULTIVATE_LEAD)
 	if not await _wait_until(func() -> bool: return lead.level == level_before + 1):
 		return "cultivation should level the lead InkMon (async command)"
-	if int(root.session.player_state.progression.get("cultivation_points", 0)) != 1:
+	if int(root.get_player_actor().progression.get("cultivation_points", 0)) != 1:
 		return "cultivation should increment cultivation_points"
 
 	root.run_npc_action_for("advancement", InkMonAdvancementNpcHandler.ACTION_RANK_UP)
 	if not await _wait_until(func() -> bool:
-		return int(root.session.player_state.progression.get("trainer_rank", 1)) == 2):
+		return int(root.get_player_actor().progression.get("trainer_rank", 1)) == 2):
 		return "trainer advancement should set rank to 2 (async command)"
 
 	root.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_GUILD_TASK)
 	if not await _wait_until(func() -> bool:
-		return bool(root.session.player_state.progression.get("guild_joined", false))):
+		return bool(root.get_player_actor().progression.get("guild_joined", false))):
 		return "guild NPC should set guild_joined (async command)"
-	if int(root.session.player_state.progression.get("guild_tasks_completed", 0)) != 1:
+	if int(root.get_player_actor().progression.get("guild_tasks_completed", 0)) != 1:
 		return "guild NPC should increment task marker"
 
-	var roster_before := root.session.player_state.roster.size()
+	var roster_before := root.get_roster().size()
 	root.run_npc_action_for("release_adopt", InkMonReleaseAdoptNpcHandler.ACTION_ADOPT_STUB)
 	if not await _wait_until(func() -> bool:
-		return root.session.player_state.roster.size() == roster_before + 1):
+		return root.get_roster().size() == roster_before + 1):
 		return "adopt should add a roster entry (async command)"
 	return ""
 
@@ -189,8 +189,8 @@ func _assert_multi_slot_save(root: InkMonWorldHost) -> String:
 	var slots := root.list_save_slots()
 	if slots.size() != InkMonWorldHost.SAVE_SLOT_COUNT:
 		return "list_save_slots should report %d slots" % InkMonWorldHost.SAVE_SLOT_COUNT
-	var saved_gold := root.session.player_state.gold
-	var saved_roster := root.session.player_state.roster.size()
+	var saved_gold := root.get_player_actor().gold
+	var saved_roster := root.get_roster().size()
 	if not bool(root.save_to_slot(2).get("ok", false)):
 		return "save_to_slot(2) failed"
 	if not bool((root.list_save_slots()[1] as Dictionary).get("exists", false)):
@@ -200,9 +200,9 @@ func _assert_multi_slot_save(root: InkMonWorldHost) -> String:
 		return "reset before slot load failed"
 	if not bool(root.load_from_slot(2).get("ok", false)):
 		return "load_from_slot(2) failed"
-	if root.session.player_state.gold != saved_gold:
+	if root.get_player_actor().gold != saved_gold:
 		return "load_from_slot should restore gold"
-	if root.session.player_state.roster.size() != saved_roster:
+	if root.get_roster().size() != saved_roster:
 		return "load_from_slot should restore roster"
 	return ""
 
@@ -210,7 +210,7 @@ func _assert_multi_slot_save(root: InkMonWorldHost) -> String:
 ## Codex P2 回归守卫:deferred 训练战 flow 带世界代际;若 deferred 跑前 reset/load 重建过世界(代际变),
 ## 旧 intent 必须作废,绝不在当前世界结算。以过期代际直接调 _begin(避开 call_deferred 时序不确定性),断言不起战斗。
 func _assert_stale_battle_intent_guard(root: InkMonWorldHost) -> String:
-	var gold_before := root.session.player_state.gold
+	var gold_before := root.get_player_actor().gold
 	root._begin_training_battle_flow(root._world_generation - 1)  # 过期代际
 	var s := root.get_dev_agent_state()
 	if str(s.get("state", "")) != "OVERWORLD":
@@ -224,10 +224,10 @@ func _assert_stale_battle_intent_guard(root: InkMonWorldHost) -> String:
 
 func _assert_save_load(root: InkMonWorldHost) -> String:
 	var save_path := "user://inkmon_l2_smoke_save.json"
-	var saved_gold := root.session.player_state.gold
-	var saved_roster_size := root.session.player_state.roster.size()
-	var saved_rank := int(root.session.player_state.progression.get("trainer_rank", 1))
-	var saved_cultivation := int(root.session.player_state.progression.get("cultivation_points", 0))
+	var saved_gold := root.get_player_actor().gold
+	var saved_roster_size := root.get_roster().size()
+	var saved_rank := int(root.get_player_actor().progression.get("trainer_rank", 1))
+	var saved_cultivation := int(root.get_player_actor().progression.get("cultivation_points", 0))
 
 	var save_result := root.save_game(save_path)
 	if not bool(save_result.get("ok", false)):
@@ -236,19 +236,19 @@ func _assert_save_load(root: InkMonWorldHost) -> String:
 	var reset_result := root.reset_session()
 	if not bool(reset_result.get("ok", false)):
 		return "reset before load failed"
-	if root.session.player_state.roster.size() == saved_roster_size:
+	if root.get_roster().size() == saved_roster_size:
 		return "reset should change roster size before load"
 
 	var load_result := root.load_game(save_path)
 	if not bool(load_result.get("ok", false)):
 		return "load_game failed: %s" % str(load_result.get("message", ""))
-	if root.session.player_state.gold != saved_gold:
+	if root.get_player_actor().gold != saved_gold:
 		return "load should restore gold"
-	if root.session.player_state.roster.size() != saved_roster_size:
+	if root.get_roster().size() != saved_roster_size:
 		return "load should restore roster size"
-	if int(root.session.player_state.progression.get("trainer_rank", 1)) != saved_rank:
+	if int(root.get_player_actor().progression.get("trainer_rank", 1)) != saved_rank:
 		return "load should restore trainer rank"
-	if int(root.session.player_state.progression.get("cultivation_points", 0)) != saved_cultivation:
+	if int(root.get_player_actor().progression.get("cultivation_points", 0)) != saved_cultivation:
 		return "load should restore cultivation points"
 	return ""
 

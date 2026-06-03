@@ -7,13 +7,13 @@ const ACTION_START_BATTLE := "start_training_battle"
 const INTENT_START_BATTLE := "start_battle"
 
 
-func get_actions(_session: InkMonGameSession) -> Array[Dictionary]:
+func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return [
 		_action(ACTION_START_BATTLE, "Start Training Battle", "4v4 ATB drill, earns Gold", "battle"),
 	]
 
 
-func run_action(action_id: String, _session: InkMonGameSession) -> Dictionary:
+func run_action(action_id: String, _world: InkMonWorldGI) -> Dictionary:
 	match action_id:
 		ACTION_START_BATTLE:
 			# handler 不起战斗; 返回 Command-as-data intent, 由薄场景导播解释执行。
@@ -21,4 +21,4 @@ func run_action(action_id: String, _session: InkMonGameSession) -> Dictionary:
 			result[RESULT_INTENT] = {INTENT_KIND: INTENT_START_BATTLE}
 			return result
 		_:
-			return super.run_action(action_id, _session)
+			return super.run_action(action_id, _world)

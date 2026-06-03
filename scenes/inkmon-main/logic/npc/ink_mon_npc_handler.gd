@@ -1,8 +1,8 @@
 class_name InkMonNpcHandler
 extends RefCounted
-## NPC handler 基类: 只收 session, 规则住 handler 内, 不碰 UI / flow / app_root (docs/main-game-architecture.md §5)。
+## NPC handler 基类: 收 GI (InkMonWorldGI), 规则住 handler 内, 不碰 UI / flow / app_root (docs/main-game-architecture.md §5)。
+## adr/0001: 直接读写活 actor —— world.player_actor (gold/progression) + world.roster + world 物品/领养/进化方法。
 ##
-## 纯数据 NPC (shop/cultivation/guild/advancement/release_adopt) 直接读写 session。
 ## 要触发流程的 NPC (training→战斗) 在 run_action 结果里带 intent 字段 (Command-as-data),
 ## 由薄场景导播解释并执行 (handler 自己不起 battle / 不切场景)。
 
@@ -27,11 +27,11 @@ func _init(p_npc_id: String = "", p_display_name: String = "") -> void:
 	display_name = p_display_name
 
 
-func get_actions(_session: InkMonGameSession) -> Array[Dictionary]:
+func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return []
 
 
-func run_action(action_id: String, _session: InkMonGameSession) -> Dictionary:
+func run_action(action_id: String, _world: InkMonWorldGI) -> Dictionary:
 	return _result(false, "unsupported action: %s" % action_id)
 
 

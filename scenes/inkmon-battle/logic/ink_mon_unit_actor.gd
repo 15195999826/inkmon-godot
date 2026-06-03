@@ -26,7 +26,7 @@ var skill_slots: Array[Dictionary] = []
 # 刻印 [{engraving_id, target_slot}]; equip 时每条 grant 一个刻印被动强化技能 (§8c)。
 var engravings: Array[Dictionary] = []
 ## 装备容器 id (ItemSystem 注册, runtime; 不进存档——存档只存容器内物品)。-1 = 无装备容器。
-## equip/load 时 apply_derived_stats 把容器物品 stat_mods 折进 base (取代旧投影期 _fold_equipment_stats)。
+## equip/load 时 apply_derived_stats 把容器物品 stat_mods 折进 base (取代旧投影期装备折叠)。
 var equipment_container_id := -1
 var attribute_set: InkMonUnitAttributeSet
 var ai_strategy: InkMonAIStrategy
@@ -39,29 +39,32 @@ var _atb_gauge := 0.0
 var _active_skill_config_id := ""
 
 
-func _init(p_unit_key: String = "", battle_snapshot: Dictionary = {}, save_data: Dictionary = {}) -> void:
+func _init(p_unit_key: String = "", p_save_data: Dictionary = {}, p_combat_data: Dictionary = {}) -> void:
 	unit_key = p_unit_key
 	type = "InkMonUnit"
 	attribute_set = InkMonUnitAttributeSet.new(get_id())
-	if not save_data.is_empty():
-		_setup_from_save_data(save_data)
-	elif not battle_snapshot.is_empty():
-		_setup_from_battle_snapshot(battle_snapshot)
+	if not p_save_data.is_empty():
+		_setup_from_save_data(p_save_data)
+	elif not p_combat_data.is_empty():
+		_setup_combat_unit(p_combat_data)
 	else:
 		_setup_from_unit_config(p_unit_key)
 	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
 	ai_strategy = InkMonAIStrategyFactory.get_strategy(personality)
 
 
-static func from_battle_snapshot(battle_snapshot: Dictionary) -> InkMonUnitActor:
-	return InkMonUnitActor.new("", battle_snapshot)
-
-
 ## adr/0001 自序列化: 从存档持久切片建活 actor。只还原身份/选择/进度字段;
 ## 派生六维 + 当前 HP 由编排方 (GI) 在装备容器就绪后调 apply_derived_stats(species_base) → set_current_hp(saved)
 ## 完成 (species base 数据住 SpeciesCatalog/main 层, 不在本 actor 引用, 保 battle 层不上引 main)。
 static func from_dict(data: Dictionary) -> InkMonUnitActor:
-	return InkMonUnitActor.new("", {}, data)
+	return InkMonUnitActor.new("", data)
+
+
+## 临时对战单位 (训练假人 / 敌方): 显式身份 + 显式六维, 非持久 roster
+## (不进存档, battle 结束随 _reset_battle_state 整只移除)。取代旧 battle-snapshot 投影路径 ——
+## 玩家 roster 不再投影成临时 actor, 唯此路径建非 roster 的对战单位。
+static func create_combat_unit(combat_data: Dictionary) -> InkMonUnitActor:
+	return InkMonUnitActor.new("", {}, combat_data)
 
 
 func _setup_from_unit_config(p_unit_key: String) -> void:
@@ -87,30 +90,32 @@ func _setup_from_unit_config(p_unit_key: String) -> void:
 	attribute_set.set_speed_base(stats["speed"])
 
 
-func _setup_from_battle_snapshot(battle_snapshot: Dictionary) -> void:
-	source_entry_id = int(battle_snapshot.get("source_entry_id", -1))
-	Log.assert_crash(source_entry_id >= 0, "InkMonUnitActor", "battle snapshot missing source_entry_id")
-	species = str(battle_snapshot.get("species", ""))
-	personality = str(battle_snapshot.get("personality", InkMonUnitConfig.PERSONALITY_AGGRESSIVE))
-	stage = str(battle_snapshot.get("stage", InkMonUnitConfig.STAGE_BABY))
-	unit_key = "snapshot:%d" % source_entry_id
-	_display_name = str(battle_snapshot.get("display_name", species))
-	skill_slots = _read_skill_slots(battle_snapshot.get("skill_slots", []))
-	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "battle snapshot missing skill_slots")
+## 临时对战单位装配 (训练假人/敌方): 显式身份 + 显式六维。无 source_entry_id (新模型不投影回写)。
+func _setup_combat_unit(combat_data: Dictionary) -> void:
+	species = str(combat_data.get("species", ""))
+	Log.assert_crash(species != "", "InkMonUnitActor", "combat unit missing species")
+	personality = str(combat_data.get("personality", InkMonUnitConfig.PERSONALITY_AGGRESSIVE))
+	stage = str(combat_data.get("stage", InkMonUnitConfig.STAGE_BABY))
+	unit_key = "combat:%s" % species
+	_display_name = str(combat_data.get("display_name", species))
+	level = 1
+	exp = 0
+	skill_slots = _read_skill_slots(combat_data.get("skill_slots", []))
+	Log.assert_crash(not skill_slots.is_empty(), "InkMonUnitActor", "combat unit missing skill_slots")
 	_active_skill_config_id = str(skill_slots[0].get("skill_id", ""))
-	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "battle snapshot primary slot missing skill_id")
-	engravings = _read_engravings(battle_snapshot.get("engravings", []))
+	Log.assert_crash(_active_skill_config_id != "", "InkMonUnitActor", "combat unit primary slot missing skill_id")
+	engravings = _read_engravings(combat_data.get("engravings", []))
 	elements.clear()
-	var raw_elements := battle_snapshot.get("elements", []) as Array
+	var raw_elements := combat_data.get("elements", []) as Array
 	Log.assert_crash(raw_elements != null and not raw_elements.is_empty(), "InkMonUnitActor",
-		"battle snapshot missing elements")
+		"combat unit missing elements")
 	for raw_element in raw_elements:
 		elements.append(str(raw_element))
 
-	var stats := battle_snapshot.get("battle_stats", {}) as Dictionary
-	Log.assert_crash(stats != null, "InkMonUnitActor", "battle snapshot battle_stats must be a Dictionary")
+	var stats := combat_data.get("battle_stats", {}) as Dictionary
+	Log.assert_crash(stats != null, "InkMonUnitActor", "combat unit battle_stats must be a Dictionary")
 	for key in InkMonUnitConfig.BASE_STAT_KEYS:
-		Log.assert_crash(stats.has(key), "InkMonUnitActor", "battle snapshot stats missing key: %s" % key)
+		Log.assert_crash(stats.has(key), "InkMonUnitActor", "combat unit stats missing key: %s" % key)
 	var max_hp := float(stats["max_hp"])
 	attribute_set.set_max_hp_base(max_hp)
 	attribute_set.set_hp_base(max_hp)
@@ -254,6 +259,19 @@ func reset_atb() -> void:
 	_atb_gauge = 0.0
 
 
+## 持久 roster actor 跨战斗复用前的战斗运行时重置: 全新 ability_set (避免上一场授予残留导致重复 grant) +
+## 清 ability 引用 + 归零 ATB。**不动** attribute_set (HP carryover) / 持久切片 (level/exp/装备)。
+## 调用方 (GI) 须在 actor 已注册 (get_id 有效) 后调, 随后 equip_abilities 重新授予。
+func reset_battle_runtime() -> void:
+	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
+	_move_ability_id = ""
+	_basic_attack_ability_id = ""
+	_skill_ability_id = ""
+	_atb_gauge = 0.0
+	# 跨战斗复用按 carryover HP 对齐 downed 标记 (上一场 0 血单位下一场仍 downed; 满血则活)。
+	sync_downed_state()
+
+
 func get_stats() -> Dictionary:
 	return {
 		"hp": attribute_set.hp,
@@ -296,6 +314,8 @@ func set_current_hp(value: float) -> void:
 	if hp < 0.0:
 		hp = attribute_set.max_hp
 	attribute_set.set_hp_base(hp)
+	# 读档/还原后按 carryover HP 对齐 downed 标记 (0 血 → is_dead, 否则活)。
+	sync_downed_state()
 
 
 ## adr/0001 读档统一入口: 先按 species_base 重算派生六维 (含装备折叠), 再还原 carryover HP。
@@ -324,7 +344,7 @@ func to_dict() -> Dictionary:
 	}
 
 
-## 装备容器内物品的 stat_mods flat 累加 (× count)。容器未设 → 空。取代旧 _fold_equipment_stats。
+## 装备容器内物品的 stat_mods flat 累加 (× count)。容器未设 → 空。取代旧投影期装备折叠。
 func _equipment_mods() -> Dictionary:
 	var mods := {}
 	if equipment_container_id <= 0:

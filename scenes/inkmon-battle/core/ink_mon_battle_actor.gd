@@ -27,6 +27,14 @@ func is_dead() -> bool:
 	return _is_dead
 
 
+## 按当前 HP 重建 downed 真相 (adr/0001: 死单位留 registry/HP=0 须跨存档 + 跨战斗保留)。
+## 读档 (set_current_hp) / 战斗复用 (reset_battle_runtime) 时调 —— 否则 from_dict 新建的 actor
+## _is_dead 默认 false, 一只 0-HP 单位会被 is_dead() 误判为"活着" (与 carryover HP 不一致, 违 P017)。
+## 战斗内死亡仍走 check_death 的一次性闩 (触发死亡事件); 本方法只在 battle 外按 HP 对齐标记。
+func sync_downed_state() -> void:
+	_is_dead = get_attribute_set().hp <= 0.0
+
+
 func is_pre_event_responsive() -> bool:
 	return not _is_dead
 

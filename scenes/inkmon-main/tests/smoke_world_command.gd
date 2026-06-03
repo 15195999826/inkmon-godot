@@ -49,9 +49,7 @@ func _make_gi() -> InkMonWorldGI:
 	var gi := GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
-	var session := InkMonGameSession.new()
-	session.begin_new_game()
-	gi.setup_overworld(session)
+	gi.new_game()
 	return gi
 
 
@@ -77,14 +75,14 @@ func _test_buy_command_is_async_and_signals() -> String:
 	gi.command_applied.connect(func(result: Dictionary) -> void:
 		results.append(result)
 	)
-	var gold_before := gi.session.player_state.gold
+	var gold_before := gi.player_actor.gold
 	gi.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
-	if gi.session.player_state.gold != gold_before:
+	if gi.player_actor.gold != gold_before:
 		return "BuyCommand must not spend gold before tick (A)"
 	if not results.is_empty():
 		return "command_applied must not fire before tick drain"
 	gi.tick(FIXED_DT)
-	if gi.session.player_state.gold != gold_before - MINOR_RUNE_PRICE:
+	if gi.player_actor.gold != gold_before - MINOR_RUNE_PRICE:
 		return "BuyCommand drain should spend %d gold" % MINOR_RUNE_PRICE
 	if results.size() != 1 or not bool(results[0].get("ok", false)):
 		return "BuyCommand should emit exactly one ok command_applied result"
@@ -95,7 +93,7 @@ func _test_buy_command_is_async_and_signals() -> String:
 ## 4:cultivation npc-action command drain 后 lead 升一级。
 func _test_cultivation_command() -> String:
 	var gi := _make_gi()
-	var lead := gi.session.player_state.roster[0]
+	var lead := gi.roster[0]
 	var level_before := lead.level
 	gi.submit(InkMonNpcActionCommand.new("cultivation", InkMonCultivationNpcHandler.ACTION_CULTIVATE_LEAD))
 	if lead.level != level_before:
@@ -134,18 +132,18 @@ func _test_iworldquery_facade() -> String:
 	# 只读转发与底层一致。
 	if query.get_player_coord() != gi.get_player_coord():
 		return "IWorldQuery should forward get_player_coord to the gi"
-	if query.session != gi.session:
-		return "IWorldQuery should forward the session getter"
+	if query.player_actor != gi.player_actor:
+		return "IWorldQuery should forward the player_actor getter"
 	if not query.has_npc_handler("shop") or query.get_world_actor(InkMonWorldGrid.PLAYER_ID) == null:
 		return "IWorldQuery should forward has_npc_handler / get_world_actor"
 	# submit 经 facade 入队,tick drain 后等价于直接 submit(扣金币)。
-	var gold_before := gi.session.player_state.gold
+	var gold_before := gi.player_actor.gold
 	query.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
 	gi.tick(FIXED_DT)
-	if gi.session.player_state.gold != gold_before - MINOR_RUNE_PRICE:
+	if gi.player_actor.gold != gold_before - MINOR_RUNE_PRICE:
 		return "IWorldQuery.submit should reach the command queue (gold spent on drain)"
-	# 隔离:facade 不暴露 concrete GI / flow(无 get_gi);表演只能经 read+submit。
-	if query.has_method("get_gi") or query.has_method("request_training_battle") or query.has_method("setup_overworld"):
+	# 隔离:facade 不暴露 concrete GI / flow / lifecycle(无 get_gi / 序列化 / 起战斗);表演只能经 read+submit。
+	if query.has_method("get_gi") or query.has_method("request_training_battle") or query.has_method("to_dict"):
 		return "IWorldQuery must NOT expose concrete GI / flow / lifecycle (isolation)"
 	GameWorld.destroy_all_instances()
 	return ""

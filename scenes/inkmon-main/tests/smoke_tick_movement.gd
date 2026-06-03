@@ -5,7 +5,7 @@ extends Node
 ##   1. 确定性:同一 move command 序列两跑 → 位级一致世界态(final cell + 逐格 visited 序列)。
 ##   2. move 跨 tick:enqueue 后 0 tick 仍在起点;1 tick 未跨格(progress<步时);足够 tick 到终点。
 ##   3. 事件由 tick 产:enqueue 时零 actor_position_changed;事件在 tick 期逐格 emit,末格 == 终点。
-##   4. 无双写:移动只改 grid occupant / actor.hex_position,不写 session(save 才同步)。
+##   (adr/0001: 统一 live-actor 单一表示 —— avatar 位置即运行真相, 无独立 session 字段, 故无"双写"可言。)
 
 
 const FIXED_DT := 1.0 / 30.0
@@ -66,12 +66,6 @@ func _run() -> String:
 	if str(visited_a) != str(run_b["visited"]):
 		return "non-deterministic visited cell sequence across two identical command runs"
 
-	# 4. 无双写:移动只改运行时(grid occupant),session 存档字段保持旧值 → 与运行时背离(save 才 sync)。
-	if run_a["session_coord_after"] != run_a["session_coord_before"]:
-		return "movement must not write player coord into session (field must stay until save)"
-	if run_a["session_coord_after"] == run_a["final"]:
-		return "session stored coord must stay stale vs runtime during move (proves no double-write)"
-
 	# 5. near-npc 同步信号:TARGET(3,-1)与 Shop 邻接 → tick 期间 near 真相变,emit near_npc_changed。
 	#    与 actor_position_changed 同源契约:由 tick 产(非 enqueue)、携新值、可位级重放。
 	if str(run_a["near_final"]) == "":
@@ -93,12 +87,9 @@ func _run_scenario() -> Dictionary:
 	var gi := GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
-	var session := InkMonGameSession.new()
-	session.begin_new_game()
-	gi.setup_overworld(session)
+	gi.new_game()
 
 	var start_cell := gi.get_player_coord()
-	var session_coord_before := _session_player_coord(session)
 	var player_id := gi.get_world_actor("player").get_id()
 	var visited: Array[Vector2i] = []
 	gi.actor_position_changed.connect(func(actor_id: String, _old_coord: HexCoord, new_coord: HexCoord) -> void:
@@ -125,8 +116,6 @@ func _run_scenario() -> Dictionary:
 	var final_cell := gi.get_player_coord()
 	var near_final := gi.near_npc_id
 
-	var session_coord_after := _session_player_coord(session)
-
 	var result := {
 		"start": start_cell,
 		"before_tick": before_tick,
@@ -137,8 +126,6 @@ func _run_scenario() -> Dictionary:
 		"near_events_at_enqueue": near_events_at_enqueue,
 		"near_events": near_events,
 		"near_final": near_final,
-		"session_coord_before": session_coord_before,
-		"session_coord_after": session_coord_after,
 	}
 	GameWorld.destroy_all_instances()
 	return result
@@ -148,8 +135,3 @@ func _axial_distance(a: Vector2i, b: Vector2i) -> int:
 	var dq := a.x - b.x
 	var dr := a.y - b.y
 	return int((abs(dq) + abs(dq + dr) + abs(dr)) / 2)
-
-
-func _session_player_coord(session: InkMonGameSession) -> Vector2i:
-	var coord := session.player_state.overworld.get("player_coord", {}) as Dictionary
-	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))

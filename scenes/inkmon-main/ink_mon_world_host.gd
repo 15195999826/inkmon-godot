@@ -17,11 +17,6 @@ const SAVE_SLOT_COUNT := 3
 const FIXED_DT := 1.0 / 30.0
 const MAX_TICKS_PER_FRAME := 8
 
-## session 真相在 Logic(InkMonWorldGI.session);Host 只读委托(单一所有权,§3 不双写)。
-var session: InkMonGameSession:
-	get:
-		return _world_gi.session if _world_gi != null else null
-
 ## 战斗 flow 真相(_active_instance_id != "" ⇒ 战斗中);Host 控制面持有,推给 Presentation 派生 app_state。
 var _active_instance_id := ""
 ## 训练战 flow 去重锁:从收到 start_battle intent 到 _begin_training_battle_flow 跑完之间为 true,
@@ -41,7 +36,8 @@ func _ready() -> void:
 	name = "WorldHost"
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
-	_setup_overworld_runtime(_new_game_session())
+	_create_world_gi()
+	_world_gi.new_game()
 	_presentation = InkMonWorldPresentation.new()
 	add_child(_presentation)
 	# Host 收 Presentation 上抛的 flow/lifecycle 请求(单向:Host connect 表演的信号,表演不引用 Host)。
@@ -152,8 +148,8 @@ func _complete_battle_if_ready() -> void:
 		return
 	if _world_gi.has_active_battle():
 		return
-	# 战斗结果内移:GI 读自己的 result_summary 并写回它持有的 session;Host 拿摘要交 Presentation 展示。
-	var result := _world_gi.apply_battle_result()
+	# adr/0001:GI 战斗结束直接把奖励落活 actor (gold→player_actor, exp→roster);Host 拿摘要交 Presentation 展示。
+	var result := _world_gi.finalize_battle_rewards()
 	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
 	_set_active_instance("")
 	_presentation.on_battle_completed(result)
@@ -166,7 +162,8 @@ func reset_session() -> Dictionary:
 	_battle_flow_pending = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
-	_setup_overworld_runtime(_new_game_session())
+	_create_world_gi()
+	_world_gi.new_game()
 	_presentation.reset_ui_state(true)
 	_bind_world_to_presentation()
 	_presentation.cancel_overworld_animation()
@@ -176,10 +173,10 @@ func reset_session() -> Dictionary:
 
 
 func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
-	# save = Host 控台操作(非 command):capture(运行时→session 单写)→ InkMonSaveFile 落盘。
-	if _world_gi != null:
-		_world_gi.capture_to_session()
-	var write_result := InkMonSaveFile.write(save_path, session)
+	# save = Host 控台操作(非 command):gi.to_dict()(遍历活 actor 序列化)→ InkMonSaveFile 纯 IO 落盘。
+	if _world_gi == null:
+		return _scene_result(false, "world not initialized")
+	var write_result := InkMonSaveFile.write(save_path, _world_gi.to_dict())
 	if not bool(write_result.get("ok", false)):
 		return _scene_result(false, str(write_result.get("message", "save failed")))
 	_presentation.add_event("saved game: %s" % save_path)
@@ -207,19 +204,18 @@ func _slot_path(slot: int) -> String:
 
 
 func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
-	# load = Host 控台操作:InkMonSaveFile 读 → from_dict → 重建 world(setup_overworld 内 hydrate)。
+	# load = Host 控台操作:InkMonSaveFile 读 → 重建 GI → gi.from_dict(data) 据存档建活 actor。
 	var read_result := InkMonSaveFile.read(save_path)
 	if not bool(read_result.get("ok", false)):
 		return _scene_result(false, str(read_result.get("message", "load failed")))
 	var data := read_result.get("data", {}) as Dictionary
 
-	var loaded_session := InkMonGameSession.new()
-	var save_loaded := loaded_session.from_dict(data)
 	_set_active_instance("")
 	_battle_flow_pending = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
-	_setup_overworld_runtime(loaded_session)
+	_create_world_gi()
+	var save_loaded := _world_gi.from_dict(data if data != null else {})
 	# load 读档:轻清 UI(保留 move_result/ui_message/events,对齐重构前 load 行为)。
 	_presentation.reset_ui_state(false)
 	_bind_world_to_presentation()
@@ -232,23 +228,15 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	return _scene_result(true, "loaded game")
 
 
-## Host = composition root:建唯一持久 world GI(World-owns-Battle),把 session 交给它装配
-## 主世界运行时(grid / world actors / move controller / npc 表 / near-npc 全在 Logic)。
-## 信号接线与 refresh 由 Presentation.bind_world 负责(调方在创建/重建 GI 后调用)。
-func _setup_overworld_runtime(session_to_use: InkMonGameSession) -> void:
+## Host = composition root:建唯一持久 world GI(World-owns-Battle)。装配 (new_game / from_dict) 由调方
+## 在本方法后调 GI 方法完成。信号接线与 refresh 由 Presentation.bind_world 负责。
+func _create_world_gi() -> void:
 	# 世界(重)建的唯一入口:自增代际 → 作废任何指向旧世界的 in-flight deferred flow(stale-intent guard)。
 	_world_generation += 1
 	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "failed to create InkMonWorldGI")
-	_world_gi.setup_overworld(session_to_use)
-
-
-func _new_game_session() -> InkMonGameSession:
-	var new_session := InkMonGameSession.new()
-	new_session.begin_new_game()
-	return new_session
 
 
 ## 把当前 world GI 接到 Presentation:造 IWorldQuery facade 交给它(read+submit),并由 Host 连 GI 的 3 个
@@ -282,6 +270,16 @@ func get_dev_agent_state() -> Dictionary:
 
 func get_dev_agent_layout_state() -> Dictionary:
 	return _presentation.get_layout_state() if _presentation != null else {}
+
+
+# === 活 actor 只读访问 (adr/0001; session getter 已删, 玩家/roster 真相在 Logic GI) ===
+
+func get_player_actor() -> InkMonPlayerActor:
+	return _world_gi.player_actor if _world_gi != null else null
+
+
+func get_roster() -> Array[InkMonUnitActor]:
+	return _world_gi.roster if _world_gi != null else []
 
 
 # === 公开 API facade:输入/UI 操作转发给 Presentation(CQRS 写/读在 Presentation ↔ Logic)===

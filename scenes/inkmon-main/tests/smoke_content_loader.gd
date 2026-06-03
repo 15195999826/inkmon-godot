@@ -123,20 +123,18 @@ func _run() -> String:
 	if not empty_errors.is_empty():
 		return "empty-units contract should validate, got %s" % JSON.stringify(empty_errors)
 
-	# (3e) RosterEntry.from_birth on a content-only species: no crash, projected elements +
-	# stage + name_en flow through, gracefully no skill slots. (Battle-SPAWNING such a species
-	# still needs skill data — the unit actor requires skills — out of P1 scope.)
-	var birth := InkMonRosterEntry.from_birth(9001, EXPECT_SPECIES, 42)
-	if birth.elements.size() != 1 or birth.elements[0] != "earth":
-		return "from_birth(%s).elements = %s, expected [earth]" % [EXPECT_SPECIES, JSON.stringify(birth.elements)]
-	if birth.stage != EXPECT_STAGE:
-		return "from_birth(%s).stage = %s, expected %s" % [EXPECT_SPECIES, birth.stage, EXPECT_STAGE]
-	if birth.species_id != EXPECT_SPECIES:
-		return "from_birth(%s).species_id = %s, expected %s" % [EXPECT_SPECIES, birth.species_id, EXPECT_SPECIES]
-	if birth.name_en != EXPECT_DISPLAY:
-		return "from_birth(%s).name_en = %s, expected %s" % [EXPECT_SPECIES, birth.name_en, EXPECT_DISPLAY]
-	if not birth.skill_slots.is_empty():
-		return "content-only from_birth should have no skill slots (skills are a later phase)"
+	# (3e) content-only 物种的出生投影 (catalog): elements + stage + display_name 从 content 流出,
+	# 技能池为空 (graceful no skill slots)。adr/0001: 出生数据由 catalog 供, GI.adopt_unit 据此建活 actor;
+	# 此处直接断言 catalog 投影 (与 actor 建造解耦; 战斗 spawning 仍需技能数据, 出 P1 scope)。
+	var birth_elements := InkMonSpeciesCatalog.get_elements(EXPECT_SPECIES)
+	if birth_elements.size() != 1 or birth_elements[0] != "earth":
+		return "catalog(%s).elements = %s, expected [earth]" % [EXPECT_SPECIES, JSON.stringify(birth_elements)]
+	if InkMonSpeciesCatalog.get_stage(EXPECT_SPECIES) != EXPECT_STAGE:
+		return "catalog(%s).stage = %s, expected %s" % [EXPECT_SPECIES, InkMonSpeciesCatalog.get_stage(EXPECT_SPECIES), EXPECT_STAGE]
+	if InkMonSpeciesCatalog.get_display_name(EXPECT_SPECIES) != EXPECT_DISPLAY:
+		return "catalog(%s).display_name = %s, expected %s" % [EXPECT_SPECIES, InkMonSpeciesCatalog.get_display_name(EXPECT_SPECIES), EXPECT_DISPLAY]
+	if not InkMonSpeciesCatalog.roll_birth_skill_slots(EXPECT_SPECIES, 42).is_empty():
+		return "content-only species should roll no skill slots (skills are a later phase)"
 
 	# (4) missing file → loaded == false, silent stub fallback (no crash).
 	var missing := InkMonSpeciesCatalog.reload_static_content_for_tests(MISSING_PATH)

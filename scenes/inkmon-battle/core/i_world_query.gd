@@ -21,10 +21,15 @@ func _init(gi: InkMonWorldGI) -> void:
 
 # === ① Query(只读) ===
 
-## 存档根(只读;写/重建走 Host 控制面,不经本 facade)。
-var session: InkMonGameSession:
+## 玩家 avatar + 玩家级数据 (gold/progression/medals/bag) 只读句柄 (adr/0001 活 actor; 写走 command/handler)。
+var player_actor: InkMonPlayerActor:
 	get:
-		return _gi.session if _gi != null else null
+		return _gi.player_actor if _gi != null else null
+
+## 出战 InkMon 活 actor 列表 (只读; 跨战斗持久)。
+var roster: Array[InkMonUnitActor]:
+	get:
+		return _gi.roster if _gi != null else []
 
 ## 与玩家相邻的 NPC id(""=无)。
 var near_npc_id: String:

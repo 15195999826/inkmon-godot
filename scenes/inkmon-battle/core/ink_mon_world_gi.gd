@@ -30,6 +30,15 @@ signal command_applied(result: Dictionary)
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
 const STEP_DURATION := 0.22
 
+## 存档版本 (adr/0001 统一 live-actor 模型, 旧 session 模型档不兼容 → 不符即丢弃重开)。
+const SAVE_VERSION := 2
+## 新游戏默认出战上限 (左队取 roster 前 N)。
+const MAX_BATTLE_UNITS := 4
+## 战斗奖励 (从旧玩家状态类内移; 战斗结束直接落活 actor / player_actor, 无摘要回写)。
+const WIN_REWARD_GOLD := 25
+const WIN_EXP := 5
+const LOSS_EXP := 1
+
 
 var tick_count := 0
 var left_team: Array[InkMonUnitActor] = []
@@ -41,10 +50,13 @@ var overworld_grid_model: GridMapModel = null
 ## (不 equip ability、不注册 event handler,故战斗 tick / event 广播都碰不到)。
 var world_actors: Dictionary = {}
 
-# === 主世界运行时(P3 从 Host 内移;Logic 层持有真相,Host 只 delegate)===
-## 存档根 + 世界运行真相。Host(composition root)建好后交给 GI 持有(setup_overworld);
-## Host 经只读 `session` getter 委托访问,不另存一份(单一所有权)。
-var session: InkMonGameSession = null
+# === 主世界运行时(adr/0001 统一 live-actor;Logic 层持有真相,Host 只 delegate)===
+## 玩家走路 avatar + 玩家级数据 (gold/progression/medals/bag) = 常驻 registry 的活 actor。
+## 同时进 world_actors["player"] (位置/移动) 与本字段 (玩家级数据访问)。
+var player_actor: InkMonPlayerActor = null
+## 出战 InkMon = 常驻 registry 的活 actor (有序; 跨战斗复用; 死留 registry/HP=0; 进存档)。
+## 战斗时左队取本数组前 MAX_BATTLE_UNITS 只 (原地战斗, 无投影/回写)。
+var roster: Array[InkMonUnitActor] = []
 ## 主世界 NPC 表(位置 / 显示名 / 类型)。v1 hardcode stub(CONTEXT: NPC 仍 stub)。
 var npc_defs: Dictionary = {
 	"shop": {
@@ -101,17 +113,166 @@ func _init(id_value: String = "") -> void:
 	battle_finished.connect(_on_battle_finished)
 
 
-## P3: 主世界运行时一次性装配。Host(composition root)建好 GI 后调用 —— 把 session 交给 GI 持有,
-## GI 据此建 overworld grid + 放 occupant + 注册玩家/NPC world actor + 接 move controller + 算邻近 NPC。
-func setup_overworld(p_session: InkMonGameSession) -> void:
+## adr/0001 新游戏: 建默认 player_actor + 默认 roster (活 actor 常驻 registry) + 容器, 再装配主世界。
+func new_game() -> void:
 	_ensure_started()
-	session = p_session
+	_reset_item_runtime()
+	player_actor = InkMonPlayerActor.create_new()
+	player_actor.hex_position = HexCoord.new(0, 0)
+	player_actor.bag_container_id = _register_container(&"bag")
+	roster.clear()
+	for unit_key in InkMonUnitConfig.get_default_roster(0):
+		_add_roster_unit_from_config(str(unit_key))
+	_setup_overworld_runtime()
+
+
+## adr/0001 读档: 存档数据 → 建活 actor (player + roster + 物品)。version 不符 → 丢弃重开 (返回 false), 否则 true。
+## 存档永不向后兼容 (旧 session 模型档 version<2 → discard)。
+func from_dict(data: Dictionary) -> bool:
+	if int(data.get("version", -1)) != SAVE_VERSION:
+		Log.warning("InkMonWorldGI",
+			"incompatible save version %s (expected %d) — discarding save, starting new game"
+			% [str(data.get("version", "<missing>")), SAVE_VERSION])
+		new_game()
+		return false
+	_ensure_started()
+	_reset_item_runtime()
+	var player_data := data.get("player", {}) as Dictionary
+	player_actor = InkMonPlayerActor.from_dict(player_data if player_data != null else {})
+	if not player_actor.hex_position.is_valid():
+		player_actor.hex_position = HexCoord.new(0, 0)
+	player_actor.bag_container_id = _register_container(&"bag")
+	_restore_container_items(player_actor.bag_container_id, (player_data if player_data != null else {}).get("bag", []))
+	roster.clear()
+	var roster_data := data.get("roster", []) as Array
+	if roster_data != null:
+		for unit_value in roster_data:
+			var unit_data := unit_value as Dictionary
+			if unit_data != null:
+				_add_roster_unit_from_save(unit_data)
+	_setup_overworld_runtime()
+	return true
+
+
+## adr/0001 写档: 遍历 player_actor + roster actors (各自序列化持久切片含容器物品)。Host 编排落盘。
+func to_dict() -> Dictionary:
+	# capture: 先把运行时玩家位置 (grid occupant 真相) 同步进 avatar, 再序列化 (§3 单写)。
+	var coord := get_player_coord()
+	if player_actor != null:
+		player_actor.hex_position = HexCoord.new(coord.x, coord.y)
+	var roster_data: Array[Dictionary] = []
+	for actor in roster:
+		roster_data.append(actor.to_dict())
+	return {
+		"version": SAVE_VERSION,
+		"player": player_actor.to_dict() if player_actor != null else {},
+		"roster": roster_data,
+	}
+
+
+# === 物品 / 容器 / roster 装配 (adr/0001) ===
+
+## 重置 ItemSystem session + 装 inkmon 物品域 (new_game / from_dict 起手)。
+func _reset_item_runtime() -> void:
+	ItemSystem.reset_session()
+	ItemSystem.configure_domain(InkMonItemDomain.new(), InkMonItemCatalog.new())
+
+
+## 注册一个 ItemSystem 容器, 返回 runtime 容器 id (>0)。容器 id 不进存档, 每次 load 重建。
+func _register_container(container_name: StringName, capacity: int = -1) -> int:
+	var container := BaseContainer.new()
+	container.container_name = container_name
+	container.space_config = ContainerSpaceConfig.create_unordered(capacity)
+	var cid := ItemSystem.register_container(container)
+	Log.assert_crash(cid > 0, "InkMonWorldGI", "failed to register container: %s" % str(container_name))
+	return cid
+
+
+## 把存档物品快照还原进容器 (config_id/count/slot_index)。
+func _restore_container_items(container_id: int, items: Variant) -> void:
+	var item_list := items as Array
+	if item_list == null:
+		return
+	for item_value in item_list:
+		var item := item_value as Dictionary
+		if item == null:
+			continue
+		var config_id := StringName(str(item.get("config_id", "")))
+		if config_id == &"":
+			continue
+		var result := ItemSystem.create_item(
+			container_id, config_id, int(item.get("count", 1)), int(item.get("slot_index", -1)))
+		Log.assert_crash(result.success, "InkMonWorldGI",
+			"failed to restore item %s: %s" % [str(config_id), result.error_message])
+
+
+## 默认队伍单位 (新游戏): 从 UnitConfig 建活 actor + 注册装备容器, 再按 SpeciesCatalog 统一重算派生六维
+## (满血)。base 源与读档路径一致 (都走 SpeciesCatalog.get_base_stats), 避免 new-game 态与 reload 态数值漂移;
+## stub 物种 catalog fallback 回 UnitConfig, 数值不变 (M1 平衡保持)。
+func _add_roster_unit_from_config(unit_key: String) -> InkMonUnitActor:
+	var actor := InkMonUnitActor.new(unit_key)
+	add_actor(actor)
+	actor.equipment_container_id = _register_container(StringName("equip:%s" % actor.get_id()))
+	actor.restore_persistent_state(InkMonSpeciesCatalog.get_base_stats(actor.species), -1.0)
+	roster.append(actor)
+	return actor
+
+
+## 读档单位: 从持久切片建活 actor + 注册装备容器 + 还原装备物品 + 重算派生六维与 carryover HP + 入 roster/registry。
+func _add_roster_unit_from_save(unit_data: Dictionary) -> InkMonUnitActor:
+	var actor := InkMonUnitActor.from_dict(unit_data)
+	add_actor(actor)
+	actor.equipment_container_id = _register_container(StringName("equip:%s" % actor.get_id()))
+	_restore_container_items(actor.equipment_container_id, unit_data.get("equipment", []))
+	actor.restore_persistent_state(
+		InkMonSpeciesCatalog.get_base_stats(actor.species), float(unit_data.get("hp", -1.0)))
+	roster.append(actor)
+	return actor
+
+
+## 在玩家 bag 容器建物品 (shop 购买入袋)。供 NPC handler / UI 调。
+func create_bag_item(config_id: StringName, count: int = 1, slot_index: int = -1) -> ItemCreateResult:
+	Log.assert_crash(player_actor != null and player_actor.bag_container_id > 0,
+		"InkMonWorldGI", "bag container not ready")
+	return ItemSystem.create_item(player_actor.bag_container_id, config_id, count, slot_index)
+
+
+## 领养 = 程序化出生 (from_birth 确定性 roll 技能槽) 建活 roster actor。供 release_adopt handler 调。
+func adopt_unit(species_id: String, roll_seed: int) -> InkMonUnitActor:
+	var data := {
+		"species_id": species_id,
+		"name_en": InkMonSpeciesCatalog.get_display_name(species_id),
+		"stage": InkMonSpeciesCatalog.get_stage(species_id),
+		"elements": InkMonSpeciesCatalog.get_elements(species_id),
+		"level": 1,
+		"exp": 0,
+		"skill_slots": InkMonSpeciesCatalog.roll_birth_skill_slots(species_id, roll_seed),
+		"engravings": [],
+		"hp": -1.0,
+	}
+	var actor := InkMonUnitActor.from_dict(data)
+	add_actor(actor)
+	actor.equipment_container_id = _register_container(StringName("equip:%s" % actor.get_id()))
+	actor.restore_persistent_state(InkMonSpeciesCatalog.get_base_stats(species_id), -1.0)
+	roster.append(actor)
+	return actor
+
+
+## 重算某 roster actor 的派生六维 (cultivation 升级 / 进化 / 装备变更后调; species base 由 SpeciesCatalog 供)。
+func refresh_unit_stats(actor: InkMonUnitActor) -> void:
+	if actor == null:
+		return
+	actor.apply_derived_stats(InkMonSpeciesCatalog.get_base_stats(actor.species))
+
+
+## 主世界运行时装配 (new_game / from_dict 共用): grid + npc handler + 放 occupant + 注册 world actor + systems。
+func _setup_overworld_runtime() -> void:
 	_build_npc_handlers()
 	overworld_grid = InkMonWorldGrid.new()
 	overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
-	# load/new-game 侧:从 session 把玩家 + NPC 灌回 grid occupant(§3 单读不双写)。
-	# actor 此刻未生成,hydrate 的 actor 同步被跳过;紧随的 _spawn_world_actors 据 grid 把玩家 actor 放对位。
-	hydrate_from_session()
+	# 用 player_actor 持久坐标 (存档真相) 灌 grid occupant —— 不能用 get_player_coord() (此刻 grid 刚建、
+	# 占用未放, 会读回 (0,0) 丢掉存档坐标)。player_actor 随后在 _spawn_world_actors 进 registry。
+	overworld_grid.sync_occupants(_player_actor_coord(), npc_defs)
 	overworld_grid_model = overworld_grid.model
 	grid = overworld_grid.model
 	_register_world_systems()
@@ -217,49 +378,18 @@ func _advance_actor_movement(actor: InkMonWorldActor, dt: float) -> bool:
 	return crossed
 
 
-## 运行时玩家位置真相 = 主世界 grid 的 occupant(§3 不双写)。grid 未建时回退存档字段。
+## 运行时玩家位置真相 = 主世界 grid 的 occupant(§3 不双写)。grid 未建时回退 avatar 持久坐标。
 func get_player_coord() -> Vector2i:
 	if overworld_grid != null:
 		return overworld_grid.get_player_coord()
-	return saved_player_coord()
+	return _player_actor_coord()
 
 
-## 存档字段里的玩家位置:只在 load 侧读(放 occupant)/ save 侧写,中间不双写(§3)。
-func saved_player_coord() -> Vector2i:
-	if session == null or session.player_state == null:
+## avatar (player_actor) 自身的持久坐标:grid 未建时的回退源 (new_game/from_dict 已设好)。
+func _player_actor_coord() -> Vector2i:
+	if player_actor == null or not player_actor.hex_position.is_valid():
 		return Vector2i.ZERO
-	var coord := session.player_state.overworld.get("player_coord", {}) as Dictionary
-	if coord == null:
-		return Vector2i.ZERO
-	return Vector2i(int(coord.get("q", 0)), int(coord.get("r", 0)))
-
-
-## capture(save 侧,P7):把运行时世界态(玩家 occupant 位置)写回持有的 session 存档字段一次。
-## 单写不双写(§3):移动期间绝不写 session,只有 capture(save 触发)写这一次。
-func capture_to_session() -> void:
-	if session == null or session.player_state == null:
-		return
-	var coord := get_player_coord()
-	session.player_state.overworld["player_coord"] = {
-		"q": coord.x,
-		"r": coord.y,
-	}
-
-
-## hydrate(load/new-game 侧,P7):把 session 存档字段灌回运行时世界态 —— 玩家 + NPC occupant,
-## 且玩家 actor hex_position 同步到存档坐标、清在途移动态。单读不双写(§3)。
-## setup_overworld 内调用时玩家 actor 尚未 spawn(get_world_actor 返回 null,actor 同步跳过)。
-func hydrate_from_session() -> void:
-	if overworld_grid == null:
-		return
-	var coord := saved_player_coord()
-	overworld_grid.sync_occupants(coord, npc_defs)
-	var player := get_world_actor(InkMonWorldGrid.PLAYER_ID)
-	if player != null:
-		player.hex_position = HexCoord.new(coord.x, coord.y)
-		player.moving_to = HexCoord.invalid()
-		player.move_progress = 0.0
-		player.pending_path = []
+	return player_actor.hex_position.to_axial()
 
 
 ## 重算与玩家相邻(axial 距离 ≤1)的 NPC;写入 near_npc_id("" = 无邻近),变化则 emit。
@@ -292,9 +422,16 @@ func _set_near_npc(value: String) -> void:
 	near_npc_changed.emit(near_npc_id)
 
 
-## 玩家 + 6 NPC 注册为 InkMonWorldActor 进本 GI registry(world actors 表)。
+## 玩家 (持久 player_actor) + 6 NPC (InkMonWorldActor) 进本 GI registry(world actors 表)。
+## 玩家 avatar = new_game/from_dict 已建的 player_actor 本体 (非新建), 进 registry + world_actors。
 func _spawn_world_actors() -> void:
-	spawn_world_actor(InkMonWorldGrid.PLAYER_ID, "Player", get_player_coord())
+	var player_coord := get_player_coord()
+	player_actor.hex_position = HexCoord.new(player_coord.x, player_coord.y)
+	player_actor.moving_to = HexCoord.invalid()
+	player_actor.move_progress = 0.0
+	player_actor.pending_path = []
+	add_actor(player_actor)
+	world_actors[InkMonWorldGrid.PLAYER_ID] = player_actor
 	for npc_id_value in npc_defs.keys():
 		var npc_id := str(npc_id_value)
 		var npc_def := npc_defs[npc_id] as Dictionary
@@ -330,42 +467,65 @@ func get_world_actor(key: String) -> InkMonWorldActor:
 
 
 ## 在本 world GI 内起一场战斗 (procedure 模式)。可重复调用 (reset-on-start 清上一场)。
+## 此路径建**临时**队伍 (从 config / 默认 roster key); 玩家 roster 出战走 request_training_battle。
 func start_battle_procedure(config: Dictionary = {}) -> void:
-	_ensure_started()
 	_reset_battle_state()
 	_recording_enabled = config.get("recording", true)
+	_configure_battle_grid(config)
+	_setup_teams(config)
+	_begin_battle_with_current_teams()
 
+
+## adr/0001:在本 GI 内起 training 战斗 (World-owns-Battle), 左队 = **活 roster** (原地战斗, 无投影/回写),
+## 右队 = 临时训练假人。Host 只说"打 training"。
+func request_training_battle() -> void:
+	_reset_battle_state()
+	_recording_enabled = false
+	_configure_battle_grid({})
+	left_team = _battle_roster_slice()
+	right_team = _build_training_dummies()
+	_begin_battle_with_current_teams()
+
+
+## 战斗 grid 配置 (config.map_config 或默认)。
+func _configure_battle_grid(config: Dictionary) -> void:
+	_ensure_started()
 	var grid_config := config.get("map_config", null) as GridMapConfig
 	if grid_config == null:
 		grid_config = _build_default_grid_config()
 	configure_grid(grid_config)
 
-	_setup_teams(config)
+
+## 用当前 left_team/right_team 起战斗: 每只备战 (全新 ability_set + 装技能 + 归零 ATB) → 布阵 → 注册 timeline → 开打。
+func _begin_battle_with_current_teams() -> void:
 	for actor in get_all_units():
-		actor.equip_abilities(self)
+		_prepare_actor_for_battle(actor)
 	_place_team_fixed(left_team, [
 		HexCoord.new(-3, -1), HexCoord.new(-3, 0), HexCoord.new(-3, 1), HexCoord.new(-2, 0),
 	])
 	_place_team_fixed(right_team, [
 		HexCoord.new(3, -1), HexCoord.new(3, 0), HexCoord.new(3, 1), HexCoord.new(2, 0),
 	])
-
 	InkMonAllSkills.register_all_timelines()
-
 	var participants: Array[Actor] = []
 	for actor in get_all_units():
 		participants.append(actor)
 	start_battle(participants)
 
 
-## P5:在本 GI 内起一场 training 战斗(World-owns-Battle)。config 由 GI 自建 —— player roster
-## 投影自持有的 session,敌方为训练假人;Host 只说"打 training",不再在 main 层拼 config。
-func request_training_battle() -> void:
-	start_battle_procedure({
-		"recording": false,
-		"left_roster_snapshots": session.project_player_battle_roster(4),
-		"right_roster_snapshots": _build_training_enemy_snapshots(),
-	})
+## 备战单只: 全新 ability_set (持久 roster actor 跨战斗复用须清上场授予, 防重复 grant) + 重新装技能。
+func _prepare_actor_for_battle(actor: InkMonUnitActor) -> void:
+	actor.reset_battle_runtime()
+	actor.equip_abilities(self)
+
+
+## 出战队 = 活 roster 前 MAX_BATTLE_UNITS 只 (常驻 registry, 已 add_actor; 此处只取切片 + 标队伍)。
+func _battle_roster_slice() -> Array[InkMonUnitActor]:
+	var result: Array[InkMonUnitActor] = []
+	for i in range(mini(MAX_BATTLE_UNITS, roster.size())):
+		roster[i].set_team_id(0)
+		result.append(roster[i])
+	return result
 
 
 func tick(dt: float) -> void:
@@ -384,14 +544,24 @@ func configure_grid(config: GridMapConfig) -> void:
 func remove_actor(actor_id: String) -> bool:
 	var actor := super.get_actor(actor_id)
 	if actor != null and actor is InkMonBattleActor:
-		var battle_actor := actor as InkMonBattleActor
-		if grid != null and battle_actor.hex_position != null and battle_actor.hex_position.is_valid():
-			var occupant: Variant = grid.get_occupant(battle_actor.hex_position)
-			if occupant == battle_actor:
-				grid.remove_occupant(battle_actor.hex_position)
-			for coord in _find_reservations_by(actor_id):
-				grid.cancel_reservation(coord)
+		_clear_battle_grid_state(actor as InkMonBattleActor)
 	return super.remove_actor(actor_id)
+
+
+## 清一个 battle actor 在 grid 上的外部状态 (occupant + reservation), 不动 registry (P021)。
+## remove_actor (整只移除) 与持久 roster actor 的战斗 teardown (留 registry) 共用此清理。
+func _clear_battle_grid_state(battle_actor: InkMonBattleActor) -> void:
+	if grid == null:
+		return
+	if battle_actor.hex_position != null and battle_actor.hex_position.is_valid():
+		var occupant: Variant = grid.get_occupant(battle_actor.hex_position)
+		# 守卫 occupant is InkMonBattleActor: 主世界 grid 的 occupant 是 string id, 直接 == Object 会报
+		# Invalid operands; 且 reset-on-start 时 grid 已切回 overworld + actor 仍持上场 battle 坐标,
+		# 故对 overworld grid 此处天然 no-op (battle grid 每场 reconfigure 重置占用)。
+		if occupant is InkMonBattleActor and occupant == battle_actor:
+			grid.remove_occupant(battle_actor.hex_position)
+	for coord in _find_reservations_by(battle_actor.get_id()):
+		grid.cancel_reservation(coord)
 
 
 func get_actor(actor_id: String) -> InkMonBattleActor:
@@ -432,40 +602,44 @@ func get_result_summary() -> Dictionary:
 	if _result == "":
 		return {}
 	var winner_team := "left" if _result == "left_win" else "right"
-	var player_team := left_team
-	var survivors := _source_entry_ids(player_team, false)
-	var casualties := _source_entry_ids(player_team, true)
 	return {
 		"result": _result,
 		"winner_team": winner_team,
 		"source_team": "left",
-		"survivors": survivors,
-		"casualties": casualties,
-		"per_entry": _per_entry_summary(player_team),
-		"reward_gold": 25 if winner_team == "left" else 0,
+		"reward_gold": WIN_REWARD_GOLD if winner_team == "left" else 0,
 	}
 
 
-## P5:战斗结束把结果写回持有的 session(GI 持 session,结果应用内移)。返回结果摘要供表演展示。
-func apply_battle_result() -> Dictionary:
-	var result := get_result_summary()
-	if session != null and session.player_state != null:
-		session.player_state.apply_battle_result(result)
-	return result
+## adr/0001:战斗结束直接把奖励落在活 actor 上 —— gold 加 player_actor, exp 加左队中属 roster 的活 actor。
+## 无"摘要回写"(actor 即真相, HP 已在战斗中原地变)。返回结果摘要供表演展示。
+func finalize_battle_rewards() -> Dictionary:
+	var summary := get_result_summary()
+	if summary.is_empty():
+		return summary
+	var winner_team := str(summary.get("winner_team", ""))
+	if player_actor != null:
+		player_actor.gold += maxi(0, int(summary.get("reward_gold", 0)))
+	for actor in left_team:
+		if not roster.has(actor):
+			continue
+		if actor.is_dead():
+			actor.add_exp(LOSS_EXP)
+		else:
+			actor.add_exp(WIN_EXP if winner_team == "left" else LOSS_EXP)
+	return summary
 
 
-## 训练假人队(stub)。从 Host 内移 —— 战斗 config 由 GI 自建(它持 session + 战斗规则)。
-func _build_training_enemy_snapshots() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
+## 训练假人队 (临时对战单位, stub 弱数值保训练可胜)。非 roster, battle 结束随 _reset_battle_state 移除。
+func _build_training_dummies() -> Array[InkMonUnitActor]:
+	var result: Array[InkMonUnitActor] = []
 	var skills := [
 		InkMonStun.CONFIG_ID,
 		InkMonFireball.CONFIG_ID,
 		InkMonHolyHeal.CONFIG_ID,
 		InkMonPoison.CONFIG_ID,
 	]
-	for i in range(4):
-		result.append({
-			"source_entry_id": 2000 + i,
+	for i in range(MAX_BATTLE_UNITS):
+		var actor := InkMonUnitActor.create_combat_unit({
 			"species": "training_dummy_%d" % i,
 			"personality": InkMonUnitConfig.PERSONALITY_AGGRESSIVE,
 			"elements": [InkMonElementChart.WATER],
@@ -479,6 +653,9 @@ func _build_training_enemy_snapshots() -> Array[Dictionary]:
 				"speed": 70.0,
 			},
 		})
+		actor.set_team_id(1)
+		add_actor(actor)
+		result.append(actor)
 	return result
 
 
@@ -500,29 +677,29 @@ func has_npc_handler(npc_id: String) -> bool:
 	return _npc_handlers.has(npc_id)
 
 
-## Query(读):某 NPC 的可选 action 列表(表演据此建按钮,纯只读)。
+## Query(读):某 NPC 的可选 action 列表(表演据此建按钮,纯只读)。handler 收 GI 自身 (读 player_actor/roster)。
 func get_npc_actions(npc_id: String) -> Array:
 	if not _npc_handlers.has(npc_id):
 		return []
-	return (_npc_handlers[npc_id] as InkMonNpcHandler).get_actions(session)
+	return (_npc_handlers[npc_id] as InkMonNpcHandler).get_actions(self)
 
 
-## 运行 NPC action:handler 收 GI 持有的 session 自含规则;返回结果
+## 运行 NPC action:handler 收 GI 自身自含规则 (读写 player_actor/roster + 调 GI 物品/领养/进化方法);返回结果
 ## (training 含 flow intent,Host 解释起战斗 —— 战斗 flow/app_state 归 Host)。
 ## 写路径请走 submit(InkMonNpcActionCommand) —— 本方法是其 apply 目标(tick drain 内调用),结果经 command_applied 回流。
 func run_npc_action(npc_id: String, action_id: String) -> Dictionary:
 	if not _npc_handlers.has(npc_id):
 		return {"ok": false, "message": "unknown NPC handler: %s" % npc_id}
-	return (_npc_handlers[npc_id] as InkMonNpcHandler).run_action(action_id, session)
+	return (_npc_handlers[npc_id] as InkMonNpcHandler).run_action(action_id, self)
 
 
-## 购买商店物品:规则住 shop handler,收 GI 持有的 session。
+## 购买商店物品:规则住 shop handler,收 GI 自身。
 ## 写路径请走 submit(InkMonBuyCommand) —— 本方法是其 apply 目标(tick drain 内调用),结果经 command_applied 回流。
 func buy_shop_item(config_id: StringName) -> Dictionary:
 	var shop := _npc_handlers.get("shop", null) as InkMonShopNpcHandler
 	if shop == null:
 		return {"ok": false, "message": "shop handler not available"}
-	return shop.buy(session, config_id)
+	return shop.buy(self, config_id)
 
 
 func is_ended() -> bool:
@@ -579,13 +756,18 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		grid = overworld_grid_model
 
 
-## 清上一场战斗的 actor / handler / 状态, 让本实例可被下一场复用。
+## 清上一场战斗, 让本实例可被下一场复用。adr/0001:持久 roster actor **留 registry + 留 HP carryover**,
+## 只清其外部战斗态 (P021: handler / grid occupant / reservation) + 重置战斗运行时;临时对战单位整只移除。
 func _reset_battle_state() -> void:
 	for actor in get_all_units():
 		var aid := actor.get_id()
 		if GameWorld.event_processor != null:
 			GameWorld.event_processor.remove_handlers_by_owner_id(aid)
-		remove_actor(aid)
+		if roster.has(actor):
+			_clear_battle_grid_state(actor)
+			actor.reset_battle_runtime()
+		else:
+			remove_actor(aid)
 	left_team.clear()
 	right_team.clear()
 	_ended = false
@@ -600,62 +782,21 @@ func _ensure_started() -> void:
 		super.start()
 
 
+## 建**临时**队伍 (m1/默认路径): 从 config.left_roster/right_roster 或默认 roster key 建 transient actor。
+## 玩家活 roster 出战不走此路 (走 request_training_battle → _battle_roster_slice)。
 func _setup_teams(config: Dictionary) -> void:
-	if config.has("left_roster_snapshots"):
-		var left_snapshots := config.get("left_roster_snapshots", []) as Array
-		Log.assert_crash(left_snapshots != null, "InkMonWorldGI", "left_roster_snapshots must be an Array")
-		for snapshot in left_snapshots:
-			left_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 0))
-	else:
-		var left_roster: Array = config.get("left_roster", InkMonUnitConfig.get_default_roster(0))
-		for key in left_roster:
-			left_team.append(_create_team_actor(str(key), 0))
-
-	if config.has("right_roster_snapshots"):
-		var right_snapshots := config.get("right_roster_snapshots", []) as Array
-		Log.assert_crash(right_snapshots != null, "InkMonWorldGI", "right_roster_snapshots must be an Array")
-		for snapshot in right_snapshots:
-			right_team.append(_create_team_actor_from_snapshot(snapshot as Dictionary, 1))
-	else:
-		var right_roster: Array = config.get("right_roster", InkMonUnitConfig.get_default_roster(1))
-		for key in right_roster:
-			right_team.append(_create_team_actor(str(key), 1))
+	var left_roster: Array = config.get("left_roster", InkMonUnitConfig.get_default_roster(0))
+	for key in left_roster:
+		left_team.append(_create_team_actor(str(key), 0))
+	var right_roster: Array = config.get("right_roster", InkMonUnitConfig.get_default_roster(1))
+	for key in right_roster:
+		right_team.append(_create_team_actor(str(key), 1))
 
 
 func _create_team_actor(unit_key: String, team_id: int) -> InkMonUnitActor:
 	var actor := InkMonUnitActor.new(unit_key)
 	actor.set_team_id(team_id)
 	return add_actor(actor) as InkMonUnitActor
-
-
-func _create_team_actor_from_snapshot(snapshot: Dictionary, team_id: int) -> InkMonUnitActor:
-	Log.assert_crash(snapshot != null, "InkMonWorldGI", "roster snapshot must be a Dictionary")
-	var actor := InkMonUnitActor.from_battle_snapshot(snapshot)
-	actor.set_team_id(team_id)
-	return add_actor(actor) as InkMonUnitActor
-
-
-func _source_entry_ids(team: Array[InkMonUnitActor], only_dead: bool) -> Array[int]:
-	var result: Array[int] = []
-	for actor in team:
-		if actor.source_entry_id < 0:
-			continue
-		if actor.is_dead() == only_dead:
-			result.append(actor.source_entry_id)
-	return result
-
-
-func _per_entry_summary(team: Array[InkMonUnitActor]) -> Dictionary:
-	var result := {}
-	for actor in team:
-		if actor.source_entry_id < 0:
-			continue
-		result[actor.source_entry_id] = {
-			"hp_remaining": actor.attribute_set.hp,
-			"max_hp": actor.attribute_set.max_hp,
-			"alive": not actor.is_dead(),
-		}
-	return result
 
 
 func _place_team_fixed(team: Array[InkMonUnitActor], preferred_coords: Array[HexCoord]) -> void:

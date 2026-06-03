@@ -84,10 +84,14 @@ var _modal_open_requested := false
 var _npcs_initialized := false
 
 
-## session 经 query 只读读(单一所有权在 Logic)。
-var session: InkMonGameSession:
+## 玩家 avatar (gold/progression/medals/bag) 经 query 只读读(单一所有权在 Logic; adr/0001 活 actor)。
+var player_actor: InkMonPlayerActor:
 	get:
-		return _world_query.session if _world_query != null else null
+		return _world_query.player_actor if _world_query != null else null
+## 出战 InkMon 活 actor 列表 (只读委托)。
+var roster: Array[InkMonUnitActor]:
+	get:
+		return _world_query.roster if _world_query != null else []
 ## near-npc 真相在 Logic;表演只读委托。
 var _near_npc_id: String:
 	get:
@@ -532,11 +536,11 @@ func _refresh_ui() -> void:
 	if _world_layer != null:
 		_world_layer.set_player_coord(_get_player_coord())
 		_world_layer.set_near_npc_id(_near_npc_id)
-	if session != null and session.player_state != null:
+	if player_actor != null:
 		if _gold_label != null:
-			_gold_label.text = "● %d" % session.player_state.gold
+			_gold_label.text = "● %d" % player_actor.gold
 		if _rank_label != null:
-			_rank_label.text = "R%d" % int(session.player_state.progression.get("trainer_rank", 1))
+			_rank_label.text = "R%d" % int(player_actor.progression.get("trainer_rank", 1))
 	_refresh_roster_chips()
 	_refresh_prompt()
 	_refresh_panel()
@@ -650,9 +654,9 @@ func _kill_modal_tween() -> void:
 
 
 func _refresh_roster_chips() -> void:
-	if _roster_box == null or session == null or session.player_state == null:
+	if _roster_box == null or _world_query == null:
 		return
-	_panel_view.build_roster_chips(_roster_box, session.player_state.roster)
+	_panel_view.build_roster_chips(_roster_box, roster)
 
 
 func _refresh_prompt() -> void:
@@ -719,7 +723,7 @@ func _rebuild_panel_body() -> void:
 
 
 func _build_party_panel() -> void:
-	_panel_view.build_party_panel(_panel_body, session.player_state.roster)
+	_panel_view.build_party_panel(_panel_body, roster)
 
 
 func _build_bag_panel() -> void:
@@ -727,8 +731,9 @@ func _build_bag_panel() -> void:
 
 
 func _build_journal_panel() -> void:
+	var progression := player_actor.progression if player_actor != null else {}
 	_panel_view.build_journal_panel(
-		_panel_body, session.player_state.progression, _last_battle_result, open_save_load_menu)
+		_panel_body, progression, _last_battle_result, open_save_load_menu)
 
 
 func _add_action_row(action: Dictionary) -> void:
@@ -760,8 +765,8 @@ func _add_action_row(action: Dictionary) -> void:
 func get_debug_state() -> Dictionary:
 	return {
 		"state": _state_name(app_state),
-		"gold": session.player_state.gold if session != null and session.player_state != null else -1,
-		"roster_size": session.player_state.roster.size() if session != null and session.player_state != null else 0,
+		"gold": player_actor.gold if player_actor != null else -1,
+		"roster_size": roster.size(),
 		"player_coord": _get_player_coord_dict(),
 		"player_moving": _is_player_moving(),
 		"near_npc_id": _near_npc_id,
@@ -771,7 +776,7 @@ func get_debug_state() -> Dictionary:
 		"drawer_mode": _drawer_mode,
 		"modal_open": _is_modal_open(),
 		"ui_message": _last_ui_message,
-		"progression": session.player_state.progression.duplicate(true) if session != null and session.player_state != null else {},
+		"progression": player_actor.progression.duplicate(true) if player_actor != null else {},
 		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
 		"overworld_3d": _world_layer.get_debug_state() if _world_layer != null else {},
@@ -851,12 +856,9 @@ func _get_player_coord_dict() -> Dictionary:
 
 func _get_bag_snapshot() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	if session == null:
+	if player_actor == null or player_actor.bag_container_id <= 0:
 		return result
-	var bag_id := session.get_container_id(InkMonGameSession.BAG_CONTAINER)
-	if bag_id <= 0:
-		return result
-	for item_id in ItemSystem.get_items_in_container(bag_id):
+	for item_id in ItemSystem.get_items_in_container(player_actor.bag_container_id):
 		var snapshot := ItemSystem.get_item_snapshot(item_id)
 		result.append({
 			"config_id": str(snapshot.get("config_id", "")),
@@ -866,17 +868,18 @@ func _get_bag_snapshot() -> Array[Dictionary]:
 	return result
 
 
+## roster debug 快照: 从活 actor 取身份/等级/经验 + 当前/最大 HP (carryover 可见)。
 func _get_roster_snapshot() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
-	if session == null or session.player_state == null:
-		return result
-	for entry in session.player_state.roster:
+	for actor in roster:
 		result.append({
-			"entry_id": entry.entry_id,
-			"species_id": entry.species_id,
-			"name_en": entry.name_en,
-			"level": entry.level,
-			"exp": entry.exp,
+			"actor_id": actor.get_id(),
+			"species_id": actor.species,
+			"name_en": actor.get_display_name(),
+			"level": actor.level,
+			"exp": actor.exp,
+			"hp": actor.attribute_set.hp,
+			"max_hp": actor.attribute_set.max_hp,
 		})
 	return result
 

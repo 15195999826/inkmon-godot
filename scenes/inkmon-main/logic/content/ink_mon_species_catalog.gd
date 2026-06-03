@@ -215,16 +215,15 @@ static func roll_birth_skill_slots(species: String, roll_seed: int) -> Array[Dic
 	return slots
 
 
-## 进化 (模型 B, 森林多子): 遍历 species_id 的出边 → entry.level >= trigger.level 过滤 →
-## 确定性选边 (_select_evolution_edge) → 改写 species_id/name_en/stage, 保留旧 slot, X->X2
-## 升级, 新阶段补槽 roll。entry_id 不变 (进化是变身非换只)。返回是否发生进化。
-## 阈值 trigger.level 来自 contract edge-list (该物种无 contract 边时 stub evolves_to fallback),
-## godot 不再硬编码进化阈值 (adr/0010); 单位运行时等级 entry.level 仍 godot 持有。
-static func evolve_entry(entry: InkMonRosterEntry) -> bool:
-	var edges := get_evolution_edges(entry.species_id)
+## 进化 (模型 B, 森林多子, adr/0001 活 actor 原地变身): 遍历 actor.species 的出边 → actor.level >= trigger.level
+## 过滤 → 确定性选边 (_select_evolution_edge) → 改写 species/display_name/stage, 保留旧 slot, X->X2 升级,
+## 新阶段补槽 roll。actor 身份不换 (原地变身)。返回是否发生进化。派生六维由调用方 (GI.refresh_unit_stats) 重算。
+## 阈值 trigger.level 来自 contract edge-list (无 contract 边时 stub evolves_to fallback), godot 不硬编码阈值 (adr/0010)。
+static func evolve_actor(actor: InkMonUnitActor) -> bool:
+	var edges := get_evolution_edges(actor.species)
 	if edges.is_empty():
 		return false
-	var chosen := _select_evolution_edge(edges, entry)
+	var chosen := _select_evolution_edge(edges, actor)
 	if chosen.is_empty():
 		return false
 	var next_species := str(chosen.get("child_species_id", ""))
@@ -232,22 +231,22 @@ static func evolve_entry(entry: InkMonRosterEntry) -> bool:
 		return false
 
 	# 1. X->X2: 旧 slot 中可进化的技能改写 skill_id。
-	for slot in entry.skill_slots:
+	for slot in actor.skill_slots:
 		var upgraded := get_skill_evolution(str(slot.get("skill_id", "")))
 		if upgraded != "":
 			slot["skill_id"] = upgraded
-	# 2. 新阶段新增 slot (高于旧 slot 数的部分) → roll 一次写 skill_id。
-	var old_count := entry.skill_slots.size()
+	# 2. 新阶段新增 slot (高于旧 slot 数的部分) → roll 一次写 skill_id (seed = actor 实例 id 哈希, 确定性)。
+	var old_count := actor.skill_slots.size()
 	var new_count := get_slot_count(next_species)
 	for i in range(old_count, new_count):
-		entry.skill_slots.append({
+		actor.skill_slots.append({
 			"slot_index": i,
-			"skill_id": roll_skill_for_slot(next_species, i, entry.entry_id),
+			"skill_id": roll_skill_for_slot(next_species, i, hash(actor.get_id())),
 		})
-	# 3. 改写 species_id + name_en + stage (entry_id 不变)。
-	entry.species_id = next_species
-	entry.name_en = get_display_name(next_species)
-	entry.stage = get_stage(next_species)
+	# 3. 改写 species + display_name + stage (actor 原地变身, 不换 actor)。
+	actor.species = next_species
+	actor.set_display_name(get_display_name(next_species))
+	actor.stage = get_stage(next_species)
 	return true
 
 
@@ -257,18 +256,18 @@ static func evolve_entry(entry: InkMonRosterEntry) -> bool:
 ##   2) 否则取第一条无 condition 的默认枝;
 ##   3) 都没有 → {} (本级不进化)。
 ## entry.level 未达任何 trigger.level → {} (没有达标边)。
-static func _select_evolution_edge(edges: Array[Dictionary], entry: InkMonRosterEntry) -> Dictionary:
+static func _select_evolution_edge(edges: Array[Dictionary], actor: InkMonUnitActor) -> Dictionary:
 	var default_edge := {}
 	for edge in edges:
 		var trigger := edge.get("trigger", {}) as Dictionary
-		if entry.level < int(trigger.get("level", 0)):
+		if actor.level < int(trigger.get("level", 0)):
 			continue
 		var condition := trigger.get("condition", {}) as Dictionary
 		if condition == null or condition.is_empty():
 			if default_edge.is_empty():
 				default_edge = edge
 			continue
-		if evaluate_evolution_condition(condition, entry):
+		if evaluate_evolution_condition(condition, actor):
 			return edge
 	return default_edge
 
@@ -279,15 +278,15 @@ static func _select_evolution_edge(edges: Array[Dictionary], entry: InkMonRoster
 ## - item: ⛔ BLOCKED — item 域未迁 server, 无"按 entry 查持有"接口 → stub false + 软警告, 勿假进化。
 ## - 未知 type → fail-safe false + 软警告 (遇生成端新 type 不假进化)。
 ## 空 condition 由 _select_evolution_edge 当默认枝处理 (不进本函数)。
-static func evaluate_evolution_condition(condition: Dictionary, entry: InkMonRosterEntry) -> bool:
+static func evaluate_evolution_condition(condition: Dictionary, actor: InkMonUnitActor) -> bool:
 	var cond_type := str(condition.get("type", ""))
 	var params_value: Variant = condition.get("params", {})
 	var params: Dictionary = params_value if params_value is Dictionary else {}
 	match cond_type:
 		"element":
-			return _eval_condition_element(params, entry)
+			return _eval_condition_element(params, actor)
 		"stat":
-			return _eval_condition_stat(params, entry)
+			return _eval_condition_stat(params, actor)
 		"item":
 			Log.warning(
 				"InkMonSpeciesCatalog",
@@ -302,23 +301,25 @@ static func evaluate_evolution_condition(condition: Dictionary, entry: InkMonRos
 			return false
 
 
-static func _eval_condition_element(params: Dictionary, entry: InkMonRosterEntry) -> bool:
+static func _eval_condition_element(params: Dictionary, actor: InkMonUnitActor) -> bool:
 	var primary := str(params.get("primary", ""))
 	if primary == "":
 		return false
-	return not entry.elements.is_empty() and entry.elements[0] == primary
+	return not actor.elements.is_empty() and actor.elements[0] == primary
 
 
-static func _eval_condition_stat(params: Dictionary, entry: InkMonRosterEntry) -> bool:
+static func _eval_condition_stat(params: Dictionary, actor: InkMonUnitActor) -> bool:
 	var stat := str(params.get("stat", ""))  # hp|ad|ap|armor|mr|speed (hp→max_hp)
 	var comparator := str(params.get("cmp", ""))
 	if stat == "" or comparator == "" or not params.has("value"):
 		return false
 	var key := "max_hp" if stat == "hp" else stat
-	var stats := entry.derive_battle_stats()
-	if not stats.has(key):
+	# 派生六维 = species base × 等级缩放 (无装备), 与旧 RosterEntry.derive_battle_stats 同语义。
+	var base := get_base_stats(actor.species)
+	if not base.has(key):
 		return false
-	var lhs := float(stats.get(key, 0.0))
+	var scale := 1.0 + float(actor.level - 1) * InkMonUnitActor.LEVEL_GROWTH
+	var lhs := float(base.get(key, 0.0)) * scale
 	var rhs := float(params.get("value", 0.0))
 	match comparator:
 		">=": return lhs >= rhs

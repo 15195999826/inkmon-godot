@@ -57,7 +57,26 @@ func to_dict() -> Dictionary:
 		"medals": medals.duplicate(),
 		# 无效位置存 {} (镜像 InkMonBattleActor.serialize), round-trip 保"未放置", 不被钳成 (0,0)。
 		"coord": hex_position.to_dict() if hex_position.is_valid() else {},
+		# bag 容器内物品快照 (write 侧; restore 由 GI 编排注册容器后还原, 同 UnitActor 装备)。
+		"bag": _capture_bag_items(),
 	}
+
+
+## bag 容器内物品快照 (config_id/count/slot_index)。容器 id (runtime) 不进存档。
+func _capture_bag_items() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if bag_container_id <= 0:
+		return result
+	for item_id in ItemSystem.get_items_in_container(bag_container_id):
+		var snap := ItemSystem.get_item_snapshot(item_id)
+		if snap.is_empty():
+			continue
+		result.append({
+			"config_id": str(snap.get("config_id", "")),
+			"count": int(snap.get("count", 1)),
+			"slot_index": int(snap.get("slot_index", -1)),
+		})
+	return result
 
 
 func try_spend_gold(amount: int) -> bool:

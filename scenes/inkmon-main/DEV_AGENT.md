@@ -39,14 +39,14 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | effect | verify with |
 | --- | --- | --- | --- |
-| `reset_session` | none | creates a fresh `InkMonGameSession`, resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
+| `reset_session` | none | rebuilds the world GI fresh (`gi.new_game()`: default `InkMonPlayerActor` + live roster actors), resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
 | `goto_tile` | `{ "q": int, "r": int }` | enqueues an async move command (same path right-click input takes); the 30Hz world tick advances the player cell-by-cell, emitting `actor_position_changed` which the view tweens per step | `state.player_coord` (logic occupant), `state.player_moving`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord` |
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
-| `run_training_battle` | `{ "max_ticks": int }` | starts a snapshot-backed training battle, ticks it to completion, applies gold reward, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
+| `run_training_battle` | `{ "max_ticks": int }` | starts a training battle on the **live roster actors** (in-place, no projection), ticks it to completion, awards gold/exp onto the live actors, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
 | `npc_action` | `{ "npc_id": string, "action_id": string }` | **enqueues** a system NPC handler action command (async, 方案 A); the mutation lands on the next world tick, and training's `start_battle` flow intent starts a deferred battle | poll `state` after a short `wait_frames`: action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
-| `save_game` | `{ "path": string }` | writes `InkMonGameSession.to_dict()` JSON to `user://` path | `ok == true` |
-| `load_game` | `{ "path": string }` | reads JSON, rebuilds session runtime containers, returns to `OVERWORLD` | restored `gold`, `roster`, `progression`, `bag` |
+| `save_game` | `{ "path": string }` | writes `gi.to_dict()` (live actors → save dict) JSON to `user://` path | `ok == true` |
+| `load_game` | `{ "path": string }` | reads JSON, rebuilds the world via `gi.from_dict` (live actors + runtime containers), returns to `OVERWORLD` | restored `gold`, `roster`, `progression`, `bag` |
 
 Player-facing UI paths must use raw real input:
 
