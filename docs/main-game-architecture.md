@@ -107,7 +107,7 @@
 **LGF World-owns-Battle**:整个主游戏**只有一个** `InkMonWorldGI`(extends `WorldGameplayInstance`)承载逻辑 + 世界数据;**战斗是它内跑的 `InkMonBattleProcedure`**(短命 procedure),不是独立 GI。
 
 - **复用**:`InkMonBattleProcedure` + 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive,首个里程碑已落地)。出战 `InkMonUnitActor` = **常驻 registry 的活 roster actor**(无投影/无快照,跨战斗复用);敌方训练假人 = 临时 `create_combat_unit`(battle 结束随 `_reset_battle_state` 整只移除,活 roster 留 registry)。
-- **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 左队 = 活 roster 前 N 只(`_battle_roster_slice`,原地战斗)、右队 = 训练假人;`finalize_battle_rewards()` 战斗结束**直接把奖励落活 actor**(gold 加 `player_actor`、exp 加活 roster),无摘要回写。Host 只管 flow(app_state / tick)。
+- **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 左队 = 活 roster 前 N 只(`InkMonBattleSetup.battle_roster_slice`,原地战斗)、右队 = 训练假人;`finalize_battle_rewards()` 战斗结束**直接把奖励落活 actor**(gold 加 `player_actor`、exp 加活 roster),无摘要回写。Host 只管 flow(app_state / tick)。
 - **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → `FrontendBattleAnimator` 回放(复用 hex-atb animator/visualizer 栈)。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
 
 > ⚠️ **唯一 world GI 持两套 grid(主世界 + 战斗)战斗期切 active = 第一版临时方案**,非定稿(未来再优化,非核心)。边界加固:主世界 movement 只读 `overworld_grid`(稳定),绝不读战斗期翻转的基类 `grid`;且战斗期 base_tick 不跑 → movement 天然冻结。
