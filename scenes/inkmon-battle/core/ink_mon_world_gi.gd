@@ -2,8 +2,9 @@ class_name InkMonWorldGI
 extends WorldGameplayInstance
 ## 主游戏唯一的、长命的 world GI (World-owns-Battle) —— Logic 层根。
 ##
-## 承载世界运行时:session(存档根)+ 主世界 overworld grid + 玩家/NPC world actors +
-## npc 表 + (战斗期) InkMonBattleProcedure。战斗是它内跑的短命 procedure, 不是独立 GI。
+## 承载世界运行时 (adr/0001 统一 live-actor, 本 GI = 序列化根):player_actor + roster 活 actor +
+## 主世界 overworld grid + 玩家/NPC world actors + npc 表 + (战斗期) InkMonBattleProcedure。
+## 战斗是它内跑的短命 procedure, 不是独立 GI。
 ## 持两套 grid (第一版临时方案, docs/main-game-architecture.md §1②):
 ##   - overworld_grid: 主世界 hex 网格 wrapper (InkMonWorldGrid; 玩家行走 + NPC occupant)
 ##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
@@ -97,7 +98,7 @@ var near_npc_id: String = ""
 ## 主世界 command 队列(CQRS 写侧):UI/Host submit(InkMonWorldCommand) → tick 的 CommandDrain System
 ## 抽干, drain_commands 多态 cmd.apply(self)。持对象化命令(非无类型 dict)。
 var _command_queue: Array[InkMonWorldCommand] = []
-## NPC 服务(P6 内移):6 个 handler,自含规则、收 GI 持有的 session;Host 只转发 UI 点击。
+## NPC 服务(P6 内移):6 个 handler,自含规则、收 GI 自身(读写 player_actor/roster);Host 只转发 UI 点击。
 var _npc_handlers: Dictionary = {}
 
 var _ended := false
@@ -670,7 +671,7 @@ func _build_training_dummies() -> Array[InkMonUnitActor]:
 
 # === NPC 服务(P6 从 Host 内移;Logic 持有,Host 转发 UI 点击)===
 
-## 6 个 handler 自含规则,收 GI 持有的 session;不碰 UI / flow。
+## 6 个 handler 自含规则,收 GI 自身(读写 player_actor/roster);不碰 UI / flow。
 func _build_npc_handlers() -> void:
 	_npc_handlers = {
 		"shop": InkMonShopNpcHandler.new("shop", "Shop"),

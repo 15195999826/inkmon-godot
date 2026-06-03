@@ -26,9 +26,9 @@ Godot 4.6 回合制 / ATB 战斗模拟框架 + 在其上自建的养成主游戏
 | 路径 | 职责 |
 |---|---|
 | `addons/` | 单一 git submodule(`godot-addons.git`),含 `logic-game-framework` / `lomolib` / `sim-nav-map` / `ultra-grid-map` |
-| `scenes/inkmon-main/` | 主游戏外壳:Host / 场景路由 / overworld 3D view / UI / core(session + 存档 IO) |
+| `scenes/inkmon-main/` | 主游戏外壳:Host / 场景路由 / overworld 3D view / UI / NPC handler / content / core(存档 IO `InkMonSaveFile`) |
 | `scenes/inkmon-game/` | 主游戏内层场景:`ink_mon_game.tscn`(由 `InkMonMain.tscn` instantiate,根节点 `WorldHost`) |
-| `scenes/inkmon-battle/` | 主游戏战斗:`InkMonWorldGI` / battle actor / 技能内容 |
+| `scenes/inkmon-battle/` | 主游戏战斗 + live-actor 模型:`InkMonWorldGI`(序列化根)/ `InkMonPlayerActor` / `InkMonUnitActor`(自序列化)/ battle actor / 技能内容 |
 | `scripts/` | web 桥(`SimulationManager.gd`)+ `SkillValidator.gd` + 运行时脚本测试 |
 | `logic-game-framework-config/` | 项目级 attribute set 配置 |
 | `docs/` | 本文档目录(见 [`README.md`](README.md)) |

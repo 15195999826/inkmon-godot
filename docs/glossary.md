@@ -32,23 +32,23 @@
 
 ## 4. 主游戏概念(详见 `main-game-architecture.md`)
 
-**4.1 World Actor 层级** — 主世界一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`。玩家/NPC = 直接 `InkMonWorldActor`(无 ability/timeline)。
+**4.1 World Actor 层级** — 主游戏一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`,与玩家级 `InkMonPlayerActor`(亦 extends `InkMonWorldActor`)。一切实体 = 常驻 `InkMonWorldGI` registry 的活 actor(adr/0001)。玩家走路 avatar = `InkMonPlayerActor`(揣 gold/progression/medals/bag,无 ability/timeline);NPC = 直接 `InkMonWorldActor`;出战 InkMon = `InkMonUnitActor`(常驻 registry、跨战斗复用、自序列化)。`get_actor(id)` 取回任意 registry actor(广义 `InkMonWorldActor`);`get_battle_actor(id)` 窄化取战斗 actor。
 
-**4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**读(`session`/`near_npc_id`/`npc_defs`/player-coord/world-actor/npc-actions;roster/gold 经 `session` getter 间接读,facade 无 roster/gold 方法)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
+**4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**读(`player_actor`/`roster`/`near_npc_id`/`npc_defs`/player-coord/world-actor/npc-actions;gold/progression/medals 经 `player_actor` getter 读)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
 
 **4.2a InkMonWorldCommand** — 主世界写路径的**对象化命令**:基类 + `InkMonMoveCommand`/`InkMonBuyCommand`/`InkMonNpcActionCommand` 子类。表演 `submit(cmd)` 入队,`drain_commands` 多态派发 `cmd.apply(gi)`(替代旧的无类型 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action 全收进队列(方案 A:世界一切 mutation 只在 tick 一处发生)。
 
-**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 query + submit facade 对象**(`RefCounted`,私有包 `InkMonWorldGI`,转发 `session`/`near_npc_id`/`npc_defs`/`get_player_coord`/`get_world_actor`/`get_npc_actions`/`has_npc_handler` 读 + `submit(cmd)` 写;roster/gold 经 `session` 间接,无直接 getter)。结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 受控表面),但**无 `get_gi()` 逃逸口** → Presentation 物理上够不到 concrete GI / flow / lifecycle(**结构隔离**,非纯约定级)。GDScript 无 interface 关键字 + GI 单继承位被 `WorldGameplayInstance` 占,故用此 Facade 实现"持接口不持实现";mutation signal 由 Host 连(表演不持 gi)。
+**4.2b IWorldQuery** — Logic 暴露给 Presentation 的**只读 query + submit facade 对象**(`RefCounted`,私有包 `InkMonWorldGI`,转发 `player_actor`/`roster`/`near_npc_id`/`npc_defs`/`get_player_coord`/`get_world_actor`/`get_npc_actions`/`has_npc_handler` 读 + `submit(cmd)` 写;gold/progression/medals 经 `player_actor` 读、roster 经 `roster` 读)。结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 受控表面),但**无 `get_gi()` 逃逸口** → Presentation 物理上够不到 concrete GI / flow / lifecycle(**结构隔离**,非纯约定级)。GDScript 无 interface 关键字 + GI 单继承位被 `WorldGameplayInstance` 占,故用此 Facade 实现"持接口不持实现";mutation signal 由 Host 连(表演不持 gi)。
 
 **4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + 控制面(lifecycle/flow/tick)。**Host 不在 CQRS 调用路径上**(不发 Query / 不收 Event),但握**命令生效时机**(Command 在 Host tick 泵 drain 那一刻生效)。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
 
 **4.3a InkMonWorldPresentation** — Presentation 层根节点,持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` facade(类型层面够不到 concrete GI);mutation signal 由 Host 连;Host 不再直接持 UI 节点 ref。
 
-**4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + session,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
+**4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + 持久层/活 actor 序列化根,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
 
-**4.4 InkMonGameSession** — 存档根,持 `roster / gold / progression`,由 `InkMonWorldGI` 持有(非 autoload)。⚠️ **adr/0001 决议删除**:统一 live-actor 模型下 roster→活 UnitActor、gold/progression→PlayerActor、序列化编排→Host;本对象(连同 `InkMonPlayerState`/`InkMonRosterEntry`)待移除。下文为实现前现状。
+**4.4 InkMonPlayerActor**(adr/0001)— 玩家走路 avatar = 常驻 `InkMonWorldGI` registry 的活 `InkMonWorldActor` 子类,揣玩家级数据 `gold / progression / medals` + bag 容器 id(runtime,不进存档)。同时进 `world_actors["player"]`(位置/移动)。自序列化 `to_dict/from_dict`(gold/progression/medals/coord;bag 物品由容器捕获)。取代旧 `InkMonGameSession`/`InkMonPlayerState` 的玩家级数据职责。
 
-**4.5 InkMonRosterEntry** — 一只己方 InkMon 的持久化表示(非 battle actor)。核心原则:**只存"身份+选择+进度",不存"算出的最终值"**。六维 stats = `f(species, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。字段细节见 `main-game-architecture.md` §8c。⚠️ **adr/0001 决议删除**:持久切片折进活 UnitActor 自序列化(派生时机从投影→读档建 actor);核心极简原则(只存身份+选择+进度)存活,新增 current HP 进存档(carryover)。
+**4.5 出战 InkMon 自序列化(`InkMonUnitActor` 持久切片)**(adr/0001)— 一只己方 InkMon = 常驻 registry 的活 `InkMonUnitActor`(跨战斗复用、battle 原地改、死留 registry/HP=0)。核心原则:**只存"身份+选择+进度"+当前 HP(carryover),不存算出的派生六维**。`to_dict` 存 `species_id / name_en / stage / elements / level / exp / skill_slots / engravings / 当前HP / 装备物品`;派生六维 = `f(species, level)` 读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods),不进存档。取代旧 `InkMonRosterEntry`(投影/快照/回写全删);字段细节见 `main-game-architecture.md` §8c。
 
 ## 5. 设计取向
 
@@ -56,8 +56,8 @@
 
 **5.2 存档兼容策略** — **v1 永不需要向后兼容**:`from_dict` 遇旧版直接丢弃重开,不写迁移。⇒ 数据模型可放心边做边改。
 
-**5.3 职责纪律(借自 no-game-no-life,取形不取器)** — ① 逻辑层不引用 UI ② UI 不直接改逻辑(走 command/query)③ 规则按模块分块(NPC 规则住各 handler,只收 `session`)。上行(逻辑→UI)用 Godot signal / WorldGI mutation signal,**不建全局 EventBus autoload**。
+**5.3 职责纪律(借自 no-game-no-life,取形不取器)** — ① 逻辑层不引用 UI ② UI 不直接改逻辑(走 command/query)③ 规则按模块分块(NPC 规则住各 handler,收 `InkMonWorldGI` 自身 —— 读写 `player_actor`/`roster` + 调 GI 的物品/领养/进化方法)。上行(逻辑→UI)用 Godot signal / WorldGI mutation signal,**不建全局 EventBus autoload**。
 
 ## 6. 关键不变量
 
-**6.1 死者留 registry** — 战斗中 hp≤0 的单位**留在 world registry**(`get_actor()` 非 null、`hex_position` 字段保留),只清 grid occupant。这是判"目标死亡 → 技能 fizzle?"类问题的不变量。
+**6.1 死者留 registry** — 战斗中 hp≤0 的单位**留在 world registry**(`get_actor()` 非 null、`hex_position` 字段保留),只清 grid occupant。这是判"目标死亡 → 技能 fizzle?"类问题的不变量。adr/0001 下延伸到持久层:死 roster `InkMonUnitActor` 留 registry(HP=0)+进存档,不移除;读档/战斗复用经 `sync_downed_state()` 按 HP 重建 `is_dead()`,保 `is_dead()` 与 carryover HP 一致。revive/permadeath = 游戏设计层(待定)。
