@@ -473,7 +473,7 @@ func start_battle_procedure(config: Dictionary = {}) -> void:
 	_reset_battle_state()
 	_recording_enabled = config.get("recording", true)
 	_configure_battle_grid(config)
-	_setup_teams(config)
+	InkMonBattleSetup.setup_teams(self, config)
 	_begin_battle_with_current_teams()
 
 
@@ -483,8 +483,8 @@ func request_training_battle() -> void:
 	_reset_battle_state()
 	_recording_enabled = false
 	_configure_battle_grid({})
-	left_team = _battle_roster_slice()
-	right_team = _build_training_dummies()
+	left_team = InkMonBattleSetup.battle_roster_slice(self)
+	right_team = InkMonBattleSetup.build_training_dummies(self)
 	_begin_battle_with_current_teams()
 
 
@@ -518,15 +518,6 @@ func _begin_battle_with_current_teams() -> void:
 func _prepare_actor_for_battle(actor: InkMonUnitActor) -> void:
 	actor.reset_battle_runtime()
 	actor.equip_abilities(self)
-
-
-## 出战队 = 活 roster 前 MAX_BATTLE_UNITS 只 (常驻 registry, 已 add_actor; 此处只取切片 + 标队伍)。
-func _battle_roster_slice() -> Array[InkMonUnitActor]:
-	var result: Array[InkMonUnitActor] = []
-	for i in range(mini(MAX_BATTLE_UNITS, roster.size())):
-		roster[i].set_team_id(0)
-		result.append(roster[i])
-	return result
 
 
 func tick(dt: float) -> void:
@@ -637,36 +628,6 @@ func finalize_battle_rewards() -> Dictionary:
 		else:
 			actor.add_exp(WIN_EXP if winner_team == "left" else LOSS_EXP)
 	return summary
-
-
-## 训练假人队 (临时对战单位, stub 弱数值保训练可胜)。非 roster, battle 结束随 _reset_battle_state 移除。
-func _build_training_dummies() -> Array[InkMonUnitActor]:
-	var result: Array[InkMonUnitActor] = []
-	var skills := [
-		InkMonStun.CONFIG_ID,
-		InkMonFireball.CONFIG_ID,
-		InkMonHolyHeal.CONFIG_ID,
-		InkMonPoison.CONFIG_ID,
-	]
-	for i in range(MAX_BATTLE_UNITS):
-		var actor := InkMonUnitActor.create_combat_unit({
-			"species": "training_dummy_%d" % i,
-			"personality": InkMonUnitConfig.PERSONALITY_AGGRESSIVE,
-			"elements": [InkMonElementChart.WATER],
-			"skill_slots": [{"slot_index": 0, "skill_id": skills[i]}],
-			"battle_stats": {
-				"max_hp": 30.0,
-				"ad": 6.0,
-				"ap": 6.0,
-				"armor": 0.0,
-				"mr": 0.0,
-				"speed": 70.0,
-			},
-		})
-		actor.set_team_id(1)
-		add_actor(actor)
-		result.append(actor)
-	return result
 
 
 # === NPC 服务(P6 从 Host 内移;Logic 持有,Host 转发 UI 点击)===
@@ -790,23 +751,6 @@ func _reset_battle_state() -> void:
 func _ensure_started() -> void:
 	if get_state() == "created":
 		super.start()
-
-
-## 建**临时**队伍 (m1/默认路径): 从 config.left_roster/right_roster 或默认 roster key 建 transient actor。
-## 玩家活 roster 出战不走此路 (走 request_training_battle → _battle_roster_slice)。
-func _setup_teams(config: Dictionary) -> void:
-	var left_roster: Array = config.get("left_roster", InkMonUnitConfig.get_default_roster(0))
-	for key in left_roster:
-		left_team.append(_create_team_actor(str(key), 0))
-	var right_roster: Array = config.get("right_roster", InkMonUnitConfig.get_default_roster(1))
-	for key in right_roster:
-		right_team.append(_create_team_actor(str(key), 1))
-
-
-func _create_team_actor(unit_key: String, team_id: int) -> InkMonUnitActor:
-	var actor := InkMonUnitActor.new(unit_key)
-	actor.set_team_id(team_id)
-	return add_actor(actor) as InkMonUnitActor
 
 
 func _place_team_fixed(team: Array[InkMonUnitActor], preferred_coords: Array[HexCoord]) -> void:
