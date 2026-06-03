@@ -46,9 +46,9 @@
 
 **4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + session,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
 
-**4.4 InkMonGameSession** — 存档根,持 `roster / gold / progression`,由 `InkMonWorldGI` 持有(非 autoload)。
+**4.4 InkMonGameSession** — 存档根,持 `roster / gold / progression`,由 `InkMonWorldGI` 持有(非 autoload)。⚠️ **adr/0001 决议删除**:统一 live-actor 模型下 roster→活 UnitActor、gold/progression→PlayerActor、序列化编排→Host;本对象(连同 `InkMonPlayerState`/`InkMonRosterEntry`)待移除。下文为实现前现状。
 
-**4.5 InkMonRosterEntry** — 一只己方 InkMon 的持久化表示(非 battle actor)。核心原则:**只存"身份+选择+进度",不存"算出的最终值"**。六维 stats = `f(species, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。字段细节见 `main-game-architecture.md` §8c。
+**4.5 InkMonRosterEntry** — 一只己方 InkMon 的持久化表示(非 battle actor)。核心原则:**只存"身份+选择+进度",不存"算出的最终值"**。六维 stats = `f(species, level)` 运行时派生,不进 entry;`medals` 归 `InkMonPlayerState`(玩家级)。字段细节见 `main-game-architecture.md` §8c。⚠️ **adr/0001 决议删除**:持久切片折进活 UnitActor 自序列化(派生时机从投影→读档建 actor);核心极简原则(只存身份+选择+进度)存活,新增 current HP 进存档(carryover)。
 
 ## 5. 设计取向
 

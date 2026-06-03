@@ -9,6 +9,8 @@
 
 ## 0. 定位
 
+> ⚠️ **数据模型重设计中（[adr/0001](adr/0001-unified-live-actor-model.md)）**：本文 §2②③ / §3 / §8c 描述的 `InkMonGameSession` / `InkMonRosterEntry` / 投影-回写 模型，已于 2026-06-03 决议取代为**统一 live-actor 模型**（一切实体 = 常驻 GI 的活 actor，battle 跑活 actor、无投影无回写，存档 = 序列化 actor，current HP carryover）。**该重设计尚未实现**；实现前，本文相关章节描述的仍是现状真相。
+
 主游戏架构是**长期地基,认真修**(非一次性脚手架)。
 
 ---
@@ -247,7 +249,7 @@
 
 ## 9. 待用户给设计后再定(未覆盖)
 
-- **InkMonWorldGI god-object 拆分(#3,下一轮)**:GI 仍把 session / overworld(grid·actors·movement·npc) / battle(procedure·teams) 同塞一类。本轮 Command 对象化只把**写派发**挪出 GI(submit/drain 多态),未拆本体。下一轮拆成 `overworld-runtime` / `battle` / `session-store` + GI 退薄协调器(与 §7 god-object 映射表呼应)。
+- **InkMonWorldGI god-object 拆分(#3)**:⚠️ 其前提已被 [adr/0001 统一 live-actor 模型](adr/0001-unified-live-actor-model.md) 取代 —— **session-store 块消失**(session/entry/投影 全删),GI 内部域简化为 **overworld / battle 两域 + GI 作 registry / 序列化根**。数据模型重设计(adr/0001)是 #3 的前置;待其落地后再做 GI 拆分。
 - **PlayerState 内的无类型 Dict 袋子**:`InkMonPlayerState` 本身已是 typed class(`gold`/`roster`/`medals`/… 均 typed);待定的是其中 `progression` / `overworld` 两个无类型 Dict 袋子要不要进一步类型化。
 - **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。
 - **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性,公式调整不影响 entry 结构。
