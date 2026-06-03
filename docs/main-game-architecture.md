@@ -255,7 +255,7 @@
 
 ## 9. 待用户给设计后再定(未覆盖)
 
-- **InkMonWorldGI god-object 拆分(#3)**:其前提([adr/0001 统一 live-actor 模型](adr/0001-unified-live-actor-model.md))**已落地** —— session-store 块已消失(session/entry/投影 全删),GI 内部域 = **overworld / battle 两域 + GI 作 registry / 序列化根**。#3 拆分本身仍**待做**(把 overworld / battle / 序列化 职责从单一 GI 进一步拆出)。
+- **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):拆法是**非对称**的 —— battle 宿主职责由 `WorldGameplayInstance` 基类钉死在 GI 上、拿不走,battle 杂活(建队/布阵/发奖)是无状态逻辑归 static service(如 `InkMonBattleSetup`);**唯一真有状态、值得拎成域对象的是 overworld**。GI 终态 = registry + 序列化根 + CQRS 基础设施 + battle 宿主 +(可选)overworld transient 域对象。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。存量 GI 仍 863 行,battle 杂活下沉 static service + overworld 域对象抽取按需逐步落地。
 - **PlayerActor 内的无类型 Dict 袋子**:`InkMonPlayerActor` 的 `gold`/`medals` 已 typed;待定的是 `progression`(+原 `overworld` flags)无类型 Dict 袋子要不要进一步类型化。
 - **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。
 - **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性(`apply_derived_stats` 的 `LEVEL_GROWTH`),公式调整不影响持久切片结构。
