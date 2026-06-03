@@ -130,3 +130,37 @@ static func build_default_grid_config() -> GridMapConfig:
 	config.size = 10.0
 	config.orientation = GridMapConfig.Orientation.FLAT
 	return config
+
+
+# === 发奖 ===
+
+## 结果摘要: winner_team / source_team / reward_gold (按胜负)。_result 为空 = 无战斗结果, 返回 {}。
+static func get_result_summary(gi: InkMonWorldGI) -> Dictionary:
+	if gi._result == "":
+		return {}
+	var winner_team := "left" if gi._result == "left_win" else "right"
+	return {
+		"result": gi._result,
+		"winner_team": winner_team,
+		"source_team": "left",
+		"reward_gold": gi.WIN_REWARD_GOLD if winner_team == "left" else 0,
+	}
+
+
+## adr/0001:战斗结束直接把奖励落在活 actor 上 —— gold 加 player_actor, exp 加左队中属 roster 的活 actor。
+## 无"摘要回写"(actor 即真相, HP 已在战斗中原地变)。返回结果摘要供表演展示。
+static func finalize_battle_rewards(gi: InkMonWorldGI) -> Dictionary:
+	var summary := get_result_summary(gi)
+	if summary.is_empty():
+		return summary
+	var winner_team := str(summary.get("winner_team", ""))
+	if gi.player_actor != null:
+		gi.player_actor.gold += maxi(0, int(summary.get("reward_gold", 0)))
+	for actor in gi.left_team:
+		if not gi.roster.has(actor):
+			continue
+		if actor.is_dead():
+			actor.add_exp(gi.LOSS_EXP)
+		else:
+			actor.add_exp(gi.WIN_EXP if winner_team == "left" else gi.LOSS_EXP)
+	return summary

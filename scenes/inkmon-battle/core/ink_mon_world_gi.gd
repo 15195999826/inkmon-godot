@@ -590,35 +590,14 @@ func get_result() -> String:
 	return _result
 
 
+## 结果摘要 (winner_team / source_team / reward_gold);逻辑在 InkMonBattleSetup, 此处薄委派 (公开 API)。
 func get_result_summary() -> Dictionary:
-	if _result == "":
-		return {}
-	var winner_team := "left" if _result == "left_win" else "right"
-	return {
-		"result": _result,
-		"winner_team": winner_team,
-		"source_team": "left",
-		"reward_gold": WIN_REWARD_GOLD if winner_team == "left" else 0,
-	}
+	return InkMonBattleSetup.get_result_summary(self)
 
 
-## adr/0001:战斗结束直接把奖励落在活 actor 上 —— gold 加 player_actor, exp 加左队中属 roster 的活 actor。
-## 无"摘要回写"(actor 即真相, HP 已在战斗中原地变)。返回结果摘要供表演展示。
+## 战斗结束发奖 (公开 API, Host 调);逻辑在 InkMonBattleSetup, 此处薄委派。
 func finalize_battle_rewards() -> Dictionary:
-	var summary := get_result_summary()
-	if summary.is_empty():
-		return summary
-	var winner_team := str(summary.get("winner_team", ""))
-	if player_actor != null:
-		player_actor.gold += maxi(0, int(summary.get("reward_gold", 0)))
-	for actor in left_team:
-		if not roster.has(actor):
-			continue
-		if actor.is_dead():
-			actor.add_exp(LOSS_EXP)
-		else:
-			actor.add_exp(WIN_EXP if winner_team == "left" else LOSS_EXP)
-	return summary
+	return InkMonBattleSetup.finalize_battle_rewards(self)
 
 
 # === NPC 服务(P6 从 Host 内移;Logic 持有,Host 转发 UI 点击)===
