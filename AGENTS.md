@@ -149,5 +149,6 @@ LGF 原始架构文档：`addons/logic-game-framework/AGENTS.md` 和同级 `docs
 
 ## 本地约定
 
+- **分支策略：除非用户明确要求，开发与提交一律在主分支（`master`）直接进行，不擅自开 feature/refactor 分支**（覆盖"在默认分支上先 branch"的通用习惯）。需要隔离时用户会明说要开分支。
 - 响应用中文，技术术语/代码保留英文
 - UI/场景改动需在编辑器中验证，不能仅靠 headless

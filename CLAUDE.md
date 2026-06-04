@@ -171,7 +171,8 @@ LGF 原始架构文档：`addons/logic-game-framework/CLAUDE.md` 和同级 `docs
 
 ## 本地约定
 
-- 改代码前先确认 scope（改 `scripts/` 还是 `addons/`），不擅自扩大范围
+- **分支策略：除非用户明确要求，开发与提交一律在主分支（`master`）直接进行，不擅自开 feature/refactor 分支**（覆盖"在默认分支上先 branch"的通用习惯）。需要隔离时用户会明说要开分支。
+- 改代码前先确认 scope（改 `inkmon/` 主游戏 / `scripts/` web 桥 / `addons/` submodule），不擅自扩大范围
 - UI/场景改动需在编辑器中验证，不能仅靠 headless
 
 ### 并行 tool call 约定（踩过别再踩）
