@@ -85,6 +85,7 @@
 - **概念分层(命名审计的轴)**:`InkMonWorld` = **世界容器** = overworld + battle + 持久层(活 actor registry / 序列化根,World-owns-Battle,§2);`overworld` = 容器内的"**行走域**",跟 battle 平级。⇒ overworld **不是残渣**,大体保留;容器层概念用 `World` 前缀(GI/Host/Command/Presentation/Actor 基类),纯 overworld 域专属的东西用 `overworld` 前缀(如只 overworld 用、battle 不碰的 3D view)。审计 = 逐标识符判它住容器层还是域层,只改**站错层**的名字。
 - **`overworld_grid` 必留**:GI 持两套 grid(主世界 grid vs 战斗翻转 grid,§2②),`overworld_grid` 这名字正是区分二者的关键(`ink_mon_world_gi.gd` 主世界 movement 只读它,绝不读战斗期翻转的基类 `grid`)。**不做 overworld→world 全局 sed**。
 - 主世界**容器层**代码前缀统一 `InkMonWorld*`。
+- **物理目录 = 三层对齐(2026-06 重构)**:主游戏住顶层模块 `inkmon/` —— `inkmon/host`(composition root + 入口场景)/ `inkmon/logic`(`world` 容器层 · `battle` 域 · `services` = npc/content/item/save)/ `inkmon/presentation`(overworld view + UI)+ `inkmon/tools` · `inkmon/tests`;app shell `InkMonMain.tscn` + `ink_mon_main.gd` 提到 repo 根;`scenes/` 仅余 Web 桥 `Simulation.tscn`。⇒ "概念分层(overworld vs battle)" = 命名审计轴,"物理三层(logic/presentation/host)" = 目录轴,两轴正交并存(目录不再按历史 battle/main 二分)。
 - World actor 层级:`InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(+ 死亡 / ability)→ `InkMonUnitActor`。玩家/NPC = `InkMonWorldActor`(直接,无 ability/timeline);`hex_position` 住基类(三者共有,也是 GI `actor_position_changed` 报告的东西)。
 - Host = `InkMonWorldHost`(composition root,非表演层);Presentation 根 = `InkMonWorldPresentation`(节点,持全部 UI 子树)。
 
@@ -168,8 +169,8 @@
 ## 6b. 场景入口 / 接线层
 
 - **薄场景 Node = 接线员**,不是 God object:只做 ① 开机(`GameWorld.init` + 建 world GI)② 接线(GI signal → UI view;玩家输入 → command)③ 切台(主世界 ↔ 战斗 ↔ NPC ↔ save)。
-- **场景分层 = 两层**:外层 screen 路由 `InkMonMain`(标题 → 菜单 → 进游戏,v1 直接进游戏但结构留好);内层游戏导播 `InkMonWorldHost`(游戏内组装 + lifecycle),场景文件在 `scenes/inkmon-game/ink_mon_game.tscn`,由 `InkMonMain.tscn` instantiate。
-- `project.godot run/main_scene` = `InkMonMain.tscn`;`Simulation.tscn` 退成纯 web 桥。
+- **场景分层 = 两层**:外层 screen 路由 `InkMonMain`(标题 → 菜单 → 进游戏,v1 直接进游戏但结构留好);内层游戏导播 `InkMonWorldHost`(游戏内组装 + lifecycle),场景文件在 `inkmon/host/ink_mon_game.tscn`,由 repo 根的 `InkMonMain.tscn` instantiate。
+- `project.godot run/main_scene` = `res://InkMonMain.tscn`(repo 根);`scenes/Simulation.tscn` 退成纯 web 桥。
 
 ---
 

@@ -12,11 +12,11 @@ save/load modal transitions.
 $env:SESS_NAME = "inkmon-main-runtime"
 $env:SESS_DIR = "$env:APPDATA\Godot\app_userdata\Inkmon\dev-agent\sessions\$env:SESS_NAME"
 New-Item -ItemType Directory -Force -Path $env:SESS_DIR | Out-Null
-godot --path . res://scenes/inkmon-main/InkMonMain.tscn -- --dev-agent --dev-agent-session=$env:SESS_NAME > "$env:SESS_DIR\godot.log" 2>&1
+godot --path . res://InkMonMain.tscn -- --dev-agent --dev-agent-session=$env:SESS_NAME > "$env:SESS_DIR\godot.log" 2>&1
 ```
 
 `InkMonMain.tscn` is the thin outer screen router; it boots the inner game
-host (`res://scenes/inkmon-game/ink_mon_game.tscn`, node name `WorldHost`) which installs the
+host (`res://inkmon/host/ink_mon_game.tscn`, node name `WorldHost`) which installs the
 DevAgent bridge + scene ops. The `WorldHost` (composition + lifecycle + flow +
 tick) owns no UI directly — the UI subtree (3D overworld view, HUD, drawer,
 modal) lives under its `Presentation` child (`InkMonWorldPresentation`). So the

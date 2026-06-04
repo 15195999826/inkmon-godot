@@ -9,10 +9,10 @@
 ## 1. 刻印 per-skill scoping（= Progress F1，**该做未做**的真缺口）
 
 ### 当前实现（占位）
-- `scenes/inkmon-battle/logic/abilities/passives/ink_mon_engraving_passive.gd`
+- `inkmon/logic/battle/abilities/passives/ink_mon_engraving_passive.gd`
   - hook `PRE_DAMAGE`，条件只判 `source_actor_id == owner`（`:32-33`），命中就把**所有** outgoing damage ×1.25（`:36-42`）。
   - 结果：普攻 + 任意技能都吃加成，**不区分 target_slot 指向的技能**。
-- `scenes/inkmon-battle/logic/ink_mon_unit_actor.gd:119-122` 每条 engraving grant 一个**同款** passive，`target_slot` 没传进 ability。
+- `inkmon/logic/battle/ink_mon_unit_actor.gd:119-122` 每条 engraving grant 一个**同款** passive，`target_slot` 没传进 ability。
 - `target_slot` 数据全程存在（entry→snapshot→actor 都带），只是被 passive 忽略。
 
 ### 设计本意（见 `main-game-architecture.md` §8c）
@@ -35,7 +35,7 @@
 ## 2. 技能进化 X→X2（= 设计点名要的占位，**按规格已做**，非缺口）
 
 ### 当前实现
-- `scenes/inkmon-main/logic/content/ink_mon_species_catalog.gd`
+- `inkmon/logic/services/content/ink_mon_species_catalog.gd`
   - `SKILL_EVOLUTIONS`（`:17-20`）：目前**只配一条** `inkmon_fireball → inkmon_chain_lightning`。
   - `evolve_entry`（`:104-108`）：进化时遍历旧 slot，凡 skill_id 命中 SKILL_EVOLUTIONS 就改写为进化后 skill_id。
 - 机制通、确定性、有测：`smoke_progression.gd:137-138` 断言「cinder_kit lv5 进化 → slot0 火球升级成 chain_lightning」。
@@ -61,7 +61,7 @@
 
 ## 3. lab 内容导入契约（stub → lab 导出的边界，**尚未接入**）
 
-当前主游戏跑在**项目本地手写 stub 配置**(`InkMonUnitConfig` / `InkMonItemCatalog` / `scenes/inkmon-battle/` 下技能类)。这是**有意**的,直到 lab 仓 inkmon-lab 完成 canon schema + exporter。在那之前主游戏**绝不消费部分迁移的 canon 数据** —— lab 导出要么整体通过校验、要么留在运行时之外。
+当前主游戏跑在**项目本地手写 stub 配置**(`InkMonUnitConfig` / `InkMonItemCatalog` / `inkmon/logic/battle/` 下技能类)。这是**有意**的,直到 lab 仓 inkmon-lab 完成 canon schema + exporter。在那之前主游戏**绝不消费部分迁移的 canon 数据** —— lab 导出要么整体通过校验、要么留在运行时之外。
 
 ### 校验入口
 - `InkMonL2ContentContract.validate_export(data) -> Array[String]`(返回错误列表,空 = 通过)。

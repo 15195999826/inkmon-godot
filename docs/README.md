@@ -21,7 +21,7 @@
 
 - **4.1 LGF 框架内部** — `addons/logic-game-framework/docs/`(`reference/` + `skills/` + `design-notes/`)。
 - **4.2 架构决策记录(ADR 等价物)** — `addons/logic-game-framework/docs/design-notes/YYYY-MM-DD-<topic>.md`(本仓约定:不另起 `docs/adr/`)。
-- **4.3 DevAgent 场景调试** — 各场景旁的 `DEV_AGENT.md`(主游戏:`scenes/inkmon-main/DEV_AGENT.md`;示例:`addons/.../<example>/.../DEV_AGENT.md`)。
+- **4.3 DevAgent 场景调试** — 各场景旁的 `DEV_AGENT.md`(主游戏:`inkmon/host/DEV_AGENT.md`;示例:`addons/.../<example>/.../DEV_AGENT.md`)。
 
 ---
 

@@ -19,17 +19,18 @@ Godot 4.6 回合制 / ATB 战斗模拟框架 + 在其上自建的养成主游戏
 - **hex-atb-battle** — 技能系统展示 + AI 技能沙盒(见 `glossary.md` 1.2)。
 - **dota2-auto-battle** — 实时固定 tick 30Hz / ARAM 单中路自动战斗(垂直切片)。
 
-**2.3 主游戏层**(本仓 `scenes/`)— 在 LGF 之上自建:hex 行走世界 + 战斗(复用 LGF 战斗数学)+ 持久存档。架构 → `main-game-architecture.md`。
+**2.3 主游戏层**(本仓顶层 `inkmon/` 模块)— 在 LGF 之上自建:hex 行走世界 + 战斗(复用 LGF 战斗数学)+ 持久存档。架构 → `main-game-architecture.md`。
 
 ## 3. 仓库布局
 
 | 路径 | 职责 |
 |---|---|
 | `addons/` | 单一 git submodule(`godot-addons.git`),含 `logic-game-framework` / `lomolib` / `sim-nav-map` / `ultra-grid-map` |
-| `scenes/inkmon-main/` | 主游戏外壳:Host / 场景路由 / overworld 3D view / UI / NPC handler / content / core(存档 IO `InkMonSaveFile`) |
-| `scenes/inkmon-game/` | 主游戏内层场景:`ink_mon_game.tscn`(由 `InkMonMain.tscn` instantiate,根节点 `WorldHost`) |
-| `scenes/inkmon-battle/` | 主游戏战斗 + live-actor 模型:`InkMonWorldGI`(序列化根)/ `InkMonPlayerActor` / `InkMonUnitActor`(自序列化)/ battle actor / 技能内容 |
-| `scripts/` | web 桥(`SimulationManager.gd`)+ `SkillValidator.gd` + 运行时脚本测试 |
+| `InkMonMain.tscn`(repo 根) | 主游戏项目入口 / app shell(screen router,`project.godot` main_scene) |
+| `inkmon/host/` | 主游戏模块 composition root:`InkMonWorldHost` + `ink_mon_game.tscn`(根节点 `WorldHost`)+ dev-agent ops |
+| `inkmon/logic/` | 主游戏逻辑:`world/`(`InkMonWorldGI` 序列化根 / actor / command / grid / CQRS)· `battle/`(战斗 + `InkMonUnitActor` 自序列化 / 技能内容)· `services/`(npc / content / item / 存档 IO `InkMonSaveFile`) |
+| `inkmon/presentation/` | 主游戏表演:`InkMonWorldPresentation` + overworld 3D view + UI 子树 |
+| `scripts/` + `scenes/Simulation.tscn` | Web/WASM 桥(`SimulationManager.gd` + 桥场景)+ `SkillValidator.gd` + 运行时脚本测试 |
 | `logic-game-framework-config/` | 项目级 attribute set 配置 |
 | `docs/` | 本文档目录(见 [`README.md`](README.md)) |
 
