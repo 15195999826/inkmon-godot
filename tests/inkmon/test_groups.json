@@ -1,0 +1,52 @@
+{
+  "namespace": "inkmon",
+  "default_timeout_ms": 30000,
+  "groups": {
+    "m1": {
+      "scenes": [
+        "../../inkmon/tests/smoke_m1_battle.tscn"
+      ]
+    },
+    "actor": {
+      "scenes": [
+        "../../inkmon/tests/smoke_actor_serialization.tscn"
+      ]
+    },
+    "session": {
+      "scenes": [
+        "../../inkmon/tests/smoke_session_spine.tscn",
+        "../../inkmon/tests/smoke_progression.tscn",
+        "../../inkmon/tests/smoke_lifecycle.tscn"
+      ]
+    },
+    "app-root": {
+      "scenes": [
+        "../../inkmon/tests/smoke_app_root.tscn",
+        "../../inkmon/tests/smoke_main_router.tscn"
+      ]
+    },
+    "content": {
+      "scenes": [
+        "../../inkmon/tests/smoke_content_contract.tscn",
+        "../../inkmon/tests/smoke_content_loader.tscn"
+      ]
+    },
+    "inspector": {
+      "scenes": [
+        "../../inkmon/tests/smoke_data_inspector.tscn"
+      ]
+    },
+    "overworld-3d": {
+      "default_timeout_ms": 45000,
+      "scenes": [
+        "../../inkmon/tests/smoke_overworld_3d.tscn",
+        "../../inkmon/tests/smoke_tick_movement.tscn"
+      ]
+    },
+    "command": {
+      "scenes": [
+        "../../inkmon/tests/smoke_world_command.tscn"
+      ]
+    }
+  }
+}
