@@ -255,7 +255,7 @@
 
 ## 9. 待用户给设计后再定(未覆盖)
 
-- **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):拆法是**非对称**的 —— battle 宿主职责由 `WorldGameplayInstance` 基类钉死在 GI 上、拿不走,battle 杂活(建队/布阵/发奖)是无状态逻辑归 static service(如 `InkMonBattleSetup`);**唯一真有状态、值得拎成域对象的是 overworld**。GI 终态 = registry + 序列化根 + CQRS 基础设施 + battle 宿主 +(可选)overworld transient 域对象。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。存量 GI 仍 863 行,battle 杂活下沉 static service + overworld 域对象抽取按需逐步落地。
+- **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):**battle 与 overworld 对称,都不拆成域对象** —— `WorldGameplayInstance` 基类把 world-host 机器(`grid` / `add_actor`·`remove_actor` registry / `actor_position_changed` signal / `add_system`·`tick` / `start_battle`·`has_active_battle`)钉死在 GI 上、拿不走,且这套机器**同时**服务 battle 与 overworld 移动,故两者钉得一样死。两者杂活皆归 static service(battle:建队/布阵/发奖 → `InkMonBattleSetup`);两者皆**不**抽有状态 RefCounted 域对象(硬抽得傀儡)。overworld 唯一私有 transient 状态 = grid,已是独立对象 `InkMonWorldGrid`。GI 终态 = registry + 序列化根 + CQRS 基础设施 + world 宿主(battle + overworld 同一套基类机器)。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。战斗杂活已下沉 `InkMonBattleSetup`(GI 862→723);overworld 不再抽域对象。
 - **PlayerActor 内的无类型 Dict 袋子**:`InkMonPlayerActor` 的 `gold`/`medals` 已 typed;待定的是 `progression`(+原 `overworld` flags)无类型 Dict 袋子要不要进一步类型化。
 - **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。
 - **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性(`apply_derived_stats` 的 `LEVEL_GROWTH`),公式调整不影响持久切片结构。

@@ -18,11 +18,17 @@
 3. **傀儡测试** —— RefCounted service 升类的唯一理由 = 自己要记 transient 私有状态;若它没私有状态、全在调 gi,退回 static 纯函数(否则是揣 gi 空转的傀儡)。
 4. **真正的约束是"被唯一序列化根够到",不是"必须挂 GI 字段"** —— GI 现在碰巧是那个根,持久数据才向它聚;数据绑的是"那个唯一的存档根",不是 GI 这个类。
 
-## 推论:battle 不从 GI 拆出;只有 overworld 是真域
+## 推论:battle 与 overworld 对称 —— 都是 GI 的 world-host 职责,都不拆成域对象
 
-`WorldGameplayInstance` 基类把 battle 宿主职责(`start_battle` / `_create_battle_procedure` / `tick` 的战斗分支 / `grid` 字段 / `battle_finished`)**钉死在 GI 上、拿不走**;battle 的"杂活"(建队/布阵/发奖/清场)是无状态逻辑 → 归 static service(如 `InkMonBattleSetup`),**不是**一个有状态 battle 对象(硬抽只会得到揣 gi 的傀儡)。`overworld` 是**唯一**有自有 transient 状态簇(grid / world_actors / near-npc / 移动)、值得拎成 GI 持的 RefCounted 域对象的域。
+`WorldGameplayInstance` 基类把 world-host 机器**钉死在 GI 上、拿不走**,且这套机器**同时**服务 battle 与 overworld:
+- battle 宿主:`start_battle` / `has_active_battle` / `tick` 战斗分支 / `_create_battle_procedure` / `battle_finished`;
+- overworld 宿主:`grid` 字段(overworld grid,战斗期翻转成 battle grid)/ `add_actor`·`remove_actor`(world actor registry)/ `actor_position_changed` signal(逐格移动输出)/ `add_system`·`tick`(驱动 CommandDrain→Movement)。
 
-⇒ GI 终态 = **registry + 序列化根 + CQRS 三通道基础设施 + battle 宿主 +(可选)overworld transient 域对象**。不是"薄协调器 over N 域"——未来长不出 N 个有状态域,只长出更多 stateless service + actor 多几个字段。§9 #3 的"拆 overworld/battle 两域"按此修正为**非对称**。
+overworld 的 `world_actors` 只是基类 registry 上的二级索引;移动 System 靠基类 `add_system` 注册、基类 `tick` 驱动、基类 `actor_position_changed` 输出。⇒ 按"基类钉死宿主职责 → 拿不走"的同一逻辑,**overworld 与 battle 钉得一样死**,没有原则理由说 battle 不拆而 overworld 该拆。
+
+两者的"杂活"都归 static service(battle:建队/布阵/发奖/清场 → `InkMonBattleSetup`);两者都**不**抽成有状态 RefCounted 域对象(硬抽只会得到揣 gi 空转的傀儡,违反上面 invariant #3)。overworld 唯一真正私有的 transient 状态是 grid,而它**早已**是独立对象 `InkMonWorldGrid`(grid 的 data-shape wrapper);near-npc 那一小撮顶多并进 `InkMonWorldGrid` 当 helper,够不上域对象。
+
+⇒ GI 终态 = **registry + 序列化根 + CQRS 三通道基础设施 + world 宿主(battle + overworld,同一套基类机器)**。不是"薄协调器 over N 域"——未来长不出 N 个有状态域,只长出更多 stateless service + actor 多几个字段。"overworld vs battle"是 main-game-architecture.md §1 的命名/概念分层,**不是对象所有权边界**。§9 #3 早先"拆 overworld/battle 两域"、以及本 ADR 初稿"只抽 overworld"的非对称结论,均按此**作废**(修订于 2026-06-04):对称 —— 都不拆。
 
 ## 考虑过的另一派(rejected)
 
@@ -30,4 +36,4 @@
 
 ## 落地状态
 
-规则即时生效(约束**新**代码 routing);存量 GI 仍 863 行,把已在 GI 里的无状态战斗杂活挪进 `InkMonBattleSetup` static service、以及 overworld 域对象抽取,按需逐步落地,非大重构。
+规则即时生效(约束**新**代码 routing)。战斗无状态杂活已下沉 `InkMonBattleSetup` static service(`extract-battle-setup` goal,GI 862→723 行)。overworld **不再抽域对象**(见上「推论」修订);GI 内联持有 overworld 状态,与 battle 宿主对称。god-object 不靠一次拆解消除,靠 routing 规则约束增长,非大重构。
