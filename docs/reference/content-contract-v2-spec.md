@@ -3,6 +3,7 @@
 > **唯一接口源**。lab `@inkmon/canon/godot-contract.ts`（生产端）与 godot `ink_mon_l2_content_contract.gd`（消费/校验端）**都照本文写**。两边并行开发时以此为准，改本文 = 改接口、需双方同步。
 > 依据 `adr/0010` + `CONTEXT.md`。相对现行 `inkmon.l2.content.v1` 的 **delta**：身份切 `species_id`、拓扑改根级 `evolution_edges`、阈值进 trigger。
 > 性质：**v2 = 破坏性变更**，dev 无向后兼容，旧 v1 形状直接弃用、清库 + 清 `res://data/inkmon_content.json` 重建。
+> **位置 / 归属**：本文件是 godot 仓的**消费端镜像**（住 `docs/reference/`，非 `docs/plan/` —— 它是冻结接口规范，不是开发计划）；**权威维护源在 lab 仓**，本仓副本仅供 godot 侧对照实现，改动须双仓同步。
 
 ## 0. Envelope（顶层）
 

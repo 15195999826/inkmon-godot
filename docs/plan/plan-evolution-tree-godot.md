@@ -1,6 +1,6 @@
 # 实现计划 · 进化树（godot 侧）
 
-> 决策依据：lab `adr/0010` + `CONTEXT.md`「进化树 / species_id / 进化 trigger」+ **冻结接口 `content-contract-v2-spec.md`**（消费端 100% 照它写）。lab 侧另见 `plan-evolution-tree-lab.md`。
+> 决策依据：lab `adr/0010` + `CONTEXT.md`「进化树 / species_id / 进化 trigger」+ **冻结接口 `../reference/content-contract-v2-spec.md`**（消费端 100% 照它写）。lab 侧另见 `plan-evolution-tree-lab.md`。
 > 本文按 **inkmon-godot 当前真实代码**（0007/8/9 已落地后）写。计划暂存于 lab L2 目录，可整份拷进 godot 仓 `docs/plan/` 给 godot 会话用。
 > 涉及 LGF / `.gd` 改动，开工前 godot 那边会自动触发 `gdscript-coding` / `enforcing-lgf` skill，遵其规范。
 
