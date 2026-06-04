@@ -118,6 +118,6 @@
 
 ## 5. 引用方
 
-- lab 计划：`plan-evolution-tree-lab.md`（生产端 = `@inkmon/canon/godot-contract.ts` + server 投影端点）。
-- godot 计划：`plan-evolution-tree-godot.md`（消费端 = `ink_mon_l2_content_contract.gd` + `ink_mon_content_loader.gd` + fixture）。
+- **生产端（lab）**：`@inkmon/canon/godot-contract.ts` + server 投影端点（实现计划在 lab 仓）。
+- **消费端（godot）= 已落地**：`ink_mon_l2_content_contract.gd`（校验）+ `ink_mon_content_loader.gd`（规范化）+ `ink_mon_species_catalog.gd`（edge-list 森林消费）+ `inkmon/tests/fixtures/`（fixture）。
 - 两边可并行开发，各自对着本 spec + 本地 fixture 自测；**端到端**需 lab+server 发出 v2 投影后联调，破坏性上线同步清库重建。
