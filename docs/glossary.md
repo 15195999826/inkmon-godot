@@ -44,7 +44,7 @@
 
 **4.3a InkMonWorldPresentation** — Presentation 层根节点,持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` facade(类型层面够不到 concrete GI);mutation signal 由 Host 连;Host 不再直接持 UI 节点 ref。
 
-**4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + 持久层/活 actor 序列化根,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。
+**4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + 持久层/活 actor 序列化根,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。**两条轴别混**:命名轴上 overworld 与 battle **平级**;本体轴上 **`InkMonWorldGI` 即 overworld 实体** —— 持久常在者 = 行走世界,battle 只是它原地跑、无持久实体的短 procedure,从属本体、命名仍一等。
 
 **4.4 InkMonPlayerActor**(adr/0001)— 玩家走路 avatar = 常驻 `InkMonWorldGI` registry 的活 `InkMonWorldActor` 子类,揣玩家级数据 `gold / progression / medals` + bag 容器 id(runtime,不进存档)。同时进 `world_actors["player"]`(位置/移动)。自序列化 `to_dict/from_dict`(gold/progression/medals/coord;bag 物品由容器捕获)。取代旧 `InkMonGameSession`/`InkMonPlayerState` 的玩家级数据职责。
 

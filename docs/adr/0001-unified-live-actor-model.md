@@ -36,6 +36,6 @@
 
 - 已改写 `main-game-architecture.md` / `glossary.md`：§8c（entry 对象删，持久切片折进 actor；新增 current HP 进存档）、§2③（无投影，battle 跑活 actor）、§3（actor 是 runtime 真相）。§8（结果不自动落盘）仍成立 —— 结果在 actor 上，手动存档才落盘。
 - §8c 的**核心极简原则存活**：仍只序列化"身份 + 选择 + 进度"、派生六维不入存档 —— 只是承载它的从独立 entry 变成 actor，派生时机从"投影"挪到"读档建 actor"。
-- 原 god-object 拆分计划（#3）的前提（session = 数据层、投影给 battle）被本决策取代；GI 内部域从"overworld / battle / session 三块"简化为"overworld / battle 两域 + GI 作 registry / 序列化根"。数据模型重设计是 #3 的前置。
+- 原 god-object 拆分计划（#3）的前提（session = 数据层、投影给 battle）被本决策取代；GI 内部域从"overworld / battle / session 三块"简化为"overworld / battle 两域 + GI 作 registry / 序列化根"。数据模型重设计是 #3 的前置。（注：此处"两域"仅指相对旧 session 三块的概念简化；二者是否抽成独立**域对象**已由 [adr/0002](0002-gi-organization-state-decides-form.md) 进一步修订为"对称——都不拆"。）
 - **本 ADR 已决议 + 已实现**（原列"待定"项，落地时敲定）：死 actor **留 registry / 进存档**（Decision 末条，HP=0 + `is_dead`；`sync_downed_state` 按 HP 重建）；类型与继承位 = `InkMonPlayerActor extends InkMonWorldActor`、`InkMonUnitActor extends InkMonBattleActor`；持久切片序列化形状 = 见 `main-game-architecture.md` §8c。
 - **仍待定（游戏设计层，待 `game-vision.md` 游戏循环成文）**：HP 归零后的死亡 stakes —— permadeath / 复活机制 / 留 0 待治疗 / 全灭→game over。数据模型层只保证"死 actor 留 registry + 进存档"，**不**定这些游戏规则。
