@@ -26,12 +26,12 @@ v2 spec §2.1 把进化条件 `type:"item"`(如"持火石→进化")标 **BLOCKE
 
 **待落地(已定:现在就迁,非只占坑 —— 对比 §rejected『itemconfig 留 godot 硬编码 stub』那条被否决的临时方案)**。godot 现 stub catalog(`InkMonItemCatalog`:`training_sword`/`minor_rune`,英文 slug,`stat_mods` 内联)= 迁移前的临时态。
 
-**lab 现状(已部分落地,但与本 ADR 有 delta)**:`inkmon-lab` 的 item canon(`packages/inkmon-canon/src/domains/item.ts`)已有 DB/schema/UI/测试,但 ① id = **slug** 正则,② 字段只有 `granted_abilities`(装备送技能通道)+ icon_key/max_stack/item_tags/equipable + lab 私有 description/image_prompt,**无 `stat_mods`/`price`**,③ 投影端 `godot-contract.ts` 的 `items: never[]` —— **当前根本没投 item 进契约**。
+**lab 侧已落地(2026-06-05,乙-完整 = item 服务器同步)**:`inkmon-lab` 已把 item 改成与 creature 同构的 server 权威数据 —— 新建 driver-free `item-table.ts`(schema 加 `stat_mods`/`price`、id=`item_NNNN`、发号原语)、server `writeItem.ts`+`POST /item`+`/contract` 投 items、Electron promote 走服务器 + 读走同步镜像、清旧 slug。全套验证绿(vitest 298 / bun 52 / typecheck / biome)。
 
 接入步骤(对称 creature 已有路径):
-1. **lab 改造**:item id slug → `item_NNNN`(server MAX+1 发号,对称 species);ItemSchema **加 `stat_mods`**(基础属性数字,载体机制 = [adr/0004](0004-equipment-stat-via-granted-ability.md) 的『穿戴瞬间现场读 stat_mods』方案)+ `price`;`godot-contract.ts` 把 `items: never[]` 改为真实投影(只投 godot 合约字段,不投 description/image_prompt);改 itemCanon 测试 + DB 迁移。
-2. **lab spec 正本**(`docs/domain/l2/content-contract-v2-spec.md`)填 items 承载段 + 解锁进化 `item` 条件;godot 抄本同步。
-3. **godot**:`InkMonContentImporter`/`validate_creature_base` 扩 item 校验;catalog 从硬编码 `_configs()` 切到读 `res://data/inkmon_content.json` 的 `items[]`;stub 退化为"无文件时 fallback"。
-4. 解锁进化 `item` 条件(推论)。
+1. ✅ **lab 改造(done)**:item id → `item_NNNN`(server 发号);ItemSchema 加 `stat_mods`(载体机制 = [adr/0004](0004-equipment-stat-via-granted-ability.md) 的『穿戴瞬间现场读 stat_mods』方案)+ `price`;`godot-contract.ts` 真实投影 items(剔 description/image_prompt);测试 + 清库。
+2. ✅ **lab spec 正本 + godot 抄本同步(done)**:`content-contract-v2-spec.md` 双仓已填 items 承载段(§1b)+ 解锁进化 `item` 条件(§2.1)。
+3. ⏳ **godot(待落地)**:`InkMonContentImporter`/`validate_creature_base` 扩 item 校验;catalog 从硬编码 `_configs()` 切到读 `res://data/inkmon_content.json` 的 `items[]`;stub 退化为"无文件时 fallback"。
+4. ⏳ 解锁进化 `item` 条件(godot 评估端,随 #3)。
 
 > 取代 [deferred-features §3](../future/deferred-features.md) 中关于 item 的旧描述(schema v1 / items 必填非空 / canon Equipment 映射待定)。
