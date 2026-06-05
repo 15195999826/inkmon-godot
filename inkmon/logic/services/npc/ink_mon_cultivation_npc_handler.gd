@@ -29,7 +29,9 @@ func _cultivate_lead(world: InkMonWorldGI) -> Dictionary:
 	var actor := world.roster[0]
 	actor.level += 1
 	actor.exp = 0
-	var evolved := InkMonSpeciesCatalog.evolve_actor(actor)
+	# item-gated 进化 (adr/0003): 玩家"持有"= bag 材料 (火石等) 或本单位已装备。两个容器都喂给评估。
+	var owned: Array[int] = [world.player_actor.bag_container_id, actor.equipment_container_id]
+	var evolved := InkMonSpeciesCatalog.evolve_actor(actor, owned)
 	# 升级 / 进化后按新 species+level 重算派生六维 (HP carryover 保留, max_hp 涨)。
 	world.refresh_unit_stats(actor)
 	world.player_actor.progression["cultivation_points"] = int(

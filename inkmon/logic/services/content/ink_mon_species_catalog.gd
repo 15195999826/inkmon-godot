@@ -219,11 +219,13 @@ static func roll_birth_skill_slots(species: String, roll_seed: int) -> Array[Dic
 ## 过滤 → 确定性选边 (_select_evolution_edge) → 改写 species/display_name/stage, 保留旧 slot, X->X2 升级,
 ## 新阶段补槽 roll。actor 身份不换 (原地变身)。返回是否发生进化。派生六维由调用方 (GI.refresh_unit_stats) 重算。
 ## 阈值 trigger.level 来自 contract edge-list (无 contract 边时 stub evolves_to fallback), godot 不硬编码阈值 (adr/0010)。
-static func evolve_actor(actor: InkMonUnitActor) -> bool:
+## owned_container_ids = 玩家持有的容器 id (bag + 本单位装备), 供 item-gated condition 评估 (adr/0003);
+## 省略 → item 条件 fail-safe false (调用方无 GI/持有上下文时不假进化)。
+static func evolve_actor(actor: InkMonUnitActor, owned_container_ids: Array[int] = []) -> bool:
 	var edges := get_evolution_edges(actor.species)
 	if edges.is_empty():
 		return false
-	var chosen := _select_evolution_edge(edges, actor)
+	var chosen := _select_evolution_edge(edges, actor, owned_container_ids)
 	if chosen.is_empty():
 		return false
 	var next_species := str(chosen.get("child_species_id", ""))
@@ -256,7 +258,9 @@ static func evolve_actor(actor: InkMonUnitActor) -> bool:
 ##   2) 否则取第一条无 condition 的默认枝;
 ##   3) 都没有 → {} (本级不进化)。
 ## entry.level 未达任何 trigger.level → {} (没有达标边)。
-static func _select_evolution_edge(edges: Array[Dictionary], actor: InkMonUnitActor) -> Dictionary:
+static func _select_evolution_edge(
+	edges: Array[Dictionary], actor: InkMonUnitActor, owned_container_ids: Array[int] = []
+) -> Dictionary:
 	var default_edge := {}
 	for edge in edges:
 		var trigger := edge.get("trigger", {}) as Dictionary
@@ -267,7 +271,7 @@ static func _select_evolution_edge(edges: Array[Dictionary], actor: InkMonUnitAc
 			if default_edge.is_empty():
 				default_edge = edge
 			continue
-		if evaluate_evolution_condition(condition, actor):
+		if evaluate_evolution_condition(condition, actor, owned_container_ids):
 			return edge
 	return default_edge
 
@@ -275,10 +279,13 @@ static func _select_evolution_edge(edges: Array[Dictionary], actor: InkMonUnitAc
 ## 进化 condition 评估 (语义住 godot, 按 type 分派, adr/0010 + spec §2.1)。返回是否满足。
 ## - element: entry 主元素匹配 params.primary。
 ## - stat: entry 派生属性 (derive_battle_stats, hp→max_hp) 与 params.value 按 params.cmp 比较。
-## - item: ⛔ BLOCKED — item 域未迁 server, 无"按 entry 查持有"接口 → stub false + 软警告, 勿假进化。
+## - item: 玩家是否在 owned_container_ids (bag + 单位装备) 持有 params.item_id (= itemconfig id,
+##   item_NNNN)。adr/0003 解锁 (item 域已迁 server)。owned 空 / 未持有 → false。
 ## - 未知 type → fail-safe false + 软警告 (遇生成端新 type 不假进化)。
 ## 空 condition 由 _select_evolution_edge 当默认枝处理 (不进本函数)。
-static func evaluate_evolution_condition(condition: Dictionary, actor: InkMonUnitActor) -> bool:
+static func evaluate_evolution_condition(
+	condition: Dictionary, actor: InkMonUnitActor, owned_container_ids: Array[int] = []
+) -> bool:
 	var cond_type := str(condition.get("type", ""))
 	var params_value: Variant = condition.get("params", {})
 	var params: Dictionary = params_value if params_value is Dictionary else {}
@@ -288,11 +295,7 @@ static func evaluate_evolution_condition(condition: Dictionary, actor: InkMonUni
 		"stat":
 			return _eval_condition_stat(params, actor)
 		"item":
-			Log.warning(
-				"InkMonSpeciesCatalog",
-				"evolution condition type:item not supported yet (item domain pending server sync); treated as unmet"
-			)
-			return false
+			return _eval_condition_item(params, owned_container_ids)
 		_:
 			Log.warning(
 				"InkMonSpeciesCatalog",
@@ -329,6 +332,23 @@ static func _eval_condition_stat(params: Dictionary, actor: InkMonUnitActor) -> 
 		"==": return is_equal_approx(lhs, rhs)
 		"!=": return not is_equal_approx(lhs, rhs)
 		_: return false
+
+
+## item: 玩家是否在 owned_container_ids 任一容器持有 params.item_id (= itemconfig id, item_NNNN)。
+## adr/0003: item 域已迁 server, catalog 认 item_NNNN。owned_container_ids 由调用方 (GI / NPC handler)
+## 传玩家 bag + 本单位装备容器; 空 / 无匹配 → false。语义 = 玩家"拥有"(bag 材料或已装备), 非"已消耗"。
+static func _eval_condition_item(params: Dictionary, owned_container_ids: Array[int]) -> bool:
+	var item_id := str(params.get("item_id", ""))
+	if item_id == "":
+		return false
+	for container_id in owned_container_ids:
+		if container_id <= 0:
+			continue
+		for held_id in ItemSystem.get_items_in_container(container_id):
+			var snap := ItemSystem.get_item_snapshot(held_id)
+			if str(snap.get("config_id", "")) == item_id:
+				return true
+	return false
 
 
 static func _slot_seed(roll_seed: int, slot_index: int) -> int:

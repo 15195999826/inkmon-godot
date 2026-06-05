@@ -29,7 +29,8 @@
       "scenes": [
         "../../inkmon/tests/smoke_content_contract.tscn",
         "../../inkmon/tests/smoke_content_loader.tscn",
-        "../../inkmon/tests/smoke_item_content.tscn"
+        "../../inkmon/tests/smoke_item_content.tscn",
+        "../../inkmon/tests/smoke_evolution_item_condition.tscn"
       ]
     },
     "inspector": {
