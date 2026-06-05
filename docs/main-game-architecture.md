@@ -200,7 +200,7 @@
 
 ## 8c. 数据模型 — 活 actor 自序列化:存身份+选择+进度+当前HP,不存算出的派生六维
 
-统一原则(adr/0001;技能 + stats 同构):**每只出战 InkMon = 常驻 registry 的活 `InkMonUnitActor`,自序列化"这只是谁 / 选了什么 / 练到哪 + 当前 HP",不存"由此算出的派生六维"**。派生六维 = `f(species, level)`,读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods —— ⚠️ [adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 后装备 stat_mods 不再进 base/派生、改走加成层 modifier,现状代码仍折 base = 待重构,详见本节"装备"与"派生六维计算"bullet),不进存档。
+统一原则(adr/0001;技能 + stats 同构):**每只出战 InkMon = 常驻 registry 的活 `InkMonUnitActor`,自序列化"这只是谁 / 选了什么 / 练到哪 + 当前 HP",不存"由此算出的派生六维"**。派生六维 base = `f(species, level)`,读档时 `apply_derived_stats(species_base)` 重算,不进存档;**装备 stat_mods 不进 base、走加成层 modifier**([adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 已落地,详见本节"装备"与"派生六维计算"bullet)。
 
 **技能槽 = 存"哪槽选了哪技能",不存变异数值**:
 - 结构:`skill_slots: Array[{slot_index:int, skill_id:String}]`。
@@ -235,10 +235,10 @@
 **装备 = grant 通用 ability 进加成层([adr/0004](adr/0004-equipment-stat-via-granted-ability.md),反转原 Non-Goal)**:
 - ⚠️ **本节原稿**(已被 adr/0004 推翻)写的是:"装备走 base 折叠、hex Phase-G(`EquipmentManager`/`StatAggregator`/`AbilityGrantor`)= Non-Goal、不引入主游戏"。**adr/0004 反转之**:装备数值改为穿戴时 grant 一个**通用 ability**、进**加成层**(`StatModifierComponent`→`AttributeModifier`),脱下按 instance id 精确 revoke。理由 = 数字归 lab([adr/0003](adr/0003-item-config-lab-canon-static-import.md))+ 来源可 introspect + 富效果可平滑扩展;代价 = 把 hex 的装备 grant 机器(`HexActorEquipmentContainer`/`HexEquipmentAbilityResolver`,非旧稿那三个类名)搬进主游戏。
 - v1 纯数值:通用 ability 穿戴瞬间拿 itemconfig `stat_mods` **现场拼** `StatModifierConfig`(甲案),数字来自 item 数据、不写死 godot 配置。物品实例住中央 `ItemSystem`(InventoryKit 原生),actor 持 equipment 容器 id 引用。
-- **落地状态 = 待重构**:现 `InkMonUnitActor._equipment_mods()` + `apply_derived_stats` 仍把 stat_mods 折进 base(旧法),`smoke_actor_serialization`/`smoke_session_spine` 仍断言 base 折叠;按 adr/0004 改造后装备改走加成层。
+- **落地状态 = 已落地(G3)**:`InkMonEquipmentStatAbility` 现场拼 `StatModifierConfig` → `InkMonUnitActor._refresh_equipment_abilities()` grant 进加成层(`apply_derived_stats` + `equip_abilities` 共用幂等 reconcile);`_equipment_mods()` base 折叠已删,`smoke_actor_serialization`/`smoke_session_spine` 改断加成层(breakdown 可溯源 + 脱下复原)。设计裁决(常驻 attribute_set / by-source 清旧 / 双 reconcile)见 [adr/0004 落地状态](adr/0004-equipment-stat-via-granted-ability.md)。
 
 **派生六维计算**:
-- `attribute base = species_base(f(species, level))`(`apply_derived_stats`,equip/level-up/读档时重算,**幂等**;重算 max_hp 后回钳当前 HP ∈ [0, max])。⚠️ [adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 后**装备 stat_mods 不再进 base**,改走加成层(modifier);现状代码仍折进 base = 待重构。
+- `attribute base = species_base(f(species, level))`(`apply_derived_stats`,equip/level-up/读档时重算,**幂等**;重算 max_hp 后回钳当前 HP ∈ [0, max])。**装备 stat_mods 不进 base**,走加成层(modifier),由 `_refresh_equipment_abilities` 在 base 设好后重建([adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 已落地)。
 - ability 来源(走 grant,不进 stats 折叠):skill_slots 技能 + 普攻 + 刻印被动 + 装备通用 ability(adr/0004)。
 
 **UnitActor 持久切片(自序列化形状)**:

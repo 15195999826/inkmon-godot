@@ -5,7 +5,7 @@ extends InkMonBattleActor
 const ATB_FULL := 100.0
 
 ## v1 占位线性成长 (adr/0001 / docs §9): level-1 = 物种 base (M1 平衡不变), 之后每级 +LEVEL_GROWTH 倍。
-## 派生六维 = species_base × (1 + (level-1)*LEVEL_GROWTH) + 装备 stat_mods (flat)。
+## 派生六维 base = species_base × (1 + (level-1)*LEVEL_GROWTH); 装备数值不进 base, 走加成层 (adr/0004)。
 const LEVEL_GROWTH := 0.05
 
 
@@ -26,7 +26,8 @@ var skill_slots: Array[Dictionary] = []
 # 刻印 [{engraving_id, target_slot}]; equip 时每条 grant 一个刻印被动强化技能 (§8c)。
 var engravings: Array[Dictionary] = []
 ## 装备容器 id (ItemSystem 注册, runtime; 不进存档——存档只存容器内物品)。-1 = 无装备容器。
-## equip/load 时 apply_derived_stats 把容器物品 stat_mods 折进 base (取代旧投影期装备折叠)。
+## equip/load 时 apply_derived_stats 调 _refresh_equipment_abilities, 把容器物品 stat_mods 现场拼成
+## 通用装备 ability grant 进加成层 (adr/0004; 不再焊进 base)。
 var equipment_container_id := -1
 var attribute_set: InkMonUnitAttributeSet
 var ai_strategy: InkMonAIStrategy
@@ -34,6 +35,10 @@ var ai_strategy: InkMonAIStrategy
 var _move_ability_id := ""
 var _basic_attack_ability_id := ""
 var _skill_ability_id := ""
+## 当前已 grant 的装备通用 ability 的 instance id (adr/0004; runtime, 不进存档)。
+## 加成层 modifier 的 source = 这些 ability id; 重建装备时按 id 精确清旧 (remove_modifiers_by_source) 再重 grant,
+## 故跨战斗 (reset_battle_runtime 换 ability_set) 与多次 apply_derived_stats 都幂等、不累加。
+var _equipment_ability_ids: Array[String] = []
 var _team_id := -1
 var _atb_gauge := 0.0
 
@@ -173,6 +178,11 @@ func equip_abilities(game_state_provider: Variant = null) -> void:
 		var engraving_passive := Ability.new(InkMonEngravingPassive.ABILITY, get_id())
 		ability_set.grant_ability(engraving_passive, game_state_provider)
 
+	# 装备数值 (adr/0004): 把当前装备 stat_mods 现场拼通用 ability grant 进加成层。reset_battle_runtime 换了
+	# 新 ability_set, 此处把装备 ability 重建到当前 ability_set (channel ② 富效果 future 也将在此就位);
+	# 与 apply_derived_stats 共用同一幂等 reconcile (clear-then-grant), 故重授不累加 —— "每场重授天然对齐"。
+	_refresh_equipment_abilities()
+
 
 static func _read_skill_slots(value: Variant) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -292,18 +302,19 @@ func add_exp(amount: int) -> void:
 	exp = maxi(0, exp + amount)
 
 
-## 派生六维 = species_base × 等级缩放 + 装备 stat_mods (flat)。写进 attribute base (取代旧投影折叠)。
+## 派生六维 base = species_base × 等级缩放 (装备数值不进 base, 走加成层 —— 见 _refresh_equipment_abilities, adr/0004)。
 ## 不动当前 HP (carryover 由 set_current_hp 单独管)。species_base 由编排方 (持 SpeciesCatalog 的 GI) 传入,
 ## 保 battle 层不上引 main 层 SpeciesCatalog。可重复调 (equip/level-up 后重算, 幂等)。
 func apply_derived_stats(species_base: Dictionary) -> void:
 	var scale := 1.0 + float(level - 1) * LEVEL_GROWTH
-	var mods := _equipment_mods()
-	attribute_set.set_max_hp_base(float(species_base.get("max_hp", 0.0)) * scale + float(mods.get("max_hp", 0.0)))
-	attribute_set.set_ad_base(float(species_base.get("ad", 0.0)) * scale + float(mods.get("ad", 0.0)))
-	attribute_set.set_ap_base(float(species_base.get("ap", 0.0)) * scale + float(mods.get("ap", 0.0)))
-	attribute_set.set_armor_base(float(species_base.get("armor", 0.0)) * scale + float(mods.get("armor", 0.0)))
-	attribute_set.set_mr_base(float(species_base.get("mr", 0.0)) * scale + float(mods.get("mr", 0.0)))
-	attribute_set.set_speed_base(float(species_base.get("speed", 0.0)) * scale + float(mods.get("speed", 0.0)))
+	attribute_set.set_max_hp_base(float(species_base.get("max_hp", 0.0)) * scale)
+	attribute_set.set_ad_base(float(species_base.get("ad", 0.0)) * scale)
+	attribute_set.set_ap_base(float(species_base.get("ap", 0.0)) * scale)
+	attribute_set.set_armor_base(float(species_base.get("armor", 0.0)) * scale)
+	attribute_set.set_mr_base(float(species_base.get("mr", 0.0)) * scale)
+	attribute_set.set_speed_base(float(species_base.get("speed", 0.0)) * scale)
+	# 装备数值进加成层 (modifier): base 设好后重建装备 ability, 这样 max_hp 已含装备再做 HP 钳制。
+	_refresh_equipment_abilities()
 	# set_max_hp_base 只改上限、不回钳已有 hp (cross-attr clamp 仅在 set hp 时触发); max 下调后 hp 可能越界。
 	# 重算后把当前 HP 钳回 [0, max_hp] 保派生幂等 (set_current_hp 经 set_hp_base 触发 clamp + 同步 downed)。
 	set_current_hp(minf(attribute_set.hp, attribute_set.max_hp))
@@ -319,10 +330,10 @@ func set_current_hp(value: float) -> void:
 	sync_downed_state()
 
 
-## adr/0001 读档统一入口: 先按 species_base 重算派生六维 (含装备折叠), 再还原 carryover HP。
+## adr/0001 读档统一入口: 先按 species_base 重算派生六维 (含装备加成层重建), 再还原 carryover HP。
 ## 顺序固定于此, 消除"apply_derived_stats 必须先于 set_current_hp"的调用方锐边
 ## (set_current_hp 满血分支读 max_hp, 须在 apply 之后才正确)。
-## 前置: 调用方 (GI) 若有装备须已注册容器 + 还原物品 + 设 equipment_container_id, 装备 mods 才会被折入。
+## 前置: 调用方 (GI) 若有装备须已注册容器 + 还原物品 + 设 equipment_container_id, 装备 ability 才会被重建进加成层。
 func restore_persistent_state(species_base: Dictionary, saved_hp: float) -> void:
 	apply_derived_stats(species_base)
 	set_current_hp(saved_hp)
@@ -345,23 +356,46 @@ func to_dict() -> Dictionary:
 	}
 
 
-## 装备容器内物品的 stat_mods flat 累加 (× count)。容器未设 → 空。取代旧投影期装备折叠。
-func _equipment_mods() -> Dictionary:
-	var mods := {}
+## adr/0004 装备数值进加成层: 幂等重建装备通用 ability。先清上一轮装备 modifier (按 source 精确), 再按
+## 当前装备容器内物品的 stat_mods 现场拼 StatModifierConfig grant 进加成层。装备变更 / 升级 / 读档 / 备战
+## (equip_abilities) 时调; 多次调或跨战斗 (ability_set 被 reset 换新) 均不累加。容器未设 → 仅清旧。
+func _refresh_equipment_abilities() -> void:
+	_clear_equipment_abilities()
 	if equipment_container_id <= 0:
-		return mods
+		return
 	for item_id in ItemSystem.get_items_in_container(equipment_container_id):
 		var snap := ItemSystem.get_item_snapshot(item_id)
 		if snap.is_empty():
 			continue
-		var config := ItemSystem.get_item_config(StringName(str(snap.get("config_id", ""))))
+		var item_config_id := str(snap.get("config_id", ""))
+		var config := ItemSystem.get_item_config(StringName(item_config_id))
 		var stat_mods := config.get("stat_mods", {}) as Dictionary
-		if stat_mods == null:
+		if stat_mods == null or stat_mods.is_empty():
 			continue
-		var count := int(snap.get("count", 1))
-		for key in stat_mods:
-			mods[key] = float(mods.get(key, 0.0)) + float(stat_mods[key]) * count
-	return mods
+		var ability := InkMonEquipmentStatAbility.build_ability(
+			stat_mods, get_id(), item_config_id, int(snap.get("count", 1)))
+		if ability == null:
+			continue
+		# 不传 game_state_provider: 装备 ability 无 self-trigger 需求 (对齐 hex Phase G)。
+		ability_set.grant_ability(ability)
+		_equipment_ability_ids.append(ability.id)
+
+
+## 清除上一轮 grant 的装备 ability 留在加成层的 modifier (source = ability.id), 精确不误伤其它来源。
+## 直接对常驻 attribute_set 按 source 移除 (robust): reset_battle_runtime 换了 ability_set 后旧装备 ability
+## 已不在当前 set, 其 modifier 仍在常驻 attribute_set 上 —— 故不能靠 revoke 的 on_remove 清。
+## 已注册 GameWorld 的 actor 再 revoke 一把清掉残留 ability 对象 (StatModifierComponent.on_remove 经 GameWorld
+## 取 attribute_set, 未注册的隔离单元测试 actor 直接 revoke 会 null-deref, 此时加成层已被上面按 source 清净)。
+func _clear_equipment_abilities() -> void:
+	if _equipment_ability_ids.is_empty():
+		return
+	var raw := attribute_set.get_raw()
+	var registered := GameWorld.get_actor(get_id()) != null
+	for ability_id in _equipment_ability_ids:
+		raw.remove_modifiers_by_source(ability_id)
+		if registered and ability_set != null:
+			ability_set.revoke_ability(ability_id)
+	_equipment_ability_ids.clear()
 
 
 ## 装备容器内物品快照 (config_id/count/slot_index), 进存档; 容器 id (runtime) 不进。

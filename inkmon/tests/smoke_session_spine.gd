@@ -1,7 +1,7 @@
 extends Node
 ## adr/0001 统一 live-actor: GI 存档脊柱 —— new_game / to_dict / from_dict round-trip;
 ## 活 roster actor 持久切片 (身份+选择+进度+当前HP carryover, 派生六维不进存档);
-## 装备 stat_mods 折进活 actor 并 round-trip; 活 roster 原地战斗 + 奖励落活 actor; 旧档丢弃重开。
+## 装备 stat_mods 走加成层 (adr/0004) 并 round-trip; 活 roster 原地战斗 + 奖励落活 actor; 旧档丢弃重开。
 
 
 func _ready() -> void:
@@ -24,7 +24,7 @@ func _run() -> String:
 	var model_status := _assert_roster_model(gi)
 	if model_status != "":
 		return _shutdown(model_status)
-	var equip_status := _assert_equipment_fold(gi)
+	var equip_status := _assert_equipment_modifier_layer(gi)
 	if equip_status != "":
 		return _shutdown(equip_status)
 	var round_trip_status := _assert_save_round_trip(gi)
@@ -42,6 +42,9 @@ func _run() -> String:
 	var battle_status := _assert_battle_on_live_roster()
 	if battle_status != "":
 		return _shutdown(battle_status)
+	var cross_battle_equip_status := _assert_equipment_survives_cross_battle()
+	if cross_battle_equip_status != "":
+		return _shutdown(cross_battle_equip_status)
 	var discard_status := _assert_old_save_discarded()
 	if discard_status != "":
 		return _shutdown(discard_status)
@@ -84,8 +87,8 @@ func _assert_roster_model(gi: InkMonWorldGI) -> String:
 	return ""
 
 
-func _assert_equipment_fold(gi: InkMonWorldGI) -> String:
-	# 装备 stat_mods 折进活 actor base (取代旧投影折叠); equip 容器已挂 actor (new_game 注册)。
+func _assert_equipment_modifier_layer(gi: InkMonWorldGI) -> String:
+	# adr/0004: 装备 stat_mods 走加成层 (modifier), 不焊 base; equip 容器已挂 actor (new_game 注册)。
 	var lead := gi.roster[0]
 	if lead.equipment_container_id <= 0:
 		return "lead should own an equipment container"
@@ -97,8 +100,37 @@ func _assert_equipment_fold(gi: InkMonWorldGI) -> String:
 	if not equip_result.success:
 		return "failed to equip training sword: %s" % equip_result.error_message
 	gi.refresh_unit_stats(lead)
+	# current = base + modifier; base 不含装备 (加成层, 非 base 折叠)。
+	var bd := lead.attribute_set.get_ad_breakdown()
+	if absf(bd.base - base_ad) > 0.01:
+		return "equipment must not fold into base (ad base=%.1f want %.1f)" % [bd.base, base_ad]
+	if absf(bd.add_base_sum - sword_ad) > 0.01:
+		return "equipment ad should land in the additive layer (add_base_sum=%.1f want %.1f)" % [bd.add_base_sum, sword_ad]
 	if absf(lead.attribute_set.ad - (base_ad + sword_ad)) > 0.01:
-		return "equipped sword ad should fold into live actor (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad + sword_ad]
+		return "equipped sword ad should reach base+mod via modifier layer (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad + sword_ad]
+
+	# 幂等重授 (注册态 actor → _clear_equipment_abilities 走 revoke 分支): 再 refresh, 加成层恰好一层、不累加。
+	gi.refresh_unit_stats(lead)
+	if lead.attribute_set.get_raw().get_modifiers("ad").size() != 1:
+		return "re-refresh must keep exactly one equipment ad modifier, got %d" % lead.attribute_set.get_raw().get_modifiers("ad").size()
+	if absf(lead.attribute_set.ad - (base_ad + sword_ad)) > 0.01:
+		return "idempotent re-refresh must not double-stack equipment (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad + sword_ad]
+
+	# 脱下复原 (注册态): 清容器 → refresh → ad 回 base, 加成层无残留装备 modifier。
+	ItemSystem.clear_container(lead.equipment_container_id)
+	gi.refresh_unit_stats(lead)
+	if not lead.attribute_set.get_raw().get_modifiers("ad").is_empty():
+		return "unequip should leave no equipment modifier on ad (registered path)"
+	if absf(lead.attribute_set.ad - base_ad) > 0.01:
+		return "unequip should restore ad to base (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad]
+
+	# 重穿回 (后续 _assert_save_round_trip 依赖 lead 已装剑): ad 复为 base+mod。
+	var re_equip := ItemSystem.create_item(lead.equipment_container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	if not re_equip.success:
+		return "failed to re-equip training sword: %s" % re_equip.error_message
+	gi.refresh_unit_stats(lead)
+	if absf(lead.attribute_set.ad - (base_ad + sword_ad)) > 0.01:
+		return "re-equip should restore base+mod (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad + sword_ad]
 	return ""
 
 
@@ -199,6 +231,40 @@ func _assert_battle_on_live_roster() -> String:
 		return "reused world GI: second live-roster battle did not finish"
 	if str(gi.get_result_summary().get("winner_team", "")) != "left":
 		return "reused world GI: second battle expected left winner"
+	return ""
+
+
+## adr/0004 回归守卫: 装备加成层跨真实战斗既不消失也不累加 —— 这是唯一有
+## battle-transient ability_set ↔ 常驻 attribute_set 跨集交互的路径 (reset_battle_runtime 换集 →
+## equip_abilities 重 grant): 旧装备 ability 随旧 ability_set 被丢, 其 modifier 仍在常驻 attribute_set 上,
+## _refresh_equipment_abilities 须按 source 清旧再重 grant, 否则每场 +5 累加或装备丢失。
+func _assert_equipment_survives_cross_battle() -> String:
+	GameWorld.destroy_all_instances()
+	var gi := _new_gi()
+	gi.new_game()
+	var lead := gi.roster[0]
+	var base_ad := float(InkMonSpeciesCatalog.get_base_stats(lead.species).get("ad", 0.0))
+	var sword_ad := float((ItemSystem.get_item_config(InkMonItemCatalog.TRAINING_SWORD).get("stat_mods", {}) as Dictionary).get("ad", 0.0))
+	if sword_ad <= 0.0:
+		return "training sword should define an ad stat_mod"
+	var equip := ItemSystem.create_item(lead.equipment_container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	if not equip.success:
+		return "failed to equip sword for cross-battle check: %s" % equip.error_message
+	gi.refresh_unit_stats(lead)
+	if absf(lead.attribute_set.ad - (base_ad + sword_ad)) > 0.01:
+		return "pre-battle equipped ad should be base+mod (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad + sword_ad]
+
+	for battle_index in 2:
+		gi.request_training_battle()
+		GameWorld.tick_all(BattleProcedure.DEFAULT_TICK_INTERVAL)
+		if gi.has_active_battle():
+			return "cross-battle equip: battle %d did not finish in one world tick" % (battle_index + 1)
+		# reset_battle_runtime 换集后 equip_abilities 重 grant: 加成层恰好一层 (不累加 / 不丢失)。
+		var ad_mods := lead.attribute_set.get_raw().get_modifiers("ad").size()
+		if ad_mods != 1:
+			return "equipment ad must stay exactly one layer after battle %d, got %d" % [battle_index + 1, ad_mods]
+		if absf(lead.attribute_set.ad - (base_ad + sword_ad)) > 0.01:
+			return "equipment ad must hold base+mod after battle %d (got %.1f want %.1f)" % [battle_index + 1, lead.attribute_set.ad, base_ad + sword_ad]
 	return ""
 
 

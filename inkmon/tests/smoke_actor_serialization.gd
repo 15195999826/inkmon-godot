@@ -1,13 +1,14 @@
 extends Node
 ## Phase 1 (adr/0001 统一 live-actor): InkMonUnitActor 自序列化 + 派生 + HP carryover +
-## 装备折叠 + InkMonPlayerActor 持久切片。纯 additive 验证，不接 GI/battle flow。
+## 装备加成层 (adr/0004) + InkMonPlayerActor 持久切片。纯 additive 验证，不接 GI/battle flow。
 ##
 ## 契约：
 ## - from_unit_config → level=1/exp=0/hp==max_hp（满血）。
 ## - to_dict 只存"身份+选择+进度+当前HP"，**不**存派生六维（无 max_hp/ad 等 leak）。
 ## - from_dict(data) 还原身份/level/exp/skill_slots/engravings；apply_derived_stats(base) 后
-##   六维 = f(species, level) + 装备 stat_mods；set_current_hp 还原 carryover（< max 不回满）。
-## - 装备折叠：equipment_container_id 指向的容器里物品 stat_mods 累加进 base。
+##   六维 base = f(species, level)，装备 stat_mods 走加成层；set_current_hp 还原 carryover（< max 不回满）。
+## - 装备加成层 (adr/0004)：equipment_container 物品 stat_mods 现场拼通用 ability 进加成层 (modifier)，
+##   不焊进 base；breakdown 可溯源；脱下复原；to_dict 仍只存 config_id。
 ## - InkMonPlayerActor：默认 gold=100/progression/medals=[]；to_dict/from_dict round-trip。
 
 
@@ -34,7 +35,7 @@ func _run() -> String:
 	var s3 := _check_round_trip_with_level_and_carryover()
 	if s3 != "":
 		return s3
-	var s4 := _check_equipment_fold()
+	var s4 := _check_equipment_modifier_layer()
 	if s4 != "":
 		return s4
 	var s5 := _check_player_actor_round_trip()
@@ -113,7 +114,9 @@ func _check_round_trip_with_level_and_carryover() -> String:
 	return ""
 
 
-func _check_equipment_fold() -> String:
+## adr/0004: 装备 stat_mods 走加成层 (modifier), 不焊进 base。断言 breakdown.base 不含装备、
+## add_base_sum 含 +5、current = base+5、可溯源到 item; 脱下复原; to_dict 仍只存 config_id。
+func _check_equipment_modifier_layer() -> String:
 	var actor := InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)
 	var base := InkMonSpeciesCatalog.get_base_stats(actor.species)
 	var base_ad := float(base["ad"])
@@ -130,16 +133,40 @@ func _check_equipment_fold() -> String:
 	actor.equipment_container_id = cid
 	actor.apply_derived_stats(base)
 
-	var expected_ad := base_ad + 5.0  # TRAINING_SWORD stat_mods {ad: 5.0}
-	if absf(actor.attribute_set.ad - expected_ad) > 0.01:
-		return "equipment fold failed: ad=%f expected %f" % [actor.attribute_set.ad, expected_ad]
+	# 加成层: current = base + modifier; base **不**含装备 (不再焊 base)。TRAINING_SWORD stat_mods {ad: 5.0}。
+	var bd := actor.attribute_set.get_ad_breakdown()
+	if absf(bd.base - base_ad) > 0.01:
+		return "equipment must NOT fold into base (ad base=%.2f expected %.2f)" % [bd.base, base_ad]
+	if absf(bd.add_base_sum - 5.0) > 0.01:
+		return "equipment +5 should land in the additive layer (add_base_sum=%.2f)" % bd.add_base_sum
+	if absf(actor.attribute_set.ad - (base_ad + 5.0)) > 0.01:
+		return "equipped ad should be base+5 via modifier layer (got %.2f expected %.2f)" % [actor.attribute_set.ad, base_ad + 5.0]
 
-	# to_dict 捕获装备容器内物品（write 侧；restore 侧由 GI Phase 2 编排）。
+	# 溯源: 加成层 modifier (source = ability.id) → 装备 ability → 该 item (training_sword)。
+	var traced := false
+	for mod in actor.attribute_set.get_raw().get_modifiers("ad"):
+		if absf(mod.value - 5.0) > 0.01:
+			continue
+		var ab := actor.ability_set.find_ability_by_id(mod.source)
+		if ab != null and str(ab.metadata.get(InkMonEquipmentStatAbility.META_ITEM_CONFIG_ID, "")) == str(InkMonItemCatalog.TRAINING_SWORD):
+			traced = true
+	if not traced:
+		return "equipment ad modifier should trace back to the training_sword item"
+
+	# to_dict 仍只存 config_id（容器 id runtime 不进; restore 侧由 GI 重穿重 grant）。
 	var equip := actor.to_dict().get("equipment", []) as Array
 	if equip.size() != 1:
 		return "to_dict equipment capture wrong size: %d" % equip.size()
 	if str((equip[0] as Dictionary).get("config_id", "")) != str(InkMonItemCatalog.TRAINING_SWORD):
 		return "to_dict equipment capture wrong item: %s" % str((equip[0] as Dictionary).get("config_id", ""))
+
+	# 脱下复原: 清空容器 → 重算 → ad 回 base, 加成层无残留装备 modifier。
+	ItemSystem.clear_container(cid)
+	actor.apply_derived_stats(base)
+	if absf(actor.attribute_set.ad - base_ad) > 0.01:
+		return "unequip should restore ad to base (got %.2f expected %.2f)" % [actor.attribute_set.ad, base_ad]
+	if not actor.attribute_set.get_raw().get_modifiers("ad").is_empty():
+		return "unequip should leave no equipment modifier on ad"
 	return ""
 
 

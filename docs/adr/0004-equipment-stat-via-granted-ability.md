@@ -22,10 +22,31 @@
 
 ## 落地状态
 
-**待落地(重构)**。当前 `InkMonUnitActor` 走 `equipment_container_id` + `_equipment_mods()` 焊 base。改造点:
-1. 主游戏建 item 装备容器(参考 `HexActorEquipmentContainer` 的 grant/revoke + 精确 revoke + metadata attribution)。
-2. 加通用 item ability shell;穿戴时从 `itemconfig.stat_mods` 现场构造 `StatModifierConfig` → grant。
-3. 删 `_equipment_mods()` / `apply_derived_stats` 的装备 fold 分支(派生六维只剩 species_base × 等级缩放;装备改走加成层)。
-4. smoke:装备 → 攻击经**加成层**抬升且 breakdown 可溯源 → 脱下复原;round-trip(存档只存 `config_id`,读档重穿重 grant)。
+**已落地(G3, godot 接收端)**。`InkMonUnitActor._equipment_mods()` 焊 base 已删,装备 stat_mods 改走加成层:
+- 新增 `InkMonEquipmentStatAbility.build_ability(stat_mods, owner, item_config_id, count)` —— 通用 ability shell,
+  穿戴瞬间从 `stat_mods` 现场拼 `StatModifierConfig`(`ADD_BASE`)塞进去(甲案);metadata 写 `source=equipment`/
+  `item_config_id` 供 breakdown 溯源(对齐 `HexActorEquipmentContainer` 的 `META_*`)。
+- `InkMonUnitActor._refresh_equipment_abilities()` 编排幂等 grant/revoke;由 `apply_derived_stats`(overworld+读档+
+  升级重算)与 `equip_abilities`(备战)**共同**调用。`apply_derived_stats` 只设 species_base×等级缩放,装备改由此 helper 进加成层。
+- smoke `_check_equipment_modifier_layer` / `_assert_equipment_modifier_layer` 断言:breakdown.base 不含装备、
+  `add_base_sum` 含 +5、current=base+5、modifier 可溯源到 item、脱下复原;round-trip 仍只存 `config_id`、读档重穿重 grant。
+
+**核心设计决策(本 ADR #1-5 的 godot 落地裁决,记于此)**:
+
+1. **装备 modifier 常驻 actor 的 `attribute_set._raw`,语义"始终在"(overworld + battle 都含)** —— 不做"只在战斗
+   ability_set"的方案。理由:派生六维真相住 `attribute_set`(adr/0001),overworld 属性显示 + 战斗伤害公式同读一处;
+   且本仓 `attribute_set` 跨战斗常驻、`ability_set` 每场 `reset_battle_runtime` 换新 —— 把装备效果挂常驻的 attribute_set
+   才能 always-on。重建点 = `apply_derived_stats`(装备变更/升级/读档),非 battle-only 的 `equip_abilities`。
+2. **`equip_abilities` 也调同一 helper** —— `reset_battle_runtime` 换了新 ability_set 后,把装备 ability 重建到当前
+   battle ability_set(channel ② 富效果 future 也在此就位)。与 `apply_derived_stats` **共用幂等 reconcile**(clear-then-grant),
+   故每场重授**不累加** —— 这正是"每场按当前装备重新授予、天然对齐"成立的前提。
+3. **清旧走 `attribute_set._raw.remove_modifiers_by_source(ability_id)` 直清,不靠 `revoke` 的 on_remove** —— 跨战斗换
+   ability_set 后旧装备 ability 已不在当前 set,但其 modifier 仍在常驻 attribute_set 上;且 `StatModifierComponent.on_remove`
+   经 `GameWorld.get_actor` 取 attribute_set,未注册的隔离单元测试 actor 会 null-deref。故按 source(=ability.id,actor 自身追踪
+   `_equipment_ability_ids`)直接对常驻 attribute_set 移除最 robust;已注册的 actor 额外 `revoke` 一把清掉残留 ability 对象。
+4. **考虑过、未采:直接 `add_modifier`(不走 ability)** —— 更简、零 ability 残留。否决理由:不honor 本 ADR #3"grant 通用 ability"
+   载体,且 channel ②(`granted_abilities` 送技能)需要真 ability 上 ability_set;走 ability 载体让 ①②共用同一 grant 生命周期(#5)。
+   作为 fallback 仍可行(若日后 StatModifierComponent 的 on_remove GameWorld 依赖成为负担)。
 
 > 衔接 [adr/0003](0003-item-config-lab-canon-static-import.md)(item 数字归属)。本 ADR 只管"数字怎么作用到 actor",不管"数字从哪来"。
+> 真实 item 数据(`res://data/inkmon_content.json` 的 `items[]`)尚无,现走 stub catalog(`training_sword` stat_mods `{ad:5}`)+ fixture 测。
