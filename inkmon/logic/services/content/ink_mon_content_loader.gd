@@ -61,12 +61,17 @@ static func load_static_content(path: String = DEFAULT_PATH) -> Dictionary:
 	# Evolution topology = a root-level edge-list forest (adr/0010), separate from units.
 	var evolution_edges := _normalize_evolution_edges(data.get("evolution_edges", []))
 
+	# Item catalog (adr/0003): lab-canon item configs projected into the bundle, keyed by
+	# item_id (item_NNNN). Consumed by InkMonItemCatalog (content hit → use these, else stub).
+	var items := _normalize_items(data.get("items", []))
+
 	return {
 		"loaded": true,
 		"source": path,
 		"species": registered,
 		"species_table": species_table,
 		"evolution_edges": evolution_edges,
+		"items": items,
 	}
 
 
@@ -116,6 +121,66 @@ static func _normalize_evolution_edges(value: Variant) -> Dictionary:
 	return result
 
 
+# Item configs → keyed by item_id (item_NNNN), each normalized to the catalog config shape
+# (id / display_name / item_tags / stat_mods / price / equipable / max_stack / icon_key /
+# granted_abilities) so InkMonItemCatalog consumers read content + stub identically. lab-private
+# fields (description / image_prompt) are not projected (adr/0003) so they never arrive here.
+static func _normalize_items(value: Variant) -> Dictionary:
+	var result := {}
+	if not (value is Array):
+		return result
+	for item_value in (value as Array):
+		if not (item_value is Dictionary):
+			continue
+		var item: Dictionary = item_value
+		var item_id := str(item.get("id", ""))
+		if item_id == "":
+			continue
+		result[item_id] = {
+			"id": item_id,
+			"display_name": str(item.get("display_name", item_id)),
+			"item_tags": _normalize_string_array(item.get("item_tags", [])),
+			"stat_mods": _normalize_stat_mods(item.get("stat_mods", {})),
+			"price": int(item.get("price", 0)),
+			"equipable": bool(item.get("equipable", false)),
+			"max_stack": int(item.get("max_stack", 1)),
+			"icon_key": str(item.get("icon_key", "")),
+			"granted_abilities": _normalize_granted_abilities(item.get("granted_abilities", [])),
+		}
+	return result
+
+
+static func _normalize_string_array(value: Variant) -> Array:
+	var result := []
+	if value is Array:
+		for entry in (value as Array):
+			result.append(str(entry))
+	return result
+
+
+static func _normalize_stat_mods(value: Variant) -> Dictionary:
+	var result := {}
+	if value is Dictionary:
+		for key in (value as Dictionary):
+			result[str(key)] = float((value as Dictionary)[key])
+	return result
+
+
+static func _normalize_granted_abilities(value: Variant) -> Array:
+	var result := []
+	if not (value is Array):
+		return result
+	for entry_value in (value as Array):
+		if not (entry_value is Dictionary):
+			continue
+		var entry: Dictionary = entry_value
+		result.append({
+			"ability_config_id": str(entry.get("ability_config_id", "")),
+			"source": str(entry.get("source", "")),
+		})
+	return result
+
+
 static func _stub_result() -> Dictionary:
 	return {
 		"loaded": false,
@@ -123,4 +188,5 @@ static func _stub_result() -> Dictionary:
 		"species": [],
 		"species_table": {},
 		"evolution_edges": {},
+		"items": {},
 	}

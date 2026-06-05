@@ -92,12 +92,14 @@ static func validate_export(data: Dictionary) -> Array[String]:
 
 # Validates a v2 creature-base contract (the server canon projection): schema/version
 # + per-unit id(=species_id `^mon_\d+$`)/display_name/stage/elements/base_stats, plus the
-# root-level evolution_edges forest. Unlike validate_export it does NOT require
-# skill bindings, skill_pools, skills, or items — the server projects creature bases +
-# topology alone (godot owns AI personality derivation [interim, adr/0008] + skill data + condition evaluation).
+# root-level evolution_edges forest, PLUS the items[] catalog (adr/0003, server item sync).
+# Unlike validate_export it does NOT require skill bindings / skill_pools / skills — the server
+# projects creature bases + topology + items (godot owns AI personality derivation
+# [interim, adr/0008] + skill data + condition evaluation).
 # v2 break (adr/0010): identity moved species→id, per-unit evolves_to removed (topology
-# is now the root edge-list). Edge checks are DEFENSIVE (structure + bundle-local
-# references); single-parent/acyclic/stage-monotonic are the server's hard gate (spec §3).
+# is now the root edge-list). Edge + item checks are DEFENSIVE (structure + bundle-local
+# references + item_NNNN id shape); single-parent/acyclic/stage-monotonic and item uniqueness
+# are the server's hard gate (spec §3 / §1b).
 static func validate_creature_base(data: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	if str(data.get("schema", "")) != SCHEMA_ID:
@@ -106,6 +108,9 @@ static func validate_creature_base(data: Dictionary) -> Array[String]:
 		errors.append("version must be %d" % VERSION)
 	var unit_ids := _validate_creature_units(data.get("units", []), errors)
 	_validate_evolution_edges(data.get("evolution_edges", []), unit_ids, errors)
+	# items[] (adr/0003, spec §1b): OPTIONAL — a creature-only / item-less bundle serves items:[]
+	# or omits it. Defensive (server POST /item is the hard gate): structure + item_NNNN id + types.
+	_validate_creature_items(data.get("items", []), errors)
 	return errors
 
 
@@ -226,6 +231,115 @@ static func _is_species_id(value: String) -> bool:
 	if _species_id_re == null:
 		_species_id_re = RegEx.create_from_string("^mon_[0-9]+$")
 	return _species_id_re.search(value) != null
+
+
+# item_id shape check (`^item_\d+$`, adr/0003). Defensive; server is the authoritative allocator.
+static var _item_id_re: RegEx = null
+
+
+static func _is_item_id(value: String) -> bool:
+	if _item_id_re == null:
+		_item_id_re = RegEx.create_from_string("^item_[0-9]+$")
+	return _item_id_re.search(value) != null
+
+
+static func _require_item_id(value: Variant, label: String, errors: Array[String]) -> void:
+	var id_value := str(value) if (value is String) else ""
+	if id_value == "":
+		errors.append("%s must be a non-empty item_id string" % label)
+		return
+	if not _is_item_id(id_value):
+		errors.append("%s must match ^item_\\d+$ (item_id), got: %s" % [label, id_value])
+
+
+# items[] catalog (adr/0003, spec §1b). OPTIONAL: an item-less bundle serves [] (or omits it).
+# Defensive structural checks only — id is item_NNNN, fields well-typed; the server POST /item is
+# the hard gate (uniqueness, equipable↔granted_abilities biz rule). Uses `is` type tests (not `as`
+# casts) because this gates untrusted server JSON — see _validate_creature_units.
+static func _validate_creature_items(value: Variant, errors: Array[String]) -> void:
+	if not (value is Array):
+		errors.append("items must be an array")
+		return
+	var items: Array = value
+	var ids: Array[String] = []
+	for i in range(items.size()):
+		if not (items[i] is Dictionary):
+			errors.append("items[%d] must be an object" % i)
+			continue
+		var item: Dictionary = items[i]
+		var label := "items[%d]" % i
+		_require_item_id(item.get("id"), "%s.id" % label, errors)
+		_require_string(item, "display_name", label, errors)
+		_require_string(item, "icon_key", label, errors)
+		_validate_item_tags(item.get("item_tags", []), "%s.item_tags" % label, errors)
+		_validate_item_stat_mods(item.get("stat_mods", {}), "%s.stat_mods" % label, errors)
+		if int(item.get("price", -1)) < 0:
+			errors.append("%s.price must be an int >= 0" % label)
+		if int(item.get("max_stack", 0)) < 1:
+			errors.append("%s.max_stack must be an int >= 1" % label)
+		if not (item.get("equipable", null) is bool):
+			errors.append("%s.equipable must be a bool" % label)
+		_validate_item_granted_abilities(
+			item.get("granted_abilities", []), "%s.granted_abilities" % label, errors
+		)
+		var id_value := str(item.get("id")) if (item.get("id") is String) else ""
+		if id_value != "" and _is_item_id(id_value):
+			if id_value in ids:
+				errors.append("%s.id duplicate item_id: %s" % [label, id_value])
+			ids.append(id_value)
+
+
+static func _validate_item_tags(value: Variant, label: String, errors: Array[String]) -> void:
+	if not (value is Array):
+		errors.append("%s must be an array" % label)
+		return
+	var tags: Array = value
+	if tags.is_empty():
+		errors.append("%s must be a non-empty array" % label)
+		return
+	for tag_value in tags:
+		if not (tag_value is String) or str(tag_value) == "":
+			errors.append("%s contains a non-string / empty tag" % label)
+			return
+
+
+# Partial map of the six godot stats → non-negative number (adr/0004 base-stat carrier).
+# Empty {} is valid (no flat bonus); unknown keys / negative / non-number values rejected.
+static func _validate_item_stat_mods(value: Variant, label: String, errors: Array[String]) -> void:
+	if not (value is Dictionary):
+		errors.append("%s must be an object" % label)
+		return
+	var stat_mods: Dictionary = value
+	for stat_key in stat_mods:
+		var key := str(stat_key)
+		if not key in REQUIRED_UNIT_STATS:
+			errors.append("%s has unknown stat key: %s" % [label, key])
+			continue
+		var raw: Variant = stat_mods[stat_key]
+		if not (raw is int or raw is float):
+			errors.append("%s.%s must be a number" % [label, key])
+			continue
+		var number := float(raw)
+		if is_nan(number) or is_inf(number) or number < 0.0:
+			errors.append("%s.%s must be a finite number >= 0" % [label, key])
+
+
+static func _validate_item_granted_abilities(
+	value: Variant, label: String, errors: Array[String]
+) -> void:
+	if not (value is Array):
+		errors.append("%s must be an array" % label)
+		return
+	var grants: Array = value
+	for i in range(grants.size()):
+		if not (grants[i] is Dictionary):
+			errors.append("%s[%d] must be an object" % [label, i])
+			continue
+		var grant: Dictionary = grants[i]
+		if str(grant.get("ability_config_id", "")) == "":
+			errors.append("%s[%d].ability_config_id must be a non-empty string" % [label, i])
+		if str(grant.get("source", "")) == "":
+			errors.append("%s[%d].source must be a non-empty string" % [label, i])
 
 
 static func _validate_units(

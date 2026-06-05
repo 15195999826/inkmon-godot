@@ -75,5 +75,29 @@
       "child_species_id": "mon_0009",
       "trigger": { "level": 12 }
     }
+  ],
+  "items": [
+    {
+      "id": "item_0001",
+      "display_name": "Training Sword",
+      "item_tags": ["equipment", "weapon"],
+      "stat_mods": { "ad": 5 },
+      "price": 30,
+      "equipable": true,
+      "max_stack": 1,
+      "icon_key": "sword",
+      "granted_abilities": []
+    },
+    {
+      "id": "item_0002",
+      "display_name": "Minor Rune",
+      "item_tags": ["material"],
+      "stat_mods": {},
+      "price": 10,
+      "equipable": false,
+      "max_stack": 99,
+      "icon_key": "rune",
+      "granted_abilities": []
+    }
   ]
 }
