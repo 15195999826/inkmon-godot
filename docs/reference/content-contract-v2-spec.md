@@ -72,7 +72,7 @@
     "level": 16,                      // int, 必填, > 0 —— 进化等级阈值（设计数据，住 canon）
     "condition": {                    // object, 可选 —— 分支区分器
       "type": "item",                 // string, 非空
-      "params": { "item_id": "firestone" }  // object
+      "params": { "item_id": "item_0001" }  // object（item_NNNN，引用某 item.id）
     }
   }
 }
