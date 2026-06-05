@@ -48,7 +48,11 @@
 
 **4.4 InkMonPlayerActor**(adr/0001)— 玩家走路 avatar = 常驻 `InkMonWorldGI` registry 的活 `InkMonWorldActor` 子类,揣玩家级数据 `gold / progression / medals` + bag 容器 id(runtime,不进存档)。同时进 `world_actors["player"]`(位置/移动)。自序列化 `to_dict/from_dict`(gold/progression/medals/coord;bag 物品由容器捕获)。取代旧 `InkMonGameSession`/`InkMonPlayerState` 的玩家级数据职责。
 
-**4.5 出战 InkMon 自序列化(`InkMonUnitActor` 持久切片)**(adr/0001)— 一只己方 InkMon = 常驻 registry 的活 `InkMonUnitActor`(跨战斗复用、battle 原地改、死留 registry/HP=0)。核心原则:**只存"身份+选择+进度"+当前 HP(carryover),不存算出的派生六维**。`to_dict` 存 `species_id / name_en / stage / elements / level / exp / skill_slots / engravings / 当前HP / 装备物品`;派生六维 = `f(species, level)` 读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods),不进存档。取代旧 `InkMonRosterEntry`(投影/快照/回写全删);字段细节见 `main-game-architecture.md` §8c。
+**4.5 出战 InkMon 自序列化(`InkMonUnitActor` 持久切片)**(adr/0001)— 一只己方 InkMon = 常驻 registry 的活 `InkMonUnitActor`(跨战斗复用、battle 原地改、死留 registry/HP=0)。核心原则:**只存"身份+选择+进度"+当前 HP(carryover),不存算出的派生六维**。`to_dict` 存 `species_id / name_en / stage / elements / level / exp / skill_slots / engravings / 当前HP / 装备物品`;派生六维 = `f(species, level)` 读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods),不进存档。⚠️ 装备 stat_mods **当前**折进 base,[adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 将改为加成层(见 §4.7)= 待重构。取代旧 `InkMonRosterEntry`(投影/快照/回写全删);字段细节见 `main-game-architecture.md` §8c。
+
+**4.6 Item:ItemConfig vs ItemInstance**（adr/0003）— **两类数据，别混**。**ItemConfig（物品配置 / 总表）** = 一种 item 的共享定义（`id`/`display_name`/`price`/`item_tags`/`stat_mods`/`equipable`/`max_stack`/`icon_key`），纯数据无 godot 逻辑，**不进存档**；归 **lab canon**，身份键 `^item_\d+$`（`item_0001`，server 发号，对称 species `mon_NNNN`），走 editor-tool 静态导入（开发期拉服务器→写 `res://data` 本地 JSON→运行时只读本地、**绝不联网**）。**ItemInstance（物品实例）** = 玩家实际持有的一份（`config_id` + count + slot），**进存档**（随活 actor 序列化，adr/0001）。⚠️ 进化条件 `type:"item"` 引用的 `item_id` = 某 ItemConfig 的 id。
+
+**4.7 装备数值生效 = grant ability，不焊进 base**（adr/0004）— 装备 item 的数值**不**直接写进基础属性，而是穿戴时给 actor **grant 一个通用 ability**（携 `StatModifierComponent`→`AttributeModifier`→进**加成层**），脱下按 ability instance id 精确 revoke。v1 纯数值：通用 ability 穿戴瞬间拿 ItemConfig 的 `stat_mods` **现场拼** modifier（数字来自 lab item 数据，不写死 godot 配置）。地基 = hex `HexActorEquipmentContainer`（Phase G）+ LGF StatModifier 机制；**取代** inkmon 现 `_equipment_mods()` 焊 base 法（待重构）。
 
 ## 5. 设计取向
 

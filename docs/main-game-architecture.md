@@ -200,7 +200,7 @@
 
 ## 8c. 数据模型 — 活 actor 自序列化:存身份+选择+进度+当前HP,不存算出的派生六维
 
-统一原则(adr/0001;技能 + stats 同构):**每只出战 InkMon = 常驻 registry 的活 `InkMonUnitActor`,自序列化"这只是谁 / 选了什么 / 练到哪 + 当前 HP",不存"由此算出的派生六维"**。派生六维 = `f(species, level)`,读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods),不进存档。
+统一原则(adr/0001;技能 + stats 同构):**每只出战 InkMon = 常驻 registry 的活 `InkMonUnitActor`,自序列化"这只是谁 / 选了什么 / 练到哪 + 当前 HP",不存"由此算出的派生六维"**。派生六维 = `f(species, level)`,读档时 `apply_derived_stats(species_base)` 重算(+装备 stat_mods —— ⚠️ [adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 后装备 stat_mods 不再进 base/派生、改走加成层 modifier,现状代码仍折 base = 待重构,详见本节"装备"与"派生六维计算"bullet),不进存档。
 
 **技能槽 = 存"哪槽选了哪技能",不存变异数值**:
 - 结构:`skill_slots: Array[{slot_index:int, skill_id:String}]`。
@@ -209,15 +209,15 @@
 - 进化:旧 slot 保留;新阶段新增 slot → roll 一次写 skill_id。
 - 出战授予的 primary skill 从 `skill_slots[0]` **单一真相**派生(`get_primary_skill_id()`,`equip_abilities` 时取),无独立缓存 —— 局内进化改写 slot0 后下一场即生效。
 
-**技能代码/元数据流向(adr/0009)**:
+**技能代码/元数据流向(lab adr/0009)**:
 - 技能实现 = Godot 内的 `AbilityConfig` / GDScript 代码,住本仓并编译进 export;运行时不从 server 拉 `.gd`,不动态加载。
 - server 只存 skill metadata:`id` / `implementation_key` / `display_name` / `element` / `channel` / `icon_key?`,供 lab 展示和 `skill_pools` 引用。
 - 流向与 inkmon/item 相反:skill metadata 是 `godot -> server -> lab`;Godot editor menu `Project -> Tools -> InkMon: 上传技能元数据` 主动 POST 到 server。
 
-**进化 = species 字段改写 + edge-list 森林(adr/0010)**:
+**进化 = species 字段改写 + edge-list 森林(lab adr/0010)**:
 - 身份 = `species_id`(= 活 actor 的 `species`,全局唯一不可变 `mon_NNNN`,住 canon);`name_en` 降级为可改显示名。进化 = `InkMonSpeciesCatalog.evolve_actor(actor)` **原地变身**活 actor:改写 `actor.species`(及 display_name/stage)成所选下一形态,actor 实例不换(同一只,无 entry_id)。
 - 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 editor import 写入本地静态 content `res://data/inkmon_content.json`,由 `InkMonSpeciesCatalog` 读取。一个低阶可多子分支;孤儿 = 无边物种。权威是 **per-species**:某物种在边表中→用边表;不在→降级用 stub `_build_table` 的 `evolves_to` 单边 fallback(故加载部分 content 不会让 stub/领养物种丢失自己的进化链)。
-- **阈值 `trigger.level` = 设计数据,住 canon**(adr/0010 修订 0007);godot 只持有单位**运行时 current level**(`actor.level`)。进化触发 = `actor.level >= trigger.level`。
+- **阈值 `trigger.level` = 设计数据,住 canon**(lab adr/0010 修订 lab adr/0007);godot 只持有单位**运行时 current level**(`actor.level`)。进化触发 = `actor.level >= trigger.level`。
 - **分支确定性选边住 godot**:在 level 达标的边里 —— 有 `condition` 且评估通过者优先 → 否则取无 condition 的默认枝(canon 语义盲)。`condition {type, params}` 按 `type` 分派评估(`element`/`stat` 真评估,stat 用 species_base × 等级缩放;`item` 待 item 域迁 server,先 stub false)。
 - 每形态 = 一条独立 species 数据(独立立绘/名/属性档/技能池/槽数)。属性派生 key = `species_id`,即 `f(species_id, level)`。
 - 升级/进化后 `gi.refresh_unit_stats(actor)` 按新 species+level 重算派生六维(carryover HP 保留)。
@@ -232,14 +232,14 @@
 - 存储形状:`engravings: [{engraving_id, target_slot}]` —— 每条显式指明强化哪个 skill_slot。
 - 刻印**不进派生六维数值折叠**(它改技能行为);equip 时每条 grant 一个刻印被动。
 
-**装备 = 项目本地 stat 折叠(非 lomolib Phase-G)**:
-- lomolib 只有 inventoryKit,**无 Phase-G**(`EquipmentManager`/`StatAggregator`/`AbilityGrantor` 只存在于 hex-atb-battle 示例 = Non-Goal,不引入主游戏)。
-- 装备数值生效 = **equip/load 时** `InkMonUnitActor.apply_derived_stats`:遍历该 actor 装备容器物品,把各物品 config 的 `stat_mods` flat 累加进 attribute base(× 数量,取代旧投影期折叠)。每只 actor 持 equipment 容器 id;物品实例住中央 `ItemSystem`(InventoryKit 原生),actor 只持容器 id 引用。
-- 装备**授予 ability**(granted_abilities)= 设计意图,**主游戏暂未落地**(示例层有参考实现);v1 装备只做数值。
+**装备 = grant 通用 ability 进加成层([adr/0004](adr/0004-equipment-stat-via-granted-ability.md),反转原 Non-Goal)**:
+- ⚠️ **本节原稿**(已被 adr/0004 推翻)写的是:"装备走 base 折叠、hex Phase-G(`EquipmentManager`/`StatAggregator`/`AbilityGrantor`)= Non-Goal、不引入主游戏"。**adr/0004 反转之**:装备数值改为穿戴时 grant 一个**通用 ability**、进**加成层**(`StatModifierComponent`→`AttributeModifier`),脱下按 instance id 精确 revoke。理由 = 数字归 lab([adr/0003](adr/0003-item-config-lab-canon-static-import.md))+ 来源可 introspect + 富效果可平滑扩展;代价 = 把 hex 的装备 grant 机器(`HexActorEquipmentContainer`/`HexEquipmentAbilityResolver`,非旧稿那三个类名)搬进主游戏。
+- v1 纯数值:通用 ability 穿戴瞬间拿 itemconfig `stat_mods` **现场拼** `StatModifierConfig`(甲案),数字来自 item 数据、不写死 godot 配置。物品实例住中央 `ItemSystem`(InventoryKit 原生),actor 持 equipment 容器 id 引用。
+- **落地状态 = 待重构**:现 `InkMonUnitActor._equipment_mods()` + `apply_derived_stats` 仍把 stat_mods 折进 base(旧法),`smoke_actor_serialization`/`smoke_session_spine` 仍断言 base 折叠;按 adr/0004 改造后装备改走加成层。
 
 **派生六维计算**:
-- `attribute base = species_base(f(species, level)) + 装备 stat_mods 累加`(`apply_derived_stats`,flat 加法,equip/level-up/读档时重算,**幂等**;重算 max_hp 后回钳当前 HP ∈ [0, max])。
-- ability 来源(走 grant,不进 stats 折叠):skill_slots 技能 + 普攻 + 刻印被动(+ 未来:装备授予 ability)。
+- `attribute base = species_base(f(species, level))`(`apply_derived_stats`,equip/level-up/读档时重算,**幂等**;重算 max_hp 后回钳当前 HP ∈ [0, max])。⚠️ [adr/0004](adr/0004-equipment-stat-via-granted-ability.md) 后**装备 stat_mods 不再进 base**,改走加成层(modifier);现状代码仍折进 base = 待重构。
+- ability 来源(走 grant,不进 stats 折叠):skill_slots 技能 + 普攻 + 刻印被动 + 装备通用 ability(adr/0004)。
 
 **UnitActor 持久切片(自序列化形状)**:
 ```

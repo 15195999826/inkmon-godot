@@ -61,6 +61,8 @@
 
 ## 3. lab 内容导入契约（stub → lab 导出的边界，**尚未接入**）
 
+> ⚠️ **本节关于 item 的部分已过时**。下文"schema v1 / items 必填非空 / canon Equipment 映射待定"是 stub 自描述期的旧形状假设。item 数据的归属/编号/导入流与装备数值生效方式现以 [`adr/0003`](../adr/0003-item-config-lab-canon-static-import.md) + [`adr/0004`](../adr/0004-equipment-stat-via-granted-ability.md) 为准（itemconfig 归 lab canon、`item_NNNN` 数字发号、editor-tool 静态导入、装备数值靠 grant ability 进加成层）。当前冻结契约形状见 [`content-contract-v2-spec`](../reference/content-contract-v2-spec.md)（schema v2）。units/skills 部分下文仍有效。
+
 当前主游戏跑在**项目本地手写 stub 配置**(`InkMonUnitConfig` / `InkMonItemCatalog` / `inkmon/logic/battle/` 下技能类)。这是**有意**的,直到 lab 仓 inkmon-lab 完成 canon schema + exporter。在那之前主游戏**绝不消费部分迁移的 canon 数据** —— lab 导出要么整体通过校验、要么留在运行时之外。
 
 ### 校验入口
@@ -68,12 +70,12 @@
 - `InkMonL2ContentContract.build_current_stub_export()` 把当前 stub 打成同一 JSON 形状,用同一 validator 自检。
 - smoke:`./tools/run_tests.ps1 inkmon/content`(含 `JSON.stringify` / `parse_string` 往返 + 断言旧 canon key 如 `bst` / `special_attack` 不出现)。
 
-### 必需导出形状(schema `inkmon.l2.content.v1`,version `1`)
-- 顶层:`schema`(恰为 `inkmon.l2.content.v1`)/ `version`(1)/ 非空数组 `units` / `skill_pools` / `skills` / `items`。
+### 必需导出形状(schema 以 [content-contract-v2-spec](../reference/content-contract-v2-spec.md) 为准 = `inkmon.l2.content.v2` / version `2`;item 形状已移出本节,见 [adr/0003](../adr/0003-item-config-lab-canon-static-import.md))
+- 顶层:`schema`(`inkmon.l2.content.v2`)/ `version`(2)/ 非空数组 `units` / `skill_pools` / `skills`(⚠️ `items` **不再**属本节"必填非空"——v2 里 item 是 lab canon 承载段、可空 `[]`,归属/形状见 [adr/0003](../adr/0003-item-config-lab-canon-static-import.md))。
 - unit:`id` / `display_name` / `species` / `stage`(baby|mature|adult)/ `elements`(fire|water|wind|light|dark,一个或多个)/ `base_stats`(max_hp,ad,ap,armor,mr,speed)/ `skill_slots`(slot 号 + pool_id)/ `fallback_active_skill_id`(当前单技能运行时的临时桥)。(⚠️ `role` 已删 —— lab adr/0008 彻底废弃战斗定位字段;AI 行为未来走 canon `personality`,见 glossary 2.3。)
 
 ### 显式 deferred 字段(必须留文档,不许悄悄出现在运行时数据里)
-多槽 active kit 选择 / 技能 variance 值 / 进化表 / 刻印·勋章效果 payload / canon Equipment 映射(若 lab item domain 变化)。
+多槽 active kit 选择 / 技能 variance 值 / 进化表 / 刻印·勋章效果 payload。(~~canon Equipment 映射~~ 已由 [adr/0003](../adr/0003-item-config-lab-canon-static-import.md) / [adr/0004](../adr/0004-equipment-stat-via-granted-ability.md) 定案,不再 deferred。)
 
 ### 将来替换步骤
-1. lab exporter 写出 `inkmon.l2.content.v1`。2. 从 inkmon-lab 拿一份 fixture 导出。3. 运行时导入前先跑 `validate_export()` smoke。4. 校验通过后,才加 mapper 把导出的 units/items/skills 映射进项目运行时 config。
+1. lab exporter 写出 `inkmon.l2.content.v1`。2. 从 inkmon-lab 拿一份 fixture 导出。3. 运行时导入前先跑 `validate_export()` smoke。4. 校验通过后,才加 mapper 把导出的 units/skills 映射进项目运行时 config(item 走 [adr/0003](../adr/0003-item-config-lab-canon-static-import.md) editor-tool 静态导入流,不经此 v1 mapper)。
