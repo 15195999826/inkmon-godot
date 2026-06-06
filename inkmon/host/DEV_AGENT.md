@@ -31,7 +31,7 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_3d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_3d`, `replaying`, `battle_2d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
 | `layout_state` | none | viewport and clickable rects for: prompt button, NPC panel + drawer close, NPC action buttons, Shop buy buttons, the `start_training_battle` trainer button, top-right tool buttons, drawer tabs, and the save/load modal panel + slot/close buttons (full key set: `prompt_button`/`npc_panel`/`close_button`/`npc_action_buttons`/`shop_buy_buttons`/`trainer_button`/`tool_buttons`/`tab_buttons`/`save_load_modal`/`save_slot_buttons`/`load_slot_buttons`/`modal_close_button`) |
 | `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for a 3D hex tile center, used with raw `click_at` + `button:"right"` |
 
@@ -43,10 +43,12 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 | `goto_tile` | `{ "q": int, "r": int }` | enqueues an async move command (same path right-click input takes); the 30Hz world tick advances the player cell-by-cell, emitting `actor_position_changed` which the view tweens per step | `state.player_coord` (logic occupant), `state.player_moving`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord` |
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
-| `run_training_battle` | `{ "max_ticks": int }` | starts a training battle on the **live roster actors** (in-place, no projection), ticks it to completion, awards gold/exp onto the live actors, returns to overworld | `state.gold > 100`, `last_battle_result.winner_team == "left"`, `active_instance_id == ""` |
+| `run_training_battle` | `{ "max_ticks": int }` | starts a training battle on the **live roster actors** (in-place, no projection), ticks to completion, awards gold/exp synchronously, then plays a **2D replay** (adr/0005) before returning to overworld | right after: `gold > 100`, `active_instance_id == ""`, `state == "BATTLE"`, `replaying == true`, `battle_2d.unit_count > 0`; after replay ends (poll until `replaying == false`): `state == "OVERWORLD"`, `last_battle_result.winner_team == "left"` |
 | `npc_action` | `{ "npc_id": string, "action_id": string }` | **enqueues** a system NPC handler action command (async, 方案 A); the mutation lands on the next world tick, and training's `start_battle` flow intent starts a deferred battle | poll `state` after a short `wait_frames`: action-specific fields in `state.progression`, `state.roster`, `state.bag`, or `gold` |
 | `save_game` | `{ "path": string }` | writes `gi.to_dict()` (live actors → save dict) JSON to `user://` path | `ok == true` |
 | `load_game` | `{ "path": string }` | reads JSON, rebuilds the world via `gi.from_dict` (live actors + runtime containers), returns to `OVERWORLD` | restored `gold`, `roster`, `progression`, `bag` |
+
+> **adr/0005 — 2D battle replay:** `run_training_battle` (and the NPC trainer `start_battle` flow) now record the battle and play a **2D placeholder replay** (`inkmon/presentation/battle_2d/`, isometric squished hex + upright units) before returning to overworld. During replay `state == "BATTLE"` with `replaying == true` and `battle_2d.unit_count > 0`; `on_battle_completed` (hence `last_battle_result`) fires only **after** the replay ends — poll `state` until `replaying == false` before asserting `last_battle_result`. Gold/exp land synchronously when the battle ends (before the replay starts).
 
 Player-facing UI paths must use raw real input:
 
@@ -87,7 +89,7 @@ Pass criteria:
 
 - command `01` returns `state == "OVERWORLD"` and `gold == 100`
 - command `02` returns `ok == true`
-- command `03` returns `gold > 100`, `active_instance_id == ""`, and `last_battle_result.winner_team == "left"`
+- command `03` (right after `02`) returns `gold > 100`, `active_instance_id == ""`, `state == "BATTLE"`, `replaying == true`, `battle_2d.unit_count > 0` (the 2D replay is playing); after the replay ends (poll `state` until `replaying == false`) `state == "OVERWORLD"` and `last_battle_result.winner_team == "left"`
 - command `04` writes a node tree artifact
 
 UI input check:

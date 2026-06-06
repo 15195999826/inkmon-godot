@@ -34,7 +34,8 @@ func _init(
 func _start_recorder() -> void:
 	if not _recording_enabled or _recorder == null:
 		return
-	_recorder.start_recording_events_only()
+	# adr/0005:全量录像(带 initial_actors 快照),让 2D 回放 animator 能从录像独立重建开战阵容。
+	_recorder.start_recording(get_all_units(), {}, {})
 
 
 func tick_once() -> void:

@@ -481,7 +481,8 @@ func start_battle_procedure(config: Dictionary = {}) -> void:
 ## 右队 = 临时训练假人。Host 只说"打 training"。
 func request_training_battle() -> void:
 	_reset_battle_state()
-	_recording_enabled = false
+	# adr/0005:打开全量录像 → 录 initial_actors 快照,供 2D 回放 animator 拿到开战阵容。
+	_recording_enabled = true
 	InkMonBattleSetup.configure_battle_grid(self, {})
 	left_team = InkMonBattleSetup.battle_roster_slice(self)
 	right_team = InkMonBattleSetup.build_training_dummies(self)

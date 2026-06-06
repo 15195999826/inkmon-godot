@@ -45,6 +45,11 @@
         "../../inkmon/tests/smoke_tick_movement.tscn"
       ]
     },
+    "battle-2d": {
+      "scenes": [
+        "../../inkmon/tests/smoke_battle_2d_replay.tscn"
+      ]
+    },
     "command": {
       "scenes": [
         "../../inkmon/tests/smoke_world_command.tscn"

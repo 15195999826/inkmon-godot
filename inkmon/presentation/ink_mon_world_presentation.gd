@@ -39,6 +39,10 @@ var _world_query: IWorldQuery = null
 var _battle_active := false
 ## 最近一场战斗结果由 Host 经 on_battle_completed 推入,用于 journal 面板 + debug 表面。
 var _last_battle_result: Dictionary = {}
+## adr/0005:战斗 2D 回放视图(占位,懒建)+ 回放中标志 + 待收尾结果。回放期 _replaying 接管 BATTLE 态。
+var _battle_2d_view: InkMonBattle2DView = null
+var _replaying := false
+var _pending_battle_result: Dictionary = {}
 
 ## 数据驱动 panel 内容构建器(纯表演,据数据建 Control 行)。
 var _panel_view := InkMonWorldPanelView.new()
@@ -103,7 +107,7 @@ var _npc_defs: Dictionary:
 ## app_state 派生:战斗 > NPC 菜单 > 主世界。
 var app_state: AppState:
 	get:
-		if _battle_active:
+		if _battle_active or _replaying:
 			return AppState.BATTLE
 		if _drawer_mode == "npc":
 			return AppState.NPC_MENU
@@ -145,6 +149,34 @@ func on_battle_completed(result: Dictionary) -> void:
 	_last_ui_message = "battle completed"
 	_refresh_ui()
 	add_event("battle completed: %s" % str(result.get("result", "")))
+
+
+## Host 在战斗结束(有录像)时调:隐藏 overworld,起 2D 回放;_replaying 接管 BATTLE 态直到播完。
+func play_battle_replay(replay_data: Dictionary, result: Dictionary) -> void:
+	_pending_battle_result = result
+	if _battle_2d_view == null:
+		_battle_2d_view = InkMonBattle2DView.new()
+		_battle_2d_view.name = "Battle2DView"
+		add_child(_battle_2d_view)
+		_battle_2d_view.playback_ended.connect(_on_replay_playback_ended)
+	_replaying = true
+	if _world_layer != null:
+		_world_layer.visible = false
+	_battle_2d_view.visible = true
+	_battle_2d_view.play_replay(replay_data, result)
+	_refresh_prompt()
+
+
+## 2D 回放播完:恢复 overworld,清 _replaying,复用 on_battle_completed 收尾(刷 UI / journal)。
+func _on_replay_playback_ended() -> void:
+	_replaying = false
+	if _battle_2d_view != null:
+		_battle_2d_view.visible = false
+	if _world_layer != null:
+		_world_layer.visible = true
+	var pending := _pending_battle_result
+	_pending_battle_result = {}
+	on_battle_completed(pending)
 
 
 ## Host 在 reset/load 时调:清表演侧瞬时 UI 态(不含已由 bind_world 重连的 query)。
@@ -780,6 +812,8 @@ func get_debug_state() -> Dictionary:
 		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
 		"overworld_3d": _world_layer.get_debug_state() if _world_layer != null else {},
+		"replaying": _replaying,
+		"battle_2d": _battle_2d_view.get_debug_state() if _battle_2d_view != null else {},
 		"ui_animation": {
 			"drawer_transition_active": _drawer_transition_active,
 			"modal_transition_active": _modal_transition_active,

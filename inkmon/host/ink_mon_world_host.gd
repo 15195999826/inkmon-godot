@@ -149,10 +149,16 @@ func _complete_battle_if_ready() -> void:
 	if _world_gi.has_active_battle():
 		return
 	# adr/0001:GI 战斗结束直接把奖励落活 actor (gold→player_actor, exp→roster);Host 拿摘要交 Presentation 展示。
+	var replay := _world_gi.get_replay_data()
 	var result := _world_gi.finalize_battle_rewards()
 	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
-	_set_active_instance("")
-	_presentation.on_battle_completed(result)
+	# adr/0005:有录像 → 先交 Presentation 播 2D 回放(_replaying 接管 BATTLE 态),播完再收尾;无录像直接收尾(降级)。
+	if replay.is_empty():
+		_set_active_instance("")
+		_presentation.on_battle_completed(result)
+	else:
+		_presentation.play_battle_replay(replay, result)
+		_set_active_instance("")
 
 
 # === lifecycle:save/load/new-game/reset = 重建孩子(Host 控制面,非 command 队列)===

@@ -65,3 +65,13 @@
 ## 6. 关键不变量
 
 **6.1 死者留 registry** — 战斗中 hp≤0 的单位**留在 world registry**(`get_actor()` 非 null、`hex_position` 字段保留),只清 grid occupant。这是判"目标死亡 → 技能 fizzle?"类问题的不变量。adr/0001 下延伸到持久层:死 roster `InkMonUnitActor` 留 registry(HP=0)+进存档,不移除;读档/战斗复用经 `sync_downed_state()` 按 HP 重建 `is_dead()`,保 `is_dead()` 与 carryover HP 一致。revive/permadeath = 游戏设计层(待定)。
+
+## 7. 表现层 / 美术（adr/0005）
+
+**7.1 等轴 2D 表现层** — 主游戏 presentation 用真 2D（Godot `Node2D`/`Sprite2D`/`AnimatedSprite2D` + `Camera2D`）渲染，3/4 等轴投影，画风对标 Supergiant(Bastion/Hades) painterly 手绘。**hex 逻辑网格不变，等轴只是渲染风格**。取代占位 3D。⚠️ 区别 HD-2D：HD-2D = 立牌技术 + 像素 sprite + 后处理(移轴/景深/bloom)；本项目不用像素、不开后处理，故非 HD-2D。
+
+**7.2 Seedance 烘帧管线** — 角色动画做法：Seedance 生成绿幕视频 → 抠像切帧 → `SpriteFrames`。与 Hades"3D 渲染→烘 2D 帧"同形，生成器换成 AI 视频。**核心心法**：AI 擅长"一致的视频/图"、不擅长"逐帧一致"，故让生成器产连贯动作、烘成扁平 2D 帧、Godot 纯 2D 播。
+
+**7.3 统一出图规格（命脉，待定）** — 棋盘等轴角度 = Seedance 出图角度，必须统一：每只 mon 按同一"3/4 俯视角 / 站位+朝向 / 光向 / 比例 / 着地阴影"规格生成，否则与棋盘不在一个透视。AI 美术管线的命脉，规格细节待定。
+
+**7.4 零 submodule 战斗 2D 化** — 战斗录像(`stdlib/replay`)renderer-agnostic(纯事件 timeline)；inkmon 在 `inkmon/presentation/` 新写 2D battle animator 读同一录像，submodule 不碰，hex/dota2 examples 保留 3D。inkmon 从未接战斗画面 → 2D 战斗是 greenfield。
