@@ -1,35 +1,30 @@
 class_name InkMonUnit2DView
 extends Node2D
 
-## 战斗回放占位单位(2D，adr/0005）:队伍配色圆盘 + 名字 + HP 条;位置 lerp / 受击闪白 / 死亡 fade。
-## 待 Seedance 烘帧管线落地后,Body 占位 Polygon2D 换 AnimatedSprite2D。
+## 战斗回放单位视图(2D)：队伍配色圆盘 + 名字 + HP 条。
+##
+## 表演框架平移后（adr/0006）：本视图是 RenderWorld 的 ActorRenderState **哑投影**——
+## 自己不跑任何插值/计时。位移、血条收敛、受击闪白、死亡淡出全由 RenderWorld 算好，
+## animator 每帧读 state、设像素位置（set_world_pos）、调 update_from_state(state)。
+## 待 Seedance 烘帧管线落地后，Body 占位 Polygon2D 换 AnimatedSprite2D。
 
 const RADIUS := 18.0
 const HP_BAR_WIDTH := 40.0
 const HP_BAR_HEIGHT := 5.0
-const MOVE_LERP_SPEED := 8.0
-const FLASH_DURATION_MS := 160.0
-const DEATH_FADE_PER_SEC := 2.0
 
 var actor_id := ""
 var team := 0
 
 var _max_hp := 1.0
-var _hp := 1.0
-var _alive := true
-var _target_pos := Vector2.ZERO
-var _flash_ms := 0.0
-
 var _body: Polygon2D
 var _base_color := Color.WHITE
 var _hp_fill: ColorRect
 
 
-func initialize(p_actor_id: String, display_name: String, p_team: int, p_max_hp: float, p_hp: float) -> void:
+func initialize(p_actor_id: String, display_name: String, p_team: int, p_max_hp: float) -> void:
 	actor_id = p_actor_id
 	team = p_team
 	_max_hp = maxf(1.0, p_max_hp)
-	_hp = clampf(p_hp, 0.0, _max_hp)
 	_base_color = Color(0.30, 0.55, 0.95) if team == 0 else Color(0.92, 0.36, 0.32)
 
 	_body = Polygon2D.new()
@@ -58,67 +53,27 @@ func initialize(p_actor_id: String, display_name: String, p_team: int, p_max_hp:
 	_hp_fill.position = hp_bg.position
 	_hp_fill.size = Vector2(HP_BAR_WIDTH, HP_BAR_HEIGHT)
 	add_child(_hp_fill)
-	_update_hp_bar()
 
 
-func snap_world_pos(p: Vector2) -> void:
-	_target_pos = p
+## 直接设像素位置（animator 由 RenderWorld 的逻辑 axial 转像素后调用）。无自驱 lerp。
+func set_world_pos(p: Vector2) -> void:
 	position = p
 
 
-func set_target_world_pos(p: Vector2) -> void:
-	_target_pos = p
-
-
-func set_hp(value: float) -> void:
-	_hp = clampf(value, 0.0, _max_hp)
-	_update_hp_bar()
-
-
-func flash_hit() -> void:
-	_flash_ms = FLASH_DURATION_MS
-
-
-func play_death() -> void:
-	_alive = false
-
-
-func revive() -> void:
-	_alive = true
-	_hp = _max_hp
-	_flash_ms = 0.0
-	modulate = Color.WHITE
-	visible = true
+## 把 ActorRenderState 投影到视觉：血条 / 受击闪白 / 死亡淡出。纯投影，无副作用。
+func update_from_state(state: InkMonBattle2DActorRenderState) -> void:
+	# 血条
+	if _hp_fill != null:
+		var ratio := clampf(state.visual_hp / state.max_hp, 0.0, 1.0) if state.max_hp > 0.0 else 0.0
+		_hp_fill.size = Vector2(HP_BAR_WIDTH * ratio, HP_BAR_HEIGHT)
+	# 身体颜色：base 朝白闪烁（flash_progress 0=base / 1=全白）
 	if _body != null:
-		_body.color = _base_color
-	_update_hp_bar()
-
-
-func is_alive() -> bool:
-	return _alive
-
-
-func get_hp() -> float:
-	return _hp
-
-
-func tick_visual(delta_ms: float) -> void:
-	var dt := delta_ms / 1000.0
-	position = position.lerp(_target_pos, clampf(dt * MOVE_LERP_SPEED, 0.0, 1.0))
-	if _body != null:
-		if _flash_ms > 0.0:
-			_flash_ms = maxf(0.0, _flash_ms - delta_ms)
-			_body.color = _base_color.lerp(Color.WHITE, _flash_ms / FLASH_DURATION_MS)
-		elif _alive:
-			_body.color = _base_color
-	if not _alive:
-		modulate.a = maxf(0.0, modulate.a - dt * DEATH_FADE_PER_SEC)
-
-
-func _update_hp_bar() -> void:
-	if _hp_fill == null:
-		return
-	_hp_fill.size = Vector2(HP_BAR_WIDTH * (_hp / _max_hp), HP_BAR_HEIGHT)
+		_body.color = _base_color.lerp(Color.WHITE, clampf(state.flash_progress, 0.0, 1.0))
+	# 死亡淡出：alive → 不透明；dead → 按 death_progress 淡出
+	if state.is_alive:
+		modulate.a = 1.0
+	else:
+		modulate.a = clampf(1.0 - state.death_progress, 0.0, 1.0)
 
 
 func _circle_points(radius: float, segments: int) -> PackedVector2Array:

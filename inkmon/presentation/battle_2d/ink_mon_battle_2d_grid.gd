@@ -38,3 +38,18 @@ func coord_to_world(q: int, r: int) -> Vector2:
 		return Vector2.ZERO
 	var pixel := _model.coord_to_world(HexCoord.new(q, r))
 	return Vector2(pixel.x, pixel.y * ISO_SQUISH)
+
+
+## 分数 axial → 像素（移动插值用）。hex→pixel + ISO 都是仿射变换，对整数三角点做
+## 双线性插值即精确。供 animator 把 RenderWorld 的 in-flight 逻辑坐标转像素。
+func coord_to_world_f(qf: float, rf: float) -> Vector2:
+	if _model == null:
+		return Vector2.ZERO
+	var q0 := floori(qf)
+	var r0 := floori(rf)
+	var fq := qf - float(q0)
+	var fr := rf - float(r0)
+	var p00 := coord_to_world(q0, r0)
+	var p10 := coord_to_world(q0 + 1, r0)
+	var p01 := coord_to_world(q0, r0 + 1)
+	return p00 + (p10 - p00) * fq + (p01 - p00) * fr

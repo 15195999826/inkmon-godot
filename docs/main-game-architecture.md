@@ -109,7 +109,7 @@
 
 - **复用**:`InkMonBattleProcedure` + 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive,首个里程碑已落地)。出战 `InkMonUnitActor` = **常驻 registry 的活 roster actor**(无投影/无快照,跨战斗复用);敌方训练假人 = 临时 `create_combat_unit`(battle 结束随 `_reset_battle_state` 整只移除,活 roster 留 registry)。
 - **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 左队 = 活 roster 前 N 只(`InkMonBattleSetup.battle_roster_slice`,原地战斗)、右队 = 训练假人;`finalize_battle_rewards()` 战斗结束**直接把奖励落活 actor**(gold 加 `player_actor`、exp 加活 roster),无摘要回写。Host 只管 flow(app_state / tick)。
-- **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → `FrontendBattleAnimator` 回放(复用 hex-atb animator/visualizer 栈)。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
+- **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → 等轴 2D 表演框架回放。表演框架 = **hex frontend 平移进 inkmon**(`inkmon/presentation/battle_2d/`,`InkMonBattle2D*` 前缀:render_world / scheduler / visualizer 注册表 / 声明式 VisualAction / actor render_state),拷进改 2D、不动 submodule(见 [adr/0006](adr/0006-battle-presentation-framework-port.md))。事件词汇耦合锁在 visualizer 层(绑 `inkmon_*` kind);active 4 件(move/damage/heal/death)为首版范围,其余 9 机制为 dormant slot、逻辑层出事件再 JIT 补。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
 
 > ⚠️ **唯一 world GI 持两套 grid(主世界 + 战斗)战斗期切 active = 第一版临时方案**,非定稿(未来再优化,非核心)。边界加固:主世界 movement 只读 `overworld_grid`(稳定),绝不读战斗期翻转的基类 `grid`;且战斗期 base_tick 不跑 → movement 天然冻结。
 
