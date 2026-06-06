@@ -50,6 +50,11 @@
         "../../inkmon/tests/smoke_battle_2d_replay.tscn"
       ]
     },
+    "overworld-live": {
+      "scenes": [
+        "../../inkmon/tests/smoke_overworld_live.tscn"
+      ]
+    },
     "command": {
       "scenes": [
         "../../inkmon/tests/smoke_world_command.tscn"

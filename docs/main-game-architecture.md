@@ -109,7 +109,9 @@
 
 - **复用**:`InkMonBattleProcedure` + 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive,首个里程碑已落地)。出战 `InkMonUnitActor` = **常驻 registry 的活 roster actor**(无投影/无快照,跨战斗复用);敌方训练假人 = 临时 `create_combat_unit`(battle 结束随 `_reset_battle_state` 整只移除,活 roster 留 registry)。
 - **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 左队 = 活 roster 前 N 只(`InkMonBattleSetup.battle_roster_slice`,原地战斗)、右队 = 训练假人;`finalize_battle_rewards()` 战斗结束**直接把奖励落活 actor**(gold 加 `player_actor`、exp 加活 roster),无摘要回写。Host 只管 flow(app_state / tick)。
-- **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → 等轴 2D 表演框架回放。表演框架 = **hex frontend 平移进 inkmon**(`inkmon/presentation/battle_2d/`,`InkMonBattle2D*` 前缀:render_world / scheduler / visualizer 注册表 / 声明式 VisualAction / actor render_state),拷进改 2D、不动 submodule(见 [adr/0006](adr/0006-battle-presentation-framework-port.md))。事件词汇耦合锁在 visualizer 层(绑 `inkmon_*` kind);active 4 件(move/damage/heal/death)为首版范围,其余 9 机制为 dormant slot、逻辑层出事件再 JIT 补。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
+- **统一 2D 表演框架（`inkmon/presentation/render2d/`,`InkMonRender2D*` 前缀）**:hex frontend 平移进 inkmon(render_world / scheduler / visualizer 注册表 / 声明式 VisualAction / actor render_state + 共享 IsoHexGrid/Avatar 视图),拷进改 2D、不动 submodule。**battle 与 overworld 共用此核心,只换事件源**(见 [adr/0006](adr/0006-battle-presentation-framework-port.md) 平移 + [adr/0007](adr/0007-unified-2d-presentation-pipeline.md) 统一):
+  - **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → `battle_2d/` 的 replay drainer(`InkMonBattle2DAnimator`,有回放时钟)按帧回放。事件词汇耦合锁在 visualizer 层(绑 `inkmon_*` kind);active 4 件(move/damage/heal/death)已通,其余 9 机制 dormant、JIT 补。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
+  - **主世界 = live**:`overworld/` 的 `InkMonOverworldLiveDriver` 订阅 WorldGI 信号(`actor_position_changed` 等)→ 每帧 pump 同一 render_world,无回放时钟。view-local(相机/idle/反馈/拾取/NPC 高亮)不进 render_world。
 
 > ⚠️ **唯一 world GI 持两套 grid(主世界 + 战斗)战斗期切 active = 第一版临时方案**,非定稿(未来再优化,非核心)。边界加固:主世界 movement 只读 `overworld_grid`(稳定),绝不读战斗期翻转的基类 `grid`;且战斗期 base_tick 不跑 → movement 天然冻结。
 
@@ -153,12 +155,12 @@
 
 - 全 `.tscn`(尽量编辑器设计),代码只填文字 / 绑数据,动态列表(roster/bag/NPC 行)用 instantiate 组件场景。
 - UI 在 presentation 层,只订阅 signal / 调窄 `IWorldQuery` + `submit(cmd)`,不直接改逻辑、不见 concrete GI。
-- presentation 根 = `InkMonWorldPresentation`(节点),持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
+- presentation 根 = `InkMonWorldPresentation`(节点),持 overworld view(`InkMonOverworldView`,2D 等轴棋盘,跑统一 render2d 框架)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
 - 数据驱动内容构建(roster chips / party / bag / journal)抽在 `InkMonWorldPanelView`(纯表演 builder)。
 
 ### HUD 布局(corner-only;密集信息进单一右抽屉)
 
-3D 棋盘是主表面,常驻 UI 只占角落、紧凑;密集信息集中在一个共享右抽屉,不堆叠多窗。
+2D 等轴棋盘是主表面,常驻 UI 只占角落、紧凑;密集信息集中在一个共享右抽屉,不堆叠多窗。
 - **左上**:玩家状态(头像占位 / rank / gold)+ party strip(≤6 roster 槽,带等级 + 紧凑 HP/进度条)。
 - **右上**:工具按钮 Party / Bag / Journal / Menu。
 - **世界定位**:靠近 NPC 浮出交互 prompt(不自动开抽屉)。

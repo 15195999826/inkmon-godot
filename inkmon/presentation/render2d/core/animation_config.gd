@@ -1,14 +1,14 @@
-## InkMonBattle2DAnimationConfig - 动画配置（毫秒 / 速率，全 float）
+## InkMonRender2DAnimationConfig - 动画配置（毫秒 / 速率，全 float）
 ##
 ## 平移自 hex frontend（见 docs/adr/0006）。dormant 字段（技能/攻击特效/投射物）保留，
 ## 待对应机制落地复用。
-class_name InkMonBattle2DAnimationConfig
+class_name InkMonRender2DAnimationConfig
 extends RefCounted
 
 
 # ========== 移动 ==========
 var move_duration: float = 500.0
-var move_easing: InkMonBattle2DVisualAction.EasingType = InkMonBattle2DVisualAction.EasingType.EASE_IN_OUT_QUAD
+var move_easing: InkMonRender2DVisualAction.EasingType = InkMonRender2DVisualAction.EasingType.EASE_IN_OUT_QUAD
 
 
 # ========== 伤害 ==========
@@ -41,12 +41,12 @@ var projectile_default_speed: float = 20.0
 
 # ========== 工厂方法 ==========
 
-static func create_default() -> InkMonBattle2DAnimationConfig:
-	return InkMonBattle2DAnimationConfig.new()
+static func create_default() -> InkMonRender2DAnimationConfig:
+	return InkMonRender2DAnimationConfig.new()
 
 
-static func from_dict(data: Dictionary) -> InkMonBattle2DAnimationConfig:
-	var config := InkMonBattle2DAnimationConfig.new()
+static func from_dict(data: Dictionary) -> InkMonRender2DAnimationConfig:
+	var config := InkMonRender2DAnimationConfig.new()
 	if data.has("move"):
 		var move_data: Dictionary = data["move"]
 		config.move_duration = move_data.get("duration", config.move_duration) as float

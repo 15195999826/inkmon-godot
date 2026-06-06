@@ -1,8 +1,8 @@
-## InkMonBattle2DBaseVisualizer - Visualizer 抽象基类
+## InkMonRender2DBaseVisualizer - Visualizer 抽象基类
 ##
 ## Visualizer 把逻辑层事件 Dictionary 翻译为声明式 VisualAction。纯函数、只读 context、
 ## 不改状态。平移自 hex frontend（见 docs/adr/0006）。子类绑 inkmon 的 `inkmon_*` kind。
-class_name InkMonBattle2DBaseVisualizer
+class_name InkMonRender2DBaseVisualizer
 extends RefCounted
 
 
@@ -19,7 +19,7 @@ func can_handle(_event: Dictionary) -> bool:
 
 
 ## 将事件翻译为视觉动作（子类必须覆盖）
-func translate(_event: Dictionary, _context: InkMonBattle2DVisualizerContext) -> Array[InkMonBattle2DVisualAction]:
+func translate(_event: Dictionary, _context: InkMonRender2DVisualizerContext) -> Array[InkMonRender2DVisualAction]:
 	push_error("[%s] translate() not implemented" % visualizer_name)
 	return []
 

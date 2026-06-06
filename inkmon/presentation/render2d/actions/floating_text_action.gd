@@ -1,9 +1,9 @@
-## InkMonBattle2DFloatingTextAction - 飘字动作
+## InkMonRender2DFloatingTextAction - 飘字动作
 ##
 ## 在指定位置显示飘字（伤害 / 治疗数字）。position 是逻辑 axial（Vector2 = q,r），
 ## 像素转换在 animator→view 边界做。平移自 hex frontend（见 docs/adr/0006）。
-class_name InkMonBattle2DFloatingTextAction
-extends InkMonBattle2DVisualAction
+class_name InkMonRender2DFloatingTextAction
+extends InkMonRender2DVisualAction
 
 
 # ========== 飘字样式枚举 ==========

@@ -16,7 +16,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	var grid := InkMonBattle2DGrid.new()
+	var grid := InkMonRender2DIsoHexGrid.new()
 	add_child(grid)
 	grid.setup(5)
 	var units_root := Node2D.new()

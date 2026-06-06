@@ -1,9 +1,9 @@
-## InkMonBattle2DActorRenderState - Actor 渲染状态
+## InkMonRender2DActorRenderState - Actor 渲染状态
 ##
 ## RenderWorld 持有的每 actor 可视状态（编译期类型检查，替代裸 Dictionary）。
 ## 平移自 hex frontend（见 docs/adr/0006）：position 存逻辑 hex（像素转换在 view 边界），
 ## bump/facing/buffs/shields 为 dormant 字段、保留以保持 state 形状完整。
-class_name InkMonBattle2DActorRenderState
+class_name InkMonRender2DActorRenderState
 extends RefCounted
 
 
@@ -59,15 +59,15 @@ var facing_direction: int = 0
 
 # ========== Buff / 护盾状态（dormant） ==========
 
-var buffs: Array[InkMonBattle2DBuffSummary] = []
-var shields: Array[InkMonBattle2DShieldSummary] = []
+var buffs: Array[InkMonRender2DBuffSummary] = []
+var shields: Array[InkMonRender2DShieldSummary] = []
 
 
 # ========== 工具方法 ==========
 
 ## 创建深拷贝
-func duplicate() -> InkMonBattle2DActorRenderState:
-	var copy := InkMonBattle2DActorRenderState.new()
+func duplicate() -> InkMonRender2DActorRenderState:
+	var copy := InkMonRender2DActorRenderState.new()
 	copy.id = id
 	copy.type = type
 	copy.config_id = config_id

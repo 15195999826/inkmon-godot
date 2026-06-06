@@ -1,8 +1,8 @@
-## InkMonBattle2DActionScheduler - 动作调度器
+## InkMonRender2DActionScheduler - 动作调度器
 ##
 ## 管理 VisualAction 的生命周期和进度更新（并行执行 + delay）。平移自 hex frontend
 ## （见 docs/adr/0006）。RenderWorld 管"状态"，本调度器管"时序"。
-class_name InkMonBattle2DActionScheduler
+class_name InkMonRender2DActionScheduler
 extends RefCounted
 
 
@@ -10,12 +10,12 @@ extends RefCounted
 
 class ActiveAction:
 	var id: String
-	var action: InkMonBattle2DVisualAction
+	var action: InkMonRender2DVisualAction
 	var elapsed: float
 	var progress: float
 	var is_delaying: bool
 
-	func _init(p_id: String, p_action: InkMonBattle2DVisualAction) -> void:
+	func _init(p_id: String, p_action: InkMonRender2DVisualAction) -> void:
 		id = p_id
 		action = p_action
 		elapsed = 0.0
@@ -40,8 +40,8 @@ var _next_id: int = 0
 # ========== 公共方法 ==========
 
 ## 添加动作（立即并行执行，考虑 delay）
-func enqueue(actions: Array[InkMonBattle2DVisualAction]) -> void:
-	for visual_action: InkMonBattle2DVisualAction in actions:
+func enqueue(actions: Array[InkMonRender2DVisualAction]) -> void:
+	for visual_action: InkMonRender2DVisualAction in actions:
 		var id := "action_%d" % _next_id
 		_next_id += 1
 		_active[id] = ActiveAction.new(id, visual_action)
@@ -104,3 +104,21 @@ func cancel_all() -> void:
 
 func get_action_count() -> int:
 	return _active.size()
+
+
+## 取消某 actor 的所有在途动作（overworld 移动 retarget 去重）。actor_id 是 VisualAction 通用字段。
+func cancel_for_actor(actor_id: String) -> void:
+	var ids: Array[String] = []
+	for id: String in _active.keys():
+		if (_active[id] as ActiveAction).action.actor_id == actor_id:
+			ids.append(id)
+	for id in ids:
+		_active.erase(id)
+
+
+## 该 actor 是否有在途动作（overworld move_animation_active）。
+func has_actor_action(actor_id: String) -> bool:
+	for id: String in _active.keys():
+		if (_active[id] as ActiveAction).action.actor_id == actor_id:
+			return true
+	return false

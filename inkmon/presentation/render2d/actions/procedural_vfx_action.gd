@@ -1,9 +1,9 @@
-## InkMonBattle2DProceduralVFXAction - 程序化特效动作
+## InkMonRender2DProceduralVFXAction - 程序化特效动作
 ##
 ## 代码生成的效果（受击闪白 / 震屏 / 染色）。平移自 hex frontend（见 docs/adr/0006）。
 ## active 路径只用 HIT_FLASH（伤害受击）；SHAKE / COLOR_TINT 保留供 dormant 复用。
-class_name InkMonBattle2DProceduralVFXAction
-extends InkMonBattle2DVisualAction
+class_name InkMonRender2DProceduralVFXAction
+extends InkMonRender2DVisualAction
 
 
 # ========== 特效类型枚举 ==========

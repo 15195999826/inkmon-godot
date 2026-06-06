@@ -5,7 +5,7 @@ extends Node
 ##
 ## 持有平移自 hex frontend 的三件套——RenderWorld（状态）/ ActionScheduler（时序）/
 ## VisualizerRegistry（事件→VisualAction）——按 meta.tick_interval 逐帧 drain 事件、翻译、
-## 调度、应用到 render-state，再把 state 投影到 2D 占位节点（InkMonUnit2DView 哑投影）。
+## 调度、应用到 render-state，再把 state 投影到 2D 占位节点（InkMonRender2DAvatar 哑投影）。
 ##
 ## 坐标边界：RenderWorld 全用逻辑 axial，本类是唯一 hex→像素转换点（_axial_to_pixel → grid）。
 ## 只吃 ReplayData/Dictionary，不引用 InkMon*Actor / GI。
@@ -16,7 +16,7 @@ signal frame_changed(current_frame: int, total_frames: int)
 const DEFAULT_TICK_MS := 100.0
 
 # ---- 场景节点（setup 注入）----
-var _grid: InkMonBattle2DGrid = null
+var _grid: InkMonRender2DIsoHexGrid = null
 var _units_root: Node2D = null
 var _fx_root: Node2D = null
 
@@ -32,15 +32,15 @@ var _playing := false
 var _ended := false
 
 # ---- 表演框架三件套 ----
-var _render_world: InkMonBattle2DRenderWorld = null
-var _scheduler: InkMonBattle2DActionScheduler = null
-var _registry: InkMonBattle2DVisualizerRegistry = null
+var _render_world: InkMonRender2DRenderWorld = null
+var _scheduler: InkMonRender2DActionScheduler = null
+var _registry: InkMonRender2DVisualizerRegistry = null
 
 # ---- 视图 ----
-var _unit_views: Dictionary = {}           # actor_id:String -> InkMonUnit2DView
+var _unit_views: Dictionary = {}           # actor_id:String -> InkMonRender2DAvatar
 
 
-func setup(grid: InkMonBattle2DGrid, units_root: Node2D, fx_root: Node2D) -> void:
+func setup(grid: InkMonRender2DIsoHexGrid, units_root: Node2D, fx_root: Node2D) -> void:
 	_grid = grid
 	_units_root = units_root
 	_fx_root = fx_root
@@ -59,9 +59,9 @@ func load_record(record: ReplayData.BattleRecord) -> void:
 	_clear_units()
 
 	# 框架三件套：每次 load 全新构建（无向后兼容/无 fallback）
-	var anim_cfg := InkMonBattle2DAnimationConfig.from_dict(record.configs.get("animation", {}))
-	_render_world = InkMonBattle2DRenderWorld.new(anim_cfg)
-	_scheduler = InkMonBattle2DActionScheduler.new()
+	var anim_cfg := InkMonRender2DAnimationConfig.from_dict(record.configs.get("animation", {}))
+	_render_world = InkMonRender2DRenderWorld.new(anim_cfg)
+	_scheduler = InkMonRender2DActionScheduler.new()
 	_registry = InkMonBattle2DDefaultRegistry.create()
 	_render_world.actor_state_changed.connect(_on_actor_state_changed)
 	_render_world.floating_text_created.connect(_on_floating_text_created)
@@ -126,7 +126,7 @@ func get_units_snapshot() -> Dictionary:
 		return result
 	var snapshot := _render_world.get_actors_snapshot()
 	for actor_id in snapshot.keys():
-		var state := snapshot[actor_id] as InkMonBattle2DActorRenderState
+		var state := snapshot[actor_id] as InkMonRender2DActorRenderState
 		var px := _axial_to_pixel(_render_world.get_actor_axial(actor_id))
 		result[actor_id] = {
 			"x": px.x,
@@ -191,24 +191,24 @@ func _tick(delta_ms: float) -> void:
 # ========== RenderWorld 信号 → 2D 视图 ==========
 
 ## state 投影：懒建 unit view（首次）+ 投影视觉状态。位置由 _sync_positions 每帧拉。
-func _on_actor_state_changed(actor_id: String, state: InkMonBattle2DActorRenderState) -> void:
-	var view := _unit_views.get(actor_id, null) as InkMonUnit2DView
+func _on_actor_state_changed(actor_id: String, state: InkMonRender2DActorRenderState) -> void:
+	var view := _unit_views.get(actor_id, null) as InkMonRender2DAvatar
 	if view == null:
 		if _units_root == null:
 			return
-		view = InkMonUnit2DView.new()
+		view = InkMonRender2DAvatar.new()
 		view.name = "Unit_%s" % actor_id
 		_units_root.add_child(view)
-		view.initialize(actor_id, state.display_name, state.team, state.max_hp)
+		view.initialize(actor_id, state.display_name, state.max_hp, InkMonRender2DAvatar.Style.battle_unit(state.team))
 		view.set_world_pos(_axial_to_pixel(_render_world.get_actor_axial(actor_id)))
 		_unit_views[actor_id] = view
 	view.update_from_state(state)
 
 
-func _on_floating_text_created(data: InkMonBattle2DRenderData.FloatingText) -> void:
+func _on_floating_text_created(data: InkMonRender2DRenderData.FloatingText) -> void:
 	if _fx_root == null:
 		return
-	var node := InkMonFloatingText2D.new()
+	var node := InkMonRender2DFloatingText2D.new()
 	_fx_root.add_child(node)
 	node.initialize(data.text, data.color, _axial_to_pixel(data.position), data.duration / 1000.0)
 
@@ -227,7 +227,7 @@ func _sync_positions() -> void:
 	if _render_world == null:
 		return
 	for actor_id in _unit_views.keys():
-		var view := _unit_views[actor_id] as InkMonUnit2DView
+		var view := _unit_views[actor_id] as InkMonRender2DAvatar
 		if view != null:
 			view.set_world_pos(_axial_to_pixel(_render_world.get_actor_axial(actor_id)))
 

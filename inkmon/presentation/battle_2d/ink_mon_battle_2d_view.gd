@@ -9,7 +9,7 @@ signal playback_ended()
 const BATTLE_GRID_RADIUS := 5
 
 var _stage: Node2D
-var _grid: InkMonBattle2DGrid
+var _grid: InkMonRender2DIsoHexGrid
 var _units_root: Node2D
 var _fx_root: Node2D
 var _animator: InkMonBattle2DAnimator
@@ -44,10 +44,12 @@ func _build() -> void:
 	_stage.name = "Stage"
 	add_child(_stage)
 
-	_grid = InkMonBattle2DGrid.new()
+	_grid = InkMonRender2DIsoHexGrid.new()
 	_grid.name = "BattleGrid"
 	_stage.add_child(_grid)
-	_grid.setup(BATTLE_GRID_RADIUS)
+	_grid.setup(BATTLE_GRID_RADIUS, 48.0)
+	_grid.paint_tiles(_grid.get_all_coords(), Color(0.16, 0.18, 0.24, 1.0))
+	_grid.render()
 
 	_units_root = Node2D.new()
 	_units_root.name = "UnitsRoot"

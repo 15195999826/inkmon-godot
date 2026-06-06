@@ -1,11 +1,11 @@
-## InkMonBattle2DVisualAction - 视觉动作基类（等轴 2D 表演框架）
+## InkMonRender2DVisualAction - 视觉动作基类（等轴 2D 表演框架）
 ##
 ## 描述原子级的视觉效果，由 Visualizer 从战斗事件翻译而来。声明式，描述"做什么"
 ## 而非"怎么做"，由 RenderWorld 应用到 render-state 上。
 ##
 ## 平移自 hex-atb-battle frontend（见 docs/adr/0006）：纯数据对象、不持有 Node 引用、
 ## 坐标全用逻辑 axial（Vector2 = q,r），hex→像素转换只在 animator→view 边界做。
-class_name InkMonBattle2DVisualAction
+class_name InkMonRender2DVisualAction
 extends RefCounted
 
 

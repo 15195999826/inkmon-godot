@@ -5,9 +5,9 @@
 class_name InkMonBattle2DDefaultRegistry
 
 
-static func create() -> InkMonBattle2DVisualizerRegistry:
-	var registry := InkMonBattle2DVisualizerRegistry.new()
-	registry.register(InkMonBattle2DMoveVisualizer.new())
+static func create() -> InkMonRender2DVisualizerRegistry:
+	var registry := InkMonRender2DVisualizerRegistry.new()
+	registry.register(InkMonRender2DMoveVisualizer.new())
 	registry.register(InkMonBattle2DDamageVisualizer.new())
 	registry.register(InkMonBattle2DHealVisualizer.new())
 	registry.register(InkMonBattle2DDeathVisualizer.new())

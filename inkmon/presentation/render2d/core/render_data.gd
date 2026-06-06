@@ -1,9 +1,9 @@
-## InkMonBattle2DRenderData - RenderWorld 信号 payload 数据类
+## InkMonRender2DRenderData - RenderWorld 信号 payload 数据类
 ##
 ## 平移自 hex frontend（见 docs/adr/0006）。首版只保留 active 路径用到的 payload：
 ## FloatingText / ProceduralEffect / ScreenShake。dormant 的 AttackVfx / Projectile /
 ## ConeDebugOverlay 待对应机制落地再 JIT 补。位置全用逻辑 axial（Vector2 = q,r）。
-class_name InkMonBattle2DRenderData
+class_name InkMonRender2DRenderData
 
 
 ## 飘字创建数据
@@ -30,7 +30,7 @@ class FloatingText extends RefCounted:
 class ProceduralEffect extends RefCounted:
 	## 特效 ID
 	var id: String = ""
-	## 特效类型（InkMonBattle2DProceduralVFXAction.EffectType）
+	## 特效类型（InkMonRender2DProceduralVFXAction.EffectType）
 	var effect: int = 0
 	## 关联的 Actor ID
 	var actor_id: String = ""

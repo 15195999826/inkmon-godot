@@ -1,4 +1,4 @@
-class_name InkMonFloatingText2D
+class_name InkMonRender2DFloatingText2D
 extends Node2D
 
 ## 战斗回放飘字(占位):上浮 + 淡出,自销毁。必须先 add_child 进树再 initialize(create_tween 需在树内)。

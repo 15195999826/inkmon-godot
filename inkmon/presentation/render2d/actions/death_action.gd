@@ -1,8 +1,8 @@
-## InkMonBattle2DDeathAction - 死亡动作
+## InkMonRender2DDeathAction - 死亡动作
 ##
 ## 角色死亡的视觉效果（淡出 / 下沉，progress 驱动）。平移自 hex frontend（见 docs/adr/0006）。
-class_name InkMonBattle2DDeathAction
-extends InkMonBattle2DVisualAction
+class_name InkMonRender2DDeathAction
+extends InkMonRender2DVisualAction
 
 
 ## 击杀者 ID（可选）
