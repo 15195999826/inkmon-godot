@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Status: Phase 3 完成（11 轮优化满意收官），收尾核对中
+- Status: 完成（三 phase 全交付，11 轮优化满意收官，一致性核对通过）
 - Branch: master
 - Goal-start ref: 7af70c0
 - 基线说明：`blender/`（test.blend 空场景）当前未跟踪，随 phase 1 commit 入库；`docs/游戏点子.md` 为用户笔记，不在 goal 范围
@@ -12,6 +12,7 @@
 
 - 2026-06-11 - phase 1 - commit 51ecd4f（Blender 资产工厂：bake_assets.py + 16 资产 + manifest + Freestyle 墨线/程序化材质）
 - 2026-06-11 - phase 2 - commit 4b59162（tile_pipeline_scene：manifest 驱动拼装 + DevAgent + 首张截图验证 91 tile / 22 decor 无穿插）
+- 2026-06-11 - phase 3 - commit c5399bc（11 轮优化满意收官：配色收敛/树/水/27 变体/密度 jitter/苔藓爬石/墨线增强 + README）
 
 ## Round Log（Phase 3 优化循环，每轮一行）
 
@@ -29,7 +30,7 @@
 
 ## Consistency Review
 
-- （收尾填写一行：`Consistency review: <no divergence | 结论>`）
+- Consistency review: no divergence —— Deliverables 全交付（bake_assets.py 参数化资产工厂 / 31 张 baked PNG + manifest 单一真相 / tile_pipeline_scene + DevAgent + DEV_AGENT.md / README 复现文档 / blender 基线 + .gitignore + .gdignore）；Non-goals 未越界（未碰 inkmon/logic|presentation|host、scripts/、addons/、docs/；角度按用户拍板 35.26/-15 且仅存 manifest 一处，Godot 端零角度常量）；气质清单五项截图对照达标，Round Log 11 行满意收官；会话中用户两条补充输入（概念图 flat-top 对齐、手绘线条+丰富度+shader）均落实。备注：`.mcp.json`（M）与 `docs/游戏点子.md`（untracked）为会话开始前已存在的用户改动，不在 goal 范围，未提交。
 
 ## Blockers
 
