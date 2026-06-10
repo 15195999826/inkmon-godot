@@ -27,7 +27,7 @@ signal near_npc_changed(near_npc_id: String)
 signal command_applied(result: Dictionary)
 
 
-## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 View3D MOVE_STEP_DURATION
+## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 overworld view 的单步补间时长
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
 const STEP_DURATION := 0.22
 

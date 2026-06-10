@@ -293,7 +293,7 @@ func _wait_for_move_settle(root: InkMonWorldHost) -> String:
 	for _i in range(200):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
-		var overworld := state.get("overworld_3d", {}) as Dictionary
+		var overworld := state.get("overworld_iso", {}) as Dictionary
 		if not bool(state.get("player_moving", false)) and not bool(overworld.get("move_animation_active", false)):
 			return ""
 	return "movement did not settle (player still moving or view tween running)"
@@ -307,7 +307,7 @@ func _coord_from_state(state: Dictionary) -> Vector2i:
 
 
 func _visual_coord_from_state(state: Dictionary) -> Vector2i:
-	var overworld := state.get("overworld_3d", {}) as Dictionary
+	var overworld := state.get("overworld_iso", {}) as Dictionary
 	if overworld == null:
 		return Vector2i.ZERO
 	var coord := overworld.get("player_visual_coord", {}) as Dictionary

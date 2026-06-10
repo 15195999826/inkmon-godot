@@ -39,10 +39,10 @@
         "../../inkmon/tests/smoke_data_inspector.tscn"
       ]
     },
-    "overworld-3d": {
+    "overworld-iso": {
       "default_timeout_ms": 45000,
       "scenes": [
-        "../../inkmon/tests/smoke_overworld_3d.tscn",
+        "../../inkmon/tests/smoke_overworld_iso.tscn",
         "../../inkmon/tests/smoke_tick_movement.tscn"
       ]
     },

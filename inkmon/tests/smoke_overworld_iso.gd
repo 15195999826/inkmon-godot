@@ -7,7 +7,7 @@ const InkMonMainScene := preload("res://inkmon/host/ink_mon_game.tscn")
 func _ready() -> void:
 	var status := await _run()
 	if status == "":
-		print("SMOKE_TEST_RESULT: PASS - InkMonMain 3D overworld movement and player UI smoke passed")
+		print("SMOKE_TEST_RESULT: PASS - InkMonMain iso overworld movement and player UI smoke passed")
 		get_tree().quit(0)
 	else:
 		print("SMOKE_TEST_RESULT: FAIL - %s" % status)
@@ -20,7 +20,7 @@ func _run() -> String:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var visual_status := await _assert_3d_visual_state(root)
+	var visual_status := await _assert_iso_visual_state(root)
 	if visual_status != "":
 		return _cleanup(root, visual_status)
 
@@ -61,22 +61,22 @@ func _run() -> String:
 	return ""
 
 
-func _assert_3d_visual_state(root: InkMonWorldHost) -> String:
+func _assert_iso_visual_state(root: InkMonWorldHost) -> String:
 	var state := root.get_dev_agent_state()
-	var overworld := state.get("overworld_3d", {}) as Dictionary
+	var overworld := state.get("overworld_iso", {}) as Dictionary
 	if overworld == null or overworld.get("node_type", "") != "InkMonOverworldView":
-		return "overworld view should be 3D"
+		return "overworld view should be the iso overworld view"
 	if int(overworld.get("tile_count", 0)) <= 0:
-		return "3D overworld should have tiles"
+		return "iso overworld should have tiles"
 	if int(overworld.get("env_tile_count", 0)) <= 0:
-		return "GridMapRenderer3D should render env tiles"
+		return "GridMapRenderer2D should render env tiles"
 	if int(overworld.get("npc_count", 0)) < 6:
-		return "3D overworld should show NPC markers"
+		return "iso overworld should show NPC markers"
 	var player_idle_before := float(overworld.get("player_idle_offset_y", 0.0))
 	var npc_idle_before := float(overworld.get("npc_idle_sample_y", 0.0))
 	await get_tree().create_timer(0.2).timeout
 	var after_state := root.get_dev_agent_state()
-	var after_overworld := after_state.get("overworld_3d", {}) as Dictionary
+	var after_overworld := after_state.get("overworld_iso", {}) as Dictionary
 	var player_idle_after := float(after_overworld.get("player_idle_offset_y", 0.0))
 	var npc_idle_after := float(after_overworld.get("npc_idle_sample_y", 0.0))
 	if absf(player_idle_after - player_idle_before) < 0.002 and absf(npc_idle_after - npc_idle_before) < 0.002:
@@ -134,7 +134,7 @@ func _assert_blocked_npc_retarget(root: InkMonWorldHost) -> String:
 		return "walking adjacent to an NPC via tick movement must reveal the Enter prompt (prompt_button stayed hidden)"
 	if float(prompt_rect.get("w", 0.0)) <= 0.0 or float(prompt_rect.get("h", 0.0)) <= 0.0:
 		return "revealed prompt button must have a non-zero clickable rect"
-	var overworld := state.get("overworld_3d", {}) as Dictionary
+	var overworld := state.get("overworld_iso", {}) as Dictionary
 	if not bool(overworld.get("target_feedback_active", false)):
 		return "move command should leave a visible target marker"
 	# 高亮另一半:handler 同时把 near 推给 view(set_near_npc_id)。断 view 真高亮了 Shop 节点
@@ -160,7 +160,7 @@ func _assert_blocked_npc_retarget(root: InkMonWorldHost) -> String:
 		return "walking away from all NPCs should clear near_npc_id"
 	if not (root.get_dev_agent_layout_state().get("prompt_button", {}) as Dictionary).is_empty():
 		return "prompt must hide after walking away from the NPC (leave-neighborhood sync)"
-	var left_overworld := left_state.get("overworld_3d", {}) as Dictionary
+	var left_overworld := left_state.get("overworld_iso", {}) as Dictionary
 	if str(left_overworld.get("near_npc_highlight", "")) != "":
 		return "view highlight must clear after walking away from the NPC"
 	return ""
@@ -239,7 +239,7 @@ func _assert_move_save_load(root: InkMonWorldHost) -> String:
 	var settle_status := await _wait_for_move_settle(root)
 	if settle_status != "":
 		return settle_status
-	var save_path := "user://inkmon_l2_overworld_3d_save.json"
+	var save_path := "user://inkmon_l2_overworld_iso_save.json"
 	var save_result := root.save_game(save_path)
 	if not bool(save_result.get("ok", false)):
 		return "save after move failed"
@@ -378,7 +378,7 @@ func _assert_load_during_move(root: InkMonWorldHost) -> String:
 		return "load must stop in-flight movement (fresh world → player idle)"
 	if _visual_coord_from_state(after) != Vector2i(0, 1):
 		return "visual coord should snap to the loaded coord after load during move"
-	var after_ow := after.get("overworld_3d", {}) as Dictionary
+	var after_ow := after.get("overworld_iso", {}) as Dictionary
 	if bool(after_ow.get("move_animation_active", false)):
 		return "view tween must clear after load (not stuck)"
 
@@ -424,7 +424,7 @@ func _coord_from_state(state: Dictionary) -> Vector2i:
 
 
 func _visual_coord_from_state(state: Dictionary) -> Vector2i:
-	var overworld := state.get("overworld_3d", {}) as Dictionary
+	var overworld := state.get("overworld_iso", {}) as Dictionary
 	if overworld == null:
 		return Vector2i.ZERO
 	var coord := overworld.get("player_visual_coord", {}) as Dictionary
@@ -434,7 +434,7 @@ func _visual_coord_from_state(state: Dictionary) -> Vector2i:
 
 
 func _camera_position_from_state(state: Dictionary) -> Vector3:
-	var overworld := state.get("overworld_3d", {}) as Dictionary
+	var overworld := state.get("overworld_iso", {}) as Dictionary
 	if overworld == null:
 		return Vector3.ZERO
 	var position := overworld.get("camera_position", {}) as Dictionary
@@ -461,7 +461,7 @@ func _wait_for_move_settle(root: InkMonWorldHost) -> String:
 	for _i in range(200):
 		await get_tree().create_timer(0.05).timeout
 		var state := root.get_dev_agent_state()
-		var overworld := state.get("overworld_3d", {}) as Dictionary
+		var overworld := state.get("overworld_iso", {}) as Dictionary
 		if not bool(state.get("player_moving", false)) and not bool(overworld.get("move_animation_active", false)):
 			return ""
 	return "movement did not settle (player still moving or view tween running)"

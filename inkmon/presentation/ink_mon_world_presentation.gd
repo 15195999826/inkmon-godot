@@ -1,7 +1,7 @@
 class_name InkMonWorldPresentation
 extends Node
 ## 主世界表演层根节点 (docs/main-game-architecture.md §1)。持全部 UI 子树
-## (View3D / HUD / drawer / modal / InkMonWorldPanelView) + 其 layout/animation/build/refresh,
+## (iso overworld view / HUD / drawer / modal / InkMonWorldPanelView) + 其 layout/animation/build/refresh,
 ## 以及 dev-agent 的 UI debug 表面。
 ##
 ## CQRS 三通道:① Query 经 _world_query(IWorldQuery facade)只读读 (roster/gold/near-npc/npc actions);
@@ -290,7 +290,7 @@ func goto_tile(target_coord: Vector2i) -> Dictionary:
 
 func right_click_at(screen_position: Vector2) -> Dictionary:
 	if _world_layer == null:
-		return _result(false, "3D overworld view is not ready")
+		return _result(false, "iso overworld view is not ready")
 	var pick := _world_layer.pick_coord_from_screen(screen_position)
 	if not bool(pick.get("ok", false)):
 		return _result(false, str(pick.get("message", "right-click did not hit a tile")))
@@ -300,7 +300,7 @@ func right_click_at(screen_position: Vector2) -> Dictionary:
 
 func get_tile_screen_position(coord: Vector2i) -> Dictionary:
 	if _world_layer == null:
-		return {"ok": false, "message": "3D overworld view is not ready", "data": {}}
+		return {"ok": false, "message": "iso overworld view is not ready", "data": {}}
 	return _world_layer.get_tile_screen_position(coord)
 
 
@@ -823,7 +823,7 @@ func get_debug_state() -> Dictionary:
 		"progression": player_actor.progression.duplicate(true) if player_actor != null else {},
 		"roster": _get_roster_snapshot(),
 		"bag": _get_bag_snapshot(),
-		"overworld_3d": _world_layer.get_debug_state() if _world_layer != null else {},
+		"overworld_iso": _world_layer.get_debug_state() if _world_layer != null else {},
 		"replaying": _replaying,
 		"battle_2d": _battle_2d_view.get_debug_state() if _battle_2d_view != null else {},
 		"ui_animation": {

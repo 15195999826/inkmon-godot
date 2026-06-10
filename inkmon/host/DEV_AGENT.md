@@ -3,7 +3,7 @@
 ## Scene Classification
 
 Business/data-flow runtime validation plus real-input checks for the corrected
-3D overworld, animated right-click hex movement, NPC drawer, player panels, and
+iso overworld, animated right-click hex movement, NPC drawer, player panels, and
 save/load modal transitions.
 
 ## Launch
@@ -18,7 +18,7 @@ godot --path . res://InkMonMain.tscn -- --dev-agent --dev-agent-session=$env:SES
 `InkMonMain.tscn` is the thin outer screen router; it boots the inner game
 host (`res://inkmon/host/ink_mon_game.tscn`, node name `WorldHost`) which installs the
 DevAgent bridge + scene ops. The `WorldHost` (composition + lifecycle + flow +
-tick) owns no UI directly — the UI subtree (3D overworld view, HUD, drawer,
+tick) owns no UI directly — the UI subtree (iso overworld view, HUD, drawer,
 modal) lives under its `Presentation` child (`InkMonWorldPresentation`). So the
 runtime tree is `/root/InkMonMain/WorldHost/{Presentation/...,
 InkMonMainAgentOps, DevAgentBridge}`. The scene ops + introspection still go
@@ -31,16 +31,16 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 | op | args | data |
 | --- | --- | --- |
-| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_3d`, `replaying`, `battle_2d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
+| `state` | none | `state`, `gold`, `roster_size`, `roster`, `progression`, `player_coord`, `player_moving`, `near_npc_id`, `active_npc_id`, `panel_open`, `drawer_open`, `drawer_mode`, `modal_open`, `ui_message`, `bag`, `overworld_iso`, `replaying`, `battle_2d`, `ui_animation`, `last_move_result`, `active_instance_id`, `last_battle_result`, `game_world`, `events` |
 | `layout_state` | none | viewport and clickable rects for: prompt button, NPC panel + drawer close, NPC action buttons, Shop buy buttons, the `start_training_battle` trainer button, top-right tool buttons, drawer tabs, and the save/load modal panel + slot/close buttons (full key set: `prompt_button`/`npc_panel`/`close_button`/`npc_action_buttons`/`shop_buy_buttons`/`trainer_button`/`tool_buttons`/`tab_buttons`/`save_load_modal`/`save_slot_buttons`/`load_slot_buttons`/`modal_close_button`) |
-| `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for a 3D hex tile center, used with raw `click_at` + `button:"right"` |
+| `tile_screen_position` | `{ "q": int, "r": int }` | screen coordinate for an iso hex tile center, used with raw `click_at` + `button:"right"` |
 
 ### Action
 
 | op | args | effect | verify with |
 | --- | --- | --- | --- |
 | `reset_session` | none | rebuilds the world GI fresh (`gi.new_game()`: default `InkMonPlayerActor` + live roster actors), resets ItemSystem and GameWorld runtime instances | `state.gold == 100`, `state.state == "OVERWORLD"` |
-| `goto_tile` | `{ "q": int, "r": int }` | enqueues an async move command (same path right-click input takes); the 30Hz world tick advances the player cell-by-cell, emitting `actor_position_changed` which the view tweens per step | `state.player_coord` (logic occupant), `state.player_moving`, `state.overworld_3d.move_animation_active`, `state.overworld_3d.player_visual_coord` |
+| `goto_tile` | `{ "q": int, "r": int }` | enqueues an async move command (same path right-click input takes); the 30Hz world tick advances the player cell-by-cell, emitting `actor_position_changed` which the view tweens per step | `state.player_coord` (logic occupant), `state.player_moving`, `state.overworld_iso.move_animation_active`, `state.overworld_iso.player_visual_coord` |
 | `open_panel` | `{ "panel": "party"|"bag"|"journal" }` | opens player-owned right drawer tab with slide transition | `state.drawer_mode`, `state.ui_animation.drawer_transition_active` |
 | `open_save_load` | none | opens the save/load modal with scale transition | `state.modal_open == true`, `state.ui_animation.modal_transition_active` |
 | `run_training_battle` | `{ "max_ticks": int }` | starts a training battle on the **live roster actors** (in-place, no projection), ticks to completion, awards gold/exp synchronously, then plays a **2D replay** (adr/0005) before returning to overworld | right after: `gold > 100`, `active_instance_id == ""`, `state == "BATTLE"`, `replaying == true`, `battle_2d.unit_count > 0`; after replay ends (poll until `replaying == false`): `state == "OVERWORLD"`, `last_battle_result.winner_team == "left"` |
@@ -52,7 +52,7 @@ prints `inbox` and `outbox` global paths when DevAgent is enabled.
 
 Player-facing UI paths must use raw real input:
 
-- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` enqueues an async move toward the occupied Shop tile (retargets to an adjacent free tile). The click is async (方案 A): it **immediately** drops the target marker (`overworld_3d.target_feedback_active == true`); `move_animation_active` only goes true after a later world tick drains the move command (→ `actor_position_changed` → view `step_player`). After the move settles it should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
+- `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` enqueues an async move toward the occupied Shop tile (retargets to an adjacent free tile). The click is async (方案 A): it **immediately** drops the target marker (`overworld_iso.target_feedback_active == true`); `move_animation_active` only goes true after a later world tick drains the move command (→ `actor_position_changed` → view `step_player`). After the move settles it should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC drawer.
 - `click_at` on `layout_state.shop_buy_buttons.minor_rune` enqueues a Minor Rune buy command (方案 A); after a world tick drains it, gold reduces by 10 — poll `state` after a short `wait_frames`, do not assert synchronously.
 - `click_at` on `layout_state.npc_action_buttons.start_training_battle` enqueues a training NPC action; the battle starts (deferred, off the drain tick) and completes after a few ticks — poll `state` for `active_instance_id == ""` and `last_battle_result.winner_team`.
@@ -111,11 +111,11 @@ UI input check:
 ```
 
 Pass criteria: command `13` (right after the async right-click) shows
-`overworld_3d.target_feedback_active == true` (the click drops the target marker
+`overworld_iso.target_feedback_active == true` (the click drops the target marker
 synchronously; `move_animation_active` is NOT guaranteed yet — it needs a later
 tick to drain the move command, so assert it only after a `wait_frames`);
 command `15` shows `near_npc_id == "shop"` and
-`overworld_3d.player_visual_coord == player_coord`; the drawer opens through a
+`overworld_iso.player_visual_coord == player_coord`; the drawer opens through a
 real prompt click, and after the buy command drains (`wait_frames` at `20b`,
 方案 A 异步写) gold becomes `90` with a `minor_rune` item in `bag`.
 
