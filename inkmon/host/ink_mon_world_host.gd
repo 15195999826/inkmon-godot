@@ -22,6 +22,9 @@ var _active_instance_id := ""
 ## 训练战 flow 去重锁:从收到 start_battle intent 到 _begin_training_battle_flow 跑完之间为 true,
 ## 挡掉同帧双击/重复 intent 起多场战斗(方案 A 异步去掉了旧同步路径的隐式单飞保护)。
 var _battle_flow_pending := false
+## 回放观看期标志:battle sim 已结束但玩家还在看回放/结果。世界泵冻结,直到表演上抛 battle_view_left
+## 解冻(game-vision §2 体验流:进战斗→冻结→观看→确认离开→恢复)。
+var _replay_active := false
 ## 世界代际:每次(重)建 world GI 自增。deferred 的训练战 flow 带提交时的代际,若 deferred 期间
 ## reset/load 重建了世界(代际变),旧 intent 作废 —— 不在新 session 上结算旧训练战(Codex P2)。
 var _world_generation := 0
@@ -44,6 +47,7 @@ func _ready() -> void:
 	_presentation.flow_intent_raised.connect(_on_flow_intent_raised)
 	_presentation.save_slot_requested.connect(_on_save_slot_requested)
 	_presentation.load_slot_requested.connect(_on_load_slot_requested)
+	_presentation.battle_view_left.connect(_on_battle_view_left)
 	_bind_world_to_presentation()
 	_presentation.add_event("InkMonMain ready")
 	_install_dev_agent()
@@ -58,6 +62,8 @@ func _process(delta: float) -> void:
 		_tick_active_instance(delta)
 		_complete_battle_if_ready()
 		return
+	if _replay_active:
+		return  # 回放观看期:主世界 tick 冻结,玩家确认离开(battle_view_left)才恢复
 	_pump_world_ticks(delta)
 
 
@@ -84,7 +90,7 @@ func _set_active_instance(instance_id: String) -> void:
 
 
 func start_training_battle() -> Dictionary:
-	if _active_instance_id != "":
+	if _active_instance_id != "" or _replay_active:
 		return _scene_result(false, "battle already active")
 	# 持久 world GI 内起战斗 procedure (不再 per-battle create→destroy)。
 	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "world GI not initialized before battle")
@@ -157,8 +163,15 @@ func _complete_battle_if_ready() -> void:
 		_set_active_instance("")
 		_presentation.on_battle_completed(result)
 	else:
+		# 回放观看期开始:battle 实例已收,但世界保持冻结(_replay_active),玩家确认离开才解冻。
+		_replay_active = true
 		_presentation.play_battle_replay(replay, result)
 		_set_active_instance("")
+
+
+## 表演上抛:玩家在战斗结果界面确认离开 → 解冻世界泵,回主世界节奏。
+func _on_battle_view_left() -> void:
+	_replay_active = false
 
 
 # === lifecycle:save/load/new-game/reset = 重建孩子(Host 控制面,非 command 队列)===
@@ -166,6 +179,7 @@ func _complete_battle_if_ready() -> void:
 func reset_session() -> Dictionary:
 	_set_active_instance("")
 	_battle_flow_pending = false
+	_replay_active = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_create_world_gi()
@@ -218,6 +232,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 
 	_set_active_instance("")
 	_battle_flow_pending = false
+	_replay_active = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_create_world_gi()
@@ -270,6 +285,7 @@ func _on_load_slot_requested(slot: int) -> void:
 func get_dev_agent_state() -> Dictionary:
 	var state := _presentation.get_debug_state() if _presentation != null else {}
 	state["active_instance_id"] = _active_instance_id
+	state["replay_active"] = _replay_active
 	state["game_world"] = GameWorld.get_debug_info()
 	return state
 

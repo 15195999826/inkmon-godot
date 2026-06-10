@@ -32,6 +32,8 @@ enum AppState { OVERWORLD, BATTLE, NPC_MENU }
 signal flow_intent_raised(intent: Dictionary)
 signal save_slot_requested(slot: int)
 signal load_slot_requested(slot: int)
+## 玩家在战斗结果界面确认离开(回放观看期结束)→ Host 据此解冻世界泵。
+signal battle_view_left()
 
 ## CQRS 读+写句柄 = IWorldQuery facade(私有持 gi,只暴露 read+submit)。表演物理上够不到 concrete GI / flow / lifecycle。
 var _world_query: IWorldQuery = null
@@ -151,14 +153,15 @@ func on_battle_completed(result: Dictionary) -> void:
 	add_event("battle completed: %s" % str(result.get("result", "")))
 
 
-## Host 在战斗结束(有录像)时调:隐藏 overworld,起 2D 回放;_replaying 接管 BATTLE 态直到播完。
+## Host 在战斗结束(有录像)时调:隐藏 overworld,起 2D 回放;_replaying 接管 BATTLE 态,
+## 直到玩家在结果界面确认离开(leave_requested),非播完即回(game-vision §2 体验流)。
 func play_battle_replay(replay_data: Dictionary, result: Dictionary) -> void:
 	_pending_battle_result = result
 	if _battle_2d_view == null:
 		_battle_2d_view = InkMonBattle2DView.new()
 		_battle_2d_view.name = "Battle2DView"
 		add_child(_battle_2d_view)
-		_battle_2d_view.playback_ended.connect(_on_replay_playback_ended)
+		_battle_2d_view.leave_requested.connect(_on_battle_leave_requested)
 	_replaying = true
 	if _world_layer != null:
 		_world_layer.visible = false
@@ -167,8 +170,9 @@ func play_battle_replay(replay_data: Dictionary, result: Dictionary) -> void:
 	_refresh_prompt()
 
 
-## 2D 回放播完:恢复 overworld,清 _replaying,复用 on_battle_completed 收尾(刷 UI / journal)。
-func _on_replay_playback_ended() -> void:
+## 玩家确认离开战斗观看:恢复 overworld,清 _replaying,复用 on_battle_completed 收尾(刷 UI / journal),
+## 并上抛 battle_view_left 让 Host 解冻世界泵(单向 DAG:表演不引用 Host)。
+func _on_battle_leave_requested() -> void:
 	_replaying = false
 	if _battle_2d_view != null:
 		_battle_2d_view.visible = false
@@ -177,6 +181,7 @@ func _on_replay_playback_ended() -> void:
 	var pending := _pending_battle_result
 	_pending_battle_result = {}
 	on_battle_completed(pending)
+	battle_view_left.emit()
 
 
 ## Host 在 reset/load 时调:清表演侧瞬时 UI 态(不含已由 bind_world 重连的 query)。
@@ -186,6 +191,13 @@ func reset_ui_state(full: bool = true) -> void:
 	_active_npc_id = ""
 	_drawer_mode = ""
 	_last_battle_result = {}
+	# reset/load 可能发生在回放观看期:拆回放态,否则战斗视图滞留、overworld 永久隐藏。
+	_replaying = false
+	_pending_battle_result = {}
+	if _battle_2d_view != null:
+		_battle_2d_view.visible = false
+	if _world_layer != null:
+		_world_layer.visible = true
 	if full:
 		_last_move_result = {}
 		_last_ui_message = ""

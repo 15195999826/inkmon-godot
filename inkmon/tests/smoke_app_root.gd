@@ -131,12 +131,27 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
 	if not bool(root.run_npc_action_for("trainer", InkMonTrainingNpcHandler.ACTION_START_BATTLE).get("ok", false)):
 		return "training NPC action command should be accepted (enqueued)"
+	# 回放观看期(世界冻结 + 确认离开,game-vision §2 体验流):等回放开始 → 跳到结尾 → 等 Leave → 确认离开。
+	var replay_started := await _wait_until(func() -> bool:
+		return bool(root.get_dev_agent_state().get("replay_active", false)))
+	if not replay_started:
+		return "training battle should enter replay viewing (replay_active)"
+	var view := root._presentation._battle_2d_view
+	if view == null:
+		return "battle 2d view should exist during replay viewing"
+	view._on_skip_pressed()
+	var leave_ready := await _wait_until(func() -> bool: return view.is_leave_available())
+	if not leave_ready:
+		return "Leave button should appear after playback ends"
+	if str(root.get_dev_agent_state().get("state", "")) != "BATTLE":
+		return "state should stay BATTLE until player confirms leave"
+	view.request_leave()
 	var battle_done := await _wait_until(func() -> bool:
 		var s := root.get_dev_agent_state()
 		return str(s.get("state", "")) == "OVERWORLD" \
 			and not (s.get("last_battle_result", {}) as Dictionary).is_empty())
 	if not battle_done:
-		return "training battle did not complete via async command + deferred flow"
+		return "training battle did not complete after confirming leave"
 	var after_training := root.get_dev_agent_state()
 	if int(after_training.get("gold", 0)) <= InkMonPlayerActor.DEFAULT_GOLD:
 		return "training NPC should award gold"

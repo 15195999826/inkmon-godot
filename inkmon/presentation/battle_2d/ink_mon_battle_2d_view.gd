@@ -1,10 +1,13 @@
 class_name InkMonBattle2DView
 extends CanvasLayer
 
-## 2D 战斗回放视图(占位，adr/0005）。组装 grid + units + fx + animator + Skip/结果 UI;转发 playback_ended。
-## Presentation 在战斗结束时 play_replay(record_dict);播完 emit playback_ended,Presentation 收尾回 overworld。
+## 2D 战斗回放视图(占位，adr/0005）。组装 grid + units + fx + animator + Skip/Leave/结果 UI。
+## Presentation 在战斗结束时 play_replay(record_dict);播完亮 Leave 按钮(并转发 playback_ended),
+## 玩家确认离开才 emit leave_requested → Presentation 收尾回 overworld(观看期主世界冻结由 Host 负责)。
 
 signal playback_ended()
+## 玩家在结果界面点 Leave —— 回放观看期结束的唯一出口(game-vision §2 体验流"确认离开")。
+signal leave_requested()
 
 const BATTLE_GRID_RADIUS := 5
 
@@ -16,6 +19,7 @@ var _animator: InkMonBattle2DAnimator
 var _backdrop: ColorRect
 var _result_label: Label
 var _skip_button: Button
+var _leave_button: Button
 var _built := false
 
 
@@ -77,6 +81,13 @@ func _build() -> void:
 	_skip_button.pressed.connect(_on_skip_pressed)
 	add_child(_skip_button)
 
+	_leave_button = Button.new()
+	_leave_button.name = "LeaveButton"
+	_leave_button.text = "Leave ◀"
+	_leave_button.visible = false
+	_leave_button.pressed.connect(_on_leave_pressed)
+	add_child(_leave_button)
+
 	_layout()
 
 
@@ -87,12 +98,16 @@ func _layout() -> void:
 	_stage.position = view_size * 0.5
 	if _skip_button != null:
 		_skip_button.position = Vector2(view_size.x - 120.0, 18.0)
+	if _leave_button != null:
+		_leave_button.position = Vector2(view_size.x * 0.5 - 60.0, view_size.y - 64.0)
 
 
 func play_replay(record_dict: Dictionary, result: Dictionary = {}) -> void:
 	if not _built:
 		_build()
 	visible = true
+	if _leave_button != null:
+		_leave_button.visible = false
 	if _result_label != null:
 		_result_label.text = "Battle: %s" % str(result.get("result", ""))
 	var record := ReplayData.BattleRecord.from_dict(record_dict)
@@ -110,13 +125,32 @@ func get_debug_state() -> Dictionary:
 		"playing": _animator.is_playing() if _animator != null else false,
 		"ended": _animator.is_ended() if _animator != null else false,
 		"unit_count": _animator.get_units_snapshot().size() if _animator != null else 0,
+		"leave_visible": is_leave_available(),
 	}
 
 
 func _on_animator_ended() -> void:
+	# 播完不自动离场:亮 Leave 按钮等玩家确认(确认前 Host 维持主世界冻结)。
+	if _leave_button != null:
+		_leave_button.visible = true
 	playback_ended.emit()
 
 
 func _on_skip_pressed() -> void:
 	if _animator != null and not _animator.is_ended():
 		_animator.step(1_000_000.0)
+
+
+func is_leave_available() -> bool:
+	return _leave_button != null and _leave_button.visible
+
+
+## smoke / dev-agent 入口:等价点击 Leave(仅播完后有效)。
+func request_leave() -> void:
+	if is_leave_available():
+		_on_leave_pressed()
+
+
+func _on_leave_pressed() -> void:
+	_leave_button.visible = false
+	leave_requested.emit()

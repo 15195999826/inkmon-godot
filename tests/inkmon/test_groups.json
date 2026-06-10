@@ -22,7 +22,8 @@
     "app-root": {
       "scenes": [
         "../../inkmon/tests/smoke_app_root.tscn",
-        "../../inkmon/tests/smoke_main_router.tscn"
+        "../../inkmon/tests/smoke_main_router.tscn",
+        "../../inkmon/tests/smoke_replay_freeze.tscn"
       ]
     },
     "content": {
