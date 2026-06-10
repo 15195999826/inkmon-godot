@@ -56,6 +56,11 @@
         "../../inkmon/tests/smoke_overworld_live.tscn"
       ]
     },
+    "iso-sandbox": {
+      "scenes": [
+        "../../inkmon/tests/smoke_iso_sandbox.tscn"
+      ]
+    },
     "command": {
       "scenes": [
         "../../inkmon/tests/smoke_world_command.tscn"
