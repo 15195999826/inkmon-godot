@@ -13,7 +13,12 @@
   "water_recess_world": 0.12,
   "assets": {
     "tile_grass_e0": {
-      "file": "tile_grass_e0.png",
+      "file": "tile_grass_e0_v0.png",
+      "variants": [
+        "tile_grass_e0_v0.png",
+        "tile_grass_e0_v1.png",
+        "tile_grass_e0_v2.png"
+      ],
       "kind": "tile",
       "terrain": "grass",
       "elevation": 0,
@@ -27,7 +32,12 @@
       ]
     },
     "tile_grass_e1": {
-      "file": "tile_grass_e1.png",
+      "file": "tile_grass_e1_v0.png",
+      "variants": [
+        "tile_grass_e1_v0.png",
+        "tile_grass_e1_v1.png",
+        "tile_grass_e1_v2.png"
+      ],
       "kind": "tile",
       "terrain": "grass",
       "elevation": 1,
@@ -41,7 +51,12 @@
       ]
     },
     "tile_grass_e2": {
-      "file": "tile_grass_e2.png",
+      "file": "tile_grass_e2_v0.png",
+      "variants": [
+        "tile_grass_e2_v0.png",
+        "tile_grass_e2_v1.png",
+        "tile_grass_e2_v2.png"
+      ],
       "kind": "tile",
       "terrain": "grass",
       "elevation": 2,
@@ -55,7 +70,11 @@
       ]
     },
     "tile_dirt_e0": {
-      "file": "tile_dirt_e0.png",
+      "file": "tile_dirt_e0_v0.png",
+      "variants": [
+        "tile_dirt_e0_v0.png",
+        "tile_dirt_e0_v1.png"
+      ],
       "kind": "tile",
       "terrain": "dirt",
       "elevation": 0,
@@ -69,7 +88,11 @@
       ]
     },
     "tile_dirt_e1": {
-      "file": "tile_dirt_e1.png",
+      "file": "tile_dirt_e1_v0.png",
+      "variants": [
+        "tile_dirt_e1_v0.png",
+        "tile_dirt_e1_v1.png"
+      ],
       "kind": "tile",
       "terrain": "dirt",
       "elevation": 1,
@@ -83,7 +106,11 @@
       ]
     },
     "tile_dirt_e2": {
-      "file": "tile_dirt_e2.png",
+      "file": "tile_dirt_e2_v0.png",
+      "variants": [
+        "tile_dirt_e2_v0.png",
+        "tile_dirt_e2_v1.png"
+      ],
       "kind": "tile",
       "terrain": "dirt",
       "elevation": 2,
@@ -97,7 +124,11 @@
       ]
     },
     "tile_stone_e0": {
-      "file": "tile_stone_e0.png",
+      "file": "tile_stone_e0_v0.png",
+      "variants": [
+        "tile_stone_e0_v0.png",
+        "tile_stone_e0_v1.png"
+      ],
       "kind": "tile",
       "terrain": "stone",
       "elevation": 0,
@@ -111,7 +142,11 @@
       ]
     },
     "tile_stone_e1": {
-      "file": "tile_stone_e1.png",
+      "file": "tile_stone_e1_v0.png",
+      "variants": [
+        "tile_stone_e1_v0.png",
+        "tile_stone_e1_v1.png"
+      ],
       "kind": "tile",
       "terrain": "stone",
       "elevation": 1,
@@ -125,7 +160,11 @@
       ]
     },
     "tile_stone_e2": {
-      "file": "tile_stone_e2.png",
+      "file": "tile_stone_e2_v0.png",
+      "variants": [
+        "tile_stone_e2_v0.png",
+        "tile_stone_e2_v1.png"
+      ],
       "kind": "tile",
       "terrain": "stone",
       "elevation": 2,
@@ -139,7 +178,11 @@
       ]
     },
     "tile_water_e0": {
-      "file": "tile_water_e0.png",
+      "file": "tile_water_e0_v0.png",
+      "variants": [
+        "tile_water_e0_v0.png",
+        "tile_water_e0_v1.png"
+      ],
       "kind": "tile",
       "terrain": "water",
       "elevation": 0,
@@ -153,7 +196,11 @@
       ]
     },
     "tile_water_e1": {
-      "file": "tile_water_e1.png",
+      "file": "tile_water_e1_v0.png",
+      "variants": [
+        "tile_water_e1_v0.png",
+        "tile_water_e1_v1.png"
+      ],
       "kind": "tile",
       "terrain": "water",
       "elevation": 1,
@@ -167,7 +214,11 @@
       ]
     },
     "tile_water_e2": {
-      "file": "tile_water_e2.png",
+      "file": "tile_water_e2_v0.png",
+      "variants": [
+        "tile_water_e2_v0.png",
+        "tile_water_e2_v1.png"
+      ],
       "kind": "tile",
       "terrain": "water",
       "elevation": 2,
@@ -182,6 +233,9 @@
     },
     "decor_pine": {
       "file": "decor_pine.png",
+      "variants": [
+        "decor_pine.png"
+      ],
       "kind": "decor",
       "anchor_px": [
         256.0,
@@ -194,6 +248,9 @@
     },
     "decor_pine_tall": {
       "file": "decor_pine_tall.png",
+      "variants": [
+        "decor_pine_tall.png"
+      ],
       "kind": "decor",
       "anchor_px": [
         256.0,
@@ -206,6 +263,9 @@
     },
     "decor_rocks": {
       "file": "decor_rocks.png",
+      "variants": [
+        "decor_rocks.png"
+      ],
       "kind": "decor",
       "anchor_px": [
         256.0,
@@ -218,6 +278,9 @@
     },
     "decor_bush": {
       "file": "decor_bush.png",
+      "variants": [
+        "decor_bush.png"
+      ],
       "kind": "decor",
       "anchor_px": [
         256.0,

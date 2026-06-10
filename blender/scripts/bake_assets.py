@@ -46,8 +46,8 @@ CONFIG = {
     # 手绘墨线（Freestyle）
     "ink_enabled": True,
     "ink_color": (0.16, 0.12, 0.08),   # 暖墨褐（线性空间）
-    "ink_thickness_px": 2.2,
-    "ink_wobble_px": 1.0,              # 手绘抖动幅度
+    "ink_thickness_px": 3.2,
+    "ink_wobble_px": 1.5,              # 手绘抖动幅度
     # 出图
     "px_per_unit": 128,         # 1 世界单位 = 128 px → px_per_hex_edge = 128
     "canvas_px": 512,
@@ -58,6 +58,8 @@ CONFIG = {
 
 TERRAINS = ["grass", "dirt", "stone", "water"]
 ELEVATIONS = [0, 1, 2]
+## 每地形的贴图变体数（噪声偏移采样，打破拼装重复感）
+TERRAIN_VARIANTS = {"grass": 3, "dirt": 2, "stone": 2, "water": 2}
 
 
 def _srgb(hexstr):
@@ -72,19 +74,19 @@ def _srgb(hexstr):
 
 # 概念图配色：苔藓橄榄绿顶面 + 米色石板 + 棕土/砌石侧壁 + 灰蓝水带，低饱和暖灰
 PALETTE = {
-    "grass_top": _srgb("#7C8148"),
-    "grass_side": _srgb("#857050"),
-    "dirt_top": _srgb("#9C7B57"),
-    "dirt_side": _srgb("#7B5C40"),
-    "stone_top": _srgb("#B9B49A"),
-    "stone_side": _srgb("#8C8273"),
-    "water_top": _srgb("#87A0AE"),
-    "water_side": _srgb("#5F7480"),
-    "pine_leaf_a": _srgb("#425534"),
-    "pine_leaf_b": _srgb("#66794A"),
+    "grass_top": _srgb("#8A8C50"),
+    "grass_side": _srgb("#6E5F46"),
+    "dirt_top": _srgb("#8A7A52"),
+    "dirt_side": _srgb("#685A43"),
+    "stone_top": _srgb("#A39B81"),
+    "stone_side": _srgb("#7E7665"),
+    "water_top": _srgb("#7593A4"),
+    "water_side": _srgb("#56697A"),
+    "pine_leaf_a": _srgb("#3A4C2E"),
+    "pine_leaf_b": _srgb("#56683C"),
     "trunk": _srgb("#6B4E36"),
     "bush": _srgb("#677747"),
-    "rock": _srgb("#9A9183"),
+    "rock": _srgb("#7B7466"),
 }
 
 
@@ -187,15 +189,17 @@ def setup_stage():
     style.color = cfg["ink_color"]
     style.thickness = cfg["ink_thickness_px"]
     style.thickness_position = "INSIDE"
-    if not style.geometry_modifiers:
+    mod = next((m for m in style.geometry_modifiers if m.type == "PERLIN_NOISE_2D"), None)
+    if mod is None:
         mod = style.geometry_modifiers.new("wobble", "PERLIN_NOISE_2D")
-        mod.amplitude = cfg["ink_wobble_px"]
-        mod.frequency = 12.0
-        mod.octaves = 2
-    if not style.thickness_modifiers:
+    mod.amplitude = cfg["ink_wobble_px"]
+    mod.frequency = 12.0
+    mod.octaves = 2
+    tmod = next((m for m in style.thickness_modifiers if m.type == "NOISE"), None)
+    if tmod is None:
         tmod = style.thickness_modifiers.new("taper", "NOISE")
-        tmod.amplitude = cfg["ink_thickness_px"] * 0.5
-        tmod.period = 18.0
+    tmod.amplitude = cfg["ink_thickness_px"] * 0.5
+    tmod.period = 18.0
 
     scene.render.film_transparent = True
     scene.render.resolution_x = cfg["canvas_px"]
@@ -248,9 +252,19 @@ def _new_mat(name, roughness=0.92):
     return mat, nt, bsdf
 
 
-def _obj_coords(nt):
+def _obj_coords(nt, offset=(0.0, 0.0, 0.0)):
+    """物体空间坐标；offset = 变体采样偏移（同一套噪声换一片区域 = 新变体）。"""
     tex = nt.nodes.new("ShaderNodeTexCoord")
-    return tex.outputs["Object"]
+    if offset == (0.0, 0.0, 0.0):
+        return tex.outputs["Object"]
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Location"].default_value = offset
+    nt.links.new(tex.outputs["Object"], mapping.inputs["Vector"])
+    return mapping.outputs["Vector"]
+
+
+def _variant_offset(variant: int):
+    return (variant * 7.31, variant * 4.17, variant * 2.93)
 
 
 def _mix_color(nt, fac_socket_or_value, a, b):
@@ -315,8 +329,9 @@ def _top_side_mix(nt, top_color_socket, side_color_socket):
     return _mix_color(nt, fac, side_color_socket, top_color_socket)
 
 
-def _masonry_side(nt, coords, base_rgb):
-    """侧壁砌石：沿 z 的层带 mortar 暗缝 + 块面深浅抖动（只依赖 z → 六个朝向都不拉伸）。"""
+def _masonry_side(nt, coords, base_rgb, rim_rgb=None, rim_noise=False):
+    """侧壁砌石：沿 z 的层带 mortar 暗缝 + 块面深浅抖动（只依赖 z → 六个朝向都不拉伸）。
+    rim_rgb = 顶缘染色（草唇/苔藓爬石）；rim_noise=True 时苔斑式断续。"""
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(coords, sep.inputs["Vector"])
     bands_vec = nt.nodes.new("ShaderNodeCombineXYZ")
@@ -329,14 +344,29 @@ def _masonry_side(nt, coords, base_rgb):
     mortar = _map_range(nt, wave.outputs["Fac"], 0.06, 0.20, 1.0, 0.0)  # 窄暗缝
     jitter = _noise(nt, coords, 2.4, detail=3.0)
     block_fac = _map_range(nt, jitter, 0.3, 0.7, 0.0, 0.5)
-    blocks = _mix_color(nt, block_fac, base_rgb, _shift(base_rgb, 0.72))
-    return _mix_color(nt, mortar, blocks, _shift(base_rgb, 0.42))
+    blocks = _mix_color(nt, block_fac, base_rgb, _shift(base_rgb, 0.80))
+    color = _mix_color(nt, mortar, blocks, _shift(base_rgb, 0.58))
+    if rim_rgb is not None:
+        # 注意：变体偏移过的 coords 不能用来定位"顶缘"——必须用未偏移的物体 z
+        geo_sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        raw = nt.nodes.new("ShaderNodeTexCoord")
+        nt.links.new(raw.outputs["Object"], geo_sep.inputs["Vector"])
+        rim_fac = _map_range(nt, geo_sep.outputs["Z"], -0.24, -0.05, 0.0, 0.9)
+        if rim_noise:
+            gate = _map_range(nt, _noise(nt, coords, 5.0, detail=3.0), 0.42, 0.62, 0.0, 1.0)
+            mul = nt.nodes.new("ShaderNodeMath")
+            mul.operation = "MULTIPLY"
+            nt.links.new(rim_fac, mul.inputs[0])
+            nt.links.new(gate, mul.inputs[1])
+            rim_fac = mul.outputs["Value"]
+        color = _mix_color(nt, rim_fac, color, rim_rgb)
+    return color
 
 
-def _tile_material_grass_like(name, top_rgb, side_rgb, speckle=True):
-    """草/土：色块斑驳 + 草簇/砾石噪点 + 砌石侧壁。"""
+def _tile_material_grass_like(name, top_rgb, side_rgb, speckle=True, variant=0, rim_noise=False):
+    """草/土：色块斑驳 + 草簇/砾石噪点 + 砌石侧壁（顶缘草唇）。"""
     mat, nt, bsdf = _new_mat(name)
-    co = _obj_coords(nt)
+    co = _obj_coords(nt, _variant_offset(variant))
     # 大块斑驳（painterly 色域起伏）
     mottle = _noise(nt, co, 2.6, detail=4.0, distortion=0.4)
     mottle_fac = _map_range(nt, mottle, 0.32, 0.68, 0.0, 0.55)
@@ -348,17 +378,17 @@ def _tile_material_grass_like(name, top_rgb, side_rgb, speckle=True):
         top = _mix_color(nt, light_fac, top, _shift(top_rgb, 1.28, 1.1))
         dark_fac = _map_range(nt, sp, 0.40, 0.34, 0.0, 0.5)
         top = _mix_color(nt, dark_fac, top, _shift(top_rgb, 0.62))
-    side = _masonry_side(nt, co, side_rgb)
+    side = _masonry_side(nt, co, side_rgb, rim_rgb=_shift(top_rgb, 0.92), rim_noise=rim_noise)
     nt.links.new(_top_side_mix(nt, top, side), bsdf.inputs["Base Color"])
     bump_h = _noise(nt, co, 16.0, detail=4.0)
     _bump(nt, bsdf, bump_h, 0.18)
     return mat
 
 
-def _tile_material_stone(name, top_rgb, side_rgb):
+def _tile_material_stone(name, top_rgb, side_rgb, variant=0):
     """石板：voronoi 裂缝暗线 + 石板色块抖动 + 砌石侧壁（概念图的米色碎石板）。"""
     mat, nt, bsdf = _new_mat(name)
-    co = _obj_coords(nt)
+    co = _obj_coords(nt, _variant_offset(variant))
     vor_edge = nt.nodes.new("ShaderNodeTexVoronoi")
     vor_edge.feature = "DISTANCE_TO_EDGE"
     vor_edge.inputs["Scale"].default_value = 3.0
@@ -375,27 +405,32 @@ def _tile_material_stone(name, top_rgb, side_rgb):
     mottle_fac = _map_range(nt, mottle, 0.35, 0.65, 0.0, 0.3)
     plates = _mix_color(nt, mottle_fac, plates, _shift(top_rgb, 0.9))
     top = _mix_color(nt, crack, plates, _shift(top_rgb, 0.40, 0.8))
-    side = _masonry_side(nt, co, side_rgb)
+    # 苔藓爬石：石壁顶缘噪声断续的苔绿
+    side = _masonry_side(nt, co, side_rgb, rim_rgb=_shift(PALETTE["grass_top"], 0.82), rim_noise=True)
     nt.links.new(_top_side_mix(nt, top, side), bsdf.inputs["Base Color"])
     crack_bump = _map_range(nt, vor_edge.outputs["Distance"], 0.0, 0.08, 0.0, 1.0)
     _bump(nt, bsdf, crack_bump, 0.35)
     return mat
 
 
-def _tile_material_water(name, top_rgb, side_rgb):
-    """水：波带纹理轻微明暗 + 低光泽（去塑料感），侧壁深一档。"""
-    mat, nt, bsdf = _new_mat(name, roughness=0.42)
-    co = _obj_coords(nt)
+def _tile_material_water(name, top_rgb, side_rgb, variant=0):
+    """水：明暗波带 + 高光涟漪细线（手绘水面的"板块感"），侧壁深一档。"""
+    mat, nt, bsdf = _new_mat(name, roughness=0.35)
+    co = _obj_coords(nt, _variant_offset(variant))
     wave = nt.nodes.new("ShaderNodeTexWave")
-    wave.inputs["Scale"].default_value = 1.6
-    wave.inputs["Distortion"].default_value = 2.2
+    wave.inputs["Scale"].default_value = 2.0
+    wave.inputs["Distortion"].default_value = 2.6
     wave.inputs["Detail"].default_value = 2.0
     nt.links.new(co, wave.inputs["Vector"])
-    fac = _map_range(nt, wave.outputs["Fac"], 0.1, 0.9, 0.0, 0.35)
-    top = _mix_color(nt, fac, _shift(top_rgb, 1.10), _shift(top_rgb, 0.86))
-    ripple = _noise(nt, co, 6.0, detail=3.0, distortion=1.0)
-    rip_fac = _map_range(nt, ripple, 0.55, 0.62, 0.0, 0.35)
-    top = _mix_color(nt, rip_fac, top, _shift(top_rgb, 1.22))
+    fac = _map_range(nt, wave.outputs["Fac"], 0.1, 0.9, 0.0, 0.6)
+    top = _mix_color(nt, fac, _shift(top_rgb, 1.08), _shift(top_rgb, 0.74))
+    # 涟漪高光细线：voronoi 边缘 → 窄亮线（手绘水的"碎板"反光）
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.feature = "DISTANCE_TO_EDGE"
+    vor.inputs["Scale"].default_value = 4.5
+    nt.links.new(co, vor.inputs["Vector"])
+    edge_fac = _map_range(nt, vor.outputs["Distance"], 0.015, 0.05, 0.7, 0.0)
+    top = _mix_color(nt, edge_fac, top, _shift(top_rgb, 1.38, 0.8))
     side = _mix_color(nt, 0.0, side_rgb, side_rgb)
     nt.links.new(_top_side_mix(nt, top, side), bsdf.inputs["Base Color"])
     _bump(nt, bsdf, _noise(nt, co, 5.0, detail=2.0), 0.06)
@@ -413,17 +448,19 @@ def _decor_material(name, rgb, mottle_amount=0.5, bump_strength=0.2, bump_scale=
     return mat
 
 
-def build_materials():
+def build_materials(variant: int = 0):
+    """variant 只影响 tile 噪声采样区（装饰单变体即可）；材质名带变体号防互删。"""
+    suffix = "_v%d" % variant
     mats = {
-        "grass": _tile_material_grass_like("mat_tile_grass", PALETTE["grass_top"], PALETTE["grass_side"]),
-        "dirt": _tile_material_grass_like("mat_tile_dirt", PALETTE["dirt_top"], PALETTE["dirt_side"]),
-        "stone": _tile_material_stone("mat_tile_stone", PALETTE["stone_top"], PALETTE["stone_side"]),
-        "water": _tile_material_water("mat_tile_water", PALETTE["water_top"], PALETTE["water_side"]),
+        "grass": _tile_material_grass_like("mat_tile_grass" + suffix, PALETTE["grass_top"], PALETTE["grass_side"], variant=variant),
+        "dirt": _tile_material_grass_like("mat_tile_dirt" + suffix, PALETTE["dirt_top"], PALETTE["dirt_side"], variant=variant, rim_noise=True),
+        "stone": _tile_material_stone("mat_tile_stone" + suffix, PALETTE["stone_top"], PALETTE["stone_side"], variant=variant),
+        "water": _tile_material_water("mat_tile_water" + suffix, PALETTE["water_top"], PALETTE["water_side"], variant=variant),
         "pine_a": _decor_material("mat_pine_a", PALETTE["pine_leaf_a"], 0.6, 0.3, 18.0),
         "pine_b": _decor_material("mat_pine_b", PALETTE["pine_leaf_b"], 0.6, 0.3, 18.0),
         "trunk": _decor_material("mat_trunk", PALETTE["trunk"], 0.4, 0.25, 9.0),
         "bush": _decor_material("mat_bush", PALETTE["bush"], 0.55, 0.3, 14.0),
-        "rock": _decor_material("mat_rock", PALETTE["rock"], 0.6, 0.3, 8.0),
+        "rock": _decor_material("mat_rock", PALETTE["rock"], 0.85, 0.4, 7.0),
     }
     return mats
 
@@ -524,9 +561,12 @@ def _frustum(name, w_bottom, w_top, height, z_base, rot_z_deg, mat):
 
 def build_pine(mats, tall=False) -> bpy.types.Object:
     """方块感针叶树：方柱树干 + 渐缩方台冠层（frustum 收分），层间错转。锚点 = 落地中心 z=0。"""
-    h = 1.0 if not tall else 1.25
+    # girth 控横向、h 控纵向 —— 概念图树是"高瘦深绿"，加高别加肥。
+    # 画布约束：总高 H ≤ canvas/2/px_per_unit/cos(pitch) ≈ 2.45 世界单位
+    girth = 1.0 if not tall else 1.15
+    h = 1.30 if not tall else 1.22
     parts = []
-    parts.append(_box("trunk", (0.13, 0.13, 0.44), (0.0, 0.0, 0.21), 0.0, mats["trunk"]))
+    parts.append(_box("trunk", (0.14, 0.14, 0.56), (0.0, 0.0, 0.27), 0.0, mats["trunk"]))
     layer_specs = [
         # (底宽, 顶宽, 层高, 错转角)
         (0.68, 0.38, 0.56, -8.0),
@@ -535,10 +575,10 @@ def build_pine(mats, tall=False) -> bpy.types.Object:
     ]
     if tall:
         layer_specs.insert(0, (0.80, 0.52, 0.48, 8.0))
-    z = 0.34
+    z = 0.44
     for i, (wb, wt, lh, rot) in enumerate(layer_specs):
         mat = mats["pine_a"] if i % 2 == 0 else mats["pine_b"]
-        parts.append(_frustum("leaf%d" % i, wb * h, wt * h, lh * h, z, rot, mat))
+        parts.append(_frustum("leaf%d" % i, wb * girth, wt * girth, lh * h, z, rot, mat))
         z += lh * h * 0.72
     obj = _join(parts, "decor_pine_tall" if tall else "decor_pine")
     _add_bevel(obj, width=0.035, segments=2)
@@ -605,21 +645,24 @@ def render_to(filepath: str):
 
 
 def bake_all(subset=None):
-    """全量烘焙：tiles + decors + manifest.json。subset=资产名列表时只烘子集。"""
+    """全量烘焙：tiles（每地形多变体）+ decors + manifest.json。subset=资产名列表时只烘子集。"""
     setup_stage()
-    mats = build_materials()
     out_dir = _output_dir()
     cfg = CONFIG
     center = cfg["canvas_px"] / 2.0
 
     assets = {}
 
-    # tiles
+    # tiles：variant 外层（材质重建一次服务全 elevation）
+    variant_mats = {}
     for terrain in TERRAINS:
+        n_var = TERRAIN_VARIANTS.get(terrain, 1)
         for elev in ELEVATIONS:
             name = "tile_%s_e%d" % (terrain, elev)
+            variant_files = ["%s_v%d.png" % (name, v) for v in range(n_var)]
             assets[name] = {
-                "file": name + ".png",
+                "file": variant_files[0],
+                "variants": variant_files,
                 "kind": "tile",
                 "terrain": terrain,
                 "elevation": elev,
@@ -628,16 +671,21 @@ def bake_all(subset=None):
             }
             if subset is not None and name not in subset:
                 continue
-            clear_assets()
-            ensure_shadow_catcher(False)
-            build_hex_tile(terrain, elev, mats)
-            render_to(os.path.join(out_dir, name + ".png"))
-            print("baked", name)
+            for v, fname in enumerate(variant_files):
+                if v not in variant_mats:
+                    variant_mats[v] = build_materials(variant=v)
+                clear_assets()
+                ensure_shadow_catcher(False)
+                build_hex_tile(terrain, elev, variant_mats[v])
+                render_to(os.path.join(out_dir, fname))
+                print("baked", fname)
 
-    # decors（带接地影）
+    # decors（带接地影，单变体；重建材质 —— tile 变体循环会反复删建同名装饰材质，旧引用必死）
+    mats = build_materials()
     for name, builder in DECOR_BUILDERS.items():
         assets[name] = {
             "file": name + ".png",
+            "variants": [name + ".png"],
             "kind": "decor",
             "anchor_px": [center, center],
             "size_px": [cfg["canvas_px"], cfg["canvas_px"]],

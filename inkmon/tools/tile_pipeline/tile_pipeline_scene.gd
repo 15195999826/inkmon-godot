@@ -74,16 +74,22 @@ func _rebuild() -> void:
 			"order": 0,
 			"asset": "tile_%s_e%d" % [terrain, elevation],
 			"pos": anchor,
+			"axial": axial,
 		})
 		_tile_count += 1
 
 		var decor := _pick_decor(info, rng)
 		if decor != "":
+			# 平面内 jitter：打破"装饰全在 tile 正中"的机械感（树保持居中更像概念图）
+			var jitter := Vector2.ZERO
+			if decor != "decor_pine" and decor != "decor_pine_tall":
+				jitter = Vector2(rng.randf_range(-0.28, 0.28), rng.randf_range(-0.28, 0.28)) * edge_px
 			entries.append({
 				"sort": Vector2(ground_screen.y, ground_screen.x),
 				"order": 1,
 				"asset": decor,
-				"pos": anchor,
+				"pos": ground * (center_plane + jitter) - Vector2(0.0, lift),
+				"axial": axial,
 			})
 			_decor_count += 1
 
@@ -98,7 +104,7 @@ func _rebuild() -> void:
 		return int(a["order"]) < int(b["order"]))
 
 	for entry in entries:
-		var sprite := _make_sprite(str(entry["asset"]))
+		var sprite := _make_sprite(str(entry["asset"]), entry["axial"] as Vector2i)
 		if sprite == null:
 			continue
 		sprite.position = entry["pos"] as Vector2
@@ -119,24 +125,31 @@ func _pick_decor(info: Dictionary, rng: RandomNumberGenerator) -> String:
 	var roll := rng.randf()
 	match terrain:
 		InkMonIsoSandboxDemoMap.TERRAIN_GRASS:
-			if roll < 0.10 * _decor_density:
+			if roll < 0.22 * _decor_density:
 				return "decor_bush"
-		InkMonIsoSandboxDemoMap.TERRAIN_DIRT:
-			if roll < 0.16 * _decor_density:
+			elif roll < 0.30 * _decor_density:
 				return "decor_rocks"
+		InkMonIsoSandboxDemoMap.TERRAIN_DIRT:
+			if roll < 0.20 * _decor_density:
+				return "decor_rocks"
+			elif roll < 0.30 * _decor_density:
+				return "decor_bush"
 		InkMonIsoSandboxDemoMap.TERRAIN_STONE:
-			if roll < 0.12 * _decor_density:
+			if roll < 0.16 * _decor_density:
 				return "decor_rocks"
 	return ""
 
 
-func _make_sprite(asset_name: String) -> Sprite2D:
+func _make_sprite(asset_name: String, axial: Vector2i) -> Sprite2D:
 	var assets := _manifest["assets"] as Dictionary
 	if not assets.has(asset_name):
 		push_error("tile_pipeline: manifest 缺资产 %s" % asset_name)
 		return null
 	var meta := assets[asset_name] as Dictionary
-	var texture := load(BAKED_DIR + str(meta["file"])) as Texture2D
+	# 变体：按 axial 哈希确定性选图（打破同地形重复感；单变体资产退化为 file）
+	var variants: Array = meta.get("variants", [meta["file"]])
+	var pick := posmod((axial.x * 73856093) ^ (axial.y * 19349663), variants.size())
+	var texture := load(BAKED_DIR + str(variants[pick])) as Texture2D
 	if texture == null:
 		push_error("tile_pipeline: 贴图加载失败 %s" % str(meta["file"]))
 		return null
