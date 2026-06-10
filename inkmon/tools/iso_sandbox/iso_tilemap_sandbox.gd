@@ -7,6 +7,8 @@ extends Node2D
 ## **不可运行时调角** —— 动态调角请看对照场景 iso_angle_sandbox.tscn（绘制版）。
 ## 高度差用"每级海拔一个 TileMapLayer、整层上移"的烘焙管线惯用手法。
 
+const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
+
 const MAX_ELEVATION := 2
 ## 每级海拔整层上移像素 ≈ 世界高度 × cos(30°)，与烘焙 pitch 对齐的近似演示值。
 const ELEV_LAYER_RAISE := 10.0
@@ -33,6 +35,25 @@ func _ready() -> void:
 	_paint(InkMonIsoSandboxDemoMap.generate())
 	_build_note()
 
+	var bridge := DevAgentBridgeScript.new()
+	bridge.name = "DevAgentBridge"
+	bridge.scene_ops_path = NodePath("..")
+	add_child(bridge)
+
+
+# === dev-agent scene ops（DevAgentBridge 契约）===
+
+func get_supported_ops() -> Array:
+	return ["state"]
+
+
+func run_scene_op(op_name: String, _args: Dictionary) -> Dictionary:
+	match op_name:
+		"state":
+			return {"ok": true, "message": "sandbox state", "data": get_debug_state()}
+		_:
+			return {"ok": false, "message": "unknown scene op: %s" % op_name}
+
 
 func get_debug_state() -> Dictionary:
 	var base := _layers[0]
@@ -54,7 +75,8 @@ func _build_tile_set() -> TileSet:
 	var tile_set := TileSet.new()
 	tile_set.tile_shape = TileSet.TILE_SHAPE_HEXAGON
 	tile_set.tile_layout = TileSet.TILE_LAYOUT_DIAMOND_DOWN
-	tile_set.tile_offset_axis = TileSet.TILE_OFFSET_AXIS_VERTICAL
+	# flat-top hex 列错位 → HORIZONTAL（VERTICAL 是 pointy 取向:实测会按整宽排距离,列间裂缝+图形摊平）
+	tile_set.tile_offset_axis = TileSet.TILE_OFFSET_AXIS_HORIZONTAL
 	tile_set.tile_size = Vector2i(InkMonIsoTileBaker.TILE_W, InkMonIsoTileBaker.TILE_H)
 
 	var source := TileSetAtlasSource.new()
@@ -64,7 +86,8 @@ func _build_tile_set() -> TileSet:
 		var coords := Vector2i(column, 0)
 		source.create_tile(coords)
 		# 贴图比名义格高出 SKIRT（侧裙只朝下垂）：把贴图中心下移半个裙高对齐顶面中心。
-		source.get_tile_data(coords, 0).texture_origin = Vector2i(0, -InkMonIsoTileBaker.SKIRT / 2)
+		# 符号实测：+SKIRT/2 = 贴图下移（-7 会整体上错位,内部行间露 14px 裙边暗带）。
+		source.get_tile_data(coords, 0).texture_origin = Vector2i(0, InkMonIsoTileBaker.SKIRT / 2)
 	tile_set.add_source(source, 0)
 	return tile_set
 

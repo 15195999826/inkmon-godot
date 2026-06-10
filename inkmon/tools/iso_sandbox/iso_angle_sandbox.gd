@@ -4,6 +4,9 @@ extends Node2D
 ## iso 角度沙盒（绘制版）：pitch/yaw 双滑杆运行时调角，找"脑海中的那个视角"。
 ## F6 直接跑。调出的角度 = 后续美术出图规格（squish/相机角）与正式管线选型的输入。
 ## 对照场景：iso_tilemap_sandbox.tscn（Godot 内置 tile 管线、角度烘死版）。
+## dev-agent：挂通用 bridge（--dev-agent 启用，平时休眠）；scene ops = state / set_angles。
+
+const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
 
 var _renderer: InkMonIsoHexPrismRenderer
 var _pitch_slider: HSlider
@@ -24,6 +27,7 @@ func _ready() -> void:
 
 	_build_ui()
 	set_angles(33.4, 0.0)
+	_install_dev_agent()
 
 
 ## smoke / preset 共用入口：设角度并同步 UI。
@@ -48,6 +52,30 @@ func get_debug_state() -> Dictionary:
 		"squish": InkMonRender2DIsoProjection.squish_of(_renderer.pitch_deg),
 		"pick_roundtrip_ok": _renderer.pick_axial(probe_screen) == probe,
 	}
+
+
+# === dev-agent scene ops（DevAgentBridge 契约：get_supported_ops + run_scene_op）===
+
+func get_supported_ops() -> Array:
+	return ["state", "set_angles"]
+
+
+func run_scene_op(op_name: String, args: Dictionary) -> Dictionary:
+	match op_name:
+		"state":
+			return {"ok": true, "message": "sandbox state", "data": get_debug_state()}
+		"set_angles":
+			set_angles(float(args.get("pitch", _renderer.pitch_deg)), float(args.get("yaw", _renderer.yaw_deg)))
+			return {"ok": true, "message": "angles applied", "data": get_debug_state()}
+		_:
+			return {"ok": false, "message": "unknown scene op: %s" % op_name}
+
+
+func _install_dev_agent() -> void:
+	var bridge := DevAgentBridgeScript.new()
+	bridge.name = "DevAgentBridge"
+	bridge.scene_ops_path = NodePath("..")
+	add_child(bridge)
 
 
 func _build_colored_map() -> Dictionary:
