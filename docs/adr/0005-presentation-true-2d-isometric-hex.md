@@ -16,5 +16,5 @@
 - **零 submodule 改动**：录像数据（`addons/.../stdlib/replay`）已 renderer-agnostic（纯事件 `timeline`，位置是 `Array` 不是 `Vector3`）；inkmon 在 `inkmon/presentation/` **新写 2D battle animator 读同一份录像**。hex-atb / dota2 examples 保留各自 3D 前端。
 - **战斗表现是 greenfield**：inkmon 从未接战斗回放画面（架构文档"复用 hex-atb animator"是**未实现的意图**，grep 零引用）→ 直接建 2D，无旧可拆。
 - **overworld 改 1 个文件**：`InkMonOverworldView`（`Node3D`→`Node2D`，~556 行重写约 350 行）。`ultra-grid-map` 已有 `coord_to_world()->Vector2` / `world_to_coord(Vector2)` / `GridMapRenderer2D`，坐标与网格渲染白送。UI 层（`InkMonWorldPresentation` / `InkMonWorldPanelView`，Control 节点）零改。
-- **致命耦合（命脉，待定）**：棋盘等轴角度 = Seedance 出图角度，必须统一。每只 mon 须按同一"3/4 俯视角 / 站位+朝向 / 光向 / 比例 / 着地阴影"规格生成，否则与棋盘不在一个透视。该"统一出图规格"是 AI 美术管线的命脉，细节待定。
+- **致命耦合（命脉，待定）**：棋盘等轴角度 = Seedance 出图角度，必须统一。每只 mon 须按同一"3/4 俯视角 / 站位+朝向 / 光向 / 比例 / 着地阴影"规格生成，否则与棋盘不在一个透视。该"统一出图规格"是 AI 美术管线的命脉，细节待定。→ **2026-06-11 更新：已由 [adr/0008](0008-limited-angle-rotation-two-layer-projection.md) 拍板落定**（保守固定视角主案 + 整图面片 + 一致性 QC；唯一角度值仍待沙盒选定）。
 - `docs/main-game-architecture.md` 仍描述 3D 现状，落地 2D 时再同步更新（本 ADR 只记决定）。

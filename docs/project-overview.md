@@ -29,7 +29,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架 + 在其上自建的养成主游戏
 | `InkMonMain.tscn`(repo 根) | 主游戏项目入口 / app shell(screen router,`project.godot` main_scene) |
 | `inkmon/host/` | 主游戏模块 composition root:`InkMonWorldHost` + `ink_mon_game.tscn`(根节点 `WorldHost`)+ dev-agent ops |
 | `inkmon/logic/` | 主游戏逻辑:`world/`(`InkMonWorldGI` 序列化根 / actor / command / grid / CQRS)· `battle/`(战斗 + `InkMonUnitActor` 自序列化 / 技能内容)· `services/`(npc / content / item / 存档 IO `InkMonSaveFile`) |
-| `inkmon/presentation/` | 主游戏表演:`InkMonWorldPresentation` + overworld 3D view + UI 子树 |
+| `inkmon/presentation/` | 主游戏表演:`InkMonWorldPresentation` + overworld 2D 等轴 view(render2d 统一管线) + UI 子树 |
 | `scripts/` + `scenes/Simulation.tscn` | Web/WASM 桥(`SimulationManager.gd` + 桥场景)+ `SkillValidator.gd` + 运行时脚本测试 |
 | `logic-game-framework-config/` | 项目级 attribute set 配置 |
 | `docs/` | 本文档目录(见 [`README.md`](README.md)) |
