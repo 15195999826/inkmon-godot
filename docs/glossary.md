@@ -9,6 +9,7 @@
 **1.2 示例(example)** — LGF 之上两个独立可跑示例,共享 LGF core:
 - **hex-atb-battle** — 回合制 + hex grid + Timeline 技能。定位 = **技能系统展示 + AI 技能沙盒**(逻辑层零玩家输入;消费方 = AI-vs-AI demo + skill-preview 沙盒 + SkillValidator),**不是**要平衡的可玩对战。
 - **dota2-auto-battle** — 实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter(首个垂直切片)。
+- **对主游戏的定位 = 实现参考,绝不直接引用(铁律,2026-06-10)**:主游戏(`inkmon/` / repo 根 shell)不 preload / 不 extends 任何 example 代码——逻辑与表演皆然。表演层刻意**不**总结成框架复用(心智负担 > 重写成本),各项目各自重写,哪怕近乎重复实现。
 
 **1.3 主游戏** — 在 LGF 之上自建的那一层(hex 行走世界 + 战斗 + 存档),git 历史代号 "L2"。架构见 `main-game-architecture.md`。
 
@@ -42,7 +43,7 @@
 
 **4.3 主游戏三层 + Host** — Host(`InkMonWorldHost`)= composition root,在 Logic / Presentation **之上**:建两孩子 + 接线 + 控制面(lifecycle/flow/tick)。**Host 不在 CQRS 调用路径上**(不发 Query / 不收 Event),但握**命令生效时机**(Command 在 Host tick 泵 drain 那一刻生效)。数据流**双向**(command↓ / event↑),代码依赖**单向 DAG**(Presentation→Logic;Logic 谁都不引用;Host→两者)。
 
-**4.3a InkMonWorldPresentation** — Presentation 层根节点,持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + layout/animation/build/refresh。只握 `IWorldQuery` facade(类型层面够不到 concrete GI);mutation signal 由 Host 连;Host 不再直接持 UI 节点 ref。
+**4.3a InkMonWorldPresentation** — Presentation 层根节点,持 overworld view(`InkMonOverworldView`,3D 棋盘)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树的组装与接线。只握 `IWorldQuery` facade(类型层面够不到 concrete GI);mutation signal 由 Host 连;Host 不再直接持 UI 节点 ref。**表演层 routing 规则**:UI 行为住对应子场景脚本(drawer/modal/hud 各自挂脚本管自己的节点/tween/刷新),root 只接线 + `app_state` 派生 + 输入路由,不持子场景内部节点细节(增量下放,见 `main-game-architecture.md` §6)。
 
 **4.3b InkMonWorld 容器 vs overworld 域** — `InkMonWorld` = **世界容器**(overworld + battle + 持久层/活 actor 序列化根,World-owns-Battle);`overworld` = 容器内"行走域",跟 battle **平级**(不是残渣)。容器层概念用 `World` 前缀,纯 overworld 域专属的用 `overworld` 前缀(如 battle 不碰的 3D view)。`overworld_grid` 必留(区分主世界 grid vs 战斗翻转 grid)。**两条轴别混**:命名轴上 overworld 与 battle **平级**;本体轴上 **`InkMonWorldGI` 即 overworld 实体** —— 持久常在者 = 行走世界,battle 只是它原地跑、无持久实体的短 procedure,从属本体、命名仍一等。
 

@@ -109,7 +109,7 @@
 
 - **复用**:`InkMonBattleProcedure` + 战斗数学(双通道伤害 / 6 元素 / 角色 AI / action / passive,首个里程碑已落地)。出战 `InkMonUnitActor` = **常驻 registry 的活 roster actor**(无投影/无快照,跨战斗复用);敌方训练假人 = 临时 `create_combat_unit`(battle 结束随 `_reset_battle_state` 整只移除,活 roster 留 registry)。
 - **战斗触发 + 结果**:`InkMonWorldGI.request_training_battle()` 左队 = 活 roster 前 N 只(`InkMonBattleSetup.battle_roster_slice`,原地战斗)、右队 = 训练假人;`finalize_battle_rewards()` 战斗结束**直接把奖励落活 actor**(gold 加 `player_actor`、exp 加活 roster),无摘要回写。Host 只管 flow(app_state / tick)。
-- **统一 2D 表演框架（`inkmon/presentation/render2d/`,`InkMonRender2D*` 前缀）**:hex frontend 平移进 inkmon(render_world / scheduler / visualizer 注册表 / 声明式 VisualAction / actor render_state + 共享 IsoHexGrid/Avatar 视图),拷进改 2D、不动 submodule。**battle 与 overworld 共用此核心,只换事件源**(见 [adr/0006](adr/0006-battle-presentation-framework-port.md) 平移 + [adr/0007](adr/0007-unified-2d-presentation-pipeline.md) 统一):
+- **统一 2D 表演框架（`inkmon/presentation/render2d/`,`InkMonRender2D*` 前缀）**:hex frontend 平移进 inkmon(render_world / scheduler / visualizer 注册表 / 声明式 VisualAction / actor render_state + 共享 IsoHexGrid/Avatar 视图),拷进改 2D、不动 submodule(= example 铁律:只作实现参考、绝不直接引用,见 `glossary.md` §1.2)。**battle 与 overworld 共用此核心,只换事件源**(见 [adr/0006](adr/0006-battle-presentation-framework-port.md) 平移 + [adr/0007](adr/0007-unified-2d-presentation-pipeline.md) 统一):
   - **战斗呈现 = record-then-playback**:sim 瞬间同步算完 → 录 timeline → `battle_2d/` 的 replay drainer(`InkMonBattle2DAnimator`,有回放时钟)按帧回放。事件词汇耦合锁在 visualizer 层(绑 `inkmon_*` kind);active 4 件(move/damage/heal/death)已通,其余 9 机制 dormant、JIT 补。不走 live-tick:auto-battler 无战斗中干预需求;暂停/倍速/重看免费;决定性天然;异步 PvP/Web 友好。
   - **主世界 = live**:`overworld/` 的 `InkMonOverworldLiveDriver` 订阅 WorldGI 信号(`actor_position_changed` 等)→ 每帧 pump 同一 render_world,无回放时钟。view-local(相机/idle/反馈/拾取/NPC 高亮)不进 render_world。
 
@@ -155,7 +155,8 @@
 
 - 全 `.tscn`(尽量编辑器设计),代码只填文字 / 绑数据,动态列表(roster/bag/NPC 行)用 instantiate 组件场景。
 - UI 在 presentation 层,只订阅 signal / 调窄 `IWorldQuery` + `submit(cmd)`,不直接改逻辑、不见 concrete GI。
-- presentation 根 = `InkMonWorldPresentation`(节点),持 overworld view(`InkMonOverworldView`,2D 等轴棋盘,跑统一 render2d 框架)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树 + 其 layout/animation/build/refresh;Host 不再直接持 UI 节点 ref。
+- presentation 根 = `InkMonWorldPresentation`(节点),持 overworld view(`InkMonOverworldView`,2D 等轴棋盘,跑统一 render2d 框架)/ HUD / drawer / modal / `InkMonWorldPanelView` 全部 UI 子树的**组装与接线**;Host 不再直接持 UI 节点 ref。
+- **表演层 routing 规则(2026-06-10,对称 adr/0002 的逻辑层规则)**:**UI 行为住对应子场景脚本,root 只接线** —— drawer / modal / hud 等组件场景(`.tscn`)各自挂脚本,管自己的节点引用 / tween / 局部刷新;root 退成接线员(bind `IWorldQuery`、connect 信号、分发数据快照给子 view)+ `app_state` 派生 + 输入路由,**不持子场景内部节点细节**。现状(root 集中持有节点引用的胖根)按此规则**增量下放**:新 UI 代码即时生效,旧代码顺手搬,不搞一次性大拆(同 adr/0002 否决大重构的理由)。
 - 数据驱动内容构建(roster chips / party / bag / journal)抽在 `InkMonWorldPanelView`(纯表演 builder)。
 
 ### HUD 布局(corner-only;密集信息进单一右抽屉)
@@ -259,7 +260,7 @@
 ## 9. 待用户给设计后再定(未覆盖)
 
 - **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):**battle 与 overworld 对称,都不拆成域对象** —— `WorldGameplayInstance` 基类把 world-host 机器(`grid` / `add_actor`·`remove_actor` registry / `actor_position_changed` signal / `add_system`·`tick` / `start_battle`·`has_active_battle`)钉死在 GI 上、拿不走,且这套机器**同时**服务 battle 与 overworld 移动,故两者钉得一样死。两者杂活皆归 static service(battle:建队/布阵/发奖 → `InkMonBattleSetup`);两者皆**不**抽有状态 RefCounted 域对象(硬抽得傀儡)。overworld 唯一私有 transient 状态 = grid,已是独立对象 `InkMonWorldGrid`。GI 终态 = registry + 序列化根 + CQRS 基础设施 + world 宿主(battle + overworld 同一套基类机器)。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。战斗杂活已下沉 `InkMonBattleSetup`(GI 862→723);overworld 不再抽域对象。
-- **PlayerActor 内的无类型 Dict 袋子**:`InkMonPlayerActor` 的 `gold`/`medals` 已 typed;待定的是 `progression`(+原 `overworld` flags)无类型 Dict 袋子要不要进一步类型化。
-- **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。
-- **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性(`apply_derived_stats` 的 `LEVEL_GROWTH`),公式调整不影响持久切片结构。
+- **PlayerActor 内的无类型 Dict 袋子**:`InkMonPlayerActor` 的 `gold`/`medals` 已 typed;待定的是 `progression`(+原 `overworld` flags)无类型 Dict 袋子要不要进一步类型化。**触发条件(2026-06-10 评审)**:`game-vision.md` 游戏循环成文、progression 字段集稳定后再 typed 化;之前不动(字段没稳就 typed = 给沙子刻字,且现状无持续成本)。
+- **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。**触发条件(2026-06-10 评审)**:绑定 battle 回放呈现排期,届时一并定终态(动战斗呈现必然重摸 battle grid);当下已被边界加固兜住(movement 只读 `overworld_grid` + 战斗期 base_tick 冻结),不流血。
+- **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性(`apply_derived_stats` 的 `LEVEL_GROWTH`),公式调整不影响持久切片结构。**触发条件(2026-06-10 评审)**:等 lab 侧数值设计,godot 被动跟随;无架构影响。
 - **刻印的实现框架**:存储形状已定;实现走 LGF 被动 ability(hook 目标技能事件)还是挂在 skill_slot 上的 modifier,留实现时定。

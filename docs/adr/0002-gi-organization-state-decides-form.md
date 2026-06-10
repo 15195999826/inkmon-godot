@@ -15,7 +15,7 @@
 
 1. **持久只走 data shape,service 永不进存档** —— 换来"想知道存了啥只看 data shape"的一行存档审计,以及清晰的 data/logic 边界。
 2. **actor = 完整游戏实体**(数据 + 逻辑 + 身份/registry/生命周期),**不是数据袋** —— 纯数据(全局世界时钟 / 商店库存等)用普通 RefCounted 数据类(GD 无 struct),由 GI 或某 actor 持有、序列化根捎带,**别为序列化硬塞成 actor**。
-3. **傀儡测试** —— RefCounted service 升类的唯一理由 = 自己要记 transient 私有状态;若它没私有状态、全在调 gi,退回 static 纯函数(否则是揣 gi 空转的傀儡)。
+3. **傀儡测试** —— RefCounted service 升类的**两个**合法理由:① 自己要记 transient 私有状态;② **多态派发**(无状态 strategy / handler 实例,行为即身份 —— 如 6 个 NPC handler、battle AI strategy;GDScript static 做不了多态,拍平 = GI 内长 match 阶梯,违反"规则按模块分块"纪律)。两者皆无 → 退回 static 纯函数。傀儡的特征 = **持有** gi 字段空转;**收** gi 当参数的无状态多态实例不是傀儡。(② 为 2026-06-10 修订补充,原文只写 ①,字面会误伤 handler/strategy。)
 4. **真正的约束是"被唯一序列化根够到",不是"必须挂 GI 字段"** —— GI 现在碰巧是那个根,持久数据才向它聚;数据绑的是"那个唯一的存档根",不是 GI 这个类。
 
 ## 推论:battle 与 overworld 对称 —— 都是 GI 的 world-host 职责,都不拆成域对象
