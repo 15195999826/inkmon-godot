@@ -51,13 +51,14 @@ func get_debug_state() -> Dictionary:
 		"yaw_deg": _renderer.yaw_deg,
 		"squish": InkMonRender2DIsoProjection.squish_of(_renderer.pitch_deg),
 		"pick_roundtrip_ok": _renderer.pick_axial(probe_screen) == probe,
+		"unit_mode": _renderer.unit_mode,
 	}
 
 
 # === dev-agent scene ops（DevAgentBridge 契约：get_supported_ops + run_scene_op）===
 
 func get_supported_ops() -> Array:
-	return ["state", "set_angles"]
+	return ["state", "set_angles", "set_unit_mode"]
 
 
 func run_scene_op(op_name: String, args: Dictionary) -> Dictionary:
@@ -67,6 +68,9 @@ func run_scene_op(op_name: String, args: Dictionary) -> Dictionary:
 		"set_angles":
 			set_angles(float(args.get("pitch", _renderer.pitch_deg)), float(args.get("yaw", _renderer.yaw_deg)))
 			return {"ok": true, "message": "angles applied", "data": get_debug_state()}
+		"set_unit_mode":
+			_renderer.unit_mode = str(args.get("mode", "billboard"))
+			return {"ok": true, "message": "unit mode applied", "data": get_debug_state()}
 		_:
 			return {"ok": false, "message": "unknown scene op: %s" % op_name}
 
@@ -88,6 +92,19 @@ func _build_colored_map() -> Dictionary:
 			"elevation": int(info["elevation"]),
 			"tree": bool(info["tree"]),
 		}
+	# 烘死视角 sprite × 可旋转地面 实验：
+	# 中心 tile = 拆层熊（body 跟 unit_mode / base 永远 ground 公式）；(2,2) = 单图对照熊。
+	var unit_tile := Vector2i.ZERO
+	if out.has(unit_tile):
+		var tile := out[unit_tile] as Dictionary
+		tile["tree"] = false
+		tile["unit_body"] = load("res://inkmon/tools/iso_sandbox/assets/mon_0001_bear_body.png") as Texture2D
+		tile["unit_base"] = load("res://inkmon/tools/iso_sandbox/assets/mon_0001_bear_base.png") as Texture2D
+	var single_tile := Vector2i(2, 2)
+	if out.has(single_tile):
+		var tile := out[single_tile] as Dictionary
+		tile["tree"] = false
+		tile["unit"] = load("res://inkmon/tools/iso_sandbox/assets/mon_0001_bear.png") as Texture2D
 	return out
 
 
@@ -116,6 +133,12 @@ func _build_ui() -> void:
 	_add_preset(presets, "现行 (33.4°)", 33.4, 0.0)
 	_add_preset(presets, "概念图感 (45°/15°)", 45.0, 15.0)
 
+	var unit_modes := HBoxContainer.new()
+	box.add_child(unit_modes)
+	_add_unit_mode(unit_modes, "单位:billboard", "billboard")
+	_add_unit_mode(unit_modes, "单位:立牌补偿", "standee")
+	_add_unit_mode(unit_modes, "单位:地面变换", "ground")
+
 
 func _add_slider(parent: Control, title: String, min_value: float, max_value: float) -> HSlider:
 	var row := HBoxContainer.new()
@@ -138,6 +161,13 @@ func _add_preset(parent: Control, title: String, pitch_deg: float, yaw_deg: floa
 	var button := Button.new()
 	button.text = title
 	button.pressed.connect(func() -> void: set_angles(pitch_deg, yaw_deg))
+	parent.add_child(button)
+
+
+func _add_unit_mode(parent: Control, title: String, mode: String) -> void:
+	var button := Button.new()
+	button.text = title
+	button.pressed.connect(func() -> void: _renderer.unit_mode = mode)
 	parent.add_child(button)
 
 

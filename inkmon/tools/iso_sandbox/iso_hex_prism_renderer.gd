@@ -12,9 +12,20 @@ extends Node2D
 
 const SQRT3 := sqrt(3.0)
 
+## 单位贴图的"预设出图角"（假设素材是该 pitch/yaw 下渲染的，补偿模式以此为基准）。
+## 用户方案：素材基于真等轴 35.26° + 选定 yaw 出图，运行时允许小范围 pitch/yaw 偏移。
+const BAKED_PITCH_DEG := 35.26
+const BAKED_YAW_DEG := 0.0
+
 var hex_size := 34.0          ## hex 外接圆半径（平面像素）
 var thickness := 22.0          ## 积木基础厚度（世界高度）
 var elevation_step := 16.0     ## 每级海拔的世界高度
+
+## 单位贴图随地面角度的补偿假设：billboard=不补偿 / standee=竖直立牌 / ground=地面平面画。
+var unit_mode := "billboard":
+	set(value):
+		unit_mode = value
+		queue_redraw()
 
 var pitch_deg := 33.4:
 	set(value):
@@ -104,6 +115,18 @@ func _draw_tile(ground: Transform2D, axial: Vector2i, info: Dictionary) -> void:
 	if bool(info.get("tree", false)):
 		_draw_tree(center_screen)
 
+	# 拆层单位：base 是地面内容 → 永远 ground 公式；body 是竖直内容 → 跟 unit_mode。
+	var unit_base := info.get("unit_base") as Texture2D
+	if unit_base != null:
+		_draw_unit_layer(ground, center_screen, unit_base, "ground")
+	var unit_body := info.get("unit_body") as Texture2D
+	if unit_body != null:
+		_draw_unit_layer(ground, center_screen, unit_body, unit_mode)
+	# 单图单位（未拆层对照）。
+	var unit := info.get("unit") as Texture2D
+	if unit != null:
+		_draw_unit_layer(ground, center_screen, unit, unit_mode)
+
 
 ## billboard 树：屏幕空间直立，与地面投影无关（单位/道具的表演惯例演示）。
 func _draw_tree(foot: Vector2) -> void:
@@ -122,6 +145,39 @@ func _draw_tree(foot: Vector2) -> void:
 		])
 		var leaf := Color(0.16, 0.34, 0.16) if layer % 2 == 0 else Color(0.22, 0.44, 0.20)
 		draw_polygon(tri, PackedColorArray([leaf]))
+
+
+## 单位贴图：底边中点锚在 tile 中心（与树同惯例），按 mode 选补偿假设。
+## 拆层时 body/base 共用同尺寸画布 → 同锚点对齐，两层各走各的变换。
+func _draw_unit_layer(ground: Transform2D, foot: Vector2, texture: Texture2D, mode: String) -> void:
+	var h := hex_size * 2.3
+	var w := h * float(texture.get_width()) / float(texture.get_height())
+	draw_set_transform_matrix(_unit_screen_transform(ground, foot, mode))
+	draw_texture_rect(texture, Rect2(-w * 0.5, -h, w, h), false)
+	draw_set_transform_matrix(Transform2D())
+
+
+## 三种假设的屏幕基（列 = 图像 x/y 轴在屏幕上的去向，origin = 脚点）：
+##   billboard — 屏幕直立，不随地面动（现状）。
+##   standee  — 图 = BAKED 角度下的竖直立牌：图像水平轴是世界地面向量，随 yaw 转回世界向
+##              （x → ground 投影该向量）；竖直轴是世界竖直，高度按 cos(pitch)/cos(BAKED_PITCH) 缩放。
+##              ≈ adr/0005 弃掉的 Sprite3D 立牌绕镜头的数学。
+##   ground   — 图 = 平铺在地面上的画：直接套 ground_now × ground_baked⁻¹ 的 delta 仿射
+##              （字面意义的"像地面那样处理"）。
+func _unit_screen_transform(ground: Transform2D, foot: Vector2, mode: String) -> Transform2D:
+	match mode:
+		"ground":
+			var baked := InkMonRender2DIsoProjection.ground_basis(BAKED_PITCH_DEG, BAKED_YAW_DEG)
+			var delta := ground * baked.affine_inverse()
+			return Transform2D(delta.x, delta.y, foot)
+		"standee":
+			var yaw := deg_to_rad(yaw_deg - BAKED_YAW_DEG)
+			var pitch := deg_to_rad(pitch_deg)
+			var x_axis := Vector2(cos(yaw), sin(yaw) * sin(pitch))
+			var y_axis := Vector2(0.0, cos(pitch) / cos(deg_to_rad(BAKED_PITCH_DEG)))
+			return Transform2D(x_axis, y_axis, foot)
+		_:
+			return Transform2D(Vector2.RIGHT, Vector2.DOWN, foot)
 
 
 func _corner_plane(center: Vector2, i: int) -> Vector2:
