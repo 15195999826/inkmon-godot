@@ -20,7 +20,15 @@ import bmesh
 import math
 import json
 import os
+import sys
 from mathutils import Euler, Vector
+
+# texgen.geometry = 生图管线几何契约（UV 展开布局与模板/warp 共享，drift 即对不上）
+_SCRIPTS_DIR = (os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals()
+                else bpy.path.abspath("//scripts"))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from texgen import geometry as texgen_geometry
 
 # ============================================================ 参数（单一真相，改这里 → 重烘 → Godot 自动跟随）
 
@@ -60,6 +68,33 @@ TERRAINS = ["grass", "dirt", "stone", "water"]
 ELEVATIONS = [0, 1, 2]
 ## 每地形的贴图变体数（噪声偏移采样，打破拼装重复感）
 TERRAIN_VARIANTS = {"grass": 3, "dirt": 2, "stone": 2, "water": 2}
+
+
+def _manifest_like() -> dict:
+    """texgen.geometry 需要的 manifest 字段子集（真相仍是 CONFIG → manifest 单向写）。"""
+    cfg = CONFIG
+    return {
+        "pitch_deg": cfg["pitch_deg"],
+        "yaw_deg": cfg["yaw_deg"],
+        "hex_orientation": "flat_top",
+        "px_per_hex_edge": cfg["px_per_unit"] * cfg["hex_edge"],
+        "hex_edge_world": cfg["hex_edge"],
+        "thickness_world": cfg["thickness"],
+        "elevation_step_world": cfg["elevation_step"],
+    }
+
+
+def _textures_dir() -> str:
+    """入库 UV 贴图目录（blender/textures/，git = 批准品真相）。"""
+    return bpy.path.abspath("//textures")
+
+
+def _gen_config() -> dict:
+    p = os.path.join(_textures_dir(), "gen_config.json")
+    if os.path.isfile(p):
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
 def _srgb(hexstr):
@@ -448,6 +483,34 @@ def _decor_material(name, rgb, mottle_amount=0.5, bump_strength=0.2, bump_scale=
     return mat
 
 
+def _load_image(path: str):
+    img = bpy.data.images.load(path, check_existing=True)
+    img.reload()  # 候选试评会原地覆盖同路径文件，防 Blender 旧缓存
+    return img
+
+
+def _tile_material_image(name: str, image_path: str):
+    """生图贴图 tile 材质：UV 展开布局贴图（texgen uv_layout）直进 Base Color。
+    光影/墨线仍由场景日光 + Freestyle 叠加（设计稿自带光影的叠加问题 = Round 1 实拍裁决）。"""
+    mat, nt, bsdf = _new_mat(name)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _load_image(image_path)
+    tex.extension = "EXTEND"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    return mat
+
+
+def _decor_material_image(name: str, image):
+    """图片装饰 alpha 面片材质：sprite 颜色 + alpha 直通（透明区不挡光不投影）。"""
+    mat, nt, bsdf = _new_mat(name)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = image
+    tex.extension = "CLIP"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    return mat
+
+
 def build_materials(variant: int = 0):
     """variant 只影响 tile 噪声采样区（装饰单变体即可）；材质名带变体号防互删。"""
     suffix = "_v%d" % variant
@@ -481,8 +544,49 @@ def _smooth(obj, angle_deg=40.0):
     obj.data.set_sharp_from_angle(angle=math.radians(angle_deg))
 
 
-def build_hex_tile(terrain: str, elevation: int, mats) -> bpy.types.Object:
-    """hex 棱柱：顶面 z=0（水面下沉 water_recess），深度 = thickness + elevation*step。"""
+def _assign_tile_uvs(bm, elevation: int, depth: float):
+    """按 texgen uv_layout 给 hex 棱柱赋 UV（与线稿模板/warp 同一布局函数 = 零 drift）：
+    顶面 → island（世界 +y = 图像上）；可见壁 → 各自矩形（左→右 = 从壁外看左→右，
+    v = -z 深度）；背面三壁映到对侧可见壁矩形（冻结相机豁免，永不可见）；底面收拢 island 中心。"""
+    layout = texgen_geometry.uv_layout(_manifest_like(), elevation)
+    cw, ch = layout["canvas"]
+    faces_px = layout["faces"]
+    wall_quads = {i: faces_px["wall_%d" % i]["quad_px"] for i in layout["wall_order"]}
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+
+    def uv_of(px, py):
+        return (px / cw, 1.0 - py / ch)
+
+    top_poly = faces_px["top"]["polygon_px"]
+    top_center = faces_px["top"]["center_px"]
+    for face in bm.faces:
+        nz = face.normal.z
+        if nz > 0.5:  # 顶面：角点按方位角对回 corner k
+            for loop in face.loops:
+                co = loop.vert.co
+                k = int(round((math.degrees(math.atan2(co.y, co.x)) % 360.0) / 60.0)) % 6
+                loop[uv_layer].uv = uv_of(*top_poly[k])
+        elif nz < -0.5:  # 底面：永不可见，收拢到 island 中心
+            for loop in face.loops:
+                loop[uv_layer].uv = uv_of(*top_center)
+        else:  # 侧壁：法向方位角 → 壁下标
+            ang = math.degrees(math.atan2(face.normal.y, face.normal.x)) % 360.0
+            i = int(round((ang - 30.0) / 60.0)) % 6
+            quad = wall_quads.get(i) or wall_quads[(i + 3) % 6]
+            left, _right = texgen_geometry.wall_corners_lr(None, i)
+            for loop in face.loops:
+                co = loop.vert.co
+                d_left = math.hypot(co.x - left[0], co.y - left[1])
+                t = 0.0 if d_left < CONFIG["hex_edge"] * 0.5 else 1.0  # 角点二择一
+                v = max(0.0, min(1.0, -co.z / depth))  # 矩形代表 z 0→-depth（水面顶沉入矩形内）
+                px = quad[0][0] + (quad[1][0] - quad[0][0]) * t
+                py = quad[0][1] + (quad[3][1] - quad[0][1]) * v
+                loop[uv_layer].uv = uv_of(px, py)
+
+
+def build_hex_tile(terrain: str, elevation: int, mats, override_mat=None) -> bpy.types.Object:
+    """hex 棱柱：顶面 z=0（水面下沉 water_recess），深度 = thickness + elevation*step。
+    override_mat = 生图贴图材质（image texture，UV 已按 uv_layout 赋好）。"""
     cfg = CONFIG
     r = cfg["hex_edge"]
     top_z = -cfg["water_recess"] if terrain == "water" else 0.0
@@ -498,13 +602,14 @@ def build_hex_tile(terrain: str, elevation: int, mats) -> bpy.types.Object:
     new_verts = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
     bmesh.ops.translate(bm, verts=new_verts, vec=(0.0, 0.0, -(depth - (0.0 - top_z))))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    _assign_tile_uvs(bm, elevation, depth)
 
     mesh = bpy.data.meshes.new("tile_%s_e%d" % (terrain, elevation))
     bm.to_mesh(mesh)
     bm.free()
     obj = bpy.data.objects.new("tile_%s_e%d" % (terrain, elevation), mesh)
     bpy.context.scene.collection.objects.link(obj)
-    obj.data.materials.append(mats[terrain])
+    obj.data.materials.append(override_mat if override_mat is not None else mats[terrain])
     _add_bevel(obj)
     _smooth(obj)
     return obj
@@ -631,6 +736,112 @@ DECOR_BUILDERS = {
 }
 
 
+# ============================================================ 图片装饰（alpha 面片）
+
+def _sprite_alpha_bbox(img):
+    """sprite 不透明像素包围盒（像素，y 自图像底部起算 —— Blender pixels 行 0 = 底）。"""
+    w, h = img.size
+    import numpy as np
+    buf = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(buf)
+    alpha = buf.reshape(h, w, 4)[..., 3]
+    ys, xs = np.nonzero(alpha > 0.5)
+    if ys.size == 0:
+        raise ValueError("sprite 全透明，无法定锚点：%s" % img.filepath)
+    return int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+
+
+def build_alpha_decor(name: str, sprite_path: str, world_height: float) -> bpy.types.Object:
+    """图片装饰 alpha 面片：面片 ⟂ 冻结相机视线（烘焙近似 1:1 还原 sprite），
+    锚点自动算 —— alpha 不透明区的 bottom-center 摆到世界原点（= 落地点 = 画布中心锚）。
+    world_height = 不透明内容的世界高度（gen_config image_decor 配置）。"""
+    cfg = CONFIG
+    img = _load_image(sprite_path)
+    w, h = img.size
+    x0, x1, y0, y1 = _sprite_alpha_bbox(img)
+    ppu = (y1 - y0 + 1) / world_height          # sprite px / 世界单位
+    w_w, h_w = w / ppu, h / ppu                  # 整画布的世界尺寸
+    anchor_x = (x0 + x1 + 1) / 2.0 / ppu         # 不透明 bottom-center 距画布左缘（世界）
+    anchor_y = y0 / ppu                          # 距画布底缘（世界）
+
+    # 面片放在相机局部 XY 平面（⟂ 视线），锚点对到世界原点
+    rot = Euler((
+        math.radians(90.0 - cfg["pitch_deg"]),
+        0.0,
+        math.radians(cfg["yaw_deg"]),
+    ), "XYZ").to_matrix()
+    corners_local = [
+        (-anchor_x, -anchor_y),                  # 画布左下
+        (w_w - anchor_x, -anchor_y),             # 右下
+        (w_w - anchor_x, h_w - anchor_y),        # 右上
+        (-anchor_x, h_w - anchor_y),             # 左上
+    ]
+    uvs = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+
+    bm = bmesh.new()
+    verts = [bm.verts.new(rot @ Vector((lx, ly, 0.0))) for (lx, ly) in corners_local]
+    face = bm.faces.new(verts)
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+    for loop, uv in zip(face.loops, uvs):
+        loop[uv_layer].uv = uv
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(_decor_material_image("mat_img_" + name, img))
+    return obj
+
+
+def render_alpha_decor(name: str, sprite_path: str, world_height: float, out_path: str):
+    """烘焙单个图片装饰：shadow catcher 接地影开、Freestyle 墨线关（面片矩形轮廓不是内容边缘）。"""
+    clear_assets()
+    ensure_shadow_catcher(True)
+    build_alpha_decor(name, sprite_path, world_height)
+    scene = bpy.context.scene
+    prev_fs = scene.render.use_freestyle
+    scene.render.use_freestyle = False
+    try:
+        render_to(out_path)
+    finally:
+        scene.render.use_freestyle = prev_fs
+
+
+def _decor_world_height(name: str, gen_cfg: dict) -> float:
+    sec = gen_cfg.get("image_decor", {})
+    return float(sec.get("world_height", {}).get(name, sec.get("world_height_default", 1.0)))
+
+
+# ============================================================ 入库贴图自动发现（blender/textures/）
+
+def discover_image_tiles() -> dict:
+    """{(terrain, elevation): {variant: 绝对路径}}，按命名约定 tile_<terrain>_e<N>_v<K>.png。"""
+    out = {}
+    tdir = _textures_dir()
+    if not os.path.isdir(tdir):
+        return out
+    import re
+    pat = re.compile(r"^tile_([a-z]+)_e(\d)_v(\d+)\.png$")
+    for fn in os.listdir(tdir):
+        m = pat.match(fn)
+        if m:
+            key = (m.group(1), int(m.group(2)))
+            out.setdefault(key, {})[int(m.group(3))] = os.path.join(tdir, fn)
+    return out
+
+
+def discover_image_decors() -> dict:
+    """{decor 名: sprite 绝对路径}，命名约定 decor_<name>.png；与建模装饰撞名时图片版优先。"""
+    out = {}
+    tdir = _textures_dir()
+    if not os.path.isdir(tdir):
+        return out
+    for fn in sorted(os.listdir(tdir)):
+        if fn.startswith("decor_") and fn.endswith(".png"):
+            out[fn[:-4]] = os.path.join(tdir, fn)
+    return out
+
+
 # ============================================================ 烘焙
 
 def _output_dir() -> str:
@@ -652,14 +863,19 @@ def bake_all(subset=None):
     center = cfg["canvas_px"] / 2.0
 
     assets = {}
+    image_tiles = discover_image_tiles()
+    image_decors = discover_image_decors()
+    gen_cfg = _gen_config()
 
-    # tiles：variant 外层（材质重建一次服务全 elevation）
+    # tiles：variant 外层（材质重建一次服务全 elevation）；入库 UV 贴图变体改走 image 材质
     variant_mats = {}
     for terrain in TERRAINS:
         n_var = TERRAIN_VARIANTS.get(terrain, 1)
         for elev in ELEVATIONS:
+            img_variants = image_tiles.get((terrain, elev), {})
+            n_var_e = max(n_var, (max(img_variants) + 1) if img_variants else 0)
             name = "tile_%s_e%d" % (terrain, elev)
-            variant_files = ["%s_v%d.png" % (name, v) for v in range(n_var)]
+            variant_files = ["%s_v%d.png" % (name, v) for v in range(n_var_e)]
             assets[name] = {
                 "file": variant_files[0],
                 "variants": variant_files,
@@ -672,11 +888,16 @@ def bake_all(subset=None):
             if subset is not None and name not in subset:
                 continue
             for v, fname in enumerate(variant_files):
-                if v not in variant_mats:
-                    variant_mats[v] = build_materials(variant=v)
                 clear_assets()
                 ensure_shadow_catcher(False)
-                build_hex_tile(terrain, elev, variant_mats[v])
+                if v in img_variants:
+                    mat = _tile_material_image("mat_img_%s_v%d" % (name, v), img_variants[v])
+                    build_hex_tile(terrain, elev, None, override_mat=mat)
+                    print("baking (image texture)", fname)
+                else:
+                    if v not in variant_mats:
+                        variant_mats[v] = build_materials(variant=v)
+                    build_hex_tile(terrain, elev, variant_mats[v])
                 render_to(os.path.join(out_dir, fname))
                 print("baked", fname)
 
@@ -690,6 +911,8 @@ def bake_all(subset=None):
             "anchor_px": [center, center],
             "size_px": [cfg["canvas_px"], cfg["canvas_px"]],
         }
+        if name in image_decors:
+            continue  # 入库图片装饰撞名 → 图片版优先，跳过建模版
         if subset is not None and name not in subset:
             continue
         clear_assets()
@@ -697,6 +920,21 @@ def bake_all(subset=None):
         builder(mats)
         render_to(os.path.join(out_dir, name + ".png"))
         print("baked", name)
+
+    # 图片装饰（alpha 面片，锚点 = 落地点 = 画布中心，与建模装饰同契约）
+    for name, sprite_path in image_decors.items():
+        assets[name] = {
+            "file": name + ".png",
+            "variants": [name + ".png"],
+            "kind": "decor",
+            "anchor_px": [center, center],
+            "size_px": [cfg["canvas_px"], cfg["canvas_px"]],
+        }
+        if subset is not None and name not in subset:
+            continue
+        render_alpha_decor(name, sprite_path, _decor_world_height(name, gen_cfg),
+                           os.path.join(out_dir, name + ".png"))
+        print("baked (alpha 面片)", name)
 
     ensure_shadow_catcher(False)
 
@@ -743,5 +981,44 @@ def build_showcase():
         x += 2.2
 
 
+# ============================================================ 候选试评（_candidates 缓冲，不动 manifest）
+
+def bake_tile_candidate(uv_texture_path: str, terrain: str, elevation: int, out_path: str):
+    """单个候选 UV 贴图 → image 材质 hex tile → 烘焙 PNG（后置闸门的烘焙试评步）。"""
+    setup_stage()
+    clear_assets()
+    ensure_shadow_catcher(False)
+    mat = _tile_material_image("mat_img_candidate", uv_texture_path)
+    build_hex_tile(terrain, elevation, None, override_mat=mat)
+    render_to(out_path)
+    print("CANDIDATE TILE BAKED ->", out_path)
+
+
+def bake_decor_candidate(sprite_path: str, out_path: str, world_height: float = 0.0):
+    """单个候选 sprite → alpha 面片 → 烘焙 PNG（接地影开，Freestyle 关）。"""
+    setup_stage()
+    name = os.path.splitext(os.path.basename(sprite_path))[0]
+    if world_height <= 0.0:
+        world_height = _decor_world_height(name, _gen_config())
+    render_alpha_decor("decor_candidate", sprite_path, world_height, out_path)
+    print("CANDIDATE DECOR BAKED ->", out_path)
+
+
+def _cli(argv):
+    """blender --background blender/test.blend --python bake_assets.py -- <args>
+      （无参数 = bake_all 全量；候选试评见下）
+      --candidate-tile <uv_png> <terrain> <elev> --out <png>
+      --candidate-decor <sprite_png> --out <png> [--height <world_h>]"""
+    if "--candidate-tile" in argv:
+        i = argv.index("--candidate-tile")
+        bake_tile_candidate(argv[i + 1], argv[i + 2], int(argv[i + 3]), argv[argv.index("--out") + 1])
+    elif "--candidate-decor" in argv:
+        i = argv.index("--candidate-decor")
+        h = float(argv[argv.index("--height") + 1]) if "--height" in argv else 0.0
+        bake_decor_candidate(argv[i + 1], argv[argv.index("--out") + 1], h)
+    else:
+        bake_all()
+
+
 if __name__ == "__main__":
-    bake_all()
+    _cli(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])

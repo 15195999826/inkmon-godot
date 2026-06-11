@@ -1,0 +1,14 @@
+{
+  "comment": "入库 provenance 模板（adr/0010 决定 3）：每个批准资产旁放一份 <资产文件名>.provenance.json。lab = 车间真相（全部历史），此 JSON = 入库品的溯源指针；lab 数据丢失只丢历史溯源不伤构建。",
+  "asset": "<入库文件名，如 tile_grass_e0_v0.png / decor_bush.png>",
+  "kind": "<tile | decor>",
+  "scheme": "<design_warp | design_uv_gpt | dual_canvas | grid_fill | sprite>",
+  "prompt": "<最终生效提示词（session 骨架 + 追加描述合成后的全文）>",
+  "reference_images": ["<AI 携带参考图（lab image id 或路径）；与 session 自带参考图合并生效>"],
+  "lab_session_id": "<生成 session id（裸模式 = 自动 scratch session id）>",
+  "lab_image_id": "<lab 图库 image id（export 的来源）>",
+  "template": "<线稿模板，如 template_design_e0 / template_grid>",
+  "qc": "<入库时的 QC 摘要（edge_dev_mean_px / coverage / contour_iou）>",
+  "approved_at": "<ISO8601 用户批准时刻>",
+  "notes": ""
+}

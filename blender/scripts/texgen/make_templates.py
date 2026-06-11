@@ -1,0 +1,172 @@
+# texgen.make_templates — 线稿模板生成：四版本 SVG + PNG 底图 + sidecar JSON
+#
+# 四版本（CONTEXT.md）：3D 全貌 / UV 展开 / 双联 / 俯视网格。几何全部来自 texgen.geometry
+# （角度/比例读 baked manifest.json）。SVG = 人审视图；PNG = gpt-image-2 底图（同几何 PIL 直绘）；
+# sidecar JSON = warp / QC 的运行时契约（多边形像素坐标、scale、manifest 摘录）。
+#
+# 用法（repo 根）：
+#   python blender/scripts/texgen/make_templates.py            # 全套（e0/e1/e2 × 3 + grid）
+#   python blender/scripts/texgen/make_templates.py -e 0       # 只 e0
+#   python blender/scripts/texgen/make_templates.py -o <dir>   # 自定义输出目录（默认 blender/templates/）
+
+import argparse
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from texgen import geometry as G
+
+from PIL import Image, ImageDraw
+
+LINE_COLOR = (40, 40, 40)
+LINE_W = 4
+TICK_LEN = 14.0
+
+
+# ---------------------------------------------------------------- 绘制原语（SVG 文本 + PIL 同步出）
+
+class Sheet:
+    def __init__(self, w: int, h: int):
+        self.w, self.h = w, h
+        self.svg = []
+        self.img = Image.new("RGB", (w, h), (255, 255, 255))
+        self.draw = ImageDraw.Draw(self.img)
+
+    def polygon(self, pts, width=LINE_W):
+        d = "M " + " L ".join("%.2f %.2f" % (x, y) for x, y in pts) + " Z"
+        self.svg.append('<path d="%s" fill="none" stroke="rgb%s" stroke-width="%d" stroke-linejoin="round"/>' % (d, LINE_COLOR, width))
+        self.draw.polygon([tuple(p) for p in pts], outline=LINE_COLOR, width=width)
+
+    def line(self, a, b, width=LINE_W):
+        self.svg.append('<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="rgb%s" stroke-width="%d" stroke-linecap="round"/>' % (a[0], a[1], b[0], b[1], LINE_COLOR, width))
+        self.draw.line([tuple(a), tuple(b)], fill=LINE_COLOR, width=width)
+
+    def save(self, path_stem: str):
+        svg_path = path_stem + ".svg"
+        png_path = path_stem + ".png"
+        with open(svg_path, "w", encoding="utf-8") as f:
+            f.write('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">\n' % (self.w, self.h, self.w, self.h))
+            f.write('<rect width="%d" height="%d" fill="white"/>\n' % (self.w, self.h))
+            f.write("\n".join(self.svg))
+            f.write("\n</svg>\n")
+        self.img.save(png_path)
+        return [svg_path, png_path]
+
+
+def _ticks(sheet: Sheet, mid, normal, count: int):
+    """对应关系记号：边中点沿外法向画 count 条短刻线（hex 边 ↔ 壁矩形顶边同记号数）。"""
+    nx, ny = normal
+    tx, ty = -ny, nx  # 切向
+    for k in range(count):
+        off = (k - (count - 1) / 2.0) * 10.0
+        base = (mid[0] + tx * off, mid[1] + ty * off)
+        sheet.line(base, (base[0] + nx * TICK_LEN, base[1] + ny * TICK_LEN), width=3)
+
+
+def _edge_mid_normal(a, b, outward_of):
+    """线段 ab 的中点与朝 outward_of 反方向的单位法向（即背离参考点 = 朝外）。"""
+    mx, my = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    import math
+    ln = math.hypot(dx, dy) or 1.0
+    n = (-dy / ln, dx / ln)
+    to_ref = (outward_of[0] - mx, outward_of[1] - my)
+    if n[0] * to_ref[0] + n[1] * to_ref[1] > 0:
+        n = (-n[0], -n[1])
+    return (mx, my), n
+
+
+# ---------------------------------------------------------------- 四版本
+
+def draw_design(layout: dict) -> Sheet:
+    sheet = Sheet(*layout["canvas"])
+    faces = layout["faces"]
+    sheet.polygon(faces["top"]["polygon_px"])
+    for name, f in faces.items():
+        if name.startswith("wall_"):
+            sheet.polygon(f["quad_px"])
+    return sheet
+
+
+def draw_uv(layout: dict, prefix: str = "", sheet: "Sheet | None" = None) -> Sheet:
+    if sheet is None:
+        sheet = Sheet(*layout["canvas"])
+    faces = layout["faces"]
+    top = faces[prefix + "top"]["polygon_px"]
+    cx = sum(p[0] for p in top) / 6.0
+    cy = sum(p[1] for p in top) / 6.0
+    sheet.polygon(top)
+    for k, i in enumerate(layout["wall_order"]):
+        quad = faces["%swall_%d" % (prefix, i)]["quad_px"]
+        sheet.polygon(quad)
+        # 对应记号：hex island 的边 i（角点 i→i+1）与壁矩形顶边同记号数（1/2/3...）
+        a, b = top[i], top[(i + 1) % 6]
+        mid, n = _edge_mid_normal(a, b, (cx, cy))
+        _ticks(sheet, mid, n, k + 1)
+        ta, tb = quad[0], quad[1]
+        tmid = ((ta[0] + tb[0]) / 2.0, (ta[1] + tb[1]) / 2.0)
+        _ticks(sheet, tmid, (0.0, -1.0), k + 1)
+    return sheet
+
+
+def draw_dual(layout: dict) -> Sheet:
+    sheet = Sheet(*layout["canvas"])
+    dx = layout["divider_x"]
+    sheet.line((dx, 0), (dx, layout["canvas"][1]), width=2)
+    faces = layout["faces"]
+    sheet.polygon(faces["design_top"]["polygon_px"])
+    for name, f in faces.items():
+        if name.startswith("design_wall_"):
+            sheet.polygon(f["quad_px"])
+    draw_uv(layout, prefix="uv_", sheet=sheet)
+    return sheet
+
+
+def draw_grid(layout: dict) -> Sheet:
+    sheet = Sheet(*layout["canvas"])
+    for cell in layout["cells"].values():
+        sheet.polygon(cell["polygon_px"])
+    return sheet
+
+
+# ---------------------------------------------------------------- 入口
+
+def generate(out_dir: str, elevations) -> list:
+    manifest = G.load_manifest()
+    os.makedirs(out_dir, exist_ok=True)
+    written = []
+
+    def emit(stem: str, layout: dict, sheet: Sheet):
+        paths = sheet.save(os.path.join(out_dir, stem))
+        sidecar = os.path.join(out_dir, stem + ".json")
+        with open(sidecar, "w", encoding="utf-8") as f:
+            json.dump(layout, f, ensure_ascii=False, indent=2)
+        written.extend(paths + [sidecar])
+
+    for e in elevations:
+        d = G.design_layout(manifest, e)
+        emit("template_design_e%d" % e, d, draw_design(d))
+        u = G.uv_layout(manifest, e)
+        emit("template_uv_e%d" % e, u, draw_uv(u))
+        du = G.dual_layout(manifest, e)
+        emit("template_dual_e%d" % e, du, draw_dual(du))
+    g = G.grid_layout(manifest)
+    emit("template_grid", g, draw_grid(g))
+    return written
+
+
+def main():
+    ap = argparse.ArgumentParser(description="生成线稿模板（SVG + PNG 底图 + sidecar JSON）")
+    ap.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=None, help="只生成指定海拔档（默认 0/1/2 全出）")
+    ap.add_argument("-o", "--out", default=os.path.join(G.repo_root(), "blender", "templates"), help="输出目录")
+    args = ap.parse_args()
+    elevations = [args.elevation] if args.elevation is not None else [0, 1, 2]
+    written = generate(args.out, elevations)
+    print("TEMPLATES WRITTEN (%d files):" % len(written))
+    for p in written:
+        print("  " + os.path.relpath(p, G.repo_root()))
+
+
+if __name__ == "__main__":
+    main()
