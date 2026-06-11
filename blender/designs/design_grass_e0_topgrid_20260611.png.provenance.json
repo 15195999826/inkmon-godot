@@ -1,0 +1,15 @@
+{
+  "asset": "design_grass_e0_topgrid_20260611.png",
+  "kind": "tile",
+  "scheme": "top_grid_fill",
+  "prompt": "The base image is a top-down hexagonal grid canvas: three hexagon cells are already FILLED with a hand-painted grass texture (bright warm olive-yellow-green, small tufts, tiny wildflowers), and four hexagon cells are EMPTY (white with thin black outlines). Task: fill the four empty hexagon cells with grass in EXACTLY the same hand-painted style as the three filled cells — same palette, same brush-stroke density, same tuft and wildflower scale — but give each cell its own natural variation (do not clone the seed cells pixel-for-pixel). Paint each empty cell fully to its edges: no white background, no black outline strokes left inside any cell. Do NOT repaint, recolor or modify the three already-filled cells; do not blur the boundaries between cells. The white background outside all hexagons stays pure white.",
+  "reference_images": [
+    "blender/templates/template_grid.png (底图, image-to-image 输入)"
+  ],
+  "lab_session_id": "session_mq9exrkr_i3clv",
+  "lab_image_id": "img_mq9ezqnd_90ej4",
+  "template": "template_grid",
+  "qc": "网格画布 QC edge mean 0.53/max 5/检出 100%/IoU 0.993 (PASS)",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "顶面网格填充流画布（种子=批准 v0 顶面贴 0_0/1_0/-1_1）；收获 0_-1 → tile_grass_e0_v2。Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}

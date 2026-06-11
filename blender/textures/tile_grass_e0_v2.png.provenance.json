@@ -1,0 +1,15 @@
+{
+  "asset": "tile_grass_e0_v2.png",
+  "kind": "tile",
+  "scheme": "top_grid_fill",
+  "prompt": "（确定性派生，无独立生图调用）warp/cut+拼装自批准设计稿 designs/design_grass_e0_topgrid_20260611.png；生效提示词见其 provenance。",
+  "reference_images": [
+    "blender/designs/design_grass_e0_topgrid_20260611.png (派生源)"
+  ],
+  "lab_session_id": "session_mq9exrkr_i3clv",
+  "lab_image_id": "img_mq9ezqnd_90ej4",
+  "template": "template_uv_e0",
+  "qc": "拼装 UV QC 0.00px/IoU 0.997 (PASS)；cut 收获 0_-1 + 批准 v0 侧壁",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}

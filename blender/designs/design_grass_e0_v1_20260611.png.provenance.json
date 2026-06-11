@@ -1,0 +1,16 @@
+{
+  "asset": "design_grass_e0_v1_20260611.png",
+  "kind": "tile",
+  "scheme": "design_warp",
+  "prompt": "Hand-painted stylized game art, hex terrain tile. The base image is a black line-art template on white: one large flat-top hexagon (the TOP face) with three quadrilateral side walls below it (visible cliff sides of the tile). The black template lines in the base image are FINAL and already in the correct position: keep every line exactly where it is and exactly as thick as it is — never move, redraw, re-position or thicken any line. Paint the color surfaces INSIDE the existing lines and let the original lines remain visible on top as the ink outlines. The white background outside the tile must stay pure white right up to the outer line — nothing may be painted past it. TOP face = lush hand-painted grass in bright warm olive-yellow-green, with small grass tufts, subtle darker green patches and a few tiny wildflowers; no grass tuft may touch or cross any black line. SIDE WALLS = warm brown earth and soil strata with a few embedded grey stones, slightly darker than the top. Where the grass meets the top rim of each wall, paint an almost-straight boundary with only a very shallow scalloped grass fringe (two or three pixels deep at most) hanging onto the wall. Match the reference image's palette and brushwork exactly (it is the approved tile of this family); paint a natural variation, not a pixel copy. Style: rich hand-painted texture, soft flat ambient light (no strong cast shadows, no specular highlights), board-game hand-painted look. Nothing else added.",
+  "reference_images": [
+    "blender/templates/template_design_e0.png (底图, image-to-image 输入)",
+    "blender/designs/design_grass_e0_design_warp_20260611.png (家族风格锚参考图)"
+  ],
+  "lab_session_id": "session_mq9ce26y_9clmh",
+  "lab_image_id": "img_mq9ctyhp_uugdm",
+  "template": "template_design_e0",
+  "qc": "rimfix 后 edge mean 1.31/max 9/IoU 0.976 (PASS；raw 0.92/6/0.976 亦 PASS)",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "草 e0 定稿提示词(A3)首件。Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}

@@ -15,7 +15,8 @@
   "image_decor": {
     "world_height_default": 1.0,
     "world_height": {
-      "decor_bush": 0.65
+      "decor_bush": 0.65,
+      "decor_rocks": 0.5
     }
   }
 }

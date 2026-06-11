@@ -1,0 +1,15 @@
+{
+  "asset": "decor_rocks.png",
+  "kind": "decor",
+  "scheme": "sprite",
+  "prompt": "A single small pile of rocks, game decoration sprite, isolated on a FULLY TRANSPARENT background (PNG alpha, no backdrop, no ground plane, no cast shadow — the game engine adds the ground shadow itself). Hand-painted stylized game art matching the reference image's terrain tile style: three to five rounded weathered boulders in cool grey with subtle warm tint, stacked naturally in a low mound, painterly value variation with brighter tops and darker crevices, a few tiny moss flecks in the gaps, clean dark painterly ink outline around the silhouette. The rock pile sits upright, roughly centered horizontally, its base near the lower part of the canvas. Soft flat ambient light, board-game hand-painted look. Nothing else in the image — one rock pile only, fully transparent everywhere outside the rocks.",
+  "reference_images": [
+    "blender/designs/design_grass_e0_design_warp_20260611.png (家族风格锚参考图)"
+  ],
+  "lab_session_id": "session_mq9f2o8g_vx6z4",
+  "lab_image_id": "img_mq9f4qb2_9nt95",
+  "template": "(无线稿模板；sprite 流)",
+  "qc": "sprite_key 键控后透明占比 0.881 / bbox [246,332,776,690] / 锚点 (520.0,690)；原图假透明经 texgen/sprite_key.py 键控成真 alpha",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "图片装饰第二例。顶替建模石头堆 decor_rocks（撞名图片版优先）；world_height 0.5 走 gen_config image_decor。Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}

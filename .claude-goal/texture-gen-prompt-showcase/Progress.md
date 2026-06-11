@@ -76,10 +76,26 @@ e2 v0=F1c3、dirt e0 v0/v1=D1c1/c2、stone e0 v0/v1=S2c1/c3、decor_rocks=石头
 - 实拍后基线已 git checkout 还原 + 重 import；A3b 全稿、网格收获 v2、石头堆 cand2 为
   批内备选（烘焙试评完成、未上 showcase——槽位 3 变体上限）
 
+## Phase B⑥ — 用户验收 + 入库 ✅（2026-06-11）
+
+用户看 showcase 实拍（整图 + 近景×3）**全批验收**（AskUserQuestion 四问四答：草系入库 /
+土入库（知情偏橙提示后仍收）/ 石入库 / 石头堆收 cand1）。入库执行：
+- `blender/designs/` +9：design_grass_e0_v1 / topgrid（网格画布）/ e1_v0 / e1_v1 / e2_v0 /
+  dirt_e0_v0 / v1 / stone_e0_v0 / v1（各 _20260611.png + provenance，prompt 全文随设计稿存）
+- `blender/textures/` +10：tile_grass_e0_v1/v2、e1_v0/v1、e2_v0、dirt_e0_v0/v1、
+  stone_e0_v0/v1、decor_rocks（各 + provenance，UV 标注确定性派生并回指设计稿）
+- gen_config.json：image_decor.world_height.decor_rocks = 0.5
+- `--subset tile_grass_e0,tile_grass_e1,tile_grass_e2,tile_dirt_e0,tile_stone_e0,decor_rocks`
+  重烘 14 件 → --import → 终拍 texgen-round25-final/01-final-ingested.png 与验收画面一致，
+  godot.log 零 SCRIPT ERROR
+- 未批准/备选不入库：A3b 全稿、网格收获 v2、石头堆 cand2 及全部废稿仅留 _candidates（gitignored）
+
 ## Checkpoints
 
 - 2026-06-11 - Phase A (promptlock①②③) - commit cdca7a3 - codex: pass（无 findings；
   rimfix 编译/就地覆写/真废稿不洗白均被 review 复核）
+- 2026-06-11 - Phase B④⑤ (showcase) - commit 53bcc0e - codex: pass（无 findings）；
+  B⑥ 等用户验收
 
 ## Phase B 决策
 

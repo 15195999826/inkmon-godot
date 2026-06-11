@@ -1,0 +1,15 @@
+{
+  "asset": "tile_dirt_e0_v0.png",
+  "kind": "tile",
+  "scheme": "design_warp",
+  "prompt": "（确定性派生，无独立生图调用）warp/cut+拼装自批准设计稿 designs/design_dirt_e0_v0_20260611.png；生效提示词见其 provenance。",
+  "reference_images": [
+    "blender/designs/design_dirt_e0_v0_20260611.png (派生源)"
+  ],
+  "lab_session_id": "session_mq9dac4n_vjs83",
+  "lab_image_id": "img_mq9dd9lp_yaj7p",
+  "template": "template_uv_e0",
+  "qc": "warped QC 0.00px/IoU 0.997 (PASS)",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}

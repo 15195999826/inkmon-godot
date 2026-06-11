@@ -1,0 +1,16 @@
+{
+  "asset": "design_dirt_e0_v0_20260611.png",
+  "kind": "tile",
+  "scheme": "design_warp",
+  "prompt": "Hand-painted stylized game art, hex terrain tile. The base image is a black line-art template on white: one large flat-top hexagon (the TOP face) with three quadrilateral side walls below it (visible cliff sides of the tile). The black template lines in the base image are FINAL and already in the correct position: keep every line exactly where it is and exactly as thick as it is — never move, redraw, re-position or thicken any line. Paint the color surfaces INSIDE the existing lines and let the original lines remain visible on top as the ink outlines. The white background outside the tile must stay pure white right up to the outer line — nothing may be painted past it. This is a DIRT tile (no grass anywhere): TOP face = bare dry earth in warm tan-brown, hand-painted, with subtle darker brown patches, a few scattered small pebbles and faint hairline cracks; nothing may touch or cross any black line. SIDE WALLS = the same earth slightly darker, as horizontal soil strata with a few embedded grey stones. The reference image is another tile of this family (a grass tile): match its palette warmth, brushwork, ink-outline feel and lighting exactly, but paint NO grass on this tile — it defines the style only, not the content. Style: rich hand-painted texture, soft flat ambient light (no strong cast shadows, no specular highlights), board-game hand-painted look. Nothing else added.",
+  "reference_images": [
+    "blender/templates/template_design_e0.png (底图, image-to-image 输入)",
+    "blender/designs/design_grass_e0_design_warp_20260611.png (家族风格锚参考图)"
+  ],
+  "lab_session_id": "session_mq9dac4n_vjs83",
+  "lab_image_id": "img_mq9dd9lp_yaj7p",
+  "template": "template_design_e0",
+  "qc": "rimfix 后 edge mean 1.25/max 8/IoU 0.972 (PASS；该批 raw 3/3 全过)",
+  "approved_at": "2026-06-11T11:55:00Z",
+  "notes": "土 e0 定稿(D1)。注：烘焙色偏橙于概念图 tan，用户知情验收。Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+}
