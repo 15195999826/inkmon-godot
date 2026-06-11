@@ -70,7 +70,7 @@ func _rebuild() -> void:
 		var anchor := ground_screen - Vector2(0.0, lift)
 
 		entries.append({
-			"sort": Vector2(ground_screen.y, ground_screen.x),
+			"sort": Vector2(ground_screen.x, ground_screen.y),
 			"order": 0,
 			"asset": "tile_%s_e%d" % [terrain, elevation],
 			"pos": anchor,
@@ -85,7 +85,7 @@ func _rebuild() -> void:
 			if decor != "decor_pine" and decor != "decor_pine_tall":
 				jitter = Vector2(rng.randf_range(-0.28, 0.28), rng.randf_range(-0.28, 0.28)) * edge_px
 			entries.append({
-				"sort": Vector2(ground_screen.y, ground_screen.x),
+				"sort": Vector2(ground_screen.x, ground_screen.y),
 				"order": 1,
 				"asset": decor,
 				"pos": ground * (center_plane + jitter) - Vector2(0.0, lift),
@@ -103,10 +103,12 @@ func _rebuild() -> void:
 			return sa.x < sb.x
 		return int(a["order"]) < int(b["order"]))
 
-	for entry in entries:
+	for i in entries.size():
+		var entry := entries[i]
 		var sprite := _make_sprite(str(entry["asset"]), entry["axial"] as Vector2i)
 		if sprite == null:
 			continue
+		sprite.name = "%s_%d" % [str(entry["asset"]), i]
 		sprite.position = entry["pos"] as Vector2
 		_map_root.add_child(sprite)
 
@@ -154,7 +156,6 @@ func _make_sprite(asset_name: String, axial: Vector2i) -> Sprite2D:
 		push_error("tile_pipeline: 贴图加载失败 %s" % str(meta["file"]))
 		return null
 	var sprite := Sprite2D.new()
-	sprite.name = asset_name + "_" + str(_tile_count + _decor_count)
 	sprite.texture = texture
 	sprite.centered = true
 	# anchor（资产原点投影位置）→ 节点原点；目前 anchor = 画布中心，offset 为零，
