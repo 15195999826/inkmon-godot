@@ -141,6 +141,36 @@ def cut_grid_cell(grid_png: str, grid_sidecar: dict, q: int, r: int, out_png: st
     }
 
 
+# ---------------------------------------------------------------- UV 顶面 → 网格种子（cut 的逆操作）
+
+def seed_grid_cells(uv_png: str, uv_sidecar: dict, grid_png: str, grid_sidecar: dict,
+                    cells: list, out_png: str) -> dict:
+    """UV 贴图的顶面 island 按 1:1 纹素密度贴入俯视网格指定格位（顶面网格填充流的种子摆放）。"""
+    uv = Image.open(uv_png).convert("RGBA")
+    uw, uh = uv_sidecar["canvas"]
+    if uv.size != (uw, uh):
+        raise ValueError("UV 贴图尺寸 %s ≠ 模板画布 %s" % (uv.size, (uw, uh)))
+    s_uv = float(uv_sidecar["faces"]["top"]["px_per_unit"])
+    s_grid = float(grid_sidecar["px_per_unit"])
+    if abs(s_uv - s_grid) > 1e-6:
+        raise ValueError("纹素密度不一致：uv %.3f vs grid %.3f（零缩放贴入前提破坏）" % (s_uv, s_grid))
+    canvas = Image.open(grid_png).convert("RGBA")
+    if canvas.size != tuple(grid_sidecar["canvas"]):
+        raise ValueError("网格底图尺寸 %s ≠ 模板画布 %s" % (canvas.size, grid_sidecar["canvas"]))
+    mask = _poly_mask(uv.size, uv_sidecar["faces"]["top"]["polygon_px"])
+    cx, cy = uv_sidecar["faces"]["top"]["center_px"]
+    placed = []
+    for key in cells:
+        if key not in grid_sidecar["cells"]:
+            raise KeyError("cell %s 不在模板内，可用：%s" % (key, sorted(grid_sidecar["cells"])))
+        gx, gy = grid_sidecar["cells"][key]["center_px"]
+        off = (int(round(gx - cx)), int(round(gy - cy)))
+        canvas.paste(uv, off, mask)
+        placed.append({"cell": key, "offset_px": list(off)})
+    canvas.save(out_png)
+    return {"placed": placed}
+
+
 # ---------------------------------------------------------------- CLI
 
 def main():
@@ -168,6 +198,15 @@ def main():
     c.add_argument("--sidecar", default=None)
     c.add_argument("-o", "--out", required=True)
 
+    s = sub.add_parser("seed", help="UV 顶面 island 1:1 贴入俯视网格格位（cut 的逆操作）")
+    s.add_argument("uv_image")
+    s.add_argument("--cells", required=True, help="逗号分隔 axial 键，如 0_0,1_0,-1_1")
+    s.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
+    s.add_argument("--uv-sidecar", default=None)
+    s.add_argument("--grid-image", default=None, help="网格底图（默认线稿模板 template_grid.png）")
+    s.add_argument("--grid-sidecar", default=None)
+    s.add_argument("-o", "--out", required=True)
+
     args = ap.parse_args()
     if args.cmd == "design":
         ds = load_sidecar(args.design_sidecar or default_sidecar("design", args.elevation))
@@ -182,6 +221,14 @@ def main():
         info = extract_dual_uv(args.image, ds, us, args.out)
         print("DUAL EXTRACT OK ->", args.out)
         print("  upscale %.3f .. %.3f（右 panel → UV 画布分辨率放大量）" % (info["upscale_min"], info["upscale_max"]))
+    elif args.cmd == "seed":
+        us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
+        gs = load_sidecar(args.grid_sidecar or default_sidecar("grid"))
+        grid_img = args.grid_image or os.path.join(TEMPLATES_DIR, "template_grid.png")
+        info = seed_grid_cells(args.uv_image, us, grid_img, gs, args.cells.split(","), args.out)
+        print("SEED OK ->", args.out)
+        for p in info["placed"]:
+            print("  cell %-6s offset %s" % (p["cell"], p["offset_px"]))
     else:
         gs = load_sidecar(args.sidecar or default_sidecar("grid"))
         info = cut_grid_cell(args.image, gs, args.q, args.r, args.out)

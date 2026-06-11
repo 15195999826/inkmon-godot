@@ -87,11 +87,37 @@ qc.py 数值断言（判废重摇）+ Godot 实拍（与 Phase 0 同节奏）。
   dev-agent/sessions/texgen-round1-final/screenshots/01-round1-final-ingested.png（v0 新贴图与
   v1/v2 程序化混排，符合只批 v0 的入库事实）
 
+Checkpoint: 2026-06-11 - round1 - commit 9cb7917 - codex: pass
+
 ## Round Log
 
 - Round 1 - 草 e0 三方案 bake-off - 生图 8 张（设计稿 2 / uvgpt UV 2 / dual 4 含重摇）废 5 活 3 -
   主力=design_warp（用户拍板）- 入库 design×1 + UV×1 - 实拍：texgen-round1-{warp,uvgpt,dual,final}
 
+## Phase 2 = Round 2
+
+### 2a 顶面网格填充流原型 ✅（2026-06-11）
+
+阶段决策：种子贴入 = cut 的逆操作且 Round 3 量产复用 → 入 warp.py `seed` 子命令（占位往返
+断言 mean 0.005/255 PASS）；收获顶面 → UV 拼合在原型期为一次性内联脚本（transcript + 本文
+留痕），Round 3 放量时再固化成工具——避免为单次原型过早抽象。
+
+链路（全部 _candidates/round2a/，gitignored）：批准稿 tile_grass_e0_v0.png 顶面提取 → `seed`
+贴 0_0/1_0/-1_1 三格（4 空格）→ generate（底图=种子画布，1536×1536，session_mq9b0m29_a9yd3，
+n=2）→ 两张 QC 双 PASS（edge mean 0.32/0.33px、检出 100%、IoU 0.996/0.993）→ `cut` 收获 4 空格
+→ 取 0_-1 / 0_1 拼回 UV 画布成 v1/v2 候选（QC PASS 0.00px/IoU 0.997）→ 烘焙 → 覆盖 baked
+v1/v2 → --import → 实拍 dev-agent/sessions/texgen-round2a/screenshots/01-round2a-harvest-variants.png
+（与官方 v0 同场混排 = 未来变体池形态）→ baked 已 git checkout 还原 + 重 import。
+收获稿未入库（原型验证目标达成即止；入库需用户点头，量产属 Round 3 non-goal）。
+
+**两风险结论（Goal ④ 要求）**：
+1. **邻格渗透：未发生**。格界墨线完整保留（QC 边缘检出 100% / mean 0.32px）；cut 按先验
+   polygon 裁切，几何上免疫越界——渗透的真实暴露面是格界内侧内容污染，本轮肉眼+数值均无。
+2. **种子笔触拉伸自洽：成立**。填充格与种子格同 palette/笔触密度/簇尺度，逐格自然变体不
+   克隆；正俯视 = UV 本身零 warp，无拉伸伪影；烘焙后与批准稿同场混排无违和（实拍为证）。
+3. 注记（量产护栏）：image-to-image 全画布重渲染会轻度重绘种子格（均差 ~6/255、4-8% 像素
+   >20）——种子格只作上下文锚，**永不回收为成品**，收获只取空格；1536×1536 尺寸档实测可用。
+
 ## 待办（后续 phase）
 
-- Phase 2 = Round 2：顶面网格填充流原型 + 图片装饰首例（灌木级）
+- Round 2b：图片装饰首例（灌木级）
