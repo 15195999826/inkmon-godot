@@ -1009,9 +1009,12 @@ def bake_decor_candidate(sprite_path: str, out_path: str, world_height: float = 
 def _cli(argv):
     """blender --background blender/test.blend --python bake_assets.py -- <args>
       （无参数 = bake_all 全量；候选试评见下）
+      --subset <资产名,逗号分隔>   只重烘子集（manifest 仍全量重写；入库后定向重烘用）
       --candidate-tile <uv_png> <terrain> <elev> --out <png>
       --candidate-decor <sprite_png> --out <png> [--height <world_h>]"""
-    if "--candidate-tile" in argv:
+    if "--subset" in argv:
+        bake_all(subset=set(argv[argv.index("--subset") + 1].split(",")))
+    elif "--candidate-tile" in argv:
         i = argv.index("--candidate-tile")
         bake_tile_candidate(argv[i + 1], argv[i + 2], int(argv[i + 3]), argv[argv.index("--out") + 1])
     elif "--candidate-decor" in argv:

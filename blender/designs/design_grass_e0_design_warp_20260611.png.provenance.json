@@ -1,0 +1,13 @@
+{
+  "asset": "design_grass_e0_design_warp_20260611.png",
+  "kind": "tile",
+  "scheme": "design_warp",
+  "prompt": "Hand-painted stylized game art, hex terrain tile. The base image is a black line-art template on white: one large flat-top hexagon (the TOP face) with three quadrilateral side walls below it (visible cliff sides of the tile). Paint the finished tile EXACTLY inside the template lines, do not move or redraw any edge: TOP face = lush hand-painted grass in bright warm olive-yellow-green, with small grass tufts, subtle darker green patches and a few tiny wildflowers; SIDE WALLS = warm brown earth and soil strata with a few embedded grey stones, slightly darker than the top, with thin grass overhanging the top rim edge. Style: clean dark painterly ink outlines, rich hand-painted texture, soft flat ambient light (no strong cast shadows, no specular highlights), board-game / Bastion-like hand-painted look. Background outside the tile stays pure white, nothing else added.",
+  "reference_images": ["blender/templates/template_design_e0.png (底图, image-to-image 输入)"],
+  "lab_session_id": "session_mq99ou77_905tl",
+  "lab_image_id": "img_mq99qbn1_6wj0b",
+  "template": "template_design_e0",
+  "qc": "edge_dev_mean_px 1.74 / coverage 0.997 / contour_iou 0.973 (PASS; 同批 cand2 判废)",
+  "approved_at": "2026-06-11T09:32:00Z",
+  "notes": "Round 1 bake-off 批准稿；用户拍板 design_warp 为风格定调流主力方案。审美批准对象，tile_grass_e0_v0.png 的 warp 源。"
+}

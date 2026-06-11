@@ -6,8 +6,13 @@
 #
 # cut（顶面网格填充流收获）：俯视网格画布 + 已知 cell 位置 → mask 裁出单格顶面（零 warp）。
 #
+# dual（dual_canvas 方案 B 的收获）：双联画布右 panel（UV 展开，等比缩放居中）→ 标准 UV 画布。
+# 右 panel 与 UV 画布是相似变换 —— 仿射从 sidecar 的 uv_top ↔ UV 模板 top 三角点直接解出，
+# 不复制 geometry.dual_layout 的布局公式（sidecar 即契约）。
+#
 # 用法（repo 根）：
 #   python blender/scripts/texgen/warp.py design <design.png> -e 0 -o <uv_out.png>
+#   python blender/scripts/texgen/warp.py dual <dual.png> -e 0 -o <uv_out.png>
 #   python blender/scripts/texgen/warp.py cut <grid.png> -q 0 -r 0 -o <top_out.png>
 #   （sidecar 默认从 blender/templates/ 按海拔/类型取；--sidecar 可显式指定）
 
@@ -84,6 +89,29 @@ def warp_design_to_uv(design_png: str, design_sidecar: dict, uv_sidecar: dict, o
     return report
 
 
+# ---------------------------------------------------------------- dual 右 panel → UV
+
+def extract_dual_uv(dual_png: str, dual_sidecar: dict, uv_sidecar: dict, out_png: str) -> dict:
+    img = Image.open(dual_png).convert("RGBA")
+    dw, dh = dual_sidecar["canvas"]
+    if img.size != (dw, dh):
+        raise ValueError("双联图尺寸 %s ≠ 模板画布 %s" % (img.size, (dw, dh)))
+    uw, uh = uv_sidecar["canvas"]
+    # 全 panel 单仿射：相似变换由 uv_top 三角点唯一确定（角点 0/2/4 非退化）
+    src_p = dual_sidecar["faces"]["uv_top"]["polygon_px"]
+    dst_p = uv_sidecar["faces"]["top"]["polygon_px"]
+    coeffs = affine_coeffs([dst_p[0], dst_p[2], dst_p[4]], [src_p[0], src_p[2], src_p[4]])
+    flat = img.transform((uw, uh), Image.Transform.AFFINE, coeffs, resample=Image.Resampling.BICUBIC)
+    canvas = Image.new("RGBA", (uw, uh), (0, 0, 0, 0))
+    for f in uv_sidecar["faces"].values():
+        mask = _poly_mask((uw, uh), f.get("polygon_px") or f.get("quad_px"))
+        canvas.paste(flat, (0, 0), mask)
+    canvas.save(out_png)
+    m = np.array([[coeffs[0], coeffs[1]], [coeffs[3], coeffs[4]]])
+    sv = np.linalg.svd(np.linalg.inv(m), compute_uv=False)
+    return {"upscale_max": float(sv.max()), "upscale_min": float(sv.min())}
+
+
 # ---------------------------------------------------------------- grid → 单格顶面
 
 def cut_grid_cell(grid_png: str, grid_sidecar: dict, q: int, r: int, out_png: str, pad_px: int = 8) -> dict:
@@ -126,6 +154,13 @@ def main():
     d.add_argument("--uv-sidecar", default=None)
     d.add_argument("-o", "--out", required=True)
 
+    b = sub.add_parser("dual", help="双联右 panel → 标准 UV 画布（单仿射放大 + 面 mask）")
+    b.add_argument("image")
+    b.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
+    b.add_argument("--dual-sidecar", default=None)
+    b.add_argument("--uv-sidecar", default=None)
+    b.add_argument("-o", "--out", required=True)
+
     c = sub.add_parser("cut", help="俯视网格 → 单格顶面 mask 裁切")
     c.add_argument("image")
     c.add_argument("-q", type=int, required=True)
@@ -141,6 +176,12 @@ def main():
         print("WARP OK ->", args.out)
         for face, info in report.items():
             print("  %-8s stretch %.3f .. %.3f" % (face, info["stretch_min"], info["stretch_max"]))
+    elif args.cmd == "dual":
+        ds = load_sidecar(args.dual_sidecar or default_sidecar("dual", args.elevation))
+        us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
+        info = extract_dual_uv(args.image, ds, us, args.out)
+        print("DUAL EXTRACT OK ->", args.out)
+        print("  upscale %.3f .. %.3f（右 panel → UV 画布分辨率放大量）" % (info["upscale_min"], info["upscale_max"]))
     else:
         gs = load_sidecar(args.sidecar or default_sidecar("grid"))
         info = cut_grid_cell(args.image, gs, args.q, args.r, args.out)
