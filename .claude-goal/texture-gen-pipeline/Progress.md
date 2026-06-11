@@ -90,6 +90,7 @@ qc.py 数值断言（判废重摇）+ Godot 实拍（与 Phase 0 同节奏）。
 Checkpoint: 2026-06-11 - round1 - commit 9cb7917 - codex: pass
 
 Checkpoint: 2026-06-11 - round2a - commit 704a227 - codex: pass
+Checkpoint: 2026-06-11 - round2b - commit e2649a2 - codex: pass
 
 ## Round Log
 
@@ -140,6 +141,31 @@ world_height 0.65 走 Phase 0 预留的 gen_config 槽位）→ `--subset decor_
 "baked (alpha 面片)"，manifest decor 条目稳定）→ --import → 入库终拍
 texgen-round2b-final/01-round2b-final-ingested.png 与候选验证一致。
 
-## 待办（后续 phase）
+## Final Consistency Review（2026-06-11，对照 Goal.md 全文 + CONTEXT.md + adr/0009/0010）
 
-- （无——Phase 1/2 交付完毕，待 Final Consistency Review）
+Consistency review: no divergence
+
+- **Phase 1 Deliverables**：三路全走通（transcript 信号齐：11 张生图 / QC 数值打印 / 判废重摇
+  5 张 / warp+dual 提取 / _candidates 烘焙 / --import / 三方案实拍路径齐）；主力 = design_warp
+  用户对话内拍板；批准稿入库清单 = designs/design_grass_e0_design_warp_20260611.png +
+  textures/tile_grass_e0_v0.png 各带 provenance（字段齐）→ --subset 重烘 + 实拍（commit 9cb7917）
+- **Phase 2 Deliverables**：2a 原型走通 + 两风险结论落档（commit 704a227，收获稿未入库符合
+  原型即止）；2b 灌木 sprite 入库 decor_bush.png + provenance → bake_all 自动发现 alpha 面片
+  烘焙 → manifest 含 decor_bush（图片版顶替建模版 = 撞名优先规则，README 已载）→ 同框实拍
+  接地影一致（commit e2649a2）
+- **Non-goals 未侵入**：`git diff 81d7c37..HEAD -- inkmon/logic inkmon/presentation inkmon/host
+  scripts addons` 为空；零 lab 代码；零 session 调参（全裸模式）；水地形/过渡地形/Round 3
+  放量未碰（e1/e2 各画各审属放量轮）
+- **CONTEXT.md**：图字节永不直收（拿文件全走 export）；裸模式产物全挂 scratch session；
+  _candidates 全程 gitignored 未入任何 commit；质量卡口三连完整跑两遍（QC → 实拍自评 →
+  用户后置闸门 ×2：主力拍板、灌木点头）
+- **adr/0009**：零角度改动，warp/烘焙全读 manifest 冻结角度（往返恒等是 Round 1 主力方案
+  成立的前提，实拍验证）
+- **adr/0010**：决定 2（dual 提取/seed/sprite_key 全部住 godot 仓 texgen，lab 零 tile 知识）、
+  决定 3（provenance 字段齐 / 车间-入库两段制 / 缓冲不成第三真相）、决定 4（只用 generate/
+  export/history/tag 四工具）全落地
+- **Goal 风险注记（实验回答）**：① 边界漂移 → QC 兜底成立（11 张废 5，全数值判定）；
+  ② 分辨率档位 → 1024 设计稿经 1.73x 纵向拉伸后拼装视距锐利成立，dual 672px 档不够（应验）；
+  ③ 设计稿自带光影 × Blender 光照/Freestyle 叠加 → 实拍无双重阴影违和，flat-light 提示词 +
+  Blender sun 组合可用
+- **Open Review Findings**：空（三轮 codex review 全 clean，无 medium 积压，无 descope 项）
