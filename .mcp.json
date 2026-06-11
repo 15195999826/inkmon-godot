@@ -13,6 +13,11 @@
         "blender-mcp"
       ],
       "env": {}
+    },
+    "texture-gen": {
+      "command": "node",
+      "args": ["${USERPROFILE}/.claude/mcp-servers/texture-gen/server.js"],
+      "env": {}
     }
   }
 }
