@@ -89,10 +89,16 @@ qc.py 数值断言（判废重摇）+ Godot 实拍（与 Phase 0 同节奏）。
 
 Checkpoint: 2026-06-11 - round1 - commit 9cb7917 - codex: pass
 
+Checkpoint: 2026-06-11 - round2a - commit 704a227 - codex: pass
+
 ## Round Log
 
 - Round 1 - 草 e0 三方案 bake-off - 生图 8 张（设计稿 2 / uvgpt UV 2 / dual 4 含重摇）废 5 活 3 -
   主力=design_warp（用户拍板）- 入库 design×1 + UV×1 - 实拍：texgen-round1-{warp,uvgpt,dual,final}
+- Round 2a - 网格填充流原型 - 生图 2 张全活（QC 双 PASS）- 收获 4 顶面、2 枚拼回烘焙实拍 -
+  未入库（原型即止）- 实拍：texgen-round2a
+- Round 2b - 图片装饰首例 - 生图 2 张（假透明 → sprite_key 键控救活）- 入库 decor_bush×1
+  （用户点头）- 实拍：texgen-round2b{,-final}
 
 ## Phase 2 = Round 2
 
@@ -118,6 +124,22 @@ v1/v2 → --import → 实拍 dev-agent/sessions/texgen-round2a/screenshots/01-r
 3. 注记（量产护栏）：image-to-image 全画布重渲染会轻度重绘种子格（均差 ~6/255、4-8% 像素
    >20）——种子格只作上下文锚，**永不回收为成品**，收获只取空格；1536×1536 尺寸档实测可用。
 
+### 2b 图片装饰首例（灌木级）✅（2026-06-11）
+
+阶段决策：gpt-image-2 经 lab MCP 无 transparent background 参数，提示词要不到真 alpha
+（实测两张全不透明、棋盘格画进像素）→ 新增 `texgen/sprite_key.py` 确定性键控（低饱和高明度
+背景候选 + 四边 flood-fill，主体内部高光免伤 + 边界抗锯齿带部分 alpha；透明占比阈值判废）——
+Round 3 装饰放量复用，归 godot 仓 tile 几何/后处理辖区（adr/0010 决定 2）。
+
+链路：generate 裸模式（风格参考=Round 1 批准设计稿，session_mq9bgroy_pszq2，n=2）→ export →
+假透明检出（alpha 全 255 判废）→ sprite_key 键控（cand1 透明占比 0.749 / 锚点 (545.5,797)）→
+--candidate-decor 烘焙（接地影 ✅）→ 临时覆盖 baked decor_bush 同框实拍
+（texgen-round2b/01-round2b-bush-samframe.png：图片灌木 vs 建模松树/石堆，接地影方向软度一致）
+→ 基线还原 → **用户点头入库 cand1** → textures/decor_bush.png + provenance（撞名顶替建模灌木，
+world_height 0.65 走 Phase 0 预留的 gen_config 槽位）→ `--subset decor_bush` 重烘（自动发现
+"baked (alpha 面片)"，manifest decor 条目稳定）→ --import → 入库终拍
+texgen-round2b-final/01-round2b-final-ingested.png 与候选验证一致。
+
 ## 待办（后续 phase）
 
-- Round 2b：图片装饰首例（灌木级）
+- （无——Phase 1/2 交付完毕，待 Final Consistency Review）

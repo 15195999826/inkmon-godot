@@ -1,0 +1,13 @@
+{
+  "asset": "decor_bush.png",
+  "kind": "decor",
+  "scheme": "sprite",
+  "prompt": "A single bush, game decoration sprite, isolated on a FULLY TRANSPARENT background (PNG alpha, no backdrop, no ground plane, no cast shadow — the game engine adds the ground shadow itself). Hand-painted stylized game art matching the reference image's terrain tile style: rounded painterly foliage clumps in warm olive-green with brighter yellow-green highlights on top and darker green in the shadows underneath, a few small leaf details, clean dark painterly ink outline around the silhouette. The bush sits upright, roughly centered horizontally, its base near the lower part of the canvas. Soft flat ambient light, board-game hand-painted look. Nothing else in the image — one bush only, fully transparent everywhere outside the bush.",
+  "reference_images": ["blender/designs/design_grass_e0_design_warp_20260611.png (风格参考)"],
+  "lab_session_id": "session_mq9bgroy_pszq2",
+  "lab_image_id": "img_mq9bihpz_nft35",
+  "template": "(无线稿模板；sprite 流)",
+  "qc": "sprite_key 键控后透明占比 0.749 / 不透明 bbox [184,214,844,797] / 锚点 (545.5,797)；原图为假透明棋盘格，经 texgen/sprite_key.py 确定性键控成真 alpha",
+  "approved_at": "2026-06-11T10:05:00Z",
+  "notes": "图片装饰首例（Round 2b）。顶替建模灌木 decor_bush（撞名图片版优先）；world_height 0.65 读 gen_config.json image_decor 节。同框实拍验证接地影与建模装饰一致后用户批准入库。"
+}
