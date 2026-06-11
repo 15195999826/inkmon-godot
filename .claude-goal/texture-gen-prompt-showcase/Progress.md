@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Status: active（2026-06-11 启动）
+- Status: **completed**（2026-06-11 启动并完成）
 - Goal-start ref: 38ab902
 
 启动自检（2026-06-11）全过：
@@ -96,6 +96,8 @@ e2 v0=F1c3、dirt e0 v0/v1=D1c1/c2、stone e0 v0/v1=S2c1/c3、decor_rocks=石头
   rimfix 编译/就地覆写/真废稿不洗白均被 review 复核）
 - 2026-06-11 - Phase B④⑤ (showcase) - commit 53bcc0e - codex: pass（无 findings）；
   B⑥ 等用户验收
+- 2026-06-11 - Phase B⑥ (ingest) - commit 27d4298 - codex: pass（review 独立验证 rimfix
+  黑线不越面域：outside 仅 47px = 剪影端点抗锯齿半线宽）
 
 ## Phase B 决策
 
@@ -128,7 +130,33 @@ e2 v0=F1c3、dirt e0 v0/v1=D1c1/c2、stone e0 v0/v1=S2c1/c3、decor_rocks=石头
 
 ## Consistency Review
 
-- （收尾填）
+Consistency review: no divergence（2026-06-11，对照 Goal.md 全文 + CONTEXT.md + adr/0009/0010）
+
+- **Deliverable 1 Prompts.md** ✅：五类资产提示词全文 + 底图/参考图 + 代表 lab image id +
+  调试轮数与放弃路径注记（A4 过度约束证伪 / E3 零翻边 / E4 句式硬移植 / 透明底直要）；
+  commit cdca7a3，文件 `.claude-goal/texture-gen-prompt-showcase/Prompts.md`
+- **Deliverable 2 小批资产** ✅：12 件（建议清单全覆盖：草/土/石 e0 + 草 e1/e2 +
+  顶面变体 ×2 + 装饰 ×1），每件 design/grid QC + warped QC 数值 transcript 留痕，
+  全部 `_candidates/round25/` 烘焙试评；规模 12 << Round 3 全量
+- **Deliverable 3 showcase 实拍** ✅：整图 + 近景 ×3（texgen-round25-showcase/01,03,05,07）+
+  入库终拍（texgen-round25-final/01），godot.log 全程零 SCRIPT ERROR；场景/地图零改动
+  （tile_pipeline 既有场景直接承载，连"小改"额度都未用）
+- **Deliverable 4 验收入库** ✅：用户 AskUserQuestion 四问全答入库（土系知情偏橙后仍收）；
+  designs ×9 + textures ×10 + provenance ×19（字段齐：prompt/scheme/参考图/lab session+
+  image id/QC/批准时刻）+ gen_config decor_rocks 高度 + --subset 重烘 14 件，commit 27d4298；
+  备选（A3b/收获 v2/石头堆 cand2）与废稿仅留 _candidates 未入任何 commit（git log 核查空）
+- **Non-goals 未侵入**：`git diff 38ab902..HEAD -- inkmon/logic inkmon/presentation
+  inkmon/host scripts addons` 为空；inkmon/ 内改动仅 tile_pipeline/assets/baked；零 lab 代码；
+  零 session 沉淀；水/过渡地形未碰；图字节零直收（全走 export）
+- **QC 纪律**：阈值（gen_config qc 节）全程未动；判废 22 张全数值裁决并重摇；
+  rimfix 属确定性几何对齐（CONTEXT.md「裁切对齐永远由我们做」教义，与 warp/cut/sprite_key
+  同类；外轮廓不重描 + 真废稿不洗白负测试），非阈值放宽——QC 判的是管线产物
+  （healed design 与 warped UV 同地位）
+- **实现选择注记（非 divergence）**：① 草 e0 "QC 稳过"操作化为批产率（n=3 每批 ≥1 strict
+  pass，2/2 批实证）而非单图必过——废稿全为 max=11 vs 阈 10 的 near-miss，阈值不动靠重摇；
+  ② 新工具 rimfix.py 超出 Goal 字面，但 e1/e2 棱线措辞 4 版 0/11 实证不可修，为达标必要路径
+  且三轮 codex review 复核；③ 顶面变体/装饰定稿提示词 = Round 2a/2b 原文 + B④ fresh 证据
+  （网格 2/2 PASS、石头堆键控双过），符合"基于草版增量微调"授权
 
 ## Blockers
 
