@@ -1,6 +1,6 @@
 ---
 name: sim-nav-map-bugfix
-description: `addons/sim-nav-map` 寻路细节 bug 修复流程：先用 0ad-rts-pathfinding-lab 的 export log 复现 → 以 0 A.D. 源码为准修复（不引入 lab 自创 magic number）→ 写带注释的回归测试锁定。Use when 用户提供 `ZERO_AD_RTS_LAB_EXPORT_LOG: …` 路径并描述视觉异常，或者明确说要修 sim-nav-map / 0ad lab 寻路 bug。
+description: "`addons/sim-nav-map` 寻路细节 bug 修复流程：先用 0ad-rts-pathfinding-lab 的 export log 复现 → 以 0 A.D. 源码为准修复（不引入 lab 自创 magic number）→ 写带注释的回归测试锁定。Use when 用户提供 `ZERO_AD_RTS_LAB_EXPORT_LOG: …` 路径并描述视觉异常，或者明确说要修 sim-nav-map / 0ad lab 寻路 bug。"
 ---
 
 # Sim Nav Map — 细节 Bug 修复流程

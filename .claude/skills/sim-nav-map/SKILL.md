@@ -1,6 +1,6 @@
 ---
 name: sim-nav-map
-description: `addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，唯一示例 `0ad-rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`.
+description: "`addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，唯一示例 `0ad-rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`."
 ---
 
 # Sim Nav Map — 背景速记

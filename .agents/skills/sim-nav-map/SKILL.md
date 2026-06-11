@@ -1,6 +1,6 @@
 ---
 name: sim-nav-map
-description: `addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，区分现役 `0ad-rts-pathfinding-lab` 和旧产物 `rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`.
+description: "`addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，唯一示例 `0ad-rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`."
 ---
 
 # Sim Nav Map — 背景速记
@@ -11,14 +11,14 @@ description: `addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathf
 
 **不是 0 A.D. clone，禁止复制 GPL 源码实现。**
 
-## 2. 现役示例 vs 旧产物
+## 2. 唯一示例
 
-- **`examples/0ad-rts-pathfinding-lab/`** = **现役**示例项目。新功能、新 smoke、perf 实验都走这里。
-- **`examples/rts-pathfinding-lab/`** = **旧产物**。保留为兼容回归 fixture，**不要在它身上长新功能**。
+- **`examples/0ad-rts-pathfinding-lab/`** = 现役示例项目，所有新功能 / smoke / perf 实验都走这里。
+- 旧 `examples/rts-pathfinding-lab/` 已删除（2026-05-10）。
 
 ## 3. Issues 现状
 
-`docs/issues/` 当前**已清空待重启**。原有 issue 主要锚的是旧 `rts-pathfinding-lab`，已过时不可信，不要从被删除的内容里推断当前状态。
+`docs/issues/` 当前**已清空待重启**。不要从被删除的内容里推断当前状态。
 
 ## 4. 开发阶段
 
