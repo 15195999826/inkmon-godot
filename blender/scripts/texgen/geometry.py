@@ -92,26 +92,29 @@ def visible_walls(manifest: dict) -> list:
     vy = math.cos(yaw) * math.sin(alpha)
     to_cam = (-vx, -vy)
     project = projector(manifest)
+    edge = float(manifest["hex_edge_world"])
     out = []
     for i in range(6):
         na = math.radians(60.0 * i + 30.0)
         n = (math.cos(na), math.sin(na))
         if n[0] * to_cam[0] + n[1] * to_cam[1] > 1e-9:
-            ax, ay = hex_corner(i)
-            bx, by = hex_corner(i + 1)
+            ax, ay = hex_corner(i, edge)
+            bx, by = hex_corner(i + 1, edge)
             mid_sx = (project(ax, ay, 0.0)[0] + project(bx, by, 0.0)[0]) * 0.5
             out.append((mid_sx, i))
     out.sort()
     return [i for (_, i) in out]
 
 
-def wall_corners_lr(_manifest, wall: int):
-    """壁 wall 的左右角点（从壁外侧朝壁看，z 朝上时的左→右），返回 ((lx,ly),(rx,ry))。"""
+def wall_corners_lr(manifest, wall: int):
+    """壁 wall 的左右角点（从壁外侧朝壁看，z 朝上时的左→右），返回 ((lx,ly),(rx,ry))。
+    角点按 manifest 的 hex_edge_world 缩放（manifest=None 时退化为单位 edge）。"""
+    edge = float(manifest["hex_edge_world"]) if manifest else 1.0
     na = math.radians(60.0 * wall + 30.0)
     # 朝壁看（视线 = -normal）时屏幕右方向 = (-sinθ, cosθ)
     right = (-math.sin(na), math.cos(na))
-    a = hex_corner(wall)
-    b = hex_corner(wall + 1)
+    a = hex_corner(wall, edge)
+    b = hex_corner(wall + 1, edge)
     d = (b[0] - a[0], b[1] - a[1])
     if d[0] * right[0] + d[1] * right[1] >= 0.0:
         return a, b
@@ -121,14 +124,15 @@ def wall_corners_lr(_manifest, wall: int):
 # ---------------------------------------------------------------- 面几何（世界 → 各画布像素）
 
 def _faces_world(manifest: dict, elevation: int):
-    """tile 的 top + 可见壁面世界几何。
+    """tile 的 top + 可见壁面世界几何（角点按 manifest 的 hex_edge_world 缩放）。
     top: 6 角点 (x,y,0)；wall_i: 参数化 p(t,d) = lerp(left,right,t) - (0,0,d·depth)。"""
     depth = tile_depth(manifest, elevation)
+    edge = float(manifest["hex_edge_world"])
     walls = {}
     for i in visible_walls(manifest):
         left, right = wall_corners_lr(manifest, i)
         walls[i] = {"left": left, "right": right, "depth": depth}
-    top = [hex_corner(i) for i in range(6)]
+    top = [hex_corner(i, edge) for i in range(6)]
     return top, walls
 
 
@@ -140,8 +144,9 @@ def design_layout(manifest: dict, elevation: int) -> dict:
     def tile_bbox(elev):
         pts = []
         depth = tile_depth(manifest, elev)
+        edge = float(manifest["hex_edge_world"])
         for i in range(6):
-            x, y = hex_corner(i)
+            x, y = hex_corner(i, edge)
             pts.append(project(x, y, 0.0))
             pts.append(project(x, y, -depth))
         xs = [p[0] for p in pts]

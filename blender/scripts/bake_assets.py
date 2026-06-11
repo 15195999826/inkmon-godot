@@ -85,8 +85,10 @@ def _manifest_like() -> dict:
 
 
 def _textures_dir() -> str:
-    """入库 UV 贴图目录（blender/textures/，git = 批准品真相）。"""
-    return bpy.path.abspath("//textures")
+    """入库 UV 贴图目录（blender/textures/，git = 批准品真相）。
+    按脚本位置定位，不用 //（blend 相对路径）——不带 test.blend 跑 CLI 时 // 解析到 cwd，
+    discovery 会静默扑空回退程序化材质。"""
+    return os.path.normpath(os.path.join(_SCRIPTS_DIR, "..", "textures"))
 
 
 def _gen_config() -> dict:
@@ -573,7 +575,7 @@ def _assign_tile_uvs(bm, elevation: int, depth: float):
             ang = math.degrees(math.atan2(face.normal.y, face.normal.x)) % 360.0
             i = int(round((ang - 30.0) / 60.0)) % 6
             quad = wall_quads.get(i) or wall_quads[(i + 3) % 6]
-            left, _right = texgen_geometry.wall_corners_lr(None, i)
+            left, _right = texgen_geometry.wall_corners_lr(_manifest_like(), i)
             for loop in face.loops:
                 co = loop.vert.co
                 d_left = math.hypot(co.x - left[0], co.y - left[1])

@@ -32,6 +32,12 @@ goal-start-ref: 652d897
 - UV 展开布局常量（画布 1024 / 纹素密度 256px/u / 网格画布 1536）定义在 texgen/geometry.py 单处，
   网格与 UV 同纹素密度 → 种子顶面零缩放贴入
 
+外部 review（codex，gpt-5.5，base 652d897）修复 2 条：
+- P2 `_textures_dir()` 原用 `//textures`（blend 相对路径）——不带 test.blend 跑 CLI 时 discovery
+  静默扑空回退程序化材质；改为按脚本目录定位，已验证外部 cwd + 无 blend 模式下解析正确
+- P3 geometry `_faces_world`/`design_layout`/`wall_corners_lr` 补吃 manifest `hex_edge_world`
+  （原 hardcode 单位 edge；edge=1.0 时无实际影响，但违反单一真相承诺）；QC 三件回归全 PASS
+
 Consistency review: no divergence —— Phase 0 五项 Deliverables 全交付（对话内信号①-④齐 + 阶段 commit）；
 Non-goals 未侵入（`git diff 652d897..HEAD -- inkmon scripts addons` 零改动；未写 lab 代码；
 零 gpt-image-2 调用；水地形未碰）；CONTEXT.md 领域语言贯穿 README/注释（设计稿/UV 贴图/入库/
