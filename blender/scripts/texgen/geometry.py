@@ -39,10 +39,10 @@ def load_manifest(path: "str | None" = None) -> dict:
 DESIGN_CANVAS = (1024, 1024)   # 3D 全貌版画布（gpt-image-2 方形档）
 DESIGN_MARGIN = 64.0
 
-UV_CANVAS = (1024, 1024)       # UV 展开版画布
+UV_CANVAS = (1536, 1024)       # UV 展开版画布（gpt-image-2 横版档；e2 unfold net 宽 ≈1199px，1024 方画布装不下）
 UV_PX_PER_UNIT = 256.0         # UV 贴图纹素密度（= 2× baked px_per_unit，顶面网格流同密度）
 UV_MARGIN = 32.0
-UV_GAP_UNITS = 0.2             # 顶面 island 与侧壁行 / 侧壁矩形之间的间距（世界单位）
+UV_LAYOUT_VERSION = "net_v2"   # 纸模 unfold net（侧壁铰接 hex 边）；旧行排布局贴图按画布尺寸硬隔离
 
 DUAL_CANVAS = (1536, 1024)     # 双联版（gpt-image-2 横版档）：左 3D 全貌右 UV 展开
 DUAL_PANEL_MARGIN = 48.0
@@ -188,40 +188,47 @@ def design_layout(manifest: dict, elevation: int) -> dict:
 
 
 def uv_layout(manifest: dict, elevation: int) -> dict:
-    """UV 展开版：顶面 island（正俯视朝向：世界 +y = 图像上）+ 可见壁矩形一行（左→右）。"""
+    """UV 展开版（纸模 unfold net）：顶面 hex（正俯视朝向：世界 +y = 图像上）+ 可见壁 quad
+    直接铰接在各自 hex 边上、沿边外法线展开 depth；整个 net 按 bbox 居中画布。
+    壁 quad 参数化与 design_layout 一致：左上(t0,d0) 右上(t1,d0) 右下(t1,d1) 左下(t0,d1)。"""
     cw, ch = UV_CANVAS
     s = UV_PX_PER_UNIT
     edge = float(manifest["hex_edge_world"])
-    gap = UV_GAP_UNITS * s
-
-    hex_h = SQRT3 * edge * s
-    cx = cw / 2.0
-    cy_top = UV_MARGIN + hex_h / 2.0
-    top_poly = []
-    for i in range(6):
-        x, y = hex_corner(i, edge)
-        top_poly.append((cx + x * s, cy_top - y * s))  # 图像 y 向下 → 世界 y 取负
-
-    _, walls = _faces_world(manifest, elevation)
+    depth = tile_depth(manifest, elevation)
     order = visible_walls(manifest)
-    n = len(order)
-    rect_w = edge * s
-    row_w = n * rect_w + (n - 1) * gap
-    row_x0 = (cw - row_w) / 2.0
-    row_y0 = UV_MARGIN + hex_h + gap
 
-    faces = {"top": {"polygon_px": top_poly, "center_px": [cx, cy_top], "px_per_unit": s}}
-    for k, i in enumerate(order):
-        d = walls[i]["depth"]
-        x0 = row_x0 + k * (rect_w + gap)
-        faces["wall_%d" % i] = {
-            "quad_px": [
-                (x0, row_y0), (x0 + rect_w, row_y0),
-                (x0 + rect_w, row_y0 + d * s), (x0, row_y0 + d * s),
-            ],
-        }
+    def img(x, y):
+        return (x * s, -y * s)  # 图像 y 向下 → 世界 y 取负（先以世界原点为锚，后整体平移居中）
+
+    top_poly = [img(*hex_corner(i, edge)) for i in range(6)]
+    wall_quads = {}
+    for i in order:
+        left, right = wall_corners_lr(manifest, i)
+        na = math.radians(60.0 * i + 30.0)
+        nx, ny = math.cos(na) * depth, math.sin(na) * depth  # 壁外法线 × depth = 展开位移
+        wall_quads[i] = [
+            img(*left), img(*right),
+            img(right[0] + nx, right[1] + ny), img(left[0] + nx, left[1] + ny),
+        ]
+
+    all_pts = top_poly + [p for q in wall_quads.values() for p in q]
+    xs = [p[0] for p in all_pts]
+    ys = [p[1] for p in all_pts]
+    if (max(xs) - min(xs)) > cw - 2 * UV_MARGIN or (max(ys) - min(ys)) > ch - 2 * UV_MARGIN:
+        raise ValueError("UV unfold net 超出画布：bbox %.0f×%.0f vs 可用 %.0f×%.0f（调 UV_CANVAS/UV_PX_PER_UNIT）"
+                         % (max(xs) - min(xs), max(ys) - min(ys), cw - 2 * UV_MARGIN, ch - 2 * UV_MARGIN))
+    ox = cw / 2.0 - (min(xs) + max(xs)) / 2.0
+    oy = ch / 2.0 - (min(ys) + max(ys)) / 2.0
+
+    def shift(p):
+        return (p[0] + ox, p[1] + oy)
+
+    faces = {"top": {"polygon_px": [shift(p) for p in top_poly], "center_px": [ox, oy], "px_per_unit": s}}
+    for i in order:
+        faces["wall_%d" % i] = {"quad_px": [shift(p) for p in wall_quads[i]]}
     return {
         "template": "uv",
+        "layout": UV_LAYOUT_VERSION,
         "elevation": elevation,
         "canvas": [cw, ch],
         "px_per_unit": s,

@@ -21,7 +21,6 @@ from PIL import Image, ImageDraw
 
 LINE_COLOR = (40, 40, 40)
 LINE_W = 4
-TICK_LEN = 14.0
 
 
 # ---------------------------------------------------------------- 绘制原语（SVG 文本 + PIL 同步出）
@@ -54,29 +53,6 @@ class Sheet:
         return [svg_path, png_path]
 
 
-def _ticks(sheet: Sheet, mid, normal, count: int):
-    """对应关系记号：边中点沿外法向画 count 条短刻线（hex 边 ↔ 壁矩形顶边同记号数）。"""
-    nx, ny = normal
-    tx, ty = -ny, nx  # 切向
-    for k in range(count):
-        off = (k - (count - 1) / 2.0) * 10.0
-        base = (mid[0] + tx * off, mid[1] + ty * off)
-        sheet.line(base, (base[0] + nx * TICK_LEN, base[1] + ny * TICK_LEN), width=3)
-
-
-def _edge_mid_normal(a, b, outward_of):
-    """线段 ab 的中点与朝 outward_of 反方向的单位法向（即背离参考点 = 朝外）。"""
-    mx, my = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    import math
-    ln = math.hypot(dx, dy) or 1.0
-    n = (-dy / ln, dx / ln)
-    to_ref = (outward_of[0] - mx, outward_of[1] - my)
-    if n[0] * to_ref[0] + n[1] * to_ref[1] > 0:
-        n = (-n[0], -n[1])
-    return (mx, my), n
-
-
 # ---------------------------------------------------------------- 四版本
 
 def draw_design(layout: dict) -> Sheet:
@@ -90,23 +66,13 @@ def draw_design(layout: dict) -> Sheet:
 
 
 def draw_uv(layout: dict, prefix: str = "", sheet: "Sheet | None" = None) -> Sheet:
+    """unfold net 生产参考图：只画面轮廓（铰接边即面分割线），无文字/虚线/对应刻线。"""
     if sheet is None:
         sheet = Sheet(*layout["canvas"])
     faces = layout["faces"]
-    top = faces[prefix + "top"]["polygon_px"]
-    cx = sum(p[0] for p in top) / 6.0
-    cy = sum(p[1] for p in top) / 6.0
-    sheet.polygon(top)
-    for k, i in enumerate(layout["wall_order"]):
-        quad = faces["%swall_%d" % (prefix, i)]["quad_px"]
-        sheet.polygon(quad)
-        # 对应记号：hex island 的边 i（角点 i→i+1）与壁矩形顶边同记号数（1/2/3...）
-        a, b = top[i], top[(i + 1) % 6]
-        mid, n = _edge_mid_normal(a, b, (cx, cy))
-        _ticks(sheet, mid, n, k + 1)
-        ta, tb = quad[0], quad[1]
-        tmid = ((ta[0] + tb[0]) / 2.0, (ta[1] + tb[1]) / 2.0)
-        _ticks(sheet, tmid, (0.0, -1.0), k + 1)
+    sheet.polygon(faces[prefix + "top"]["polygon_px"])
+    for i in layout["wall_order"]:
+        sheet.polygon(faces["%swall_%d" % (prefix, i)]["quad_px"])
     return sheet
 
 

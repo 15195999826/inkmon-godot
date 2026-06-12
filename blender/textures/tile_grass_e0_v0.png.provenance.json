@@ -3,11 +3,14 @@
   "kind": "tile",
   "scheme": "design_warp",
   "prompt": "（确定性派生，无独立生图调用）warp.py design 正交反投影自批准设计稿 designs/design_grass_e0_design_warp_20260611.png；该设计稿的生效提示词见其 provenance。",
-  "reference_images": ["blender/designs/design_grass_e0_design_warp_20260611.png (warp 源)"],
+  "reference_images": [
+    "blender/designs/design_grass_e0_design_warp_20260611.png (warp 源)"
+  ],
   "lab_session_id": "session_mq99ou77_905tl",
   "lab_image_id": "img_mq99qbn1_6wj0b",
   "template": "template_uv_e0",
   "qc": "edge_dev_mean_px 0.00 / coverage 0.997 / contour_iou 0.997 (PASS)",
   "approved_at": "2026-06-11T09:32:00Z",
-  "notes": "Round 1 首次入库 UV 贴图（草 e0 v0 变体改 image texture 材质；v1/v2 仍程序化）。Godot 实拍三方案对比后用户定 design_warp 主力。"
+  "notes": "Round 1 首次入库 UV 贴图（草 e0 v0 变体改 image texture 材质；v1/v2 仍程序化）。Godot 实拍三方案对比后用户定 design_warp 主力。 2026-06-12 UV 布局迁移 net_v2（warp.py relayout 逐面刚体搬运,stretch=1.000,内容不变,QC 全过,重烘验证）。",
+  "layout": "net_v2"
 }

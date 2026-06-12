@@ -11,5 +11,6 @@
   "template": "template_uv_e0",
   "qc": "拼装 UV QC 0.00px/IoU 0.997 (PASS)；cut 收获 0_-1 + 批准 v0 侧壁",
   "approved_at": "2026-06-11T11:55:00Z",
-  "notes": "Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。"
+  "notes": "Round 2.5 promptlock 批次；用户 2026-06-11 看 showcase 实拍全批验收入库。 2026-06-12 UV 布局迁移 net_v2（warp.py relayout 逐面刚体搬运,stretch=1.000,内容不变,QC 全过,重烘验证）。",
+  "layout": "net_v2"
 }

@@ -495,8 +495,14 @@ def _tile_material_image(name: str, image_path: str):
     """生图贴图 tile 材质：UV 展开布局贴图（texgen uv_layout）直进 Base Color。
     光影/墨线仍由场景日光 + Freestyle 叠加（设计稿自带光影的叠加问题 = Round 1 实拍裁决）。"""
     mat, nt, bsdf = _new_mat(name)
+    img = _load_image(image_path)
+    if tuple(img.size) != texgen_geometry.UV_CANVAS:
+        raise ValueError(
+            "UV 贴图 %s 尺寸 %s ≠ UV 画布 %s：疑似旧布局（%s 之前）贴图，"
+            "需先 `python blender/scripts/texgen/warp.py relayout` 迁移，禁止静默错套"
+            % (image_path, tuple(img.size), texgen_geometry.UV_CANVAS, texgen_geometry.UV_LAYOUT_VERSION))
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _load_image(image_path)
+    tex.image = img
     tex.extension = "EXTEND"
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     return mat
@@ -548,8 +554,9 @@ def _smooth(obj, angle_deg=40.0):
 
 def _assign_tile_uvs(bm, elevation: int, depth: float):
     """按 texgen uv_layout 给 hex 棱柱赋 UV（与线稿模板/warp 同一布局函数 = 零 drift）：
-    顶面 → island（世界 +y = 图像上）；可见壁 → 各自矩形（左→右 = 从壁外看左→右，
-    v = -z 深度）；背面三壁映到对侧可见壁矩形（冻结相机豁免，永不可见）；底面收拢 island 中心。"""
+    顶面 → hex（世界 +y = 图像上）；可见壁 → 铰接 quad（unfold net，t 沿铰接边左→右、
+    v 沿展开方向 = -z 深度，平行四边形基插值）；背面三壁映到对侧可见壁 quad（冻结相机豁免，
+    永不可见）；底面收拢 hex 中心。"""
     layout = texgen_geometry.uv_layout(_manifest_like(), elevation)
     cw, ch = layout["canvas"]
     faces_px = layout["faces"]
@@ -580,9 +587,9 @@ def _assign_tile_uvs(bm, elevation: int, depth: float):
                 co = loop.vert.co
                 d_left = math.hypot(co.x - left[0], co.y - left[1])
                 t = 0.0 if d_left < CONFIG["hex_edge"] * 0.5 else 1.0  # 角点二择一
-                v = max(0.0, min(1.0, -co.z / depth))  # 矩形代表 z 0→-depth（水面顶沉入矩形内）
-                px = quad[0][0] + (quad[1][0] - quad[0][0]) * t
-                py = quad[0][1] + (quad[3][1] - quad[0][1]) * v
+                v = max(0.0, min(1.0, -co.z / depth))  # quad 代表 z 0→-depth（水面顶沉入 quad 内）
+                px = quad[0][0] + (quad[1][0] - quad[0][0]) * t + (quad[3][0] - quad[0][0]) * v
+                py = quad[0][1] + (quad[1][1] - quad[0][1]) * t + (quad[3][1] - quad[0][1]) * v
                 loop[uv_layer].uv = uv_of(px, py)
 
 

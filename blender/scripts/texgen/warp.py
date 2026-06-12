@@ -14,6 +14,7 @@
 #   python blender/scripts/texgen/warp.py design <design.png> -e 0 -o <uv_out.png>
 #   python blender/scripts/texgen/warp.py dual <dual.png> -e 0 -o <uv_out.png>
 #   python blender/scripts/texgen/warp.py cut <grid.png> -q 0 -r 0 -o <top_out.png>
+#   python blender/scripts/texgen/warp.py relayout <old_uv.png> -e 0 --old-sidecar <旧.json> -o <new_uv.png>
 #   （sidecar 默认从 blender/templates/ 按海拔/类型取；--sidecar 可显式指定）
 
 import argparse
@@ -87,6 +88,14 @@ def warp_design_to_uv(design_png: str, design_sidecar: dict, uv_sidecar: dict, o
         report[face] = {"stretch_max": float(sv.max()), "stretch_min": float(sv.min())}
     canvas.save(out_png)
     return report
+
+
+# ---------------------------------------------------------------- 旧 UV 布局 → 新 UV 布局（迁移）
+
+def relayout_uv(uv_png: str, old_sidecar: dict, new_sidecar: dict, out_png: str) -> dict:
+    """已批准 UV 贴图跨布局迁移：face 同名（top/wall_i）→ 逐面仿射原样搬运，内容不变。
+    与 warp_design_to_uv 同一机器（face_correspondences 只看 face 名与 3 控制点）。"""
+    return warp_design_to_uv(uv_png, old_sidecar, new_sidecar, out_png)
 
 
 # ---------------------------------------------------------------- dual 右 panel → UV
@@ -184,6 +193,13 @@ def main():
     d.add_argument("--uv-sidecar", default=None)
     d.add_argument("-o", "--out", required=True)
 
+    r = sub.add_parser("relayout", help="旧布局 UV 贴图 → 现行布局（逐面仿射搬运，迁移用）")
+    r.add_argument("image")
+    r.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
+    r.add_argument("--old-sidecar", required=True, help="生成该贴图时的 UV sidecar（如 git 历史里的 template_uv_e<N>.json）")
+    r.add_argument("--uv-sidecar", default=None)
+    r.add_argument("-o", "--out", required=True)
+
     b = sub.add_parser("dual", help="双联右 panel → 标准 UV 画布（单仿射放大 + 面 mask）")
     b.add_argument("image")
     b.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
@@ -213,6 +229,15 @@ def main():
         us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
         report = warp_design_to_uv(args.image, ds, us, args.out)
         print("WARP OK ->", args.out)
+        for face, info in report.items():
+            print("  %-8s stretch %.3f .. %.3f" % (face, info["stretch_min"], info["stretch_max"]))
+    elif args.cmd == "relayout":
+        old = load_sidecar(args.old_sidecar)
+        us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
+        if old.get("layout") == us.get("layout"):
+            raise ValueError("新旧 sidecar layout 相同（%r）—— relayout 是跨布局迁移，确认 --old-sidecar 来源" % old.get("layout"))
+        report = relayout_uv(args.image, old, us, args.out)
+        print("RELAYOUT OK ->", args.out)
         for face, info in report.items():
             print("  %-8s stretch %.3f .. %.3f" % (face, info["stretch_min"], info["stretch_max"]))
     elif args.cmd == "dual":
