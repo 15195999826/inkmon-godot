@@ -3,6 +3,11 @@
 > 用途：用户在 lab 沉淀 session（配方）的直接原料。每节 = 一类资产的定稿提示词全文 +
 > 参考图 + 代表性 lab image id + 调试轮数与放弃路径注记。
 > 设计真相：根 `CONTEXT.md` + `docs/adr/0009`（角度冻结）+ `docs/adr/0010`（lab 宿主/两段制）。
+>
+> **2026-06-12 注**：文中引用的 `session_*` 均为当时裸模式自动 scratch session，该机制已废弃
+> （adr/0010 修订），存量已迁移为 lab 调用记录（call id = 对应 run id 后缀，如
+> `run_mq9ce27d_xwluq` → `call_mq9ce27d_xwluq`，在 lab「裸模式生图」tab 可见）；
+> **`img_*` image id 不变，仍可经 MCP history/export 解析**——沉淀配方时以 image id 为准。
 
 ## 通用配方（风格定调流 design_warp 主力）
 
