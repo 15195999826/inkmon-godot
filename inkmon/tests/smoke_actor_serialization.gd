@@ -12,6 +12,9 @@ extends Node
 ## - InkMonPlayerActor：默认 gold=100/progression/medals=[]；to_dict/from_dict round-trip。
 
 
+const FIXTURE_PATH := "res://inkmon/tests/fixtures/sample_creature_contract.json"
+
+
 func _ready() -> void:
 	var status := _run()
 	if status == "":
@@ -24,6 +27,9 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
+	# adr/0003: load fixture items (item_NNNN) before resetting the item runtime
+	# (stub fallback was removed; _reset_item_runtime's catalog reads this static cache).
+	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)
 	_reset_item_runtime()
 
 	var s1 := _check_from_unit_config_full_hp()
@@ -127,13 +133,13 @@ func _check_equipment_modifier_layer() -> String:
 	var cid := ItemSystem.register_container(container)
 	if cid <= 0:
 		return "failed to register equipment container"
-	var create_result := ItemSystem.create_item(cid, InkMonItemCatalog.TRAINING_SWORD, 1, -1)
+	var create_result := ItemSystem.create_item(cid, &"item_0001", 1, -1)
 	if not create_result.success:
 		return "failed to create equipment item: %s" % create_result.error_message
 	actor.equipment_container_id = cid
 	actor.apply_derived_stats(base)
 
-	# 加成层: current = base + modifier; base **不**含装备 (不再焊 base)。TRAINING_SWORD stat_mods {ad: 5.0}。
+	# 加成层: current = base + modifier; base **不**含装备 (不再焊 base)。item_0001 stat_mods {ad: 5.0}。
 	var bd := actor.attribute_set.get_ad_breakdown()
 	if absf(bd.base - base_ad) > 0.01:
 		return "equipment must NOT fold into base (ad base=%.2f expected %.2f)" % [bd.base, base_ad]
@@ -148,16 +154,16 @@ func _check_equipment_modifier_layer() -> String:
 		if absf(mod.value - 5.0) > 0.01:
 			continue
 		var ab := actor.ability_set.find_ability_by_id(mod.source)
-		if ab != null and str(ab.metadata.get(InkMonEquipmentStatAbility.META_ITEM_CONFIG_ID, "")) == str(InkMonItemCatalog.TRAINING_SWORD):
+		if ab != null and str(ab.metadata.get(InkMonEquipmentStatAbility.META_ITEM_CONFIG_ID, "")) == str(&"item_0001"):
 			traced = true
 	if not traced:
-		return "equipment ad modifier should trace back to the training_sword item"
+		return "equipment ad modifier should trace back to the item_0001 item"
 
 	# to_dict 仍只存 config_id（容器 id runtime 不进; restore 侧由 GI 重穿重 grant）。
 	var equip := actor.to_dict().get("equipment", []) as Array
 	if equip.size() != 1:
 		return "to_dict equipment capture wrong size: %d" % equip.size()
-	if str((equip[0] as Dictionary).get("config_id", "")) != str(InkMonItemCatalog.TRAINING_SWORD):
+	if str((equip[0] as Dictionary).get("config_id", "")) != str(&"item_0001"):
 		return "to_dict equipment capture wrong item: %s" % str((equip[0] as Dictionary).get("config_id", ""))
 
 	# 脱下复原: 清空容器 → 重算 → ad 回 base, 加成层无残留装备 modifier。

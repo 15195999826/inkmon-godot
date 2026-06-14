@@ -1,8 +1,8 @@
 extends Node
 ## Smoke: item catalog content consumption (adr/0003). Proves the lab→godot item bridge:
 ## a v2 bundle's items[] is validated (defensive item checks), loaded as static content, and read
-## back via InkMonItemCatalog with the imported item_NNNN configs (not the stub slugs); a missing
-## content file falls back to the hardcoded stub (training_sword). Mirrors smoke_content_loader.
+## back via InkMonItemCatalog with the imported item_NNNN configs; a missing content file yields
+## an empty catalog (adr/0003: stub fallback removed). Mirrors smoke_content_loader.
 
 
 const FIXTURE_PATH := "res://inkmon/tests/fixtures/sample_creature_contract.json"
@@ -15,7 +15,7 @@ func _ready() -> void:
 	InkMonItemCatalog.clear_static_items_cache_for_tests()
 	InkMonSpeciesCatalog.clear_static_content_cache_for_tests()
 	if status == "":
-		print("SMOKE_TEST_RESULT: PASS - item catalog consumes res:// items[] (item_NNNN) + stub fallback")
+		print("SMOKE_TEST_RESULT: PASS - item catalog consumes res:// items[] (item_NNNN); empty when content missing")
 		get_tree().quit(0)
 	else:
 		print("SMOKE_TEST_RESULT: FAIL - %s" % status)
@@ -46,9 +46,6 @@ func _run() -> String:
 		return "item_0001 should be equipable"
 	if int(sword.get("price", -1)) != 30:
 		return "item_0001 price = %s, expected 30" % str(sword.get("price", -1))
-	# Content REPLACES stub (adr/0003): the stub slug consts are not in the imported catalog.
-	if catalog.has_config(InkMonItemCatalog.TRAINING_SWORD):
-		return "imported catalog should not expose the stub slug training_sword"
 	var ids := catalog.list_config_ids()
 	if not (StringName("item_0001") in ids and StringName("item_0002") in ids):
 		return "catalog ids should be item_NNNN, got %s" % str(ids)
@@ -74,12 +71,10 @@ func _run() -> String:
 	if bad_errors.is_empty():
 		return "malformed item should produce validation errors"
 
-	# (4) Missing content file → catalog falls back to the hardcoded stub (training_sword slug).
+	# (4) Missing content file → empty catalog (adr/0003: stub fallback removed; content is sole source).
 	InkMonItemCatalog.reload_static_items_for_tests(MISSING_PATH)
 	var stub_catalog := InkMonItemCatalog.new()
-	if not stub_catalog.has_config(InkMonItemCatalog.TRAINING_SWORD):
-		return "missing content file should fall back to stub catalog (training_sword)"
-	if stub_catalog.has_config(&"item_0001"):
-		return "stub fallback should not expose imported item_0001"
+	if not stub_catalog.list_config_ids().is_empty():
+		return "missing content file should yield an empty catalog (no hardcoded stub; adr/0003)"
 
 	return ""

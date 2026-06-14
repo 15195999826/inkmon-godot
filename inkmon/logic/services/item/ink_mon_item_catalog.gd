@@ -2,10 +2,6 @@ class_name InkMonItemCatalog
 extends ItemCatalog
 
 
-const TRAINING_SWORD := &"training_sword"
-const MINOR_RUNE := &"minor_rune"
-
-
 func has_config(config_id: StringName) -> bool:
 	return _resolved_configs().has(str(config_id))
 
@@ -25,12 +21,11 @@ func list_config_ids() -> Array[StringName]:
 	return result
 
 
-## Resolved item configs: imported lab-canon items (content hit) else the hardcoded stub.
-## adr/0003: stub `_configs()` is the "no content file" fallback; once res://data/inkmon_content.json
-## carries items[], those (item_NNNN) become the catalog truth and the stub slugs drop out.
+## Resolved item configs: imported lab-canon items (item_NNNN) from res://data/inkmon_content.json.
+## adr/0003: stub `_configs()` was removed — content file is the sole source; empty file = empty
+## catalog (explicit failure signal, not stale fallback data).
 static func _resolved_configs() -> Dictionary:
-	var loaded := _ensure_items_loaded()
-	return loaded if not loaded.is_empty() else _configs()
+	return _ensure_items_loaded()
 
 
 ## Imported items cache, keyed by item_id → catalog config (same shape as _configs()). Lazily
@@ -61,27 +56,3 @@ static func reload_static_items_for_tests(path: String = InkMonContentLoader.DEF
 	_static_items = _items_from(InkMonContentLoader.load_static_content(path))
 	_static_items_loaded = true
 	return _static_items
-
-
-static func _configs() -> Dictionary:
-	return {
-		String(TRAINING_SWORD): {
-			"id": String(TRAINING_SWORD),
-			"display_name": "Training Sword",
-			"icon_key": "training_sword",
-			"item_tags": ["equipment", "weapon"],
-			"max_stack": 1,
-			"equipable": true,
-			"price": 30,
-			"stat_mods": {"ad": 5.0},
-		},
-		String(MINOR_RUNE): {
-			"id": String(MINOR_RUNE),
-			"display_name": "Minor Rune",
-			"icon_key": "minor_rune",
-			"item_tags": ["material"],
-			"max_stack": 99,
-			"equipable": false,
-			"price": 10,
-		},
-	}

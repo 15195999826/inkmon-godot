@@ -54,7 +54,7 @@ Player-facing UI paths must use raw real input:
 
 - `scene tile_screen_position {"q":2,"r":0}` then raw `click_at` with `button:"right"` enqueues an async move toward the occupied Shop tile (retargets to an adjacent free tile). The click is async (方案 A): it **immediately** drops the target marker (`overworld_iso.target_feedback_active == true`); `move_animation_active` only goes true after a later world tick drains the move command (→ `actor_position_changed` → view `step_player`). After the move settles it should set `near_npc_id == "shop"` with `player_visual_coord == player_coord`.
 - `click_at` on `layout_state.prompt_button` opens the nearby NPC drawer.
-- `click_at` on `layout_state.shop_buy_buttons.minor_rune` enqueues a Minor Rune buy command (方案 A); after a world tick drains it, gold reduces by 10 — poll `state` after a short `wait_frames`, do not assert synchronously.
+- `click_at` on `layout_state.shop_buy_buttons.item_0002` enqueues a Minor Rune buy command (方案 A); after a world tick drains it, gold reduces by 10 — poll `state` after a short `wait_frames`, do not assert synchronously.
 - `click_at` on `layout_state.npc_action_buttons.start_training_battle` enqueues a training NPC action; the battle starts (deferred, off the drain tick) and completes after a few ticks — poll `state` for `active_instance_id == ""` and `last_battle_result.winner_team`.
 - `click_at` on `layout_state.close_button` closes the side sheet.
 - `click_at` on `layout_state.tool_buttons.party`, `.bag`, `.journal`, and `.menu` opens the player drawer tabs and save/load modal.
@@ -105,7 +105,7 @@ UI input check:
 {"id":"17","op":"click_at","x":<prompt cx>,"y":<prompt cy>}
 {"id":"18","op":"wait_frames","frames":12}
 {"id":"19","op":"scene","name":"layout_state"}
-{"id":"20","op":"click_at","x":<minor_rune buy cx>,"y":<minor_rune buy cy>}
+{"id":"20","op":"click_at","x":<item_0002 buy cx>,"y":<item_0002 buy cy>}
 {"id":"20b","op":"wait_frames","frames":6}
 {"id":"21","op":"scene","name":"state"}
 ```
@@ -117,7 +117,7 @@ tick to drain the move command, so assert it only after a `wait_frames`);
 command `15` shows `near_npc_id == "shop"` and
 `overworld_iso.player_visual_coord == player_coord`; the drawer opens through a
 real prompt click, and after the buy command drains (`wait_frames` at `20b`,
-方案 A 异步写) gold becomes `90` with a `minor_rune` item in `bag`.
+方案 A 异步写) gold becomes `90` with an `item_0002` item in `bag`.
 
 Player-owned UI input check:
 

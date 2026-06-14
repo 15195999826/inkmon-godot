@@ -12,6 +12,7 @@ extends Node
 
 const FIXED_DT := 1.0 / 30.0
 const MINOR_RUNE_PRICE := 10
+const FIXTURE_PATH := "res://inkmon/tests/fixtures/sample_creature_contract.json"
 
 
 func _ready() -> void:
@@ -27,6 +28,9 @@ func _ready() -> void:
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
+	# adr/0003: load fixture items (item_NNNN) so BuyCommand resolves item_0002
+	# (stub fallback was removed; _make_gi's new_game reads this static cache).
+	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)
 
 	var checks := [
 		_test_move_command,
@@ -76,7 +80,7 @@ func _test_buy_command_is_async_and_signals() -> String:
 		results.append(result)
 	)
 	var gold_before := gi.player_actor.gold
-	gi.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
+	gi.submit(InkMonBuyCommand.new(&"item_0002"))
 	if gi.player_actor.gold != gold_before:
 		return "BuyCommand must not spend gold before tick (A)"
 	if not results.is_empty():
@@ -138,7 +142,7 @@ func _test_iworldquery_facade() -> String:
 		return "IWorldQuery should forward has_npc_handler / get_world_actor"
 	# submit 经 facade 入队,tick drain 后等价于直接 submit(扣金币)。
 	var gold_before := gi.player_actor.gold
-	query.submit(InkMonBuyCommand.new(InkMonItemCatalog.MINOR_RUNE))
+	query.submit(InkMonBuyCommand.new(&"item_0002"))
 	gi.tick(FIXED_DT)
 	if gi.player_actor.gold != gold_before - MINOR_RUNE_PRICE:
 		return "IWorldQuery.submit should reach the command queue (gold spent on drain)"

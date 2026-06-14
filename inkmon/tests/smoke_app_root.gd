@@ -2,6 +2,7 @@ extends Node
 
 
 const InkMonMainScene := preload("res://inkmon/host/ink_mon_game.tscn")
+const FIXTURE_PATH := "res://inkmon/tests/fixtures/sample_creature_contract.json"
 
 
 func _ready() -> void:
@@ -18,6 +19,9 @@ func _run() -> String:
 	var root := InkMonMainScene.instantiate() as InkMonWorldHost
 	add_child(root)
 	await get_tree().process_frame
+	# adr/0003: load fixture items (item_NNNN) AFTER boot — the catalog is a process-wide
+	# static cache read on every lookup, so this reload immediately overrides boot's data load.
+	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)
 
 	var initial_state := root.get_dev_agent_state()
 	if initial_state.get("state", "") != "OVERWORLD":
@@ -107,7 +111,7 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 
 	# P3 方案 A:buy 是异步 command —— 入队即 ok;tick drain 才扣金币 + 入袋,经 command_applied 回流。
 	var gold_before_buy := root.get_player_actor().gold
-	var buy_result := root.buy_shop_item(InkMonItemCatalog.MINOR_RUNE)
+	var buy_result := root.buy_shop_item(&"item_0002")
 	if not bool(buy_result.get("ok", false)):
 		return "buy Minor Rune command should be accepted (enqueued)"
 	var spent := await _wait_until(func() -> bool:
@@ -115,7 +119,7 @@ func _assert_shop_flow(root: InkMonWorldHost) -> String:
 	if not spent:
 		return "buying Minor Rune should spend 10 gold (async command drain)"
 	var bought_state := root.get_dev_agent_state()
-	if not _bag_has(bought_state.get("bag", []), "minor_rune"):
+	if not _bag_has(bought_state.get("bag", []), "item_0002"):
 		return "bag should contain minor_rune after buy"
 
 	var close_result := root.close_npc_menu()

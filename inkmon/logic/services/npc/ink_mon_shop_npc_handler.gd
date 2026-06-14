@@ -2,25 +2,26 @@ class_name InkMonShopNpcHandler
 extends InkMonNpcHandler
 
 
-const ACTION_BUY_SWORD := "buy_training_sword"
-const ACTION_BUY_RUNE := "buy_minor_rune"
+const ACTION_BUY_PREFIX := "buy:"
 
 
+## Data-driven shop (adr/0003): every catalog item with price > 0 is buyable. action_id encodes
+## the config_id (`buy:<item_id>`) so run_action can reverse-lookup without a hardcoded slug
+## table — new server-synced items enter the shop automatically.
 func get_actions(world: InkMonWorldGI) -> Array[Dictionary]:
-	return [
-		_buy_action(InkMonItemCatalog.TRAINING_SWORD, ACTION_BUY_SWORD, world),
-		_buy_action(InkMonItemCatalog.MINOR_RUNE, ACTION_BUY_RUNE, world),
-	]
+	var actions: Array[Dictionary] = []
+	var catalog := InkMonItemCatalog.new()
+	for config_id in catalog.list_config_ids():
+		var config := catalog.get_config(config_id)
+		if int(config.get("price", 0)) > 0:
+			actions.append(_buy_action(config_id, ACTION_BUY_PREFIX + str(config_id), world))
+	return actions
 
 
 func run_action(action_id: String, world: InkMonWorldGI) -> Dictionary:
-	match action_id:
-		ACTION_BUY_SWORD:
-			return buy(world, InkMonItemCatalog.TRAINING_SWORD)
-		ACTION_BUY_RUNE:
-			return buy(world, InkMonItemCatalog.MINOR_RUNE)
-		_:
-			return super.run_action(action_id, world)
+	if action_id.begins_with(ACTION_BUY_PREFIX):
+		return buy(world, StringName(action_id.substr(ACTION_BUY_PREFIX.length())))
+	return super.run_action(action_id, world)
 
 
 ## 直接读写活 player_actor: 扣金币 + 入 bag; 失败回滚金币。供 NPC 菜单与 UI 买按钮共用。

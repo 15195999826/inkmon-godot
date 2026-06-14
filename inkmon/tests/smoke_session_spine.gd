@@ -4,6 +4,9 @@ extends Node
 ## 装备 stat_mods 走加成层 (adr/0004) 并 round-trip; 活 roster 原地战斗 + 奖励落活 actor; 旧档丢弃重开。
 
 
+const FIXTURE_PATH := "res://inkmon/tests/fixtures/sample_creature_contract.json"
+
+
 func _ready() -> void:
 	var status := _run()
 	if status == "":
@@ -17,6 +20,9 @@ func _ready() -> void:
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
 	TimelineRegistry.reset()
+	# adr/0003: load fixture items (item_NNNN) so new_game's catalog has real configs to equip/buy
+	# (stub fallback was removed; new_game's configure_domain reads this static cache).
+	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)
 
 	var gi := _new_gi()
 	gi.new_game()
@@ -93,10 +99,10 @@ func _assert_equipment_modifier_layer(gi: InkMonWorldGI) -> String:
 	if lead.equipment_container_id <= 0:
 		return "lead should own an equipment container"
 	var base_ad := float(InkMonSpeciesCatalog.get_base_stats(lead.species).get("ad", 0.0))
-	var sword_ad := float((ItemSystem.get_item_config(InkMonItemCatalog.TRAINING_SWORD).get("stat_mods", {}) as Dictionary).get("ad", 0.0))
+	var sword_ad := float((ItemSystem.get_item_config(&"item_0001").get("stat_mods", {}) as Dictionary).get("ad", 0.0))
 	if sword_ad <= 0.0:
 		return "training sword should define an ad stat_mod"
-	var equip_result := ItemSystem.create_item(lead.equipment_container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	var equip_result := ItemSystem.create_item(lead.equipment_container_id, &"item_0001", 1)
 	if not equip_result.success:
 		return "failed to equip training sword: %s" % equip_result.error_message
 	gi.refresh_unit_stats(lead)
@@ -125,7 +131,7 @@ func _assert_equipment_modifier_layer(gi: InkMonWorldGI) -> String:
 		return "unequip should restore ad to base (got %.1f want %.1f)" % [lead.attribute_set.ad, base_ad]
 
 	# 重穿回 (后续 _assert_save_round_trip 依赖 lead 已装剑): ad 复为 base+mod。
-	var re_equip := ItemSystem.create_item(lead.equipment_container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	var re_equip := ItemSystem.create_item(lead.equipment_container_id, &"item_0001", 1)
 	if not re_equip.success:
 		return "failed to re-equip training sword: %s" % re_equip.error_message
 	gi.refresh_unit_stats(lead)
@@ -136,7 +142,7 @@ func _assert_equipment_modifier_layer(gi: InkMonWorldGI) -> String:
 
 func _assert_save_round_trip(gi: InkMonWorldGI) -> String:
 	# 制造可观测的玩家态变化: 买袋物 + 给 lead 制造伤害态 (carryover) + lead 已装剑 (上一断言)。
-	var bag_result := gi.create_bag_item(InkMonItemCatalog.MINOR_RUNE, 3, 0)
+	var bag_result := gi.create_bag_item(&"item_0002", 3, 0)
 	if not bag_result.success:
 		return "failed to create bag item: %s" % bag_result.error_message
 	gi.player_actor.gold = 175
@@ -244,10 +250,10 @@ func _assert_equipment_survives_cross_battle() -> String:
 	gi.new_game()
 	var lead := gi.roster[0]
 	var base_ad := float(InkMonSpeciesCatalog.get_base_stats(lead.species).get("ad", 0.0))
-	var sword_ad := float((ItemSystem.get_item_config(InkMonItemCatalog.TRAINING_SWORD).get("stat_mods", {}) as Dictionary).get("ad", 0.0))
+	var sword_ad := float((ItemSystem.get_item_config(&"item_0001").get("stat_mods", {}) as Dictionary).get("ad", 0.0))
 	if sword_ad <= 0.0:
 		return "training sword should define an ad stat_mod"
-	var equip := ItemSystem.create_item(lead.equipment_container_id, InkMonItemCatalog.TRAINING_SWORD, 1)
+	var equip := ItemSystem.create_item(lead.equipment_container_id, &"item_0001", 1)
 	if not equip.success:
 		return "failed to equip sword for cross-battle check: %s" % equip.error_message
 	gi.refresh_unit_stats(lead)
