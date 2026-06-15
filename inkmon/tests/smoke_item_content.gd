@@ -62,7 +62,7 @@ func _run() -> String:
 			"item_tags": ["equipment"],
 			"stat_mods": {"luck": -3},  # unknown key + negative
 			"price": -5,
-			"equipable": "yes",  # not a bool
+			"item_type": "weapon",  # not in equipment/material/consumable/rune
 			"max_stack": 0,
 			"granted_abilities": [],
 		}],

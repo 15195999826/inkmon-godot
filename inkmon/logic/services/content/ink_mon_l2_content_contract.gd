@@ -6,6 +6,7 @@ const VERSION := 2
 const REQUIRED_UNIT_STATS: Array[String] = ["max_hp", "ad", "ap", "armor", "mr", "speed"]
 const VALID_STAGES: Array[String] = ["baby", "mature", "adult"]
 const VALID_SKILL_CHANNELS: Array[String] = ["physical", "magical", "utility"]
+const ITEM_TYPES: Array[String] = ["equipment", "material", "consumable", "rune"]
 
 ## species_id 形状 `^mon_\d+$` (adr/0010): canon 在 POST 时 MAX+1 发号, godot 防御性复检。
 ## 编译一次复用 (校验是冷路径, RegEx 开销可接受)。
@@ -277,8 +278,12 @@ static func _validate_creature_items(value: Variant, errors: Array[String]) -> v
 			errors.append("%s.price must be an int >= 0" % label)
 		if int(item.get("max_stack", 0)) < 1:
 			errors.append("%s.max_stack must be an int >= 1" % label)
-		if not (item.get("equipable", null) is bool):
-			errors.append("%s.equipable must be a bool" % label)
+		# item_type enum（lab 投影的分类锚点；equipable 不再投，loader 从 item_type 派生）。
+		var item_type_value := str(item.get("item_type", ""))
+		if item_type_value == "":
+			errors.append("%s.item_type is required" % label)
+		elif not item_type_value in ITEM_TYPES:
+			errors.append("%s.item_type must be one of equipment/material/consumable/rune, got: %s" % [label, item_type_value])
 		_validate_item_granted_abilities(
 			item.get("granted_abilities", []), "%s.granted_abilities" % label, errors
 		)
@@ -424,10 +429,10 @@ static func _validate_skills(value: Variant, errors: Array[String]) -> void:
 
 
 static func _validate_items(value: Variant, errors: Array[String]) -> void:
-	var items := value as Array
-	if items == null or items.is_empty():
-		errors.append("items must be a non-empty array")
+	if not (value is Array):
+		errors.append("items must be an array")
 		return
+	var items: Array = value
 	for i in range(items.size()):
 		var item := items[i] as Dictionary
 		if item == null:
@@ -566,12 +571,18 @@ static func _item_exports() -> Array[Dictionary]:
 	var catalog := InkMonItemCatalog.new()
 	for config_id in catalog.list_config_ids():
 		var config := catalog.get_config(config_id)
+		# stub 自描述按 contract GodotItem 格式投（item_type；equipable 不投）。config 可能有
+		# item_type（loader 填），否则从老 equipable 回退推断（stub catalog 仍硬编码 equipable）。
+		var cfg_type := str(config.get("item_type", "equipment" if bool(config.get("equipable", false)) else "material"))
 		result.append({
 			"id": str(config_id),
 			"display_name": str(config.get("display_name", str(config_id))),
+			"item_type": cfg_type,
 			"item_tags": (config.get("item_tags", []) as Array).duplicate(),
 			"price": int(config.get("price", 0)),
-			"equipable": bool(config.get("equipable", false)),
+			"max_stack": int(config.get("max_stack", 1)),
+			"icon_key": str(config.get("icon_key", "")),
 			"stat_mods": (config.get("stat_mods", {}) as Dictionary).duplicate(true),
+			"granted_abilities": (config.get("granted_abilities", []) as Array).duplicate(true),
 		})
 	return result

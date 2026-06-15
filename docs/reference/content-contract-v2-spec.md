@@ -49,16 +49,18 @@
 |---|---|---|---|
 | `id` | string | ✓ | **= `item_id`**，格式 `^item_\d+$`（如 `item_0001`，零填充≥4）。**全局唯一身份键**，server 发号（对称 `mon_NNNN`）。 |
 | `display_name` | string | ✓ | 展示名。非空。 |
-| `item_tags` | string[] | ✓ | ≥1 个标签（如 `equipment` / `material` / `rune`）。 |
+| `item_type` | enum | ✓ | lab 设计分类枚举 `equipment`/`material`/`consumable`/`rune`。**分类锚点**：godot loader 据此派生 `equipable`；max_stack 默认值亦由它决定。 |
+| `item_tags` | string[] | ✓ | ≥1 个**题材标签**（火系/稀有/商店限定），不再承担机制分类。 |
 | `stat_mods` | object | ✓ | godot 六维的**部分** map：键取 `max_hp` / `ad` / `ap` / `armor` / `mr` / `speed`，值为非负 number（装备加成）。无加成 = `{}`。 |
 | `price` | int | ✓ | 商店价格，≥0（非卖品 = 0）。 |
-| `equipable` | bool | ✓ | 是否可装备。 |
-| `max_stack` | int | ✓ | 最大堆叠，≥1。 |
+| `max_stack` | int | ✓ | 最大堆叠，≥1。**不由 itemGen 生成** —— 按类型默认（equipment=1 / material,consumable=99 / rune=1），物品图鉴可编辑覆盖。 |
 | `icon_key` | string | ✓ | godot sprite 语义键（如 `sword` / `orb` / `rune`）。 |
-| `granted_abilities` | array | ✓ | 装备授予的 LGF 能力，`[{ ability_config_id, source }]`（可空 `[]`；仅 `equipable=true` 可非空）。 |
+| `granted_abilities` | array | ✓ | 装备授予的 LGF 能力，`[{ ability_config_id, source }]`（可空 `[]`；仅 `item_type=equipment` 可非空）。 |
 
 - **不投 godot**：lab 私有字段 `description`（中文图鉴描述）/ `image_prompt`（出图 prompt 源）—— 投影端 `itemToGodotItem` 显式剔除。
-- **校验责任**：server POST `/item` 权威（`ItemSchema` + `validateItem`，硬拒 4xx、不写）；lab 生成期用同一 schema 预检；godot contract 校验为防御性（结构 + `^item_\d+$` 足矣）。
+- **`equipable` 不作为 contract 字段**（纯派生）：lab 不存不投；godot `content_loader` 从 `item_type` 派生 `equipable = (item_type === 'equipment')` 填进 inventoryKit config（通用层消费）。inventoryKit / LGF / hex 业务层零改动。
+- **`max_stack` 来源**：itemGen 不生成（agent 不写）；`ItemSchema.transform` 按 `item_type` 取默认值；物品图鉴可编辑覆盖（编辑后更新 server）。
+- **校验责任**：server POST `/item` 权威（`ItemSchema` + `validateItem`，硬拒 4xx、不写）；lab 生成期用同一 schema 预检；godot contract 校验为防御性（结构 + `^item_\d+$` + `item_type` enum）。
 
 ## 2. `evolution_edges[]` — 进化森林（边表）
 
@@ -131,7 +133,7 @@
   ],
   "skill_pools": [], "skills": [],
   "items": [
-    { "id": "item_0001", "display_name": "Firestone", "item_tags": ["material"], "stat_mods": {}, "price": 0, "equipable": false, "max_stack": 99, "icon_key": "stone", "granted_abilities": [] }
+    { "id": "item_0001", "display_name": "Firestone", "item_type": "material", "item_tags": ["stone"], "stat_mods": {}, "price": 0, "max_stack": 99, "icon_key": "stone", "granted_abilities": [] }
   ]
 }
 ```

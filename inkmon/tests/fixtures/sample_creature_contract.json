@@ -83,7 +83,7 @@
       "item_tags": ["equipment", "weapon"],
       "stat_mods": { "ad": 5 },
       "price": 30,
-      "equipable": true,
+      "item_type": "equipment",
       "max_stack": 1,
       "icon_key": "sword",
       "granted_abilities": []
@@ -94,7 +94,7 @@
       "item_tags": ["material"],
       "stat_mods": {},
       "price": 10,
-      "equipable": false,
+      "item_type": "material",
       "max_stack": 99,
       "icon_key": "rune",
       "granted_abilities": []

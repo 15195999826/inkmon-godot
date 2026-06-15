@@ -136,13 +136,16 @@ static func _normalize_items(value: Variant) -> Dictionary:
 		var item_id := str(item.get("id", ""))
 		if item_id == "":
 			continue
+		var item_type := str(item.get("item_type", ""))
+		# lab contract 不投 equipable —— 从 item_type 派生填 config（inventoryKit 通用层消费）。
 		result[item_id] = {
 			"id": item_id,
 			"display_name": str(item.get("display_name", item_id)),
+			"item_type": item_type,
 			"item_tags": _normalize_string_array(item.get("item_tags", [])),
 			"stat_mods": _normalize_stat_mods(item.get("stat_mods", {})),
 			"price": int(item.get("price", 0)),
-			"equipable": bool(item.get("equipable", false)),
+			"equipable": item_type == "equipment",
 			"max_stack": int(item.get("max_stack", 1)),
 			"icon_key": str(item.get("icon_key", "")),
 			"granted_abilities": _normalize_granted_abilities(item.get("granted_abilities", [])),
