@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+<rect width="1536" height="1024" fill="white"/>
+<line x1="768.00" y1="0.00" x2="768.00" y2="1024.00" stroke="rgb(40, 40, 40)" stroke-width="2" stroke-linecap="round"/>
+<path d="M 622.55 419.64 L 447.92 318.83 L 209.37 355.73 L 145.45 493.44 L 320.08 594.26 L 558.63 557.36 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 145.45 493.44 L 320.08 594.26 L 320.08 705.17 L 145.45 604.36 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 320.08 594.26 L 558.63 557.36 L 558.63 668.27 L 320.08 705.17 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 558.63 557.36 L 622.55 419.64 L 622.55 530.56 L 558.63 668.27 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 1379.59 449.41 L 1265.80 252.31 L 1038.20 252.31 L 924.41 449.41 L 1038.20 646.51 L 1265.80 646.51 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 924.41 449.41 L 1038.20 646.51 L 929.80 709.10 L 816.00 512.00 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 1038.20 646.51 L 1265.80 646.51 L 1265.80 771.69 L 1038.20 771.69 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 1265.80 646.51 L 1379.59 449.41 L 1488.00 512.00 L 1374.20 709.10 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<line x1="1379.59" y1="449.41" x2="1265.80" y2="252.31" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1265.80" y1="252.31" x2="1038.20" y2="252.31" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1038.20" y1="252.31" x2="924.41" y2="449.41" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1038.20" y1="646.51" x2="929.80" y2="709.10" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="929.80" y1="709.10" x2="816.00" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="816.00" y1="512.00" x2="924.41" y2="449.41" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1265.80" y1="646.51" x2="1265.80" y2="771.69" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1265.80" y1="771.69" x2="1038.20" y2="771.69" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1038.20" y1="771.69" x2="1038.20" y2="646.51" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1379.59" y1="449.41" x2="1488.00" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1488.00" y1="512.00" x2="1374.20" y2="709.10" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1374.20" y1="709.10" x2="1265.80" y2="646.51" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="924.41" y1="449.41" x2="1038.20" y2="646.51" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="1038.20" y1="646.51" x2="1265.80" y2="646.51" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="1265.80" y1="646.51" x2="1379.59" y2="449.41" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+</svg>

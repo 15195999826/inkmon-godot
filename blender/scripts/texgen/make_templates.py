@@ -21,6 +21,8 @@ from PIL import Image, ImageDraw
 
 LINE_COLOR = (40, 40, 40)
 LINE_W = 4
+UV_FILL_COLOR = (246, 246, 242)
+UV_HINGE_W = 3
 
 
 # ---------------------------------------------------------------- 绘制原语（SVG 文本 + PIL 同步出）
@@ -31,6 +33,11 @@ class Sheet:
         self.svg = []
         self.img = Image.new("RGB", (w, h), (255, 255, 255))
         self.draw = ImageDraw.Draw(self.img)
+
+    def fill_polygon(self, pts, fill=UV_FILL_COLOR):
+        d = "M " + " L ".join("%.2f %.2f" % (x, y) for x, y in pts) + " Z"
+        self.svg.append('<path d="%s" fill="rgb%s" stroke="none"/>' % (d, fill))
+        self.draw.polygon([tuple(p) for p in pts], fill=fill)
 
     def polygon(self, pts, width=LINE_W):
         d = "M " + " L ".join("%.2f %.2f" % (x, y) for x, y in pts) + " Z"
@@ -65,14 +72,53 @@ def draw_design(layout: dict) -> Sheet:
     return sheet
 
 
+def _face_poly(face: dict) -> list:
+    return face.get("polygon_px") or face["quad_px"]
+
+
+def _edge_key(a, b):
+    pa = (round(a[0], 1), round(a[1], 1))
+    pb = (round(b[0], 1), round(b[1], 1))
+    return (pa, pb) if pa <= pb else (pb, pa)
+
+
+def _uv_polys(layout: dict, prefix: str) -> list:
+    faces = layout["faces"]
+    polys = [_face_poly(faces[prefix + "top"])]
+    for i in layout["wall_order"]:
+        polys.append(_face_poly(faces["%swall_%d" % (prefix, i)]))
+    return polys
+
+
+def _uv_edges(polys: list) -> "tuple[list, list]":
+    seen = {}
+    edges = {}
+    for poly in polys:
+        for i, a in enumerate(poly):
+            b = poly[(i + 1) % len(poly)]
+            key = _edge_key(a, b)
+            seen[key] = seen.get(key, 0) + 1
+            edges[key] = (a, b)
+    outer = [edges[k] for k, count in seen.items() if count == 1]
+    hinges = [edges[k] for k, count in seen.items() if count > 1]
+    return outer, hinges
+
+
 def draw_uv(layout: dict, prefix: str = "", sheet: "Sheet | None" = None) -> Sheet:
-    """unfold net 生产参考图：只画面轮廓（铰接边即面分割线），无文字/虚线/对应刻线。"""
+    """unfold net 生产参考图：浅底连通纸模 + 单次外轮廓 + 铰接线。
+
+    不把每个 face 单独描闭合边，避免模型把 top / side wall 理解成几张分离贴纸。
+    """
     if sheet is None:
         sheet = Sheet(*layout["canvas"])
-    faces = layout["faces"]
-    sheet.polygon(faces[prefix + "top"]["polygon_px"])
-    for i in layout["wall_order"]:
-        sheet.polygon(faces["%swall_%d" % (prefix, i)]["quad_px"])
+    polys = _uv_polys(layout, prefix)
+    for poly in polys:
+        sheet.fill_polygon(poly)
+    outer, hinges = _uv_edges(polys)
+    for a, b in outer:
+        sheet.line(a, b, width=LINE_W)
+    for a, b in hinges:
+        sheet.line(a, b, width=UV_HINGE_W)
     return sheet
 
 

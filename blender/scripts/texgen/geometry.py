@@ -239,7 +239,7 @@ def uv_layout(manifest: dict, elevation: int) -> dict:
 
 
 def dual_layout(manifest: dict, elevation: int) -> dict:
-    """双联版：左 panel = 3D 全貌（重 fit），右 panel = UV 展开（等比缩放居中）。"""
+    """双联版：左 panel = 3D 全貌（重 fit），右 panel = UV net bbox 等比放大居中。"""
     cw, ch = DUAL_CANVAS
     panel_w = cw / 2.0
 
@@ -253,12 +253,21 @@ def dual_layout(manifest: dict, elevation: int) -> dict:
     def remap_l(p):
         return (p[0] * k + lox, p[1] * k + loy)
 
-    # 右：uv 画布等比缩进右 panel
+    # 右：按实际 UV net bbox 等比缩进右 panel。
+    # 旧版按整个 1536x1024 UV 画布缩放，右 panel 有大量空白，提取时分辨率损失过大。
     uv = uv_layout(manifest, elevation)
-    uw, uh = UV_CANVAS
-    k2 = min((panel_w - 2 * DUAL_PANEL_MARGIN) / uw, (ch - 2 * DUAL_PANEL_MARGIN) / uh)
-    rox = panel_w + (panel_w - uw * k2) / 2.0
-    roy = (ch - uh * k2) / 2.0
+    uv_pts = []
+    for f in uv["faces"].values():
+        uv_pts.extend(f.get("polygon_px") or f["quad_px"])
+    min_x = min(p[0] for p in uv_pts)
+    max_x = max(p[0] for p in uv_pts)
+    min_y = min(p[1] for p in uv_pts)
+    max_y = max(p[1] for p in uv_pts)
+    net_w = max_x - min_x
+    net_h = max_y - min_y
+    k2 = min((panel_w - 2 * DUAL_PANEL_MARGIN) / net_w, (ch - 2 * DUAL_PANEL_MARGIN) / net_h)
+    rox = panel_w + (panel_w - net_w * k2) / 2.0 - min_x * k2
+    roy = (ch - net_h * k2) / 2.0 - min_y * k2
 
     def remap_r(p):
         return (p[0] * k2 + rox, p[1] * k2 + roy)
@@ -283,6 +292,7 @@ def dual_layout(manifest: dict, elevation: int) -> dict:
         "divider_x": panel_w,
         "design_scale": base["scale_px_per_unit"] * k,
         "uv_px_per_unit": UV_PX_PER_UNIT * k2,
+        "uv_net_bbox": [min_x, min_y, max_x, max_y],
         "faces": faces,
         "wall_order": uv["wall_order"],
         "manifest": _manifest_excerpt(manifest),
