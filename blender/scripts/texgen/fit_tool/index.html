@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Tile Fit (parametric)</title>
+<style>
+  body { margin:0; font:14px sans-serif; background:#222; color:#ddd; }
+  #toolbar { padding:8px 12px; background:#2a2a2a; border-bottom:1px solid #444; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  #toolbar button { margin-right:2px; }
+  #toolbar input[type=number] { width:68px; background:#1c1c1c; color:#ddd; border:1px solid #555; padding:2px 4px; font:inherit; }
+  #toolbar label { color:#888; font-size:12px; }
+  #wrap { padding:12px; }
+  canvas { background:#000; max-width:85vw; max-height:80vh; cursor:move; touch-action:none; }
+  .hint { color:#888; font-size:12px; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <input type="file" id="file" accept="image/*">
+  <label>scale</label><input type="number" id="scaleIn" step="0.01" min="0.2" max="3" value="1">
+  <label>pitch Δ°</label><input type="number" id="pitchIn" step="0.1" value="0">
+  <label>yaw Δ°</label><input type="number" id="yawIn" step="0.1" value="0">
+  <label>X</label><input type="number" id="offX" step="1" value="0">
+  <label>Y</label><input type="number" id="offY" step="1" value="0">
+  <button id="reset">重置</button>
+  <button id="export">导出 fit.json</button>
+  <span class="hint">调 scale/pitchΔ/yawΔ 转角度套上 AI · 拖动平移 · Δ=0 即标准角度(红=顶面 蓝三面墙)</span>
+</div>
+<div id="wrap">
+  <canvas id="cv" width="1024" height="1024"></canvas>
+</div>
+<script>
+// geometry constants (blender/templates/template_design_e0.json + geometry.py projector)
+const PITCH_STD = 35.26, YAW_STD = -15.0;
+const SCALE_PX = 376.33262927447333;   // scale_px_per_unit
+const ORIGIN = [512.0, 427.4949885721091];
+const DEPTH_WORLD = 0.55;               // thickness_world (e0)
+const EDGE = 1.0;                       // hex_edge_world
+
+let img = null, fileName = "tile";
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const fileInput = document.getElementById("file");
+const scaleIn = document.getElementById("scaleIn");
+const pitchIn = document.getElementById("pitchIn");
+const yawIn = document.getElementById("yawIn");
+const offX = document.getElementById("offX");
+const offY = document.getElementById("offY");
+
+// --- projection math, mirrored from geometry.py projector() + hex_corner() ---
+function project(x, y, z, pitchDeg, yawDeg) {
+  const cy = Math.cos(yawDeg*Math.PI/180), sy = Math.sin(yawDeg*Math.PI/180);
+  const sp = Math.sin(pitchDeg*Math.PI/180), cp = Math.cos(pitchDeg*Math.PI/180);
+  const sx = x*cy + y*sy;
+  const syy = -((-x*sy + y*cy)*sp + z*cp);
+  return [sx, syy];
+}
+function hexCorner(i, edge) {
+  const a = (60*i)*Math.PI/180;
+  return [Math.cos(a)*edge, Math.sin(a)*edge];
+}
+function params() {
+  return {
+    scale: parseFloat(scaleIn.value) || 1,
+    pitch: PITCH_STD + (parseFloat(pitchIn.value) || 0),
+    yaw: YAW_STD + (parseFloat(yawIn.value) || 0),
+    ox: parseFloat(offX.value) || 0,
+    oy: parseFloat(offY.value) || 0,
+  };
+}
+function toCanvas(p, P) {
+  return [p[0]*SCALE_PX*P.scale + ORIGIN[0] + P.ox, p[1]*SCALE_PX*P.scale + ORIGIN[1] + P.oy];
+}
+function topVerts(P) {
+  return [0,1,2,3,4,5].map(i => {
+    const h = hexCorner(i, EDGE);
+    return toCanvas(project(h[0], h[1], 0, P.pitch, P.yaw), P);
+  });
+}
+function wallVerts(P) {
+  // visible walls fixed to standard [3,4,5] (valid for small pitch/yaw delta)
+  const walls = {};
+  for (const i of [3,4,5]) {
+    const a = hexCorner(i, EDGE), b = hexCorner(i+1, EDGE);
+    const na = (60*i+30)*Math.PI/180;
+    const rx = -Math.sin(na), ry = Math.cos(na);
+    const dx = b[0]-a[0], dy = b[1]-a[1];
+    const fwd = dx*rx + dy*ry >= 0;
+    const left = fwd ? a : b, right = fwd ? b : a;
+    walls[i] = [
+      toCanvas(project(left[0], left[1], 0, P.pitch, P.yaw), P),
+      toCanvas(project(right[0], right[1], 0, P.pitch, P.yaw), P),
+      toCanvas(project(right[0], right[1], -DEPTH_WORLD, P.pitch, P.yaw), P),
+      toCanvas(project(left[0], left[1], -DEPTH_WORLD, P.pitch, P.yaw), P),
+    ];
+  }
+  return walls;
+}
+
+function loadFile(f) {
+  fileName = f.name.replace(/\.[^.]+$/, "");
+  const reader = new FileReader();
+  reader.onload = e => {
+    const image = new Image();
+    image.onload = () => { img = image; draw(); };
+    image.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+fileInput.onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+
+function draw() {
+  const P = params();
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (img) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  const V = topVerts(P);
+  const W = wallVerts(P);
+  ctx.strokeStyle = "rgba(80,150,255,0.7)";
+  ctx.lineWidth = 2;
+  for (const i of [3,4,5]) {
+    const w = W[i];
+    ctx.beginPath();
+    ctx.moveTo(w[0][0], w[0][1]);
+    for (let k=1; k<4; k++) ctx.lineTo(w[k][0], w[k][1]);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(255,80,80,0.95)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(V[0][0], V[0][1]);
+  for (let i=1; i<6; i++) ctx.lineTo(V[i][0], V[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+  for (let i=0; i<6; i++) {
+    ctx.beginPath();
+    ctx.arc(V[i][0], V[i][1], 7, 0, Math.PI*2);
+    ctx.fillStyle = (i===1||i===2) ? "#ff6" : "#f66";
+    ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+}
+
+for (const inp of [scaleIn, pitchIn, yawIn, offX, offY]) inp.oninput = () => draw();
+
+function canvasPos(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX-r.left)*(cv.width/r.width), (e.clientY-r.top)*(cv.height/r.height)];
+}
+let drag = null;
+cv.onpointerdown = e => { drag = { last: canvasPos(e) }; cv.setPointerCapture(e.pointerId); };
+cv.onpointermove = e => {
+  if (!drag) return;
+  const [x,y] = canvasPos(e);
+  offX.value = (parseFloat(offX.value)||0) + (x - drag.last[0]);
+  offY.value = (parseFloat(offY.value)||0) + (y - drag.last[1]);
+  drag.last = [x,y];
+  draw();
+};
+cv.onpointerup = e => { drag = null; };
+cv.onpointercancel = e => { drag = null; };
+
+document.getElementById("reset").onclick = () => {
+  scaleIn.value=1; pitchIn.value=0; yawIn.value=0; offX.value=0; offY.value=0; draw();
+};
+
+document.getElementById("export").onclick = () => {
+  const fit = {
+    schema: "inkmon.tile_source_fit.v1",
+    source_image: fileName,
+    basis: { pitch_std: PITCH_STD, yaw_std: YAW_STD, scale_px_per_unit: SCALE_PX, origin_px: ORIGIN, hex_edge_world: EDGE, thickness_world: DEPTH_WORLD },
+    transform: {
+      scale: parseFloat(scaleIn.value) || 1,
+      pitch_delta: parseFloat(pitchIn.value) || 0,
+      yaw_delta: parseFloat(yawIn.value) || 0,
+      offset: [parseFloat(offX.value)||0, parseFloat(offY.value)||0],
+    },
+    fit: { mode: "parametric" },
+  };
+  const blob = new Blob([JSON.stringify(fit, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName + ".fit.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+draw();
+</script>
+</body>
+</html>

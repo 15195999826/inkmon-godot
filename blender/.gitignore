@@ -3,7 +3,6 @@
 *.blend.import
 renders/
 __pycache__/
-# 线稿模板与占位图：脚本确定性产物，重生成即得（make_templates.py / make_placeholder.py）
-templates/
+# 线稿模板纳入 Git：template sets / placeholders 都作为可追踪资产。
 # 候选评估缓冲：烘焙试评用，永不 commit（lab=原始真相，git=批准品真相，缓冲不构成第三真相）
 textures/_candidates/

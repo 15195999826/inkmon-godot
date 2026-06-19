@@ -10,12 +10,16 @@
 # 右 panel 与 UV 画布是相似变换 —— 仿射从 sidecar 的 uv_top ↔ UV 模板 top 三角点直接解出，
 # 不复制 geometry.dual_layout 的布局公式（sidecar 即契约）。
 #
+# atlas（Route 3.1）：双联 atlas 右 panel（top hex + continuous wall strip）→ 标准 atlas 画布。
+#
 # 用法（repo 根）：
 #   python blender/scripts/texgen/warp.py design <design.png> -e 0 -o <uv_out.png>
+#   python blender/scripts/texgen/warp.py dual-design <dual.png> -e 0 -o <design_out.png>
 #   python blender/scripts/texgen/warp.py dual <dual.png> -e 0 -o <uv_out.png>
+#   python blender/scripts/texgen/warp.py atlas <dual_atlas.png> -e 0 -o <atlas_out.png>
 #   python blender/scripts/texgen/warp.py cut <grid.png> -q 0 -r 0 -o <top_out.png>
 #   python blender/scripts/texgen/warp.py relayout <old_uv.png> -e 0 --old-sidecar <旧.json> -o <new_uv.png>
-#   （sidecar 默认从 blender/templates/ 按海拔/类型取；--sidecar 可显式指定）
+#   （sidecar 默认从 blender/templates/standard-templates/ 按海拔/类型取；--sidecar 可显式指定）
 
 import argparse
 import json
@@ -28,7 +32,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from texgen import geometry as G
 
-TEMPLATES_DIR = os.path.join(G.repo_root(), "blender", "templates")
+TEMPLATES_DIR = os.path.join(G.repo_root(), "blender", "templates", "standard-templates")
 
 
 def load_sidecar(path: str) -> dict:
@@ -121,6 +125,50 @@ def extract_dual_uv(dual_png: str, dual_sidecar: dict, uv_sidecar: dict, out_png
     return {"upscale_max": float(sv.max()), "upscale_min": float(sv.min())}
 
 
+def extract_dual_design(dual_png: str, dual_sidecar: dict, design_sidecar: dict, out_png: str) -> dict:
+    """双联左 panel → 标准 design 画布。
+
+    输出仍只是 design_warp 的输入，不是最终 sprite。
+    """
+    img = Image.open(dual_png).convert("RGBA")
+    dw, dh = dual_sidecar["canvas"]
+    if img.size != (dw, dh):
+        raise ValueError("双联图尺寸 %s ≠ 模板画布 %s" % (img.size, (dw, dh)))
+    ow, oh = design_sidecar["canvas"]
+    src_p = dual_sidecar["faces"]["design_top"]["polygon_px"]
+    dst_p = design_sidecar["faces"]["top"]["polygon_px"]
+    coeffs = affine_coeffs([dst_p[0], dst_p[2], dst_p[4]], [src_p[0], src_p[2], src_p[4]])
+    flat = img.transform((ow, oh), Image.Transform.AFFINE, coeffs, resample=Image.Resampling.BICUBIC)
+    canvas = Image.new("RGBA", (ow, oh), (0, 0, 0, 0))
+    for face in design_sidecar["faces"].values():
+        mask = _poly_mask((ow, oh), face.get("polygon_px") or face.get("quad_px"))
+        canvas.paste(flat, (0, 0), mask)
+    canvas.save(out_png)
+    m = np.array([[coeffs[0], coeffs[1]], [coeffs[3], coeffs[4]]])
+    sv = np.linalg.svd(np.linalg.inv(m), compute_uv=False)
+    return {"upscale_max": float(sv.max()), "upscale_min": float(sv.min())}
+
+
+def extract_dual_atlas(dual_png: str, dual_sidecar: dict, atlas_sidecar: dict, out_png: str) -> dict:
+    img = Image.open(dual_png).convert("RGBA")
+    dw, dh = dual_sidecar["canvas"]
+    if img.size != (dw, dh):
+        raise ValueError("双联 atlas 图尺寸 %s ≠ 模板画布 %s" % (img.size, (dw, dh)))
+    aw, ah = atlas_sidecar["canvas"]
+    src_p = dual_sidecar["faces"]["atlas_top"]["polygon_px"]
+    dst_p = atlas_sidecar["faces"]["top"]["polygon_px"]
+    coeffs = affine_coeffs([dst_p[0], dst_p[2], dst_p[4]], [src_p[0], src_p[2], src_p[4]])
+    flat = img.transform((aw, ah), Image.Transform.AFFINE, coeffs, resample=Image.Resampling.BICUBIC)
+    canvas = Image.new("RGBA", (aw, ah), (0, 0, 0, 0))
+    for face in atlas_sidecar["faces"].values():
+        mask = _poly_mask((aw, ah), face.get("polygon_px") or face.get("quad_px"))
+        canvas.paste(flat, (0, 0), mask)
+    canvas.save(out_png)
+    m = np.array([[coeffs[0], coeffs[1]], [coeffs[3], coeffs[4]]])
+    sv = np.linalg.svd(np.linalg.inv(m), compute_uv=False)
+    return {"upscale_max": float(sv.max()), "upscale_min": float(sv.min())}
+
+
 # ---------------------------------------------------------------- grid → 单格顶面
 
 def cut_grid_cell(grid_png: str, grid_sidecar: dict, q: int, r: int, out_png: str, pad_px: int = 8) -> dict:
@@ -193,6 +241,13 @@ def main():
     d.add_argument("--uv-sidecar", default=None)
     d.add_argument("-o", "--out", required=True)
 
+    dd = sub.add_parser("dual-design", help="双联左 panel → 标准 design 画布")
+    dd.add_argument("image")
+    dd.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
+    dd.add_argument("--dual-sidecar", default=None)
+    dd.add_argument("--design-sidecar", default=None)
+    dd.add_argument("-o", "--out", required=True)
+
     r = sub.add_parser("relayout", help="旧布局 UV 贴图 → 现行布局（逐面仿射搬运，迁移用）")
     r.add_argument("image")
     r.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
@@ -206,6 +261,13 @@ def main():
     b.add_argument("--dual-sidecar", default=None)
     b.add_argument("--uv-sidecar", default=None)
     b.add_argument("-o", "--out", required=True)
+
+    a = sub.add_parser("atlas", help="双联 atlas 右 panel → 标准 atlas 画布")
+    a.add_argument("image")
+    a.add_argument("-e", "--elevation", type=int, choices=[0, 1, 2], default=0)
+    a.add_argument("--dual-sidecar", default=None)
+    a.add_argument("--atlas-sidecar", default=None)
+    a.add_argument("-o", "--out", required=True)
 
     c = sub.add_parser("cut", help="俯视网格 → 单格顶面 mask 裁切")
     c.add_argument("image")
@@ -231,6 +293,12 @@ def main():
         print("WARP OK ->", args.out)
         for face, info in report.items():
             print("  %-8s stretch %.3f .. %.3f" % (face, info["stretch_min"], info["stretch_max"]))
+    elif args.cmd == "dual-design":
+        ds = load_sidecar(args.dual_sidecar or default_sidecar("dual", args.elevation))
+        design = load_sidecar(args.design_sidecar or default_sidecar("design", args.elevation))
+        info = extract_dual_design(args.image, ds, design, args.out)
+        print("DUAL LEFT->DESIGN OK ->", args.out)
+        print("  upscale %.3f .. %.3f（左 panel → design 画布分辨率放大量）" % (info["upscale_min"], info["upscale_max"]))
     elif args.cmd == "relayout":
         old = load_sidecar(args.old_sidecar)
         us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
@@ -246,6 +314,12 @@ def main():
         info = extract_dual_uv(args.image, ds, us, args.out)
         print("DUAL EXTRACT OK ->", args.out)
         print("  upscale %.3f .. %.3f（右 panel → UV 画布分辨率放大量）" % (info["upscale_min"], info["upscale_max"]))
+    elif args.cmd == "atlas":
+        ds = load_sidecar(args.dual_sidecar or default_sidecar("dual_atlas", args.elevation))
+        atlas = load_sidecar(args.atlas_sidecar or default_sidecar("atlas", args.elevation))
+        info = extract_dual_atlas(args.image, ds, atlas, args.out)
+        print("ATLAS EXTRACT OK ->", args.out)
+        print("  upscale %.3f .. %.3f（右 panel → atlas 画布分辨率放大量）" % (info["upscale_min"], info["upscale_max"]))
     elif args.cmd == "seed":
         us = load_sidecar(args.uv_sidecar or default_sidecar("uv", args.elevation))
         gs = load_sidecar(args.grid_sidecar or default_sidecar("grid"))

@@ -29,6 +29,7 @@ _SCRIPTS_DIR = (os.path.dirname(os.path.abspath(__file__)) if "__file__" in glob
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from texgen import geometry as texgen_geometry
+from texgen import tile_pipeline_modes
 
 # ============================================================ 参数（单一真相，改这里 → 重烘 → Godot 自动跟随）
 
@@ -49,6 +50,9 @@ CONFIG = {
     "thickness": 0.55,          # 海拔 0 的棱柱深度（顶面 z=0，向下）
     "elevation_step": 0.5,      # 每级海拔追加的侧壁深度
     "water_recess": 0.12,       # 水面相对地表的下沉
+    "tile_pipeline_mode": tile_pipeline_modes.MODE1_ROUNDED,
+    "tile_bevel_enabled": True,
+    "tile_smooth_enabled": True,
     "bevel_width": 0.06,
     "bevel_segments": 3,
     # 手绘墨线（Freestyle）
@@ -56,6 +60,11 @@ CONFIG = {
     "ink_color": (0.16, 0.12, 0.08),   # 暖墨褐（线性空间）
     "ink_thickness_px": 3.2,
     "ink_wobble_px": 1.5,              # 手绘抖动幅度
+    "ink_exclude_wall_stitch_edges": False,  # candidate-only: 不让 wall-wall 缝合竖边吃 Freestyle 墨线
+    "ink_corner_enabled": False,       # candidate-only: 单独给 wall-wall 立体转角补受控 crease line
+    "ink_corner_color": (0.13, 0.10, 0.07),
+    "ink_corner_thickness_px": 2.0,
+    "ink_corner_wobble_px": 0.35,
     # 出图
     "px_per_unit": 128,         # 1 世界单位 = 128 px → px_per_hex_edge = 128
     "canvas_px": 512,
@@ -97,6 +106,17 @@ def _gen_config() -> dict:
         with open(p, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
+
+
+def apply_tile_pipeline_mode(mode: str) -> dict:
+    """Apply one named tile model pipeline to CONFIG.
+
+    The shared names live in texgen.tile_pipeline_modes:
+    mode 1 / 圆边, mode 2 / 硬边, mode 3 / 倒角.
+    """
+    spec = tile_pipeline_modes.spec(mode)
+    CONFIG.update(spec["config_patch"])
+    return spec
 
 
 def _srgb(hexstr):
@@ -215,28 +235,7 @@ def setup_stage():
     vl.use_freestyle = cfg["ink_enabled"]
     fs = vl.freestyle_settings
     fs.crease_angle = math.radians(120.0)
-    if not fs.linesets:
-        fs.linesets.new("ink")
-    ls = fs.linesets[0]
-    ls.select_silhouette = True
-    ls.select_border = True
-    ls.select_crease = True
-    ls.select_external_contour = True
-    style = ls.linestyle
-    style.color = cfg["ink_color"]
-    style.thickness = cfg["ink_thickness_px"]
-    style.thickness_position = "INSIDE"
-    mod = next((m for m in style.geometry_modifiers if m.type == "PERLIN_NOISE_2D"), None)
-    if mod is None:
-        mod = style.geometry_modifiers.new("wobble", "PERLIN_NOISE_2D")
-    mod.amplitude = cfg["ink_wobble_px"]
-    mod.frequency = 12.0
-    mod.octaves = 2
-    tmod = next((m for m in style.thickness_modifiers if m.type == "NOISE"), None)
-    if tmod is None:
-        tmod = style.thickness_modifiers.new("taper", "NOISE")
-    tmod.amplitude = cfg["ink_thickness_px"] * 0.5
-    tmod.period = 18.0
+    _setup_freestyle_linesets(fs, cfg)
 
     scene.render.film_transparent = True
     scene.render.resolution_x = cfg["canvas_px"]
@@ -246,6 +245,81 @@ def setup_stage():
     scene.render.image_settings.color_mode = "RGBA"
     scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
+
+
+def _reset_linesets(fs):
+    while len(fs.linesets) > 0:
+        fs.linesets.remove(fs.linesets[0])
+
+
+def _configure_ink_style(style, color, thickness_px: float, wobble_px: float):
+    style.color = color
+    style.thickness = thickness_px
+    style.thickness_position = "INSIDE"
+    mod = next((m for m in style.geometry_modifiers if m.type == "PERLIN_NOISE_2D"), None)
+    if mod is None:
+        mod = style.geometry_modifiers.new("wobble", "PERLIN_NOISE_2D")
+    mod.amplitude = wobble_px
+    mod.frequency = 12.0
+    mod.octaves = 2
+    tmod = next((m for m in style.thickness_modifiers if m.type == "NOISE"), None)
+    if tmod is None:
+        tmod = style.thickness_modifiers.new("taper", "NOISE")
+    tmod.amplitude = thickness_px * 0.5
+    tmod.period = 18.0
+
+
+def _setup_freestyle_linesets(fs, cfg: dict):
+    """Build deterministic Freestyle line sets.
+
+    Candidate tests can mark wall-wall corner edges. The base line set may skip
+    those marks, while a second line set draws only the controlled corner crease.
+    """
+    _reset_linesets(fs)
+    if not cfg.get("ink_enabled", True):
+        return
+
+    exclude_marked = bool(
+        cfg.get("ink_exclude_wall_stitch_edges", False)
+        or cfg.get("ink_corner_enabled", False)
+    )
+
+    base = fs.linesets.new("ink_base")
+    base.show_render = True
+    base.select_by_edge_types = True
+    base.select_by_visibility = True
+    base.visibility = "VISIBLE"
+    base.select_silhouette = True
+    base.select_border = True
+    base.select_crease = True
+    base.select_external_contour = True
+    base.select_edge_mark = exclude_marked
+    base.exclude_edge_mark = exclude_marked
+    _configure_ink_style(
+        base.linestyle,
+        cfg["ink_color"],
+        cfg["ink_thickness_px"],
+        cfg["ink_wobble_px"],
+    )
+
+    if cfg.get("ink_corner_enabled", False):
+        corner = fs.linesets.new("ink_wall_corner")
+        corner.show_render = True
+        corner.select_by_edge_types = True
+        corner.select_by_visibility = True
+        corner.visibility = "VISIBLE"
+        corner.select_silhouette = False
+        corner.select_border = False
+        corner.select_crease = False
+        corner.select_external_contour = False
+        corner.select_edge_mark = True
+        corner.exclude_edge_mark = False
+        _configure_ink_style(
+            corner.linestyle,
+            cfg.get("ink_corner_color", cfg["ink_color"]),
+            cfg.get("ink_corner_thickness_px", cfg["ink_thickness_px"]),
+            cfg.get("ink_corner_wobble_px", cfg["ink_wobble_px"]),
+        )
 
 
 def ensure_shadow_catcher(visible: bool):
@@ -508,6 +582,22 @@ def _tile_material_image(name: str, image_path: str):
     return mat
 
 
+def _tile_material_atlas_image(name: str, image_path: str):
+    """候选 atlas tile 材质：top hex + continuous wall strip 的 1024px atlas。"""
+    mat, nt, bsdf = _new_mat(name)
+    img = _load_image(image_path)
+    expected = tuple(texgen_geometry.ATLAS_CANVAS)
+    if tuple(img.size) != expected:
+        raise ValueError(
+            "Atlas 贴图 %s 尺寸 %s ≠ atlas 画布 %s：禁止静默错套"
+            % (image_path, tuple(img.size), expected))
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.extension = "EXTEND"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    return mat
+
+
 def _decor_material_image(name: str, image):
     """图片装饰 alpha 面片材质：sprite 颜色 + alpha 直通（透明区不挡光不投影）。"""
     mat, nt, bsdf = _new_mat(name)
@@ -539,14 +629,24 @@ def build_materials(variant: int = 0):
 # ============================================================ 建模
 
 def _add_bevel(obj, width=None, segments=None):
+    width = CONFIG["bevel_width"] if width is None else width
+    segments = CONFIG["bevel_segments"] if segments is None else segments
+    if not CONFIG.get("tile_bevel_enabled", True) or width <= 0.0 or segments <= 0:
+        return None
     mod = obj.modifiers.new("Bevel", "BEVEL")
-    mod.width = CONFIG["bevel_width"] if width is None else width
-    mod.segments = CONFIG["bevel_segments"] if segments is None else segments
+    mod.width = width
+    mod.segments = segments
     mod.limit_method = "ANGLE"
     mod.angle_limit = math.radians(40.0)
+    return mod
 
 
 def _smooth(obj, angle_deg=40.0):
+    if not CONFIG.get("tile_smooth_enabled", True):
+        for poly in obj.data.polygons:
+            poly.use_smooth = False
+        obj.data.update()
+        return
     for poly in obj.data.polygons:
         poly.use_smooth = True
     obj.data.set_sharp_from_angle(angle=math.radians(angle_deg))
@@ -593,7 +693,85 @@ def _assign_tile_uvs(bm, elevation: int, depth: float):
                 loop[uv_layer].uv = uv_of(px, py)
 
 
-def build_hex_tile(terrain: str, elevation: int, mats, override_mat=None) -> bpy.types.Object:
+def _assign_tile_atlas_uvs(bm, elevation: int, depth: float):
+    """按 texgen atlas_layout 给 hex 棱柱赋 UV：
+    顶面采样 top hex；可见侧壁按 wall_order 连续采样 wall_strip，避免 paper-net panel seam。"""
+    layout = texgen_geometry.atlas_layout(_manifest_like(), elevation)
+    cw, ch = layout["canvas"]
+    top_poly = layout["faces"]["top"]["polygon_px"]
+    top_center = layout["faces"]["top"]["center_px"]
+    segments = layout["wall_segments"]
+    first_seg = next(iter(segments.values()))
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+
+    def uv_of(px, py):
+        return (px / cw, 1.0 - py / ch)
+
+    for face in bm.faces:
+        nz = face.normal.z
+        if nz > 0.5:
+            for loop in face.loops:
+                co = loop.vert.co
+                k = int(round((math.degrees(math.atan2(co.y, co.x)) % 360.0) / 60.0)) % 6
+                loop[uv_layer].uv = uv_of(*top_poly[k])
+        elif nz < -0.5:
+            for loop in face.loops:
+                loop[uv_layer].uv = uv_of(*top_center)
+        else:
+            ang = math.degrees(math.atan2(face.normal.y, face.normal.x)) % 360.0
+            i = int(round((ang - 30.0) / 60.0)) % 6
+            seg = segments.get("wall_%d" % i) or segments.get("wall_%d" % ((i + 3) % 6)) or first_seg
+            x0, x1 = seg["range_px"]
+            q = seg["quad_px"]
+            y0 = q[0][1]
+            y1 = q[3][1]
+            left, _right = texgen_geometry.wall_corners_lr(_manifest_like(), i)
+            for loop in face.loops:
+                co = loop.vert.co
+                d_left = math.hypot(co.x - left[0], co.y - left[1])
+                t = 0.0 if d_left < CONFIG["hex_edge"] * 0.5 else 1.0
+                v = max(0.0, min(1.0, -co.z / depth))
+                loop[uv_layer].uv = uv_of(x0 + (x1 - x0) * t, y0 + (y1 - y0) * v)
+
+
+def _mark_wall_stitch_freestyle_edges(mesh: bpy.types.Mesh):
+    """Mark visible wall-wall stitched vertical edges so Freestyle can skip them.
+
+    These edges are not the outer silhouette. They are the 3D joins between the
+    visible side-wall faces that appear as separate UV side edges in the paper net.
+    """
+    layout = texgen_geometry.uv_layout(_manifest_like(), 0)
+    stitch_corners = set()
+    order = [int(i) for i in layout["wall_order"]]
+    for left, right in zip(order, order[1:]):
+        if (left + 1) % 6 == right:
+            stitch_corners.add(right)
+    if not stitch_corners:
+        return
+
+    attr = mesh.attributes.get("freestyle_edge")
+    if attr is None:
+        attr = mesh.attributes.new("freestyle_edge", "BOOLEAN", "EDGE")
+
+    r = CONFIG["hex_edge"]
+    targets = [texgen_geometry.hex_corner(i, r) for i in stitch_corners]
+    eps = 1e-4
+    marked = 0
+    for edge in mesh.edges:
+        a = mesh.vertices[edge.vertices[0]].co
+        b = mesh.vertices[edge.vertices[1]].co
+        if abs(a.x - b.x) > eps or abs(a.y - b.y) > eps or abs(a.z - b.z) < eps:
+            continue
+        for tx, ty in targets:
+            if abs(a.x - tx) <= eps and abs(a.y - ty) <= eps:
+                attr.data[edge.index].value = True
+                marked += 1
+                break
+    if marked == 0:
+        print("WARN: no wall stitch Freestyle edges marked")
+
+
+def build_hex_tile(terrain: str, elevation: int, mats, override_mat=None, uv_layout: str = "uv") -> bpy.types.Object:
     """hex 棱柱：顶面 z=0（水面下沉 water_recess），深度 = thickness + elevation*step。
     override_mat = 生图贴图材质（image texture，UV 已按 uv_layout 赋好）。"""
     cfg = CONFIG
@@ -611,11 +789,16 @@ def build_hex_tile(terrain: str, elevation: int, mats, override_mat=None) -> bpy
     new_verts = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
     bmesh.ops.translate(bm, verts=new_verts, vec=(0.0, 0.0, -(depth - (0.0 - top_z))))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    _assign_tile_uvs(bm, elevation, depth)
+    if uv_layout == "atlas":
+        _assign_tile_atlas_uvs(bm, elevation, depth)
+    else:
+        _assign_tile_uvs(bm, elevation, depth)
 
     mesh = bpy.data.meshes.new("tile_%s_e%d" % (terrain, elevation))
     bm.to_mesh(mesh)
     bm.free()
+    if CONFIG.get("ink_exclude_wall_stitch_edges", False) or CONFIG.get("ink_corner_enabled", False):
+        _mark_wall_stitch_freestyle_edges(mesh)
     obj = bpy.data.objects.new("tile_%s_e%d" % (terrain, elevation), mesh)
     bpy.context.scene.collection.objects.link(obj)
     obj.data.materials.append(override_mat if override_mat is not None else mats[terrain])
@@ -1003,6 +1186,17 @@ def bake_tile_candidate(uv_texture_path: str, terrain: str, elevation: int, out_
     print("CANDIDATE TILE BAKED ->", out_path)
 
 
+def bake_tile_atlas_candidate(atlas_texture_path: str, terrain: str, elevation: int, out_path: str):
+    """单个候选 atlas 贴图 → atlas UV mapping hex tile → 烘焙 PNG。"""
+    setup_stage()
+    clear_assets()
+    ensure_shadow_catcher(False)
+    mat = _tile_material_atlas_image("mat_img_candidate_atlas", atlas_texture_path)
+    build_hex_tile(terrain, elevation, None, override_mat=mat, uv_layout="atlas")
+    render_to(out_path)
+    print("CANDIDATE ATLAS TILE BAKED ->", out_path)
+
+
 def bake_decor_candidate(sprite_path: str, out_path: str, world_height: float = 0.0):
     """单个候选 sprite → alpha 面片 → 烘焙 PNG（接地影开，Freestyle 关）。"""
     setup_stage()
@@ -1018,12 +1212,19 @@ def _cli(argv):
       （无参数 = bake_all 全量；候选试评见下）
       --subset <资产名,逗号分隔>   只重烘子集（manifest 仍全量重写；入库后定向重烘用）
       --candidate-tile <uv_png> <terrain> <elev> --out <png>
-      --candidate-decor <sprite_png> --out <png> [--height <world_h>]"""
+      --candidate-tile-atlas <atlas_png> <terrain> <elev> --out <png>
+      --candidate-decor <sprite_png> --out <png> [--height <world_h>]
+      --tile-pipeline <圆边|硬边|倒角|mode1|mode2|mode3>   覆盖 tile mesh pipeline"""
+    if "--tile-pipeline" in argv:
+        apply_tile_pipeline_mode(argv[argv.index("--tile-pipeline") + 1])
     if "--subset" in argv:
         bake_all(subset=set(argv[argv.index("--subset") + 1].split(",")))
     elif "--candidate-tile" in argv:
         i = argv.index("--candidate-tile")
         bake_tile_candidate(argv[i + 1], argv[i + 2], int(argv[i + 3]), argv[argv.index("--out") + 1])
+    elif "--candidate-tile-atlas" in argv:
+        i = argv.index("--candidate-tile-atlas")
+        bake_tile_atlas_candidate(argv[i + 1], argv[i + 2], int(argv[i + 3]), argv[argv.index("--out") + 1])
     elif "--candidate-decor" in argv:
         i = argv.index("--candidate-decor")
         h = float(argv[argv.index("--height") + 1]) if "--height" in argv else 0.0

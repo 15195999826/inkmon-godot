@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1536" viewBox="0 0 1536 1536">
+<rect width="1536" height="1536" fill="white"/>
+<path d="M 1024.00 768.00 L 896.00 546.30 L 640.00 546.30 L 512.00 768.00 L 640.00 989.70 L 896.00 989.70 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 1408.00 989.70 L 1280.00 768.00 L 1024.00 768.00 L 896.00 989.70 L 1024.00 1211.41 L 1280.00 1211.41 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 1408.00 546.30 L 1280.00 324.59 L 1024.00 324.59 L 896.00 546.30 L 1024.00 768.00 L 1280.00 768.00 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 1024.00 324.59 L 896.00 102.89 L 640.00 102.89 L 512.00 324.59 L 640.00 546.30 L 896.00 546.30 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 640.00 546.30 L 512.00 324.59 L 256.00 324.59 L 128.00 546.30 L 256.00 768.00 L 512.00 768.00 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 640.00 989.70 L 512.00 768.00 L 256.00 768.00 L 128.00 989.70 L 256.00 1211.41 L 512.00 1211.41 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M 1024.00 1211.41 L 896.00 989.70 L 640.00 989.70 L 512.00 1211.41 L 640.00 1433.11 L 896.00 1433.11 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+</svg>

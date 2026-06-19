@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+<rect width="1536" height="1024" fill="white"/>
+<path d="M 1024.00 313.60 L 896.00 91.90 L 640.00 91.90 L 512.00 313.60 L 640.00 535.30 L 896.00 535.30 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 512.00 313.60 L 640.00 535.30 L 296.36 733.70 L 168.36 512.00 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 640.00 535.30 L 896.00 535.30 L 896.00 932.10 L 640.00 932.10 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 896.00 535.30 L 1024.00 313.60 L 1367.64 512.00 L 1239.64 733.70 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<line x1="1024.00" y1="313.60" x2="896.00" y2="91.90" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="896.00" y1="91.90" x2="640.00" y2="91.90" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="640.00" y1="91.90" x2="512.00" y2="313.60" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="640.00" y1="535.30" x2="296.36" y2="733.70" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="296.36" y1="733.70" x2="168.36" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="168.36" y1="512.00" x2="512.00" y2="313.60" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="896.00" y1="535.30" x2="896.00" y2="932.10" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="896.00" y1="932.10" x2="640.00" y2="932.10" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="640.00" y1="932.10" x2="640.00" y2="535.30" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1024.00" y1="313.60" x2="1367.64" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1367.64" y1="512.00" x2="1239.64" y2="733.70" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1239.64" y1="733.70" x2="896.00" y2="535.30" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="512.00" y1="313.60" x2="640.00" y2="535.30" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="640.00" y1="535.30" x2="896.00" y2="535.30" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="896.00" y1="535.30" x2="1024.00" y2="313.60" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+</svg>

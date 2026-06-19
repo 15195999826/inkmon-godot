@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+<rect width="1536" height="1024" fill="white"/>
+<line x1="768.00" y1="0.00" x2="768.00" y2="1024.00" stroke="rgb(40, 40, 40)" stroke-width="2" stroke-linecap="round"/>
+<line x1="622.55" y1="369.23" x2="447.92" y2="268.41" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="447.92" y1="268.41" x2="209.37" y2="305.32" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="209.37" y1="305.32" x2="145.45" y2="443.03" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="755.59" x2="145.45" y2="654.77" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="145.45" y1="654.77" x2="145.45" y2="443.03" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="718.68" x2="320.08" y2="755.59" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="622.55" y1="369.23" x2="622.55" y2="580.97" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="622.55" y1="580.97" x2="558.63" y2="718.68" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="145.45" y1="443.03" x2="320.08" y2="543.84" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="543.84" x2="558.63" y2="506.94" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="506.94" x2="622.55" y2="369.23" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="755.59" x2="320.08" y2="543.84" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="718.68" x2="558.63" y2="506.94" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<path d="M 1327.98 419.61 L 1239.99 267.21 L 1064.01 267.21 L 976.02 419.61 L 1064.01 572.01 L 1239.99 572.01 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 976.02 419.61 L 1064.01 572.01 L 903.99 664.40 L 816.00 512.00 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 1064.01 572.01 L 1239.99 572.01 L 1239.99 756.79 L 1064.01 756.79 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<path d="M 1239.99 572.01 L 1327.98 419.61 L 1488.00 512.00 L 1400.01 664.40 Z" fill="rgb(246, 246, 242)" stroke="none"/>
+<line x1="1327.98" y1="419.61" x2="1239.99" y2="267.21" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1239.99" y1="267.21" x2="1064.01" y2="267.21" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1064.01" y1="267.21" x2="976.02" y2="419.61" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1064.01" y1="572.01" x2="903.99" y2="664.40" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="903.99" y1="664.40" x2="816.00" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="816.00" y1="512.00" x2="976.02" y2="419.61" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1239.99" y1="572.01" x2="1239.99" y2="756.79" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1239.99" y1="756.79" x2="1064.01" y2="756.79" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1064.01" y1="756.79" x2="1064.01" y2="572.01" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1327.98" y1="419.61" x2="1488.00" y2="512.00" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1488.00" y1="512.00" x2="1400.01" y2="664.40" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="1400.01" y1="664.40" x2="1239.99" y2="572.01" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="976.02" y1="419.61" x2="1064.01" y2="572.01" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="1064.01" y1="572.01" x2="1239.99" y2="572.01" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+<line x1="1239.99" y1="572.01" x2="1327.98" y2="419.61" stroke="rgb(40, 40, 40)" stroke-width="3" stroke-linecap="round"/>
+</svg>

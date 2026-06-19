@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" fill="white"/>
+<line x1="875.51" y1="294.44" x2="609.40" y2="140.82" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="609.40" y1="140.82" x2="245.89" y2="197.05" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="245.89" y1="197.05" x2="148.49" y2="406.90" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="414.60" y1="883.18" x2="148.49" y2="729.56" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="148.49" y1="729.56" x2="148.49" y2="406.90" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="778.11" y1="826.95" x2="414.60" y2="883.18" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="875.51" y1="294.44" x2="875.51" y2="617.10" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="875.51" y1="617.10" x2="778.11" y2="826.95" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="148.49" y1="406.90" x2="414.60" y2="560.52" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="414.60" y1="560.52" x2="778.11" y2="504.29" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="778.11" y1="504.29" x2="875.51" y2="294.44" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="414.60" y1="883.18" x2="414.60" y2="560.52" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="778.11" y1="826.95" x2="778.11" y2="504.29" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+</svg>

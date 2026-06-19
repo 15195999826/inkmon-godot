@@ -1,0 +1,26 @@
+{
+  "template_set": "standard-edged-templates",
+  "model_kind": "edged_hex_prism_bevel_band",
+  "view": {
+    "pitch_deg": 35.26,
+    "yaw_deg": -15.0
+  },
+  "blender_model": {
+    "blend": "blender/models/template_tiles/hex_tile_template_models.blend",
+    "object": "standard_edged_hex_prism_bevel_band",
+    "camera": "camera_standard_edged_pitch35_26_yaw_minus15"
+  },
+  "geometry": {
+    "hex_orientation": "flat_top",
+    "hex_edge_world": 1.0,
+    "thickness_world": 0.55,
+    "bevel": true,
+    "bevel_inset_world": 0.055,
+    "bevel_drop_world": 0.035,
+    "inner_edge_world": 0.9364914703891412
+  },
+  "generator": {
+    "script": "blender/scripts/texgen/beveled_tile_prototype.py",
+    "command": "python blender/scripts/texgen/beveled_tile_prototype.py --stage templates --template-out blender/templates/standard-edged-templates"
+  }
+}

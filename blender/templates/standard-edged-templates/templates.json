@@ -1,0 +1,16 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01",
+  "template_dir": "blender\\templates\\standard-edged-templates",
+  "templates": [
+    "blender\\templates\\standard-edged-templates\\beveled_design_e0.svg",
+    "blender\\templates\\standard-edged-templates\\beveled_design_e0.png",
+    "blender\\templates\\standard-edged-templates\\beveled_design_e0.json",
+    "blender\\templates\\standard-edged-templates\\beveled_uv_e0.svg",
+    "blender\\templates\\standard-edged-templates\\beveled_uv_e0.png",
+    "blender\\templates\\standard-edged-templates\\beveled_uv_e0.json"
+  ],
+  "pitch_deg": 35.26,
+  "yaw_deg": -15.0,
+  "bevel_inset_world": 0.055,
+  "bevel_drop_world": 0.035
+}

@@ -152,3 +152,4 @@ LGF 原始架构文档：`addons/logic-game-framework/AGENTS.md` 和同级 `docs
 - **分支策略：除非用户明确要求，开发与提交一律在主分支（`master`）直接进行，不擅自开 feature/refactor 分支**（覆盖"在默认分支上先 branch"的通用习惯）。需要隔离时用户会明说要开分支。
 - 响应用中文，技术术语/代码保留英文
 - UI/场景改动需在编辑器中验证，不能仅靠 headless
+- `texture-gen` 生图一律使用 `quality=low`；这不等于低分辨率，地图参考图等需要细节的场景可以提高 `size`（如 4K）。不要为了贴图清晰度切 `medium/high`，清晰度优先通过更高 `size`、`2048 internal -> 512 Lanczos + UnsharpMask` 等 bake 后处理保证。

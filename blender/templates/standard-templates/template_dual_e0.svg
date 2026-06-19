@@ -1,10 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
 <rect width="1536" height="1024" fill="white"/>
 <line x1="768.00" y1="0.00" x2="768.00" y2="1024.00" stroke="rgb(40, 40, 40)" stroke-width="2" stroke-linecap="round"/>
-<path d="M 622.55 419.64 L 447.92 318.83 L 209.37 355.73 L 145.45 493.44 L 320.08 594.26 L 558.63 557.36 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
-<path d="M 145.45 493.44 L 320.08 594.26 L 320.08 705.17 L 145.45 604.36 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
-<path d="M 320.08 594.26 L 558.63 557.36 L 558.63 668.27 L 320.08 705.17 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
-<path d="M 558.63 557.36 L 622.55 419.64 L 622.55 530.56 L 558.63 668.27 Z" fill="none" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linejoin="round"/>
+<line x1="622.55" y1="419.64" x2="447.92" y2="318.83" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="447.92" y1="318.83" x2="209.37" y2="355.73" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="209.37" y1="355.73" x2="145.45" y2="493.44" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="705.17" x2="145.45" y2="604.36" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="145.45" y1="604.36" x2="145.45" y2="493.44" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="668.27" x2="320.08" y2="705.17" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="622.55" y1="419.64" x2="622.55" y2="530.56" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="622.55" y1="530.56" x2="558.63" y2="668.27" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="145.45" y1="493.44" x2="320.08" y2="594.26" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="594.26" x2="558.63" y2="557.36" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="557.36" x2="622.55" y2="419.64" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="320.08" y1="705.17" x2="320.08" y2="594.26" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
+<line x1="558.63" y1="668.27" x2="558.63" y2="557.36" stroke="rgb(40, 40, 40)" stroke-width="4" stroke-linecap="round"/>
 <path d="M 1379.59 449.41 L 1265.80 252.31 L 1038.20 252.31 L 924.41 449.41 L 1038.20 646.51 L 1265.80 646.51 Z" fill="rgb(246, 246, 242)" stroke="none"/>
 <path d="M 924.41 449.41 L 1038.20 646.51 L 929.80 709.10 L 816.00 512.00 Z" fill="rgb(246, 246, 242)" stroke="none"/>
 <path d="M 1038.20 646.51 L 1265.80 646.51 L 1265.80 771.69 L 1038.20 771.69 Z" fill="rgb(246, 246, 242)" stroke="none"/>

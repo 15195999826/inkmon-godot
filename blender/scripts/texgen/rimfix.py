@@ -10,7 +10,7 @@
 #
 # 用法（repo 根）：
 #   python blender/scripts/texgen/rimfix.py <design.png> -e 1 -o <out.png>
-#   （sidecar 默认 blender/templates/template_design_e<N>.json；--sidecar 可显式指定）
+#   （sidecar 默认 blender/templates/standard-templates/template_design_e<N>.json；--sidecar 可显式指定）
 
 import argparse
 import json
@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from texgen.make_templates import LINE_COLOR, LINE_W
 
-TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "templates")
+TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "templates", "standard-templates")
 
 
 def _face_polygons(sidecar: dict) -> dict:

@@ -13,6 +13,8 @@
 - **2.1 [主游戏架构](main-game-architecture.md)** — 主世界 / 战斗 / 存档三块 + 同步 tick 运行模型 + 三层 + Host + 所有权边界。**主游戏代码的唯一架构真相。**
 - **2.2 [架构决策记录 ADR](adr/)** — 主游戏架构决策正本(0001 统一 live-actor / 0002 GI 组织规则 / 0003-0004 item·装备 / 0005-0007 2D 表演管线 / 0008 视角方案拍板:保守固定视角+整图面片主案)。
 - **2.3 [技术参考 reference/](reference/)** — 落地细节笔记(content-contract-v2 投影契约 / YSort 遮挡标注)。
+- **2.4 [Route 3 tile texture 试验矩阵](tile-texture-route3-experiment-matrix.md)** — dual canvas / atlas / Blender mesh·shader·Freestyle 的可调维度、组合实验与报告模板。
+- **2.5 [Tile texture bake pipeline modes](tile-texture-bake-pipeline-modes.md)** — 圆边/硬边/倒角三条 Blender tile 模型管线的代码契约。
 
 ## 3. 设计 / 未来
 
