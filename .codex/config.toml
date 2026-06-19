@@ -6,5 +6,8 @@ args = [
     "blender-mcp",
 ]
 
+[mcp_servers.blender.tools.execute_blender_code]
+approval_mode = "approve"
+
 [mcp_servers.godot-docs]
 command = "godot-docs-mcp"
