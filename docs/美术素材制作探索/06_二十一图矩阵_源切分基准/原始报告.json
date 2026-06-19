@@ -1,0 +1,25 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01",
+  "modes": [
+    "original_both_faces_own",
+    "next_face_owns_seam_12",
+    "next_face_owns_seam_24",
+    "prev_face_owns_seam_12",
+    "prev_face_owns_seam_24",
+    "both_faces_avoid_seam_10",
+    "all_wall_edges_inset_8"
+  ],
+  "baked": {
+    "original_both_faces_own": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\original_both_faces_own_unlit_no_bevel.png",
+    "next_face_owns_seam_12": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\next_face_owns_seam_12_unlit_no_bevel.png",
+    "next_face_owns_seam_24": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\next_face_owns_seam_24_unlit_no_bevel.png",
+    "prev_face_owns_seam_12": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\prev_face_owns_seam_12_unlit_no_bevel.png",
+    "prev_face_owns_seam_24": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\prev_face_owns_seam_24_unlit_no_bevel.png",
+    "both_faces_avoid_seam_10": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\both_faces_avoid_seam_10_unlit_no_bevel.png",
+    "all_wall_edges_inset_8": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\baked\\all_wall_edges_inset_8_unlit_no_bevel.png"
+  },
+  "full_tile_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\shots\\source_cut_variants_full_tile_compare.png",
+  "corner_zoom_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-baked-20260616-01\\shots\\source_cut_variants_corner_zoom_compare.png",
+  "source_cut_report": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-source-cut-variants-20260616-01\\REPORT.json",
+  "note": "All seven variants are baked with unlit Emission and no bevel. Godot slots were not overwritten."
+}

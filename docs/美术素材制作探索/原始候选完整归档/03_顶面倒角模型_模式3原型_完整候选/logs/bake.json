@@ -1,0 +1,25 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01",
+  "outputs": [
+    {
+      "index": 1,
+      "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\uv\\raw_01_beveled_uv.png",
+      "baked_2048": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\baked_2048\\beveled_tile_01_2048.png"
+    },
+    {
+      "index": 2,
+      "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\uv\\raw_02_beveled_uv.png",
+      "baked_2048": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\baked_2048\\beveled_tile_02_2048.png"
+    },
+    {
+      "index": 3,
+      "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\uv\\raw_03_beveled_uv.png",
+      "baked_2048": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\baked_2048\\beveled_tile_03_2048.png"
+    },
+    {
+      "index": 4,
+      "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\uv\\raw_04_beveled_uv.png",
+      "baked_2048": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\baked_2048\\beveled_tile_04_2048.png"
+    }
+  ]
+}

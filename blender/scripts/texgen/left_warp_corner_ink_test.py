@@ -39,6 +39,7 @@ _ensure_pil_available()
 
 from PIL import Image, ImageDraw, ImageFont
 
+from texgen import archive_paths
 from texgen import make_templates
 from texgen import route3_bake_matrix as base
 from texgen import warp
@@ -77,11 +78,11 @@ def _repo_root() -> Path:
 
 
 def _default_run_dir(repo: Path) -> Path:
-    return repo / "blender" / "textures" / "_candidates" / RUN_NAME
+    return archive_paths.candidate_run(repo, RUN_NAME)
 
 
 def _default_source_dual(repo: Path) -> Path:
-    return repo / "blender" / "textures" / "_candidates" / "template-connected-20260616-01" / "raw" / "dual_canvas_raw.png"
+    return archive_paths.existing_run(repo, "template-connected-20260616-01") / "raw" / "dual_canvas_raw.png"
 
 
 def _load_json(path: Path) -> dict:

@@ -23,6 +23,7 @@ if str(BLENDER_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(BLENDER_SCRIPTS_DIR))
 
 from texgen import geometry
+from texgen import archive_paths
 from texgen import source_cut_recipe_gen
 from texgen import tile_pipeline_modes
 from texgen import top_edge_21_matrix as top21
@@ -211,8 +212,7 @@ def _warp_variant(design_png: Path, design_sidecar: dict, uv_sidecar: dict, reci
 def prepare(design_png: Path, run_name: str, design_sidecar_path: Path, uv_sidecar_path: Path,
             inset_px: float, top_outline_px: float, fit_json_path=None) -> dict:
     repo = _repo_root()
-    candidates = repo / "blender" / "textures" / "_candidates"
-    run_dir = candidates / run_name
+    run_dir = archive_paths.candidate_run(repo, run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
 
     design_sidecar = _read_json(design_sidecar_path)
@@ -225,10 +225,10 @@ def prepare(design_png: Path, run_name: str, design_sidecar_path: Path, uv_sidec
         source_summary = source_cut_recipe_gen.build_bake_summary(run_dir)
         fit_source = str(fit_json_path)
     else:
-        recipe_run = candidates / RECIPE_RUN
+        recipe_run = archive_paths.existing_run(repo, RECIPE_RUN)
         recipe = _read_json(recipe_run / "logs" / "source_cut_variants_uv_report.json")
         source_summary = _read_json(recipe_run / "logs" / "source_cut_variants_bake_summary.json")
-        fit_source = "frozen:%s" % RECIPE_RUN
+        fit_source = "frozen:%s" % recipe_run
 
     original_items = []
     clean_items = []
@@ -322,7 +322,7 @@ def _bake_variants(ns: dict, base_config: dict, prepared: dict, run_dir: Path) -
 
 def bake(run_name: str) -> dict:
     repo = _repo_root()
-    run_dir = repo / "blender" / "textures" / "_candidates" / run_name
+    run_dir = archive_paths.candidate_run(repo, run_name)
     prepared = _read_json(run_dir / "logs" / "single_design_21_prepare.json")
 
     ns = top21._load_bake_assets(repo)
@@ -341,7 +341,7 @@ def bake(run_name: str) -> dict:
 
 def contact(run_name: str) -> dict:
     repo = _repo_root()
-    run_dir = repo / "blender" / "textures" / "_candidates" / run_name
+    run_dir = archive_paths.candidate_run(repo, run_name)
     prepared = _read_json(run_dir / "logs" / "single_design_21_prepare.json")
     baked = _read_json(run_dir / "logs" / "single_design_21_bake.json")
     bake_results = baked["bake_results"]

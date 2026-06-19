@@ -1,0 +1,29 @@
+{
+  "source_dual": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\template-connected-20260616-01\\raw\\dual_canvas_raw.png",
+  "copied_source_dual": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\raw\\source_dual_canvas_raw.png",
+  "dual_left_design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\raw\\dual_left_design.png",
+  "dual_left_design_warp_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+  "extract_report": {
+    "upscale_max": 1.5238095238095244,
+    "upscale_min": 1.5238095238095237
+  },
+  "warp_report": {
+    "top": {
+      "stretch_max": 1.1783539914003935,
+      "stretch_min": 0.6802492797224066
+    },
+    "wall_3": {
+      "stretch_max": 1.1781624912981896,
+      "stretch_min": 0.6802492797224067
+    },
+    "wall_4": {
+      "stretch_max": 0.8624748032021993,
+      "stretch_min": 0.6802492797224065
+    },
+    "wall_5": {
+      "stretch_max": 3.218799785798577,
+      "stretch_min": 0.6802492797224073
+    }
+  },
+  "templates_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\templates"
+}

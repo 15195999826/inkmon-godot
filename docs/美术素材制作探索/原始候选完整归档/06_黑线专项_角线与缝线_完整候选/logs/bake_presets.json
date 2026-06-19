@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "slot": "v0_texture_only",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+      "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v0_texture_only.png",
+      "config_patch": {
+        "ink_enabled": false
+      }
+    },
+    {
+      "slot": "v1_silhouette_top_only",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+      "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v1_silhouette_top_only.png",
+      "config_patch": {
+        "ink_exclude_wall_stitch_edges": true
+      }
+    },
+    {
+      "slot": "v2_controlled_corner_crease",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+      "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v2_controlled_corner_crease.png",
+      "config_patch": {
+        "ink_exclude_wall_stitch_edges": true,
+        "ink_corner_enabled": true,
+        "ink_corner_color": [
+          0.13,
+          0.1,
+          0.07
+        ],
+        "ink_corner_thickness_px": 2.0,
+        "ink_corner_wobble_px": 0.35
+      }
+    }
+  ]
+}

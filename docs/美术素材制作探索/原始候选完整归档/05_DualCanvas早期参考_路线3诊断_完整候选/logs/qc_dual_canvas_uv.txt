@@ -1,0 +1,7 @@
+QC PASS
+  edge_dev mean 0.08px max 1.00px detect 100%  (�� 4.0 / 10.0 / ��85%)
+  coverage 0.996 (��0.97)  contour_iou 0.996 (��0.93)
+  top          dev mean 0.11 max 1.00 detect 100%
+  wall_3       dev mean 0.00 max 0.00 detect 100%
+  wall_4       dev mean 0.00 max 0.00 detect 100%
+  wall_5       dev mean 0.21 max 1.00 detect 100%

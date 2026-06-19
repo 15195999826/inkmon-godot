@@ -1,0 +1,1696 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor",
+  "design_png": "blender\\textures\\_candidates\\single-stage-tile-6-variants-20260617-01\\raw\\tile_06_dark_forest_floor.png",
+  "design_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\templates\\template_design_e0.json",
+  "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\templates\\template_uv_e0.json",
+  "fit_source": "frozen:left-warp-source-cut-variants-baked-20260616-01",
+  "inset_px": 12.0,
+  "top_outline_px": 0.0,
+  "original_items": [
+    {
+      "slot": "original_both_faces_own",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\original_both_faces_own_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "next_face_owns_seam_12",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_12_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "next_face_owns_seam_24",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_24_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "prev_face_owns_seam_12",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_12_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "prev_face_owns_seam_24",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_24_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "both_faces_avoid_seam_10",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\both_faces_avoid_seam_10_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "all_wall_edges_inset_8",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\all_wall_edges_inset_8_warp_uv.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    }
+  ],
+  "clean_items": [
+    {
+      "slot": "original_both_faces_own",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\original_both_faces_own_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\original_both_faces_own_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "next_face_owns_seam_12",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_12_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\next_face_owns_seam_12_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "next_face_owns_seam_24",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_24_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\next_face_owns_seam_24_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "prev_face_owns_seam_12",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_12_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\prev_face_owns_seam_12_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "prev_face_owns_seam_24",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_24_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\prev_face_owns_seam_24_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "both_faces_avoid_seam_10",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\both_faces_avoid_seam_10_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\both_faces_avoid_seam_10_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    },
+    {
+      "slot": "all_wall_edges_inset_8",
+      "source_type": "uv",
+      "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\all_wall_edges_inset_8_warp_uv.png",
+      "clean_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\all_wall_edges_inset_8_top_edge_clean.png",
+      "config_patch": {
+        "ink_enabled": false,
+        "sun_energy": 0.0,
+        "ambient_strength": 0.0,
+        "material": "emission",
+        "bevel_width": 0.0,
+        "bevel_segments": 0
+      }
+    }
+  ],
+  "variant_reports": {
+    "original_both_faces_own": {
+      "variant": {
+        "slot": "original_both_faces_own",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\original_both_faces_own_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\original_both_faces_own_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\original_both_faces_own_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "next_face_owns_seam_12": {
+      "variant": {
+        "slot": "next_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_12_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                404.2053619016915,
+                631.3449894249638
+              ],
+              [
+                404.2053619016915,
+                800.3550122807457
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                766.2483906104153,
+                582.9498834752156
+              ],
+              [
+                766.2483906104153,
+                751.9599063309976
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_12_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\next_face_owns_seam_12_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "next_face_owns_seam_24": {
+      "variant": {
+        "slot": "next_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_24_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                393.81277555312334,
+                625.3454770291474
+              ],
+              [
+                393.81277555312334,
+                794.3554998849293
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                754.3894270790876,
+                584.7842727366967
+              ],
+              [
+                754.3894270790876,
+                753.7942955924786
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\next_face_owns_seam_24_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\next_face_owns_seam_24_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "prev_face_owns_seam_12": {
+      "variant": {
+        "slot": "prev_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_12_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                426.45691178158745,
+                635.5101125592992
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ],
+              [
+                426.45691178158745,
+                804.520135415081
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                783.1594916196249,
+                570.2308303739744
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                783.1594916196249,
+                739.2408532297563
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_12_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\prev_face_owns_seam_12_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "prev_face_owns_seam_24": {
+      "variant": {
+        "slot": "prev_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_24_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                414.59794825025966,
+                806.354524676562
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                438.3158753129153,
+                633.6757232978181
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ],
+              [
+                778.1073541417431,
+                750.1255170695165
+              ],
+              [
+                438.3158753129153,
+                802.6857461535999
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                788.2116290975066,
+                559.3461665342141
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                788.2116290975066,
+                728.3561893899961
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\prev_face_owns_seam_24_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\prev_face_owns_seam_24_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "both_faces_avoid_seam_10": {
+      "variant": {
+        "slot": "both_faces_avoid_seam_10",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\both_faces_avoid_seam_10_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                405.9374596264529,
+                632.3449081575999
+              ],
+              [
+                405.9374596264529,
+                801.3549310133817
+              ],
+              [
+                148.49059410851675,
+                652.7340190349364
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                424.4804178596995,
+                635.8158441028793
+              ],
+              [
+                768.2248845323033,
+                582.6441519316355
+              ],
+              [
+                768.2248845323033,
+                751.6541747874174
+              ],
+              [
+                424.4804178596995,
+                804.8258669586611
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                782.3174687066446,
+                572.0449410139344
+              ],
+              [
+                875.5094058914833,
+                371.26598096506353
+              ],
+              [
+                875.5094058914833,
+                540.2760038208453
+              ],
+              [
+                782.3174687066446,
+                741.0549638697163
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\both_faces_avoid_seam_10_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\both_faces_avoid_seam_10_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    },
+    "all_wall_edges_inset_8": {
+      "variant": {
+        "slot": "all_wall_edges_inset_8",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\all_wall_edges_inset_8_warp_uv.png",
+        "faces": {
+          "top": {
+            "source_poly": [
+              [
+                875.5094058914833,
+                371.2659809650635
+              ],
+              [
+                609.4020517497402,
+                217.64547532343798
+              ],
+              [
+                245.8926458582569,
+                273.8744829304835
+              ],
+              [
+                148.49059410851675,
+                483.7239961791547
+              ],
+              [
+                414.59794825025966,
+                637.3445018207802
+              ],
+              [
+                778.1073541417431,
+                581.1154942137346
+              ]
+            ],
+            "dst_poly": [
+              [
+                1024.0,
+                441.6
+              ],
+              [
+                896.0,
+                219.89749663118374
+              ],
+              [
+                640.0,
+                219.8974966311837
+              ],
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ]
+            ]
+          },
+          "wall_3": {
+            "source_poly": [
+              [
+                155.41898500756218,
+                495.723671109699
+              ],
+              [
+                407.6695573512142,
+                641.3448268902359
+              ],
+              [
+                407.6695573512142,
+                794.3548497460177
+              ],
+              [
+                155.41898500756218,
+                648.7336939654807
+              ]
+            ],
+            "dst_poly": [
+              [
+                512.0,
+                441.59999999999997
+              ],
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                518.0636231471509,
+                733.7025033688162
+              ],
+              [
+                390.063623147151,
+                512.0
+              ]
+            ]
+          },
+          "wall_4": {
+            "source_poly": [
+              [
+                422.5039239378115,
+                644.1215756464595
+              ],
+              [
+                770.2013784541913,
+                590.3384203880553
+              ],
+              [
+                770.2013784541913,
+                743.3484432438372
+              ],
+              [
+                422.5039239378115,
+                797.1315985022413
+              ]
+            ],
+            "dst_poly": [
+              [
+                639.9999999999999,
+                663.3025033688162
+              ],
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                896.0,
+                804.1025033688163
+              ],
+              [
+                639.9999999999999,
+                804.1025033688163
+              ]
+            ]
+          },
+          "wall_5": {
+            "source_poly": [
+              [
+                781.4754457936643,
+                581.8590516538944
+              ],
+              [
+                872.1413142395621,
+                386.5224235249037
+              ],
+              [
+                872.1413142395621,
+                539.5324463806854
+              ],
+              [
+                781.4754457936643,
+                734.8690745096764
+              ]
+            ],
+            "dst_poly": [
+              [
+                896.0,
+                663.3025033688164
+              ],
+              [
+                1024.0,
+                441.6000000000001
+              ],
+              [
+                1145.936376852849,
+                512.0000000000001
+              ],
+              [
+                1017.936376852849,
+                733.7025033688163
+              ]
+            ]
+          }
+        }
+      },
+      "top_edge_clean": {
+        "source_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_source_cut_variants\\all_wall_edges_inset_8_warp_uv.png",
+        "out_uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_06_dark_forest_floor\\uv_top_edge_clean\\all_wall_edges_inset_8_top_edge_clean.png",
+        "inset_px": 12.0,
+        "selected_top_edges": [
+          0,
+          1,
+          2
+        ],
+        "source_top_polygon_px": [
+          [
+            875.5094058914833,
+            371.2659809650635
+          ],
+          [
+            609.4020517497402,
+            217.64547532343798
+          ],
+          [
+            245.8926458582569,
+            273.8744829304835
+          ],
+          [
+            148.49059410851675,
+            483.7239961791547
+          ],
+          [
+            414.59794825025966,
+            637.3445018207802
+          ],
+          [
+            778.1073541417431,
+            581.1154942137346
+          ]
+        ],
+        "note": "Only narrow strips along selected top edges are resampled inward. Top interior and wall faces stay unchanged."
+      }
+    }
+  },
+  "note": "Prepare stage only. Generates 7 source-cut UVs and 7 top-edge-clean UVs from one 3D design image."
+}

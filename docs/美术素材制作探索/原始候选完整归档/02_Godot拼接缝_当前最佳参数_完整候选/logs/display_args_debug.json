@@ -1,0 +1,17 @@
+{
+	"args": [],
+	"config": {
+		"core_alpha": 0.44,
+		"core_width_px": 1.8,
+		"endpoint_trim_px": 2.2,
+		"highlight_alpha": 0.12,
+		"highlight_offset_px": 1.35,
+		"highlight_width_px": 1.05,
+		"id": 4,
+		"shadow_alpha": 0.24,
+		"shadow_width_px": 6.6,
+		"slug": "final-narrow-seam"
+	},
+	"env_round": "",
+	"has_config": true
+}

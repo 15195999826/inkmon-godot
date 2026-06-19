@@ -1,0 +1,17 @@
+[
+  {
+    "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v0.png",
+    "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v0_texture_only.png",
+    "label": "v0_texture_only"
+  },
+  {
+    "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v1.png",
+    "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v1_silhouette_top_only.png",
+    "label": "v1_silhouette_top_only"
+  },
+  {
+    "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v2.png",
+    "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v2_controlled_corner_crease.png",
+    "label": "v2_controlled_corner_crease"
+  }
+]

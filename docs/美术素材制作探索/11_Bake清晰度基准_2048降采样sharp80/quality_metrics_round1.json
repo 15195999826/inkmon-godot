@@ -1,0 +1,104 @@
+{
+  "512 Linear direct": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\baked\\512_linear.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      250,
+      202
+    ],
+    "sharpness_mean_abs_neighbor": 7.957005609261248,
+    "rgb_mean_visible": [
+      111.5347243452563,
+      100.70806583104046,
+      60.57023845918679
+    ]
+  },
+  "512 Closest direct": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\baked\\512_closest.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      250,
+      202
+    ],
+    "sharpness_mean_abs_neighbor": 8.207423320205274,
+    "rgb_mean_visible": [
+      112.26312035055538,
+      101.40020890655254,
+      61.13005706715581
+    ]
+  },
+  "512 Cubic direct": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\baked\\512_cubic.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      250,
+      202
+    ],
+    "sharpness_mean_abs_neighbor": 7.617098301308828,
+    "rgb_mean_visible": [
+      111.10819830836645,
+      100.30737287271987,
+      60.2541526546418
+    ]
+  },
+  "1024 Linear -> 512": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\derived\\1024_linear_down512_lanczos.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      252,
+      206
+    ],
+    "sharpness_mean_abs_neighbor": 9.750711065534121,
+    "rgb_mean_visible": [
+      110.67793539827525,
+      99.93026993927641,
+      59.9060315354391
+    ]
+  },
+  "1024 Closest -> 512": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\derived\\1024_closest_down512_lanczos.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      252,
+      206
+    ],
+    "sharpness_mean_abs_neighbor": 9.99455333475224,
+    "rgb_mean_visible": [
+      111.34415982038067,
+      100.56582640200031,
+      60.42044700719498
+    ]
+  },
+  "1024 Cubic -> 512": {
+    "file": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\quality-bake-20260617-01\\derived\\1024_cubic_down512_lanczos.png",
+    "size": [
+      512,
+      512
+    ],
+    "crop": [
+      252,
+      206
+    ],
+    "sharpness_mean_abs_neighbor": 9.255964243561714,
+    "rgb_mean_visible": [
+      110.37845078328316,
+      99.64818594682859,
+      59.68143083124968
+    ]
+  }
+}

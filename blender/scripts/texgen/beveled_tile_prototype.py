@@ -1,7 +1,7 @@
 # texgen.beveled_tile_prototype -- candidate-only top bevel tile experiment
 #
 # This script is intentionally isolated from the production tile pipeline.
-# It writes only under blender/textures/_candidates/<run-name>/ and builds a
+# It writes new runs under blender/textures/_candidates/<run-name>/ and builds a
 # prototype mesh/template pair with explicit top bevel faces:
 #   top + bevel_0..5 + wall_3/4/5
 #
@@ -27,6 +27,7 @@ if str(BLENDER_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(BLENDER_SCRIPTS_DIR))
 
 from texgen import geometry
+from texgen import archive_paths
 from texgen import tile_pipeline_modes
 from texgen import top_edge_21_matrix as top21
 
@@ -50,7 +51,7 @@ def _repo_root() -> Path:
 
 
 def _run_dir(run_name: str = RUN_NAME) -> Path:
-    return _repo_root() / "blender" / "textures" / "_candidates" / run_name
+    return archive_paths.candidate_run(_repo_root(), run_name)
 
 
 def _read_json(path: Path) -> dict:
@@ -766,7 +767,11 @@ def contact(run_name: str = RUN_NAME) -> dict:
 
     representative_index = min(max(REPRESENTATIVE_TILE_INDEX, 1), len(baked512))
     representative_tile = baked512[representative_index - 1]
-    current_tile = _repo_root() / "blender" / "textures" / "_candidates" / "original-no-ink-map-20260617-01" / "baked_512_original_no_ink" / "tile03_original_no_ink_512_sharp80.png"
+    current_tile = (
+        archive_paths.existing_run(_repo_root(), "original-no-ink-map-20260617-01")
+        / "baked_512_original_no_ink"
+        / "tile03_original_no_ink_512_sharp80.png"
+    )
     compare_paths = [current_tile, representative_tile]
     compare = _contact(compare_paths, ["current hard edge tile03", "beveled prototype tile%02d" % representative_index], run_dir / "compare_current_vs_beveled.png", cols=2, panel_size=(420, 340))
     current_map = _compose_map(current_tile, run_dir / "map_current_tile03_preview.png")

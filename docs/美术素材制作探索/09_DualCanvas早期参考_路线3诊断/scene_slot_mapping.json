@@ -1,0 +1,22 @@
+{
+  "slots": [
+    {
+      "source": "design_warp_tile_grass_e0_v0.png",
+      "slot": "tile_grass_e0_v0.png",
+      "mode": "design_warp"
+    },
+    {
+      "source": "design_uv_gpt_tile_grass_e0_v0.png",
+      "slot": "tile_grass_e0_v1.png",
+      "mode": "design_uv_gpt"
+    },
+    {
+      "source": "dual_canvas_tile_grass_e0_v0.png",
+      "slot": "tile_grass_e0_v2.png",
+      "mode": "dual_canvas"
+    }
+  ],
+  "scene": "inkmon/tools/tile_pipeline/tile_pipeline_scene.tscn",
+  "applied_at": "2026-06-16T03:19:37",
+  "restore_from": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\template-connected-20260616-01\\backups\\applied_to_scene_slots"
+}

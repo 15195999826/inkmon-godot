@@ -1,0 +1,7 @@
+QC FAIL
+  edge_dev mean 4.32px max 11.00px detect 86%  (�� 4.0 / 10.0 / ��85%)
+  coverage 1.000 (��0.97)  contour_iou 0.916 (��0.93)
+  top          dev mean 4.77 max 11.00 detect 82%
+  wall_3       dev mean 4.85 max 11.00 detect 93%
+  wall_4       dev mean 4.19 max 10.00 detect 68%
+  wall_5       dev mean 3.47 max 6.00 detect 100%

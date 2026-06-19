@@ -2,7 +2,8 @@ extends Node2D
 
 const FORMAL_MANIFEST_PATH := "res://inkmon/tools/tile_pipeline/assets/baked/manifest.json"
 const OUTPUT_DIR_REL := "blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01"
-const SEAM_GEOMETRY_PATH := "res://blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/seam_geometry.json"
+const INPUT_DIR_REL := "docs/美术素材制作探索/原始候选完整归档/02_Godot拼接缝_当前最佳参数_完整候选"
+const SEAM_GEOMETRY_PATH := "res://docs/美术素材制作探索/原始候选完整归档/02_Godot拼接缝_当前最佳参数_完整候选/seam_geometry.json"
 const SQRT3 := sqrt(3.0)
 const PAPER_COLOR := Color(0.93, 0.91, 0.86)
 const TARGET_SIZE := Vector2i(1600, 1000)
@@ -289,7 +290,7 @@ func _hex_corners_plane(axial: Vector2i) -> Array[Vector2]:
 
 
 func _make_sprite(asset_name: String) -> Sprite2D:
-	var image_path := _output_dir_abs().path_join("assets").path_join("baked_tiles").path_join(asset_name + "_baked.png")
+	var image_path := _input_dir_abs().path_join("assets").path_join("baked_tiles").path_join(asset_name + "_baked.png")
 	var image := Image.new()
 	var err := image.load(image_path)
 	if err != OK:
@@ -487,6 +488,10 @@ func _write_json_abs(path: String, data: Dictionary) -> void:
 
 func _output_dir_abs() -> String:
 	return ProjectSettings.globalize_path("res://" + OUTPUT_DIR_REL)
+
+
+func _input_dir_abs() -> String:
+	return ProjectSettings.globalize_path("res://" + INPUT_DIR_REL)
 
 
 func _ensure_dir(path: String) -> void:

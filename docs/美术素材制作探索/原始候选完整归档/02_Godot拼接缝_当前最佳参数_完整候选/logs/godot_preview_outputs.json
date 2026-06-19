@@ -1,0 +1,148 @@
+{
+	"baseline": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/map_no_seam_baseline.png",
+	"iterations": [
+		{
+			"output": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_01_wide-dark-outline_godot.png",
+			"params": {
+				"core_alpha": 0.55,
+				"core_width_px": 3.2,
+				"endpoint_trim_px": 0.0,
+				"highlight_alpha": 0.26,
+				"highlight_offset_px": 1.8,
+				"highlight_width_px": 1.9,
+				"id": 1,
+				"shadow_alpha": 0.28,
+				"shadow_width_px": 9.0,
+				"slug": "wide-dark-outline"
+			},
+			"round": 1,
+			"slug": "wide-dark-outline"
+		},
+		{
+			"output": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_02_narrower-core_godot.png",
+			"params": {
+				"core_alpha": 0.44,
+				"core_width_px": 2.3,
+				"endpoint_trim_px": 1.0,
+				"highlight_alpha": 0.17,
+				"highlight_offset_px": 1.6,
+				"highlight_width_px": 1.5,
+				"id": 2,
+				"shadow_alpha": 0.23,
+				"shadow_width_px": 7.5,
+				"slug": "narrower-core"
+			},
+			"round": 2,
+			"slug": "narrower-core"
+		},
+		{
+			"output": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_03_subtle-catch-light_godot.png",
+			"params": {
+				"core_alpha": 0.38,
+				"core_width_px": 1.9,
+				"endpoint_trim_px": 2.0,
+				"highlight_alpha": 0.11,
+				"highlight_offset_px": 1.5,
+				"highlight_width_px": 1.2,
+				"id": 3,
+				"shadow_alpha": 0.21,
+				"shadow_width_px": 6.8,
+				"slug": "subtle-catch-light"
+			},
+			"round": 3,
+			"slug": "subtle-catch-light"
+		},
+		{
+			"output": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_04_final-narrow-seam_godot.png",
+			"params": {
+				"core_alpha": 0.34,
+				"core_width_px": 1.55,
+				"endpoint_trim_px": 2.2,
+				"highlight_alpha": 0.085,
+				"highlight_offset_px": 1.35,
+				"highlight_width_px": 1.0,
+				"id": 4,
+				"shadow_alpha": 0.19,
+				"shadow_width_px": 6.0,
+				"slug": "final-narrow-seam"
+			},
+			"round": 4,
+			"slug": "final-narrow-seam"
+		}
+	],
+	"job_count_after_prepare": 5,
+	"preview": "D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/map_godot_seam_preview.png",
+	"process_events": [
+		{
+			"frames_waited": 3,
+			"job_index": 0,
+			"output_count": 1,
+			"outputs": [
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/map_no_seam_baseline.png"
+			]
+		},
+		{
+			"frames_waited": 3,
+			"job_index": 1,
+			"output_count": 1,
+			"outputs": [
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_01_wide-dark-outline_godot.png"
+			]
+		},
+		{
+			"frames_waited": 3,
+			"job_index": 2,
+			"output_count": 1,
+			"outputs": [
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_02_narrower-core_godot.png"
+			]
+		},
+		{
+			"frames_waited": 3,
+			"job_index": 3,
+			"output_count": 1,
+			"outputs": [
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_03_subtle-catch-light_godot.png"
+			]
+		},
+		{
+			"frames_waited": 3,
+			"job_index": 4,
+			"output_count": 2,
+			"outputs": [
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/iterations/round_04_final-narrow-seam_godot.png",
+				"D:/GodotProjects/inkmon/inkmon-godot/blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01/map_godot_seam_preview.png"
+			]
+		}
+	],
+	"save_attempts": [],
+	"save_call_count": 6,
+	"shared_edge_count": 42,
+	"start_events": [
+		{
+			"job_count": 5,
+			"job_index": 0
+		},
+		{
+			"job_count": 5,
+			"job_index": 1
+		},
+		{
+			"job_count": 5,
+			"job_index": 2
+		},
+		{
+			"job_count": 5,
+			"job_index": 3
+		},
+		{
+			"job_count": 5,
+			"job_index": 4
+		},
+		{
+			"job_count": 5,
+			"job_index": 5
+		}
+	],
+	"tile_count": 19
+}

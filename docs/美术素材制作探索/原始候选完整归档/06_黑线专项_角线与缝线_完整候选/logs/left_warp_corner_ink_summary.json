@@ -1,0 +1,81 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01",
+  "prepared": {
+    "source_dual": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\template-connected-20260616-01\\raw\\dual_canvas_raw.png",
+    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\raw\\dual_left_design.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+    "templates_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\templates",
+    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\templates\\template_uv_e0.json"
+  },
+  "qc_log": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\logs\\qc_dual_left_design_warp_uv.txt",
+  "baked_results": {
+    "left_warp_corner_ink": [
+      {
+        "slot": "v0_texture_only",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v0_texture_only.png",
+        "config_patch": {
+          "ink_enabled": false
+        }
+      },
+      {
+        "slot": "v1_silhouette_top_only",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v1_silhouette_top_only.png",
+        "config_patch": {
+          "ink_exclude_wall_stitch_edges": true
+        }
+      },
+      {
+        "slot": "v2_controlled_corner_crease",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\uv\\dual_left_design_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v2_controlled_corner_crease.png",
+        "config_patch": {
+          "ink_exclude_wall_stitch_edges": true,
+          "ink_corner_enabled": true,
+          "ink_corner_color": [
+            0.13,
+            0.1,
+            0.07
+          ],
+          "ink_corner_thickness_px": 2.0,
+          "ink_corner_wobble_px": 0.35
+        }
+      }
+    ]
+  },
+  "scene_results": {
+    "left_warp_corner_ink": {
+      "mapping": [
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v0.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v0_texture_only.png",
+          "label": "v0_texture_only"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v1.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v1_silhouette_top_only.png",
+          "label": "v1_silhouette_top_only"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v2.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\baked\\v2_controlled_corner_crease.png",
+          "label": "v2_controlled_corner_crease"
+        }
+      ],
+      "capture": {
+        "session": "tile-pipeline-left-warp-corner-ink-left_warp_corner_ink",
+        "full": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\shots\\left_warp_corner_ink\\full.png",
+        "closeup": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\shots\\left_warp_corner_ink\\closeup.png"
+      },
+      "single_baked_tile_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\shots\\left_warp_corner_ink\\single_baked_tile_compare.png"
+    }
+  },
+  "diagnostic": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\shots\\diagnostic_corner_ink_compare.png",
+  "backup_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\backups\\before_route3_bake_matrix",
+  "restore": false,
+  "report": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\left-warp-corner-ink-20260616-01\\REPORT.md"
+}

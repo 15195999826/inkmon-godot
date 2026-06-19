@@ -1,0 +1,45 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01",
+  "raw_contact": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\raw_contact.png",
+  "baked_tile_contact": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\baked_tile_contact.png",
+  "compare_current_vs_beveled": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\compare_current_vs_beveled.png",
+  "map_current_tile03_preview": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\map_current_tile03_preview.png",
+  "map_beveled_preview": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\map_beveled_preview.png",
+  "representative_tile_index": 3,
+  "raw_white_ratio": [
+    {
+      "index": 1,
+      "white_ratio": 0.4916257858276367
+    },
+    {
+      "index": 2,
+      "white_ratio": 0.5001668930053711
+    },
+    {
+      "index": 3,
+      "white_ratio": 0.4963369369506836
+    },
+    {
+      "index": 4,
+      "white_ratio": 0.5352277755737305
+    }
+  ],
+  "uv_white_ratio": [
+    {
+      "index": 1,
+      "white_ratio": 3.6298035913276734e-06
+    },
+    {
+      "index": 2,
+      "white_ratio": 3.6298035913276734e-06
+    },
+    {
+      "index": 3,
+      "white_ratio": 0.0
+    },
+    {
+      "index": 4,
+      "white_ratio": 0.0
+    }
+  ]
+}

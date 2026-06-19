@@ -1,0 +1,12 @@
+Create one isolated hand-painted isometric 3D hex terrain tile on a pure white background using the provided beveled template. Match the current InkMon hand-painted tile style: warm olive grass top, subtle stone path fragments, earthy/stone side walls, painterly board-game texture, soft ambient light, no cast shadow, no drop shadow, no ground shadow, no UI, no text. IMPORTANT: the narrow rim band around the top is a soft rounded bevel/chamfer, not a black outline. Paint face joins as subtle dark crevice shading plus a small light-catching bevel edge, similar to the concept map. Avoid heavy black strokes on top-wall joins and tile-to-tile joins. Keep the tile centered and complete, with visible front/left/right walls. Natural variation only; no trees, no characters, no water.
+
+[texture-gen]
+callId: call_mqhjhpe1_jezmo
+quality: low
+n: 4
+size: 1024x1024
+purpose: inkmon-beveled-tile-prototype
+base_image_path: D:\GodotProjects\inkmon\inkmon-godot\blender\textures\_candidates\beveled-tile-prototype-20260617-01\templates\beveled_design_e0.png
+reference_image_paths:
+- D:\GodotProjects\inkmon\inkmon-godot\blender\textures\_candidates\original-no-ink-map-20260617-01\raw\raw_03.png
+- D:\GodotProjects\inkmon\inkmon-godot\docs\concept.jpg

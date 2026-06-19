@@ -1,0 +1,313 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow",
+  "bake_results": {
+    "original_no_ink": [
+      {
+        "slot": "original_both_faces_own",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\original_both_faces_own_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\original_both_faces_own_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\next_face_owns_seam_12_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\next_face_owns_seam_12_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\next_face_owns_seam_24_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\next_face_owns_seam_24_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\prev_face_owns_seam_12_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\prev_face_owns_seam_12_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\prev_face_owns_seam_24_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\prev_face_owns_seam_24_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "both_faces_avoid_seam_10",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\both_faces_avoid_seam_10_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\both_faces_avoid_seam_10_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "all_wall_edges_inset_8",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_source_cut_variants\\all_wall_edges_inset_8_warp_uv.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\original_no_ink\\all_wall_edges_inset_8_original_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      }
+    ],
+    "top_edge_clean_no_ink": [
+      {
+        "slot": "original_both_faces_own",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\original_both_faces_own_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\original_both_faces_own_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\next_face_owns_seam_12_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\next_face_owns_seam_12_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\next_face_owns_seam_24_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\next_face_owns_seam_24_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\prev_face_owns_seam_12_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\prev_face_owns_seam_12_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\prev_face_owns_seam_24_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\prev_face_owns_seam_24_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "both_faces_avoid_seam_10",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\both_faces_avoid_seam_10_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\both_faces_avoid_seam_10_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      },
+      {
+        "slot": "all_wall_edges_inset_8",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\all_wall_edges_inset_8_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_no_ink\\all_wall_edges_inset_8_top_edge_clean_no_ink.png",
+        "config_patch": {
+          "ink_enabled": false,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32
+        }
+      }
+    ],
+    "top_edge_clean_blender_ink": [
+      {
+        "slot": "original_both_faces_own",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\original_both_faces_own_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\original_both_faces_own_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\next_face_owns_seam_12_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\next_face_owns_seam_12_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "next_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\next_face_owns_seam_24_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\next_face_owns_seam_24_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_12",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\prev_face_owns_seam_12_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\prev_face_owns_seam_12_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "prev_face_owns_seam_24",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\prev_face_owns_seam_24_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\prev_face_owns_seam_24_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "both_faces_avoid_seam_10",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\both_faces_avoid_seam_10_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\both_faces_avoid_seam_10_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      },
+      {
+        "slot": "all_wall_edges_inset_8",
+        "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\uv_top_edge_clean\\all_wall_edges_inset_8_top_edge_clean.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\bakes\\tile_01_grass_meadow\\baked\\top_edge_clean_blender_ink\\all_wall_edges_inset_8_top_edge_clean_blender_ink.png",
+        "config_patch": {
+          "ink_enabled": true,
+          "bevel_width": 0.0,
+          "bevel_segments": 0,
+          "sun_energy": 0.0,
+          "ambient_strength": 0.0,
+          "samples": 32,
+          "ink_thickness_px": 3.2,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": false,
+          "ink_corner_enabled": false
+        }
+      }
+    ]
+  },
+  "note": "Bake stage only. Uses emission image material; no lighting/shadow is baked into the matrix."
+}

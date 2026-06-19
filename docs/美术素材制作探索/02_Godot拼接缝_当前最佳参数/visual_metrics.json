@@ -1,0 +1,64 @@
+{
+  "source": "Godot write-movie screenshots only",
+  "baseline": "blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\map_no_seam_baseline.png",
+  "final": "blender\\textures\\_candidates\\tile-pipeline-seam-prototype-20260617-01\\map_godot_seam_preview.png",
+  "zoom_crop": [
+    595,
+    259,
+    1344,
+    777
+  ],
+  "zoom_changed_ratio": 0.079125,
+  "zoom_darkened_ratio": 0.078986,
+  "zoom_brightened_ratio": 0.000139,
+  "alpha_stats": {
+    "tile_01_grass_meadow": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    },
+    "tile_02_cracked_dry_earth": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    },
+    "tile_03_mossy_flagstone": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    },
+    "tile_04_dirt_arena": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    },
+    "tile_05_pale_limestone": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    },
+    "tile_06_dark_forest_floor": {
+      "size": [
+        512,
+        512
+      ],
+      "transparent_ratio": 0.849541,
+      "opaque_ratio": 0.145504
+    }
+  }
+}

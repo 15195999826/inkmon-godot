@@ -1,0 +1,65 @@
+[
+  {
+    "label": "grass_e0",
+    "foreground_bbox": [
+      143,
+      188,
+      879,
+      801
+    ],
+    "sidecar_bbox": [
+      148.5,
+      217.6,
+      875.5,
+      806.4
+    ],
+    "bbox_minus_sidecar": {
+      "left_px": -5.5,
+      "top_px": -29.6,
+      "right_px": 3.5,
+      "bottom_px": -5.4
+    }
+  },
+  {
+    "label": "stone_path_e0",
+    "foreground_bbox": [
+      133,
+      188,
+      889,
+      818
+    ],
+    "sidecar_bbox": [
+      148.5,
+      217.6,
+      875.5,
+      806.4
+    ],
+    "bbox_minus_sidecar": {
+      "left_px": -15.5,
+      "top_px": -29.6,
+      "right_px": 13.5,
+      "bottom_px": 11.6
+    }
+  },
+  {
+    "label": "water_channel_e0",
+    "foreground_bbox": [
+      143,
+      213,
+      879,
+      810
+    ],
+    "sidecar_bbox": [
+      148.5,
+      217.6,
+      875.5,
+      806.4
+    ],
+    "bbox_minus_sidecar": {
+      "left_px": -5.5,
+      "top_px": -4.6,
+      "right_px": 3.5,
+      "bottom_px": 3.6
+    }
+  }
+]

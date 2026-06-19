@@ -1,0 +1,194 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01",
+  "baked_results": {
+    "group_a": [
+      {
+        "slot": "v0_paper_crisp",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\uv_cleaned\\keep_lines.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v0_paper_crisp.png",
+        "config_patch": {
+          "bevel_width": 0.03,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.8,
+          "ink_wobble_px": 0.6
+        }
+      },
+      {
+        "slot": "v1_clean_no_stitch",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\uv_cleaned\\remove_internal.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v1_clean_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.03,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.8,
+          "ink_wobble_px": 0.6,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      },
+      {
+        "slot": "v2_outer_fade_no_stitch",
+        "source_type": "uv",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\uv_cleaned\\fade_all_guides_25.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v2_outer_fade_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.03,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.8,
+          "ink_wobble_px": 0.6,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      }
+    ],
+    "group_b": [
+      {
+        "slot": "v0_strip_production",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v0_strip_production.png",
+        "config_patch": {}
+      },
+      {
+        "slot": "v1_strip_crisp_no_stitch",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v1_strip_crisp_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.03,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.8,
+          "ink_wobble_px": 0.6,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      },
+      {
+        "slot": "v2_strip_heavy_no_stitch",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v2_strip_heavy_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.04,
+          "bevel_segments": 1,
+          "ink_thickness_px": 3.6,
+          "ink_wobble_px": 0.8,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      }
+    ],
+    "group_d": [
+      {
+        "slot": "v0_atlas_production",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v0_atlas_production.png",
+        "config_patch": {}
+      },
+      {
+        "slot": "v1_atlas_crisp_no_stitch",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v1_atlas_crisp_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.03,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.8,
+          "ink_wobble_px": 0.6,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      },
+      {
+        "slot": "v2_atlas_sharp_no_stitch",
+        "source_type": "atlas",
+        "source": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\atlas\\dual_atlas_atlas.png",
+        "baked": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v2_atlas_sharp_no_stitch.png",
+        "config_patch": {
+          "bevel_width": 0.02,
+          "bevel_segments": 1,
+          "ink_thickness_px": 2.6,
+          "ink_wobble_px": 0.45,
+          "ink_exclude_wall_stitch_edges": true
+        }
+      }
+    ]
+  },
+  "scene_results": {
+    "group_a": {
+      "mapping": [
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v0.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v0_paper_crisp.png",
+          "label": "v0_paper_crisp"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v1.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v1_clean_no_stitch.png",
+          "label": "v1_clean_no_stitch"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v2.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_a\\v2_outer_fade_no_stitch.png",
+          "label": "v2_outer_fade_no_stitch"
+        }
+      ],
+      "capture": {
+        "session": "tile-pipeline-route3-first-round-group_a",
+        "full": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_a\\full.png",
+        "closeup": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_a\\closeup.png"
+      },
+      "single_baked_tile_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_a\\single_baked_tile_compare.png"
+    },
+    "group_b": {
+      "mapping": [
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v0.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v0_strip_production.png",
+          "label": "v0_strip_production"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v1.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v1_strip_crisp_no_stitch.png",
+          "label": "v1_strip_crisp_no_stitch"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v2.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_b\\v2_strip_heavy_no_stitch.png",
+          "label": "v2_strip_heavy_no_stitch"
+        }
+      ],
+      "capture": {
+        "session": "tile-pipeline-route3-first-round-group_b",
+        "full": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_b\\full.png",
+        "closeup": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_b\\closeup.png"
+      },
+      "single_baked_tile_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_b\\single_baked_tile_compare.png"
+    },
+    "group_d": {
+      "mapping": [
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v0.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v0_atlas_production.png",
+          "label": "v0_atlas_production"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v1.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v1_atlas_crisp_no_stitch.png",
+          "label": "v1_atlas_crisp_no_stitch"
+        },
+        {
+          "slot": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon\\tools\\tile_pipeline\\assets\\baked\\tile_grass_e0_v2.png",
+          "candidate": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\baked\\group_d\\v2_atlas_sharp_no_stitch.png",
+          "label": "v2_atlas_sharp_no_stitch"
+        }
+      ],
+      "capture": {
+        "session": "tile-pipeline-route3-first-round-group_d",
+        "full": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_d\\full.png",
+        "closeup": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_d\\closeup.png"
+      },
+      "single_baked_tile_compare": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\shots\\group_d\\single_baked_tile_compare.png"
+    }
+  },
+  "backup_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\route3-first-round-20260616-01\\backups\\before_route3_bake_matrix",
+  "leave_group": "group_d"
+}

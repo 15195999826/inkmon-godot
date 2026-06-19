@@ -1,0 +1,13 @@
+{
+  "run_dir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01",
+  "templates": [
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_design_e0.svg",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_design_e0.png",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_design_e0.json",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_uv_e0.svg",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_uv_e0.png",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\beveled-tile-prototype-20260617-01\\templates\\beveled_uv_e0.json"
+  ],
+  "bevel_inset_world": 0.055,
+  "bevel_drop_world": 0.035
+}

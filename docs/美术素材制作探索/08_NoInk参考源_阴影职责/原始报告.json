@@ -1,0 +1,14 @@
+{
+  "source_call_id": "call_mqhif8l4_ihgqy",
+  "generation_quality": "low",
+  "tile_count": 33,
+  "tile_sources": [
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\baked_512_original_no_ink\\tile01_original_no_ink_512_sharp80.png",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\baked_512_original_no_ink\\tile02_original_no_ink_512_sharp80.png",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\baked_512_original_no_ink\\tile03_original_no_ink_512_sharp80.png",
+    "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\baked_512_original_no_ink\\tile04_original_no_ink_512_sharp80.png"
+  ],
+  "map_preview": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\map_original_no_ink_preview.png",
+  "tile_contact": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\textures\\_candidates\\original-no-ink-map-20260617-01\\baked_tile_contact.png",
+  "bake": "Blender 3D hex prism, no Freestyle ink, original_both_faces_own UV, 2048 internal -> 512 Lanczos + UnsharpMask sharp80"
+}

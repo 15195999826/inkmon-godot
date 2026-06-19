@@ -35,6 +35,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 BLENDER_SCRIPTS_DIR = SCRIPT_DIR.parent
 if str(BLENDER_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(BLENDER_SCRIPTS_DIR))
+from texgen import archive_paths
 from texgen import tile_pipeline_modes
 
 Image = None
@@ -399,10 +400,9 @@ def _make_contact_sheet(run_dir: Path, source_items: list, clean_items: list, in
 
 def prepare(inset_px: float, run_name: str) -> dict:
     repo = _repo_root()
-    candidates = repo / "blender" / "textures" / "_candidates"
-    source_run = candidates / SOURCE_RUN
-    left_run = candidates / LEFT_WARP_RUN
-    run_dir = candidates / run_name
+    source_run = archive_paths.existing_run(repo, SOURCE_RUN)
+    left_run = archive_paths.existing_run(repo, LEFT_WARP_RUN)
+    run_dir = archive_paths.candidate_run(repo, run_name)
     run_dir.mkdir(parents=True, exist_ok=True)
 
     source_summary = _read_json(source_run / "logs" / "source_cut_variants_bake_summary.json")
@@ -451,7 +451,7 @@ def prepare(inset_px: float, run_name: str) -> dict:
 
 def bake(run_name: str) -> dict:
     repo = _repo_root()
-    run_dir = repo / "blender" / "textures" / "_candidates" / run_name
+    run_dir = archive_paths.candidate_run(repo, run_name)
     prepared = _read_json(run_dir / "logs" / "top_edge_21_prepare.json")
 
     ns = _load_bake_assets(repo)
@@ -470,9 +470,8 @@ def bake(run_name: str) -> dict:
 
 def contact(run_name: str) -> dict:
     repo = _repo_root()
-    candidates = repo / "blender" / "textures" / "_candidates"
-    source_run = candidates / SOURCE_RUN
-    run_dir = candidates / run_name
+    source_run = archive_paths.existing_run(repo, SOURCE_RUN)
+    run_dir = archive_paths.candidate_run(repo, run_name)
 
     source_summary = _read_json(source_run / "logs" / "source_cut_variants_bake_summary.json")
     prepared = _read_json(run_dir / "logs" / "top_edge_21_prepare.json")
