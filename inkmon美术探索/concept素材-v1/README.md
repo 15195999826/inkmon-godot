@@ -6,7 +6,7 @@
 
 1. `raw/`：texture-gen 生成的完整 3D 六边形地块图，白底。
 2. `decor_raw/`：texture-gen 生成的树、灌木、石堆，白底。
-3. `tools/prepare_patch_assets.py`：只从画布边缘 flood-fill 清理白底，缩放到 512 patch。
+3. `tools/prepare_patch_assets.py`：从画布边缘 flood-fill 清理白底，并复用 `beveled_uv/fit/*_beveled_design_fit.json` 把 raw tile compose 到 `512x512`、`anchor_px=[256,256]`、标准 hex scale 的 patch。
 4. `tools/prepare_design_warp_uvs.py`：把 raw 反投影成标准 paper-net UV，供硬边/圆边 Blender bake 诊断。
 5. `tools/prepare_beveled_uvs.py`：把 raw 反投影成 explicit top-edge bevel UV，供倒角 Blender bake 诊断。
 6. `tools/prepare_concept_decors.py`：把 decor raw 清底、缩放、写入各 concept manifest。
