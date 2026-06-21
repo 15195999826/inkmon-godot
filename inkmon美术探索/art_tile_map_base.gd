@@ -15,6 +15,7 @@ const SQRT3 := sqrt(3.0)
 const PAPER_COLOR := Color(0.93, 0.91, 0.86)
 const INK_COLOR := Color(0.12, 0.09, 0.06, 0.92)
 const SOFT_INK_COLOR := Color(0.22, 0.17, 0.10, 0.72)
+const ArtCameraControllerScript := preload("res://inkmon美术探索/art_camera_controller_2d.gd")
 
 @export var render_mode := RenderMode.HARD_EDGE
 @export var scene_title := "codex art tile map"
@@ -26,6 +27,7 @@ const SOFT_INK_COLOR := Color(0.22, 0.17, 0.10, 0.72)
 var _manifest: Dictionary = {}
 var _map_root: Node2D
 var _camera: Camera2D
+var _camera_controller: InkMonArtCameraController2D
 var _tile_count := 0
 var _decor_count := 0
 
@@ -41,6 +43,7 @@ func _ready() -> void:
 	_camera.name = "Camera"
 	add_child(_camera)
 	_camera.make_current()
+	_install_camera_controller()
 	_rebuild()
 	call_deferred("_capture_if_requested")
 
@@ -310,6 +313,15 @@ func _fit_camera() -> void:
 	var zoom := minf(viewport_size.x / rect.size.x, viewport_size.y / rect.size.y)
 	_camera.position = rect.get_center()
 	_camera.zoom = Vector2(zoom, zoom)
+	if _camera_controller != null:
+		_camera_controller.set_default_view(_camera.position, _camera.zoom)
+
+
+func _install_camera_controller() -> void:
+	_camera_controller = ArtCameraControllerScript.new() as InkMonArtCameraController2D
+	_camera_controller.name = "ArtCameraController2D"
+	add_child(_camera_controller)
+	_camera_controller.setup(_camera)
 
 
 func _center_of_flat_top(axial: Vector2i, edge_px: float) -> Vector2:
@@ -491,4 +503,6 @@ func get_debug_state() -> Dictionary:
 		"pitch_deg": float(_manifest.get("pitch_deg", 0.0)),
 		"yaw_deg": float(_manifest.get("yaw_deg", 0.0)),
 		"camera_zoom": _camera.zoom.x if _camera != null else 0.0,
+		"camera_position": {"x": _camera.position.x, "y": _camera.position.y} if _camera != null else {},
+		"camera_control_enabled": _camera_controller.enabled if _camera_controller != null else false,
 	}

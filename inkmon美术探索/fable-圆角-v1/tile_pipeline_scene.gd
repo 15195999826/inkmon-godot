@@ -8,6 +8,7 @@ extends Node2D
 ## dev-agent：挂通用 bridge（--dev-agent 启用）；scene ops = state / set_view / set_decor_density。
 
 const DevAgentBridgeScript := preload("res://addons/lomolib/dev_agent/dev_agent_bridge.gd")
+const ArtCameraControllerScript := preload("res://inkmon美术探索/art_camera_controller_2d.gd")
 
 const BAKED_DIR := "res://inkmon美术探索/fable-圆角-v1/assets/baked/"
 const MANIFEST_PATH := BAKED_DIR + "manifest.json"
@@ -18,6 +19,7 @@ const PAPER_COLOR := Color(0.93, 0.91, 0.86)
 var _manifest: Dictionary = {}
 var _map_root: Node2D
 var _camera: Camera2D
+var _camera_controller: InkMonArtCameraController2D
 var _tile_count := 0
 var _decor_count := 0
 var _decor_density := 1.0
@@ -33,6 +35,7 @@ func _ready() -> void:
 	_camera.name = "Camera"
 	add_child(_camera)
 	_camera.make_current()
+	_install_camera_controller()
 	_rebuild()
 	_install_dev_agent()
 	call_deferred("_capture_if_requested")
@@ -191,6 +194,15 @@ func _fit_camera() -> void:
 	var zoom := minf(vp.x / rect.size.x, vp.y / rect.size.y)
 	_camera.position = rect.get_center()
 	_camera.zoom = Vector2(zoom, zoom)
+	if _camera_controller != null:
+		_camera_controller.set_default_view(_camera.position, _camera.zoom)
+
+
+func _install_camera_controller() -> void:
+	_camera_controller = ArtCameraControllerScript.new() as InkMonArtCameraController2D
+	_camera_controller.name = "ArtCameraController2D"
+	add_child(_camera_controller)
+	_camera_controller.setup(_camera)
 
 
 func get_debug_state() -> Dictionary:
@@ -205,6 +217,7 @@ func get_debug_state() -> Dictionary:
 		"px_per_hex_edge": float(_manifest.get("px_per_hex_edge", 0.0)),
 		"camera_zoom": _camera.zoom.x if _camera != null else 0.0,
 		"camera_pos": [_camera.position.x, _camera.position.y] if _camera != null else [],
+		"camera_control_enabled": _camera_controller.enabled if _camera_controller != null else false,
 	}
 
 

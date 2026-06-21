@@ -1,5 +1,6 @@
 extends Node2D
 
+const ArtCameraControllerScript := preload("res://inkmon美术探索/art_camera_controller_2d.gd")
 const FORMAL_MANIFEST_PATH := "res://inkmon美术探索/fable-圆角-v1/assets/baked/manifest.json"
 const OUTPUT_DIR_REL := "blender/textures/_candidates/tile-pipeline-seam-prototype-20260617-01"
 const INPUT_DIR_REL := "docs/美术素材制作探索/原始候选完整归档/02_Godot拼接缝_当前最佳参数_完整候选"
@@ -70,6 +71,7 @@ const ROUNDS: Array[Dictionary] = [
 var _manifest: Dictionary = {}
 var _map_root: Node2D
 var _camera: Camera2D
+var _camera_controller: InkMonArtCameraController2D
 var _cell_positions: Array[Vector2i] = []
 var _tile_assignments: Dictionary = {}
 var _outputs: Dictionary = {"save_attempts": [], "start_events": [], "process_events": [], "save_call_count": 0}
@@ -92,6 +94,7 @@ func _ready() -> void:
 	_camera.name = "Camera"
 	add_child(_camera)
 	_camera.make_current()
+	_install_camera_controller()
 	_prepare_cells()
 	if _should_capture_all():
 		_prepare_capture_jobs()
@@ -322,6 +325,15 @@ func _fit_camera() -> void:
 	var zoom := minf(vp.x / rect.size.x, vp.y / rect.size.y)
 	_camera.position = rect.get_center()
 	_camera.zoom = Vector2(zoom, zoom)
+	if _camera_controller != null:
+		_camera_controller.set_default_view(_camera.position, _camera.zoom)
+
+
+func _install_camera_controller() -> void:
+	_camera_controller = ArtCameraControllerScript.new() as InkMonArtCameraController2D
+	_camera_controller.name = "ArtCameraController2D"
+	add_child(_camera_controller)
+	_camera_controller.setup(_camera)
 
 
 func _add_seams(seam_config: Dictionary) -> void:

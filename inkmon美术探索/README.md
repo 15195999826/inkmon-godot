@@ -38,6 +38,9 @@ Codex 三条探索管线：
   - 复用 `fable-圆角-v1/assets/baked/manifest.json` 的相机/比例/层高契约。
   - 复用 `InkMonIsoSandboxDemoMap.generate()`，保证三条探索和圆角基线对照的是同一张 sample map。
   - 支持 `INKMON_ART_CAPTURE_PATH` 环境变量在非 headless 运行时保存 viewport 截图。
+- `art_camera_controller_2d.gd`
+  - 美术观察用 2D 相机控制：WASD / 方向键平移，鼠标滚轮缩放，中键拖拽，Space 回到初始 framing。
+  - 已接入三条 codex 探索场景、`fable-圆角-v1/tile_pipeline_scene.tscn` 和 seam candidate 预览场景。
 
 每条管线都保留 `program_scene.tscn` 作为几何/排序基准，`asset_scene.tscn` / `asset_ink_scene.tscn` / 特化 scene 作为素材验证入口。
 
