@@ -1,5 +1,5 @@
 {
-  "comment": "Concept patch assets generated from full 3D tile raw images. No fable textures or decor are referenced.",
+  "comment": "Concept patch assets generated from full 3D tile raw images and fitted to the fable patch anchor/scale contract. No fable textures or decor are referenced.",
   "pitch_deg": 35.26,
   "yaw_deg": -15.0,
   "hex_orientation": "flat_top",
