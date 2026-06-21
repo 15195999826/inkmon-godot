@@ -3,699 +3,715 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>InkMon 三条美术场景管线完整流程图</title>
+  <title>InkMon 地块素材三管线流程</title>
   <style>
     :root {
-      color-scheme: light;
-      --paper: #eee9dd;
-      --panel: #fffdf7;
-      --ink: #211d17;
-      --muted: #6d655b;
-      --line: #d7cdbd;
-      --soft: #f7f2e8;
-      --raw: #7f8d3f;
-      --uv: #2f7d83;
-      --bake: #8a5a32;
-      --godot: #3d6e9f;
-      --warn: #9c4d3d;
-      --shadow: 0 14px 36px rgba(48, 38, 24, .10);
+      --bg: #ede8dc;
+      --paper: #faf8f1;
+      --ink: #171411;
+      --muted: #70695f;
+      --line: #d7cfc0;
+      --soft: #f3efe6;
+      --accent: #325d5a;
+      --accent-2: #8b5d2a;
+      --raw: #744c22;
+      --uv: #2f6f77;
+      --mesh: #6a5b91;
+      --bake: #7b642e;
+      --godot: #365d86;
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
     }
 
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
-      background: var(--paper);
       color: var(--ink);
-      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
-      line-height: 1.55;
+      background: var(--bg);
+      line-height: 1.56;
     }
-
-    a { color: #265f83; text-decoration: none; }
+    code, pre {
+      font-family: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+      font-size: 12px;
+    }
+    a { color: #1f5b68; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    code { font-family: Consolas, "JetBrains Mono", monospace; font-size: .92em; }
 
     .shell {
-      display: grid;
-      grid-template-columns: 280px minmax(0, 1fr);
-      min-height: 100vh;
-    }
-
-    aside {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      padding: 24px 20px;
-      overflow: auto;
-      background: #29241e;
-      color: #f6efe2;
-      border-right: 1px solid rgba(255,255,255,.08);
-    }
-
-    aside h1 {
-      margin: 0 0 10px;
-      font-size: 22px;
-      line-height: 1.2;
-      letter-spacing: 0;
-    }
-
-    aside p { margin: 0 0 18px; color: #d5c8b6; font-size: 13px; }
-
-    nav {
-      display: grid;
-      gap: 8px;
-      margin-top: 16px;
-    }
-
-    nav a {
-      display: block;
-      padding: 9px 10px;
-      border-radius: 6px;
-      color: #f6efe2;
-      background: rgba(255,255,255,.05);
-      font-size: 13px;
-    }
-
-    main {
-      padding: 30px;
       max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px 28px 60px;
     }
-
-    .hero {
-      padding: 26px;
-      background: var(--panel);
+    header {
+      background: var(--paper);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: var(--shadow);
+      padding: 24px 28px 18px;
+      box-shadow: 0 16px 40px rgba(52, 43, 31, 0.08);
     }
-
-    .hero h2 {
+    h1 {
       margin: 0 0 8px;
       font-size: 34px;
-      line-height: 1.15;
+      line-height: 1.12;
       letter-spacing: 0;
     }
-
-    .hero .summary {
+    .lead {
       max-width: 980px;
       margin: 0;
       color: var(--muted);
       font-size: 15px;
     }
-
     .badges {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 18px;
     }
-
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 9px;
+      border: 1px solid var(--line);
+      background: #f4ead9;
       border-radius: 999px;
-      background: #efe5d4;
-      color: #3b3227;
-      border: 1px solid #dacdb8;
+      padding: 6px 10px;
+      color: #4c4337;
       font-size: 12px;
       white-space: nowrap;
     }
 
-    section {
-      margin-top: 24px;
-      padding: 22px;
-      background: var(--panel);
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      margin: 18px 0;
+      padding: 10px;
+      background: rgba(237, 232, 220, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(215, 207, 192, 0.75);
+      border-radius: 8px;
+    }
+    .tab-button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: #4b443b;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .tab-button[aria-selected="true"] {
+      color: #fff;
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    section, .section {
+      background: var(--paper);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: var(--shadow);
+      padding: 22px;
+      margin: 18px 0;
     }
-
-    section h2 {
-      margin: 0 0 14px;
+    h2 {
+      margin: 0 0 12px;
       font-size: 24px;
       line-height: 1.2;
       letter-spacing: 0;
     }
-
-    section > p {
-      color: var(--muted);
-      max-width: 1040px;
-      margin: 0 0 16px;
+    h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 1.25;
     }
+    p { margin: 0 0 10px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; color: var(--muted); }
 
-    .grid {
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      gap: 16px;
+      align-items: start;
     }
-
-    .two {
+    .stage-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
     }
-
-    .card {
-      background: var(--soft);
+    .stage {
+      min-height: 118px;
       border: 1px solid var(--line);
       border-radius: 8px;
+      background: #fffdf8;
+      padding: 12px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      margin-bottom: 8px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .raw { background: var(--raw); }
+    .uv { background: var(--uv); }
+    .mesh { background: var(--mesh); }
+    .bake { background: var(--bake); }
+    .godot { background: var(--godot); }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf8;
       padding: 14px;
-      min-width: 0;
     }
-
-    .card h3 {
-      margin: 0 0 8px;
-      font-size: 17px;
-      letter-spacing: 0;
+    .asset {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #eee9dd;
+      display: block;
     }
-
-    .card p { margin: 0 0 8px; color: var(--muted); }
-
+    figure {
+      margin: 0;
+    }
+    figcaption {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .paths {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
     .path {
       display: block;
       overflow-wrap: anywhere;
-      color: #3e372f;
-      background: rgba(255,255,255,.62);
-      border: 1px solid #e1d7c5;
-      border-radius: 6px;
-      padding: 8px;
-      margin-top: 6px;
-    }
-
-    .asset-img {
-      width: 100%;
-      display: block;
-      border-radius: 6px;
-      border: 1px solid #d5c9b8;
-      background: #eee9dd;
-      margin-top: 10px;
-    }
-
-    .flow {
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .node {
-      display: grid;
-      grid-template-columns: 130px minmax(0, 1fr);
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fffaf0;
-      position: relative;
-    }
-
-    .node::after {
-      content: "";
-      position: absolute;
-      left: 64px;
-      bottom: -11px;
-      width: 2px;
-      height: 10px;
-      background: var(--line);
-    }
-
-    .node:last-child::after { display: none; }
-
-    .tag {
-      align-self: start;
-      justify-self: start;
-      padding: 5px 8px;
-      color: #fff;
-      border-radius: 6px;
+      border: 1px solid #e3dac9;
+      border-radius: 5px;
+      background: var(--soft);
+      padding: 6px 8px;
+      color: #4f4538;
+      font-family: "JetBrains Mono", Consolas, monospace;
       font-size: 12px;
-      font-weight: 700;
-      text-align: center;
-      min-width: 92px;
     }
-
-    .raw { background: var(--raw); }
-    .uv { background: var(--uv); }
-    .bake { background: var(--bake); }
-    .godot { background: var(--godot); }
-    .warn { background: var(--warn); }
-
-    .node h3 {
-      margin: 0 0 6px;
-      font-size: 16px;
-      line-height: 1.25;
-      letter-spacing: 0;
-    }
-
-    .node p { margin: 0 0 6px; color: var(--muted); }
-
-    .node ul {
-      margin: 8px 0 0;
-      padding-left: 18px;
-      color: var(--muted);
-    }
-
-    .node li { margin: 3px 0; }
-
-    .lane-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .lane-title h3 {
-      margin: 0;
-      font-size: 19px;
-      letter-spacing: 0;
-    }
-
-    .lane-title .mini {
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .compare {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      align-items: start;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
-      background: #fffaf0;
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 8px;
-      overflow: hidden;
+      background: #fffdf8;
+      font-size: 13px;
     }
-
     th, td {
-      border-bottom: 1px solid var(--line);
-      padding: 9px 10px;
-      vertical-align: top;
+      border-bottom: 1px solid #e3dac9;
+      padding: 8px 10px;
       text-align: left;
+      vertical-align: top;
     }
-
-    th { background: #eadfce; }
-    tr:last-child td { border-bottom: 0; }
-
-    .cmd {
-      background: #27231e;
-      color: #f4eadc;
-      padding: 12px;
-      border-radius: 8px;
-      overflow: auto;
-      border: 1px solid #3c352d;
+    th {
+      background: #efe6d5;
+      color: #3c352d;
       font-size: 12px;
     }
+    tr:last-child td { border-bottom: 0; }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      border: 1px solid #d8cebf;
+      border-radius: 8px;
+      background: #1f1b16;
+      color: #f3ead9;
+      padding: 14px;
+      margin: 0;
+    }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf8;
+      padding: 10px 12px;
+      margin: 12px 0;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 800;
+    }
 
-    .footnote {
+    .mesh-diagram {
+      min-height: 230px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f5f0e7;
+      padding: 14px;
+    }
+    .mesh-diagram svg {
+      display: block;
+      width: 100%;
+      height: 190px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
       color: var(--muted);
       font-size: 12px;
     }
+    .legend span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #fffdf8;
+    }
 
-    @media (max-width: 1100px) {
-      .shell { grid-template-columns: 1fr; }
-      aside { position: static; height: auto; }
-      main { padding: 18px; }
-      .grid, .two, .compare { grid-template-columns: 1fr; }
-      .node { grid-template-columns: 1fr; }
-      .node::after { left: 22px; }
+    @media (max-width: 980px) {
+      .shell { padding: 18px; }
+      .grid-2, .grid-3, .stage-grid { grid-template-columns: 1fr; }
+      .tabs { overflow-x: auto; }
+      .tab-button { flex: 0 0 auto; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <aside>
-      <h1>三管线完整流程图</h1>
-      <p>从 `docs/concept.jpg` 风格参考和 AI raw 图，一直到 Godot `*.tscn` 场景读取 manifest 拼图。</p>
-      <nav>
-        <a href="#overview">总览</a>
-        <a href="#source">AI 输入与源素材</a>
-        <a href="#shared">共享契约</a>
-        <a href="#hard">硬边管线</a>
-        <a href="#bevel">顶面倒角管线</a>
-        <a href="#patch">面片管线</a>
-        <a href="#decor">装饰物管线</a>
-        <a href="#godot">Godot 场景装配</a>
-        <a href="#commands">复跑命令</a>
-      </nav>
-    </aside>
+    <header>
+      <h1>InkMon 地块素材三条场景管线</h1>
+      <p class="lead">
+        这页从 AI 生图开始，一直追到程序处理、UV/fit、Blender 模型与 bake、Godot `asset_scene.tscn`。
+        当前三条管线共享同一批 `concept素材-v1/raw` 与 decor，差异发生在“如何把 raw 变成可进场景的 sprite”。
+      </p>
+      <div class="badges">
+        <span class="badge">style reference: `docs/concept.jpg`</span>
+        <span class="badge">texture-gen quality: `low`</span>
+        <span class="badge">size: `1024x1024`</span>
+        <span class="badge">Godot render mode: `PATCH`</span>
+        <span class="badge">shared script: `inkmon美术探索/art_tile_map_base.gd`</span>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="pipeline tabs">
+      <button class="tab-button" type="button" data-tab="overview" aria-selected="true">总览</button>
+      <button class="tab-button" type="button" data-tab="hard" aria-selected="false">管线 A：硬边</button>
+      <button class="tab-button" type="button" data-tab="bevel" aria-selected="false">管线 B：顶面倒角</button>
+      <button class="tab-button" type="button" data-tab="patch" aria-selected="false">管线 C：面片</button>
+    </nav>
 
     <main>
-      <div class="hero" id="overview">
-        <h2>InkMon 地块素材三条场景管线</h2>
-        <p class="summary">
-          当前 `inkmon美术探索` 里有三种新概念素材场景：硬边、顶面倒角、面片。
-          三者共享同一批 AI 生成 raw tile / decor 和同一张 Godot sandbox map；
-          差异主要发生在 source fitting、UV layout、Blender mesh/bake、以及最终 `baked_dir` 指向的资产目录。
-        </p>
-        <div class="badges">
-          <span class="badge">Style source: `docs/concept.jpg`</span>
-          <span class="badge">AI raw: `concept素材-v1/raw`</span>
-          <span class="badge">Shared scene script: `art_tile_map_base.gd`</span>
-          <span class="badge">Final scene map: `InkMonIsoSandboxDemoMap.generate()`</span>
-        </div>
-      </div>
+      <article id="tab-overview" class="tab-panel active">
+        <section>
+          <h2>总览：当前三条管线输出</h2>
+          <p class="muted">这张图使用最新修复后的面片场景截图合成，第三列不再是旧的层级错误图。</p>
+          <img class="asset" src="../../inkmon美术探索/concept三管线对比_fit.png" alt="三条管线最终场景对比">
+        </section>
 
-      <section>
-        <h2>一张图先看当前结果</h2>
-        <p>这张对比图是当前三管线的视觉入口；下面的流程图会拆到每个阶段资产和脚本。</p>
-        <img class="asset-img" src="../../inkmon美术探索/concept三管线对比_fit.png" alt="concept 三管线对比 fixed">
-      </section>
+        <section>
+          <h2>共享输入：AI raw tile 与 decor</h2>
+          <div class="grid-3">
+            <figure>
+              <img class="asset" src="../concept.jpg" alt="concept style reference">
+              <figcaption>风格参考：暗橄榄草地、手绘石墙、暖黑褐墨线、厚重体块。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/raw_contact_12.png" alt="AI raw tile contact sheet">
+              <figcaption>12 张 terrain raw：4 terrain x 3 elevation，白底单个 3D hex tile。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/decor_raw_contact.png" alt="AI raw decor contact sheet">
+              <figcaption>4 张 decor raw：pine、tall pine、bush、rocks，后续清底并注入各 manifest。</figcaption>
+            </figure>
+          </div>
+        </section>
 
-      <section id="source">
-        <h2>AI 输入与源素材</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>风格锚</h3>
-            <p>`docs/concept.jpg` 是这轮新素材审美锚：暗橄榄草地、手绘石墙、厚重体块、清楚但不脏的墨线。</p>
-            <span class="path">docs/concept.jpg</span>
-            <img class="asset-img" src="../concept.jpg" alt="concept style reference">
-          </div>
-          <div class="card">
-            <h3>AI raw tile</h3>
-            <p>texture-gen low quality 生成 4 种 terrain x 3 个 elevation 的完整 3D tile 白底图。</p>
-            <span class="path">inkmon美术探索/concept素材-v1/raw/*_design_raw.png</span>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/raw_contact_12.png" alt="raw tile contact sheet">
-          </div>
-          <div class="card">
-            <h3>AI raw decor</h3>
-            <p>同一风格生成树、灌木、石堆。后续作为独立 sprite 贴到 sandbox map 上。</p>
-            <span class="path">inkmon美术探索/concept素材-v1/decor_raw/*_raw.png</span>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/decor_raw_contact.png" alt="raw decor contact sheet">
-          </div>
-        </div>
-      </section>
-
-      <section id="shared">
-        <h2>共享契约：为什么三条线能进同一张 Godot 地图</h2>
-        <div class="flow">
-          <div class="node">
-            <span class="tag raw">契约</span>
-            <div>
-              <h3>相机 / 尺寸 / anchor 单一真相</h3>
-              <p>所有最终 tile PNG 都遵守同一 manifest 语义：`512x512`、`anchor_px=[256,256]`、`px_per_hex_edge=128`、`pitch=35.26`、`yaw=-15`。</p>
-              <span class="path">inkmon美术探索/*/assets/**/manifest.json</span>
-              <span class="path">blender/scripts/bake_assets.py::CONFIG</span>
+        <section>
+          <h2>从 raw 到 tscn 的分叉点</h2>
+          <div class="stage-grid">
+            <div class="stage">
+              <span class="tag raw">AI</span>
+              <h3>texture-gen 裸模式生图</h3>
+              <p>base image 是几何模板，reference 是 `docs/concept.jpg`。输出先落在 `%APPDATA%\InkMon\Lab\texture-gen\calls\...`，再导出到 repo。</p>
             </div>
-          </div>
-          <div class="node">
-            <span class="tag raw">地图</span>
-            <div>
-              <h3>同一张 sandbox map</h3>
-              <p>`art_tile_map_base.gd` 调 `InkMonIsoSandboxDemoMap.generate()`，让硬边 / 倒角 / 面片在同一 terrain/elevation/decor 分布下比较。</p>
-              <span class="path">inkmon美术探索/art_tile_map_base.gd</span>
-            </div>
-          </div>
-          <div class="node">
-            <span class="tag godot">装配</span>
-            <div>
-              <h3>Godot 端同一套 sprite 装配逻辑</h3>
-              <p>`asset_scene.tscn` 都设置 `render_mode=PATCH`，最终差别只来自各自 `baked_dir` 的图片与 manifest。</p>
-              <ul>
-                <li>硬边：`codex-硬边-v1/assets/concept-baked/`</li>
-                <li>倒角：`codex-倒角-v1/assets/concept-baked-wide-rim/` 或 `concept-baked/`</li>
-                <li>面片：`concept素材-v1/assets/baked/`</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="hard">
-        <div class="lane-title">
-          <h2>管线 A：硬边 / mode2_hard</h2>
-          <span class="mini">标准 UV -> Blender 无 bevel bake -> Godot sprite 拼图</span>
-        </div>
-        <div class="two">
-          <div class="flow">
-            <div class="node">
+            <div class="stage">
               <span class="tag raw">Raw</span>
-              <div>
-                <h3>读取完整 3D tile raw</h3>
-                <p>输入来自 `concept素材-v1/raw`，不是 fable 旧纹理。</p>
-                <span class="path">concept素材-v1/raw/grass_e0_design_raw.png ...</span>
-              </div>
+              <h3>入 repo 缓冲</h3>
+              <p>`concept素材-v1/raw/*_design_raw.png` 是三条管线共同起点；decor 在 `decor_raw/`。</p>
             </div>
-            <div class="node">
-              <span class="tag uv">UV</span>
-              <div>
-                <h3>反投影成 standard paper-net UV</h3>
-                <p>`prepare_design_warp_uvs.py` 调 `texgen.warp.warp_design_to_uv()`，读取 standard design/uv sidecar，把 raw 图按 top/wall 面切到标准 UV。</p>
-                <span class="path">concept素材-v1/tools/prepare_design_warp_uvs.py</span>
-                <span class="path">concept素材-v1/uv/*_warp_uv.png</span>
-                <span class="path">concept素材-v1/uv/design_warp_uv_report.json</span>
-              </div>
+            <div class="stage">
+              <span class="tag uv">Process</span>
+              <h3>UV 或 fit</h3>
+              <p>硬边生成 standard paper-net UV；倒角生成 explicit bevel UV；面片不生成 UV，只做 alpha cleanup + fit compose。</p>
             </div>
-            <div class="node">
-              <span class="tag bake">Bake</span>
-              <div>
-                <h3>Blender 标准 hex prism，无 bevel</h3>
-                <p>`bake_art_concept_uv_set.py` 使用 `mode2_hard`：同 standard prism topology，关闭 bevel modifier，关闭 smooth normals，samples=16。</p>
-                <span class="path">blender/scripts/bake_art_concept_uv_set.py</span>
-                <span class="path">blender/scripts/texgen/tile_pipeline_modes.py::MODE2_HARD</span>
-                <span class="path">codex-硬边-v1/assets/concept-baked/*.png</span>
-              </div>
+            <div class="stage">
+              <span class="tag mesh">Model/Bake</span>
+              <h3>Blender 或跳过</h3>
+              <p>硬边/倒角会在 Blender 里把 UV 贴到模型再 render 成 PNG；面片直接把 full 3D tile 当 sprite。</p>
             </div>
-            <div class="node">
-              <span class="tag godot">Scene</span>
-              <div>
-                <h3>Godot 硬边场景</h3>
-                <p>`asset_scene.tscn` 只把 `baked_dir` 指到 hard baked 目录；场景拼装逻辑仍来自 `art_tile_map_base.gd`。</p>
+            <div class="stage">
+              <span class="tag godot">Godot</span>
+              <h3>asset_scene.tscn</h3>
+              <p>三个场景都用 `art_tile_map_base.gd`，只换 `baked_dir`。最终由 manifest 的 anchor/size 驱动地图拼装。</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>texture-gen 本地生图台账</h2>
+          <p class="muted">下面来自 `%APPDATA%\InkMon\Lab\texture-gen\calls\*/call.json`。`water_e1` 的 raw 图存在于 repo，但本机未找到对应 `call.json`，所以不伪造参数。</p>
+          <table>
+            <thead>
+              <tr>
+                <th>asset</th>
+                <th>callId / status</th>
+                <th>quality / size</th>
+                <th>base image</th>
+                <th>reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>grass_e0</td><td><code>call_mqkxdo3j_ok4gg</code></td><td>low / 1024x1024</td><td><code>blender/templates/standard-templates/template_design_e0.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>grass_e1</td><td><code>call_mqkxfl5q_edyrx</code></td><td>low / 1024x1024</td><td><code>template_design_e1.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>grass_e2</td><td><code>call_mqkxghyt_pe5lz</code></td><td>low / 1024x1024</td><td><code>template_design_e2.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>dirt_e0</td><td><code>call_mqkxhpmo_046hh</code></td><td>low / 1024x1024</td><td><code>template_design_e0.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>dirt_e1</td><td><code>call_mqkxmf6m_yxi62</code></td><td>low / 1024x1024</td><td><code>template_design_e1.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>dirt_e2</td><td><code>call_mqkxnh76_r7gpf</code></td><td>low / 1024x1024</td><td><code>template_design_e2.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>stone_e0</td><td><code>call_mqkxjsqd_77hhx</code></td><td>low / 1024x1024</td><td><code>template_design_e0.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>stone_e1</td><td><code>call_mqkxom0i_60fng</code></td><td>low / 1024x1024</td><td><code>template_design_e1.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>stone_e2</td><td><code>call_mqkxpj62_ttq8z</code></td><td>low / 1024x1024</td><td><code>template_design_e2.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>water_e0</td><td><code>call_mqkxkslc_ne5rx</code></td><td>low / 1024x1024</td><td><code>template_design_e0.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>water_e1</td><td><code>raw present; local call.json not found</code></td><td>unknown</td><td><code>template_design_e1.png</code> inferred</td><td><code>docs/concept.jpg</code> inferred from history</td></tr>
+              <tr><td>water_e2</td><td><code>call_mqkxrncc_2728b</code></td><td>low / 1024x1024</td><td><code>template_design_e2.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>decor_pine</td><td><code>call_mqkz2spo_dm5bm</code></td><td>low / 1024x1024</td><td><code>decor_templates/decor_pine_template.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>decor_pine_tall</td><td><code>call_mqkz3wap_ihzqr</code></td><td>low / 1024x1024</td><td><code>decor_templates/decor_pine_tall_template.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>decor_bush</td><td><code>call_mqkz59l7_clxpy</code></td><td>low / 1024x1024</td><td><code>decor_templates/decor_bush_template.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+              <tr><td>decor_rocks</td><td><code>call_mqkz67tw_i8jjh</code></td><td>low / 1024x1024</td><td><code>decor_templates/decor_rocks_template.png</code></td><td><code>docs/concept.jpg</code></td></tr>
+            </tbody>
+          </table>
+          <details>
+            <summary>代表性 terrain prompt：grass_e0</summary>
+            <pre><code>Create exactly ONE isometric hex terrain tile, not a contact sheet, not a map, not multiple variants.
+
+The base image is a strict geometry template. Follow it exactly:
+- Keep the same tile position, scale, silhouette, camera angle, pitch, yaw, top hex polygon, and visible side-wall geometry as the template.
+- Do not rotate, resize, crop, move, or redraw the tile into a different perspective.
+- Generate only one complete tile that fills the template shape.
+- Keep pure white background outside the tile.
+
+Theme: concept-style grass_e0 base tile for a tactical hex map. Top surface: muted dark olive grass, worn moss, small flat weeds, tiny pebbles, subtle dirt patches, high-detail hand-painted texture. Side walls: stacked mossy stone/earth blocks like the concept reference, thick and structural, but cleanly aligned to the template.
+
+Style anchor: use docs/concept.jpg only for the painterly tactical RPG look: dark olive palette, crisp stone block detail, warm black-brown ink, heavy readable volume, natural worn edges. Do not copy creatures, trees, ruins, bridges, or map layout from the reference.
+
+Lighting and shadows:
+- pure white background
+- no cast shadow
+- no drop shadow
+- no ambient floor shadow
+- material/albedo detail only; Blender/Godot will add final lighting and map composition.
+
+Edge requirement: visible but clean outer silhouette and top rim; no doubled seam lines, no thick black internal hinge lines, no white gaps.</code></pre>
+          </details>
+          <details>
+            <summary>代表性 decor prompt：decor_pine</summary>
+            <pre><code>Create a single centered hand-painted isometric pine tree game prop matching the style of docs/concept.jpg: dark olive foliage, warm black-brown ink linework, painterly fantasy tactics map asset. Pure white background, no cast shadow, no drop shadow, no ground tile, no text, one isolated object only, readable at small 2D sprite size.</code></pre>
+          </details>
+        </section>
+
+        <section>
+          <h2>共享 Godot 装配契约</h2>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>scene</h3>
+              <p>`asset_scene.tscn` 只是一层配置：`render_mode=PATCH`，`baked_dir=...`，脚本统一走 `art_tile_map_base.gd`。</p>
+              <div class="paths">
                 <span class="path">inkmon美术探索/codex-硬边-v1/asset_scene.tscn</span>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <h3>阶段性产物</h3>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/uv/design_warp_uv_contact.png" alt="standard uv contact">
-            <img class="asset-img" src="../../inkmon美术探索/codex-硬边-v1/assets/concept_hard_baked_contact.png" alt="hard baked contact">
-            <img class="asset-img" src="../../inkmon美术探索/codex-硬边-v1/shots/concept_asset_decor.png" alt="hard scene">
-          </div>
-        </div>
-      </section>
-
-      <section id="bevel">
-        <div class="lane-title">
-          <h2>管线 B：顶面倒角 / mode3_top_edge_bevel</h2>
-          <span class="mini">beveled UV -> explicit bevel mesh -> Blender bake -> Godot sprite 拼图</span>
-        </div>
-        <div class="two">
-          <div class="flow">
-            <div class="node">
-              <span class="tag raw">Raw</span>
-              <div>
-                <h3>读取同一批 3D tile raw</h3>
-                <p>倒角管线不重新生图，继续使用 `concept素材-v1/raw`。</p>
-                <span class="path">concept素材-v1/raw/*_design_raw.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag uv">Fit</span>
-              <div>
-                <h3>生成 beveled design / UV sidecar 并拟合 raw</h3>
-                <p>`prepare_beveled_uvs.py` 生成 `top + bevel_0..5 + wall_*` 的 design/uv layout，再用 bbox uniform fit 修正 AI 图偏差。</p>
-                <span class="path">concept素材-v1/beveled_uv/sidecars/*.json</span>
-                <span class="path">concept素材-v1/beveled_uv/fit/*_beveled_design_fit.json</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag uv">UV</span>
-              <div>
-                <h3>反投影成 explicit top-edge bevel UV</h3>
-                <p>倒角不能复用 standard paper-net UV；它有真实 bevel band 面，所以需要独立 UV。</p>
-                <span class="path">concept素材-v1/beveled_uv/*_beveled_uv.png</span>
-                <span class="path">concept素材-v1/beveled_uv_wide_rim/*_beveled_uv.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag bake">Bake</span>
-              <div>
-                <h3>Blender 显式倒角 mesh</h3>
-                <p>`bake_art_concept_beveled_set.py` 用 Python 建 `inner / outer / bottom` 顶点和 `top / bevel / wall` 面，贴 beveled UV 后渲染 512 PNG。</p>
-                <span class="path">blender/scripts/bake_art_concept_beveled_set.py</span>
-                <span class="path">codex-倒角-v1/assets/concept-baked-wide-rim/*.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag godot">Scene</span>
-              <div>
-                <h3>Godot 倒角场景</h3>
-                <p>当前优先看宽 rim 版本，参数 `bevel_inset_world=0.085`、`bevel_drop_world=0.050`。</p>
                 <span class="path">inkmon美术探索/codex-倒角-v1/asset_wide_rim_scene.tscn</span>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <h3>阶段性产物</h3>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/beveled_uv/beveled_uv_contact.png" alt="beveled uv contact">
-            <img class="asset-img" src="../../inkmon美术探索/codex-倒角-v1/assets/concept_beveled_wide_rim_baked_contact.png" alt="wide rim baked contact">
-            <img class="asset-img" src="../../inkmon美术探索/codex-倒角-v1/shots/concept_asset_wide_rim_decor.png" alt="wide rim scene">
-          </div>
-        </div>
-      </section>
-
-      <section id="patch">
-        <div class="lane-title">
-          <h2>管线 C：面片 / full 3D tile patch</h2>
-          <span class="mini">raw 3D tile -> alpha cleanup + fit compose -> Godot sprite 拼图</span>
-        </div>
-        <div class="two">
-          <div class="flow">
-            <div class="node">
-              <span class="tag raw">Raw</span>
-              <div>
-                <h3>直接保留 AI 3D tile 完整画面</h3>
-                <p>这条线不走 Blender tile mesh bake，目标是最大化保留 raw 3D 图审美。</p>
-                <span class="path">concept素材-v1/raw/*_design_raw.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag uv">Fit</span>
-              <div>
-                <h3>复用 beveled fit sidecar 作为自动锚定依据</h3>
-                <p>修复后的 `prepare_patch_assets.py` 读取 `origin_px` 和 top polygon width，把每张 raw compose 到 `512x512`、`anchor=(256,256)`、标准 hex scale。</p>
-                <span class="path">concept素材-v1/beveled_uv/fit/*_beveled_design_fit.json</span>
-                <span class="path">concept素材-v1/tools/prepare_patch_assets.py</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag bake">Patch</span>
-              <div>
-                <h3>清白底、透明化、锐化、写 manifest</h3>
-                <p>输出本身就是 Godot 读取的透明 tile sprite；这条线没有 UV PNG、没有 Blender tile mesh 阶段。</p>
-                <span class="path">concept素材-v1/assets/baked/tile_*_v0.png</span>
-                <span class="path">concept素材-v1/assets/baked/manifest.json</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag godot">Scene</span>
-              <div>
-                <h3>Godot 面片场景</h3>
-                <p>`asset_scene.tscn` 的 `baked_dir` 指到 `concept素材-v1/assets/baked/`。这一轮修复的重点就是 patch 图片要满足 manifest anchor/scale 契约。</p>
                 <span class="path">inkmon美术探索/codex-面片-v1/asset_scene.tscn</span>
               </div>
             </div>
-          </div>
-          <div class="card">
-            <h3>阶段性产物</h3>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/assets/concept_patch_contact_fit.png" alt="fixed patch contact">
-            <img class="asset-img" src="../../inkmon美术探索/codex-面片-v1/shots/concept_asset_decor_fit.png" alt="fixed patch scene">
-          </div>
-        </div>
-      </section>
-
-      <section id="decor">
-        <h2>装饰物管线：三条场景共享同一批 concept decor</h2>
-        <div class="two">
-          <div class="flow">
-            <div class="node">
-              <span class="tag raw">Raw</span>
-              <div>
-                <h3>AI decor 白底图</h3>
-                <p>树、灌木、石堆单独生图，避免继续混用 fable decor。</p>
-                <span class="path">concept素材-v1/decor_raw/decor_*_raw.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag uv">Process</span>
-              <div>
-                <h3>清白底、按目标高度缩放、定位 anchor</h3>
-                <p>`prepare_concept_decors.py` 把处理后的 decor 注入所有 concept baked manifest 和资产目录。</p>
-                <span class="path">concept素材-v1/tools/prepare_concept_decors.py</span>
-                <span class="path">concept素材-v1/decor_processed/*.png</span>
-              </div>
-            </div>
-            <div class="node">
-              <span class="tag godot">Scene</span>
-              <div>
-                <h3>`art_tile_map_base.gd` 按 terrain/tree 随机放置</h3>
-                <p>decor 和 tile 使用相同 z_index 排序列表；每个 scene 只要 manifest 中有 `decor_*` 条目即可读取。</p>
+            <div class="panel">
+              <h3>manifest</h3>
+              <p>每条管线的 `manifest.json` 定义 `anchor_px=[256,256]`、`size_px=[512,512]`、terrain/elevation asset key。Godot 拼图只信 manifest。</p>
+              <div class="paths">
+                <span class="path">codex-硬边-v1/assets/concept-baked/manifest.json</span>
+                <span class="path">codex-倒角-v1/assets/concept-baked-wide-rim/manifest.json</span>
+                <span class="path">concept素材-v1/assets/baked/manifest.json</span>
               </div>
             </div>
           </div>
-          <div class="card">
-            <h3>Decor 阶段图</h3>
-            <img class="asset-img" src="../../inkmon美术探索/concept素材-v1/decor_processed_contact.png" alt="processed decor">
+        </section>
+      </article>
+
+      <article id="tab-hard" class="tab-panel">
+        <section>
+          <h2>管线 A：硬边 / `mode2_hard`</h2>
+          <p class="muted">目标：把 AI full 3D raw 反投影到 standard paper-net UV，再贴到标准六边形柱体，无 bevel、flat face shading，用来诊断最朴素的几何贴图效果。</p>
+          <div class="stage-grid">
+            <div class="stage"><span class="tag raw">AI</span><h3>生图</h3><p>`template_design_e0/e1/e2.png` + `docs/concept.jpg`，输出 `raw/*_design_raw.png`。</p></div>
+            <div class="stage"><span class="tag uv">UV</span><h3>反投影</h3><p>`prepare_design_warp_uvs.py` 调 `warp_design_to_uv()`，产出 standard paper-net UV。</p></div>
+            <div class="stage"><span class="tag mesh">Model</span><h3>硬边柱体</h3><p>`standard_hex_prism_no_bevel`：无 bevel modifier，无 smooth normals。</p></div>
+            <div class="stage"><span class="tag bake">Bake</span><h3>Blender render</h3><p>`bake_art_concept_uv_set.py --pipeline mode2_hard` 输出 baked sprite。</p></div>
+            <div class="stage"><span class="tag godot">Godot</span><h3>asset scene</h3><p>`codex-硬边-v1/asset_scene.tscn` 读取 `concept-baked/`。</p></div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="godot">
-        <h2>最终创建出 tscn 场景：Godot 端实际发生了什么</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>场景</th>
-              <th>读取资产</th>
-              <th>用途</th>
-              <th>最终截图</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>codex-硬边-v1/asset_scene.tscn</code></td>
-              <td><code>codex-硬边-v1/assets/concept-baked/</code></td>
-              <td>无 bevel 几何 bake，诊断边界和 seam。</td>
-              <td><a href="../../inkmon美术探索/codex-硬边-v1/shots/concept_asset_decor.png">concept_asset_decor.png</a></td>
-            </tr>
-            <tr>
-              <td><code>codex-倒角-v1/asset_wide_rim_scene.tscn</code></td>
-              <td><code>codex-倒角-v1/assets/concept-baked-wide-rim/</code></td>
-              <td>显式顶面倒角宽 rim，当前最接近厚重体块方向。</td>
-              <td><a href="../../inkmon美术探索/codex-倒角-v1/shots/concept_asset_wide_rim_decor.png">concept_asset_wide_rim_decor.png</a></td>
-            </tr>
-            <tr>
-              <td><code>codex-面片-v1/asset_scene.tscn</code></td>
-              <td><code>concept素材-v1/assets/baked/</code></td>
-              <td>完整 3D tile patch，最保留 AI raw 审美。</td>
-              <td><a href="../../inkmon美术探索/codex-面片-v1/shots/concept_asset_decor_fit.png">concept_asset_decor_fit.png</a></td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="footnote">
-          `program_scene.tscn` 是每条管线的程序化几何/排序基准；`asset_scene.tscn` 才是素材管线验证入口。
-          旧 `fable-圆角-v1` 仍保留为 production 圆角基线，不是这轮 concept 新素材的主候选。
-        </p>
-      </section>
+        <section>
+          <h2>阶段图：raw -> UV -> baked -> tscn</h2>
+          <div class="grid-2">
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/raw_contact_12.png" alt="hard raw input contact">
+              <figcaption>AI raw 输入。硬边、倒角、面片共享这些 raw。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/uv/design_warp_uv_contact.png" alt="standard UV contact">
+              <figcaption>standard paper-net UV：`top + visible walls`，来自 `prepare_design_warp_uvs.py`。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/codex-硬边-v1/assets/concept_hard_baked_contact.png" alt="hard baked contact">
+              <figcaption>Blender hard bake 结果：`codex-硬边-v1/assets/concept-baked/*.png`。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/codex-硬边-v1/shots/concept_asset_decor.png" alt="hard Godot scene">
+              <figcaption>最终 Godot 场景：`codex-硬边-v1/asset_scene.tscn`。</figcaption>
+            </figure>
+          </div>
+        </section>
 
-      <section id="commands">
-        <h2>复跑命令索引</h2>
-        <p>下面是从 raw 到 tscn 截图的命令链。Blender 命令需要本机 Blender 可用；Godot 截图不能用 headless，因为 viewport texture 在 dummy rendering 下不可用。</p>
-        <div class="cmd"><pre><code># 1. 从 raw 生成 standard UV
-python .\inkmon美术探索\concept素材-v1\tools\prepare_design_warp_uvs.py
+        <section>
+          <h2>模型结构</h2>
+          <div class="grid-2">
+            <div class="mesh-diagram">
+              <svg viewBox="0 0 520 220" role="img" aria-label="hard prism mesh diagram">
+                <polygon points="145,35 305,35 385,95 305,155 145,155 65,95" fill="#8b9360" stroke="#2a241e" stroke-width="3"/>
+                <polygon points="65,95 145,155 145,195 65,135" fill="#554531" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="145,155 305,155 305,195 145,195" fill="#6b5537" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="305,155 385,95 385,135 305,195" fill="#403529" stroke="#2a241e" stroke-width="2"/>
+                <text x="410" y="70" fill="#2a241e" font-size="16">top face</text>
+                <text x="410" y="115" fill="#2a241e" font-size="16">3 visible wall faces</text>
+                <text x="410" y="158" fill="#2a241e" font-size="16">no bevel band</text>
+              </svg>
+              <div class="legend"><span>mesh_contract: `standard_hex_prism_no_bevel`</span><span>UV layout: standard paper-net</span></div>
+            </div>
+            <div class="panel">
+              <h3>实际代码路径</h3>
+              <div class="paths">
+                <span class="path">blender/scripts/texgen/tile_pipeline_modes.py::MODE2_HARD</span>
+                <span class="path">blender/scripts/bake_assets.py::build_hex_tile</span>
+                <span class="path">blender/scripts/bake_art_concept_uv_set.py</span>
+              </div>
+              <p class="muted">关键参数：`tile_bevel_enabled=false`、`tile_smooth_enabled=false`、`bevel_width=0.0`、`bevel_segments=0`。</p>
+            </div>
+          </div>
+        </section>
 
-# 2. 从 raw 生成 beveled UV 和 fit sidecar
-python .\inkmon美术探索\concept素材-v1\tools\prepare_beveled_uvs.py
-python .\inkmon美术探索\concept素材-v1\tools\prepare_beveled_uvs.py --out-dir .\inkmon美术探索\concept素材-v1\beveled_uv_wide_rim --bevel-inset-world 0.085 --bevel-drop-world 0.050
+        <section>
+          <h2>复跑命令</h2>
+          <pre><code>python .\inkmon美术探索\concept素材-v1\tools\prepare_design_warp_uvs.py
 
-# 3. 从 raw + fit sidecar 生成透明 patch
-python .\inkmon美术探索\concept素材-v1\tools\prepare_patch_assets.py
-
-# 4. 处理并注入 concept decor
-python .\inkmon美术探索\concept素材-v1\tools\prepare_concept_decors.py
-
-# 5. Blender bake 硬边资产
 blender --background blender/test.blend --python blender/scripts/bake_art_concept_uv_set.py -- --pipeline mode2_hard --uv-dir .\inkmon美术探索\concept素材-v1\uv --out-dir .\inkmon美术探索\codex-硬边-v1\assets\concept-baked --samples 16
 
-# 6. Blender bake 顶面倒角宽 rim 资产
+C:\Users\37065\.local\bin\godot_console.exe --headless --path D:/GodotProjects/inkmon/inkmon-godot --import</code></pre>
+        </section>
+      </article>
+
+      <article id="tab-bevel" class="tab-panel">
+        <section>
+          <h2>管线 B：顶面倒角 / `mode3_top_edge_bevel`</h2>
+          <p class="muted">目标：不再把顶面边缘压进同一个 top face，而是给 top edge 显式建 6 条 bevel band。当前主图使用 wide-rim 参数。</p>
+          <div class="stage-grid">
+            <div class="stage"><span class="tag raw">AI</span><h3>生图</h3><p>复用 `concept素材-v1/raw`，不重新调用 texture-gen。</p></div>
+            <div class="stage"><span class="tag uv">Fit</span><h3>拟合 raw</h3><p>`prepare_beveled_uvs.py` 生成 sidecar，并记录 `origin_px` / polygon fit。</p></div>
+            <div class="stage"><span class="tag uv">UV</span><h3>beveled UV</h3><p>`top + bevel_0..5 + wall_0..5`，wide rim 版本在 `beveled_uv_wide_rim/`。</p></div>
+            <div class="stage"><span class="tag mesh">Model</span><h3>显式倒角 mesh</h3><p>18 verts、14 faces：top、6 bevel、6 wall、bottom。</p></div>
+            <div class="stage"><span class="tag godot">Godot</span><h3>asset scene</h3><p>`asset_wide_rim_scene.tscn` 读取 `concept-baked-wide-rim/`。</p></div>
+          </div>
+        </section>
+
+        <section>
+          <h2>阶段图：raw -> fit sidecar -> beveled UV -> baked -> tscn</h2>
+          <div class="grid-2">
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/raw_contact_12.png" alt="bevel raw input contact">
+              <figcaption>AI raw 输入。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/beveled_uv_wide_rim_contact.png" alt="wide rim beveled UV contact">
+              <figcaption>wide-rim beveled UV：`beveled_uv_wide_rim/*_beveled_uv.png`。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/codex-倒角-v1/assets/concept_beveled_wide_rim_baked_contact.png" alt="bevel baked contact">
+              <figcaption>Blender explicit bevel bake：`concept-baked-wide-rim/*.png`。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/codex-倒角-v1/shots/concept_asset_wide_rim_decor.png" alt="bevel Godot scene">
+              <figcaption>最终 Godot 场景：`codex-倒角-v1/asset_wide_rim_scene.tscn`。</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section>
+          <h2>模型结构</h2>
+          <div class="grid-2">
+            <div class="mesh-diagram">
+              <svg viewBox="0 0 520 220" role="img" aria-label="top bevel mesh diagram">
+                <polygon points="165,58 285,58 345,103 285,148 165,148 105,103" fill="#8b9360" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="145,35 305,35 385,95 305,155 145,155 65,95" fill="none" stroke="#2a241e" stroke-width="3"/>
+                <polygon points="145,35 165,58 285,58 305,35" fill="#b0a05d" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="305,35 285,58 345,103 385,95" fill="#8f844f" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="385,95 345,103 285,148 305,155" fill="#685c3b" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="305,155 285,148 165,148 145,155" fill="#6f603d" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="145,155 165,148 105,103 65,95" fill="#635337" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="65,95 105,103 165,58 145,35" fill="#98894f" stroke="#2a241e" stroke-width="1.5"/>
+                <polygon points="65,95 145,155 145,195 65,135" fill="#554531" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="145,155 305,155 305,195 145,195" fill="#6b5537" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="305,155 385,95 385,135 305,195" fill="#403529" stroke="#2a241e" stroke-width="2"/>
+                <text x="410" y="58" fill="#2a241e" font-size="16">top inner face</text>
+                <text x="410" y="99" fill="#2a241e" font-size="16">6 bevel bands</text>
+                <text x="410" y="140" fill="#2a241e" font-size="16">wall faces</text>
+              </svg>
+              <div class="legend"><span>`bevel_inset_world=0.085`</span><span>`bevel_drop_world=0.050`</span><span>flat normals</span></div>
+            </div>
+            <div class="panel">
+              <h3>实际代码路径</h3>
+              <div class="paths">
+                <span class="path">inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py</span>
+                <span class="path">blender/scripts/bake_art_concept_beveled_set.py::_build_beveled_mesh</span>
+                <span class="path">inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e*.json</span>
+              </div>
+              <p class="muted">这条线不能复用 standard UV，因为模型多出真实 bevel faces。UV sidecar 是 mesh face 到 UV polygon 的契约。</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>复跑命令</h2>
+          <pre><code>python .\inkmon美术探索\concept素材-v1\tools\prepare_beveled_uvs.py --out-dir .\inkmon美术探索\concept素材-v1\beveled_uv_wide_rim --bevel-inset-world 0.085 --bevel-drop-world 0.050
+
 blender --background blender/test.blend --python blender/scripts/bake_art_concept_beveled_set.py -- --uv-dir .\inkmon美术探索\concept素材-v1\beveled_uv_wide_rim --out-dir .\inkmon美术探索\codex-倒角-v1\assets\concept-baked-wide-rim --samples 16 --bevel-inset-world 0.085 --bevel-drop-world 0.050
 
-# 7. Godot import，确保 PNG 变更进入 .ctex
+C:\Users\37065\.local\bin\godot_console.exe --headless --path D:/GodotProjects/inkmon/inkmon-godot --import</code></pre>
+        </section>
+      </article>
+
+      <article id="tab-patch" class="tab-panel">
+        <section>
+          <h2>管线 C：面片 / full 3D tile patch</h2>
+          <p class="muted">目标：最大化保留 AI raw 3D tile 的视觉质量。它不走 Blender tile mesh，不生成 UV；程序只做白底清理、scale/anchor fit，然后 Godot 按 sprite 拼图。</p>
+          <div class="stage-grid">
+            <div class="stage"><span class="tag raw">AI</span><h3>生图</h3><p>使用同一批 raw 3D tile，raw 本身已经包含顶面、侧墙、体块光感。</p></div>
+            <div class="stage"><span class="tag uv">Fit</span><h3>清底与缩放</h3><p>`prepare_patch_assets.py` flood-fill 白底，使用 fit sidecar 统一 anchor/scale。</p></div>
+            <div class="stage"><span class="tag mesh">Model</span><h3>无 Blender mesh</h3><p>这里的“模型感”来自 raw 图；程序不再把它拆成面再贴回 mesh。</p></div>
+            <div class="stage"><span class="tag bake">Sprite</span><h3>透明 patch</h3><p>输出 `assets/baked/tile_*_v0.png`，直接作为 Godot sprite。</p></div>
+            <div class="stage"><span class="tag godot">Godot</span><h3>asset scene</h3><p>`codex-面片-v1/asset_scene.tscn` 读取 `concept素材-v1/assets/baked/`。</p></div>
+          </div>
+        </section>
+
+        <section>
+          <h2>阶段图：raw -> fit patch -> tscn</h2>
+          <div class="grid-2">
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/raw_contact_12.png" alt="patch raw input contact">
+              <figcaption>AI raw 输入。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/assets/concept_patch_contact_fit.png" alt="fixed patch contact">
+              <figcaption>修复后 patch contact：`anchor_px=[256,256]`，scale 来自 fitted sidecar。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/concept素材-v1/decor_processed_contact.png" alt="processed decor contact">
+              <figcaption>共享 decor：清白底、缩放、写入 manifest。</figcaption>
+            </figure>
+            <figure>
+              <img class="asset" src="../../inkmon美术探索/codex-面片-v1/shots/concept_asset_decor_fit.png" alt="fixed patch Godot scene">
+              <figcaption>最终 Godot 场景：`codex-面片-v1/asset_scene.tscn`，使用修复后的层级/fit 截图。</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section>
+          <h2>fit 与“模型”职责</h2>
+          <div class="grid-2">
+            <div class="mesh-diagram">
+              <svg viewBox="0 0 520 220" role="img" aria-label="patch fit diagram">
+                <rect x="35" y="20" width="190" height="170" fill="#fffdf8" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="82,62 174,45 215,98 186,157 90,172 44,112" fill="#8f965f" stroke="#2a241e" stroke-width="3"/>
+                <line x1="130" y1="105" x2="260" y2="105" stroke="#2a241e" stroke-width="2" stroke-dasharray="6 6"/>
+                <rect x="295" y="20" width="190" height="170" fill="#fffdf8" stroke="#2a241e" stroke-width="2"/>
+                <polygon points="343,62 435,45 476,98 447,157 351,172 305,112" fill="#8f965f" stroke="#2a241e" stroke-width="3"/>
+                <circle cx="390" cy="105" r="5" fill="#b9432f"/>
+                <text x="55" y="207" fill="#2a241e" font-size="15">raw canvas, white background</text>
+                <text x="315" y="207" fill="#2a241e" font-size="15">512 patch, fixed anchor</text>
+              </svg>
+              <div class="legend"><span>flood-fill background</span><span>Gaussian alpha edge</span><span>fit origin -> `ANCHOR_PX`</span></div>
+            </div>
+            <div class="panel">
+              <h3>实际代码路径</h3>
+              <div class="paths">
+                <span class="path">inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py</span>
+                <span class="path">inkmon美术探索/concept素材-v1/beveled_uv/fit/*_beveled_design_fit.json</span>
+                <span class="path">inkmon美术探索/concept素材-v1/assets/baked/tile_*_v0.png</span>
+              </div>
+              <p class="muted">这条线没有 `UV PNG -> Blender mesh -> bake` 阶段。它的风险点是 raw tile 的外轮廓和 fit 参数；优势是更接近 AI 3D 原图。</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>复跑命令</h2>
+          <pre><code>python .\inkmon美术探索\concept素材-v1\tools\prepare_patch_assets.py
+python .\inkmon美术探索\concept素材-v1\tools\prepare_concept_decors.py
+
 C:\Users\37065\.local\bin\godot_console.exe --headless --path D:/GodotProjects/inkmon/inkmon-godot --import
 
-# 8. 非 headless 截图
 $env:INKMON_ART_CAPTURE_PATH = "D:\GodotProjects\inkmon\inkmon-godot\inkmon美术探索\codex-面片-v1\shots\concept_asset_decor_fit.png"
 C:\Users\37065\.local\bin\godot_console.exe --path D:/GodotProjects/inkmon/inkmon-godot res://inkmon美术探索/codex-面片-v1/asset_scene.tscn
-Remove-Item Env:INKMON_ART_CAPTURE_PATH</code></pre></div>
-      </section>
+Remove-Item Env:INKMON_ART_CAPTURE_PATH</code></pre>
+        </section>
+      </article>
     </main>
   </div>
+
+  <script>
+    const buttons = Array.from(document.querySelectorAll(".tab-button"));
+    const panels = {
+      overview: document.getElementById("tab-overview"),
+      hard: document.getElementById("tab-hard"),
+      bevel: document.getElementById("tab-bevel"),
+      patch: document.getElementById("tab-patch"),
+    };
+
+    function selectTab(name, updateHash = true) {
+      const target = panels[name] ? name : "overview";
+      for (const button of buttons) {
+        const selected = button.dataset.tab === target;
+        button.setAttribute("aria-selected", String(selected));
+      }
+      for (const [key, panel] of Object.entries(panels)) {
+        panel.classList.toggle("active", key === target);
+      }
+      if (updateHash) {
+        history.replaceState(null, "", "#" + target);
+      }
+    }
+
+    for (const button of buttons) {
+      button.addEventListener("click", () => selectTab(button.dataset.tab));
+    }
+
+    window.addEventListener("hashchange", () => selectTab(location.hash.slice(1), false));
+    selectTab(location.hash.slice(1) || "overview", false);
+  </script>
 </body>
 </html>
