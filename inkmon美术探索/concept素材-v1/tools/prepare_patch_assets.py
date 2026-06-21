@@ -25,6 +25,21 @@ YAW_DEG = -15.0
 PX_PER_HEX_EDGE = 128.0
 
 
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _rel(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root()).as_posix()
+    except ValueError:
+        return str(path.resolve())
+
+
+def _face_poly(face: dict) -> list:
+    return face.get("polygon_px") or face["quad_px"]
+
+
 def is_border_background(rgb: np.ndarray) -> np.ndarray:
     values = rgb.astype(np.int16)
     max_channel = values.max(axis=2)
@@ -96,7 +111,7 @@ def load_fit_origin_and_width(fit_path: Path) -> tuple[tuple[float, float], floa
     return (float(origin[0]), float(origin[1])), max(xs) - min(xs)
 
 
-def make_transparent_patch(raw_path: Path, fit_path: Path, target_path: Path) -> None:
+def make_transparent_patch(raw_path: Path, fit_path: Path, target_path: Path) -> dict:
     source = Image.open(raw_path).convert("RGBA")
     background = flood_background_mask(source)
     background = background.filter(ImageFilter.GaussianBlur(0.8))
@@ -124,6 +139,80 @@ def make_transparent_patch(raw_path: Path, fit_path: Path, target_path: Path) ->
     result = result.filter(ImageFilter.UnsharpMask(radius=0.7, percent=75, threshold=2))
     target_path.parent.mkdir(parents=True, exist_ok=True)
     result.save(target_path)
+    return {
+        "raw": _rel(raw_path),
+        "fit_sidecar": _rel(fit_path),
+        "output_patch": _rel(target_path),
+        "origin_px": [origin[0], origin[1]],
+        "source_top_width": source_top_width,
+        "target_top_width": projected_hex_width(),
+        "scale": scale,
+        "anchor_px": [ANCHOR_PX[0], ANCHOR_PX[1]],
+        "output_size_px": [OUTPUT_SIZE, OUTPUT_SIZE],
+        "transform_coeffs": list(coeffs),
+    }
+
+
+def _draw_label(draw: ImageDraw.ImageDraw, xy: tuple[float, float], text: str) -> None:
+    x, y = xy
+    draw.rectangle((x - 3, y - 2, x + 8 + len(text) * 6, y + 11), fill=(255, 255, 255, 210))
+    draw.text((x, y), text, fill=(32, 28, 22, 255), font=ImageFont.load_default())
+
+
+def make_patch_fit_overlay(raw_path: Path, fit_path: Path, patch_path: Path, target_path: Path) -> dict:
+    fit = json.loads(fit_path.read_text(encoding="utf-8"))
+    raw = Image.open(raw_path).convert("RGBA")
+    overlay = Image.new("RGBA", raw.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    polys: list[list] = []
+    for face_name, face in fit["faces"].items():
+        poly = _face_poly(face)
+        polys.append(poly)
+        if face_name == "top":
+            color = (232, 45, 45, 255)
+            width = 4
+        elif face_name.startswith("bevel_"):
+            color = (255, 160, 35, 235)
+            width = 3
+        else:
+            color = (45, 111, 242, 235)
+            width = 3
+        draw.line([tuple(point) for point in poly + [poly[0]]], fill=color, width=width)
+
+    all_points = [point for poly in polys for point in poly]
+    bbox = [
+        min(point[0] for point in all_points),
+        min(point[1] for point in all_points),
+        max(point[0] for point in all_points),
+        max(point[1] for point in all_points),
+    ]
+    draw.rectangle(tuple(bbox), outline=(255, 215, 0, 255), width=3)
+    origin = fit.get("origin_px")
+    if origin:
+        draw.ellipse((origin[0] - 8, origin[1] - 8, origin[0] + 8, origin[1] + 8), fill=(255, 215, 0, 255), outline=(45, 35, 0, 255), width=2)
+        _draw_label(draw, (origin[0] + 12, origin[1] + 8), "origin")
+
+    raw_overlay = Image.alpha_composite(raw, overlay)
+    patch = Image.open(patch_path).convert("RGBA")
+    patch_bg = Image.new("RGBA", patch.size, (236, 233, 224, 255))
+    patch_bg.alpha_composite(patch)
+    patch_draw = ImageDraw.Draw(patch_bg)
+    patch_draw.rectangle((0, 0, OUTPUT_SIZE - 1, OUTPUT_SIZE - 1), outline=(45, 111, 242, 255), width=3)
+    patch_draw.line((ANCHOR_PX[0] - 12, ANCHOR_PX[1], ANCHOR_PX[0] + 12, ANCHOR_PX[1]), fill=(232, 45, 45, 255), width=3)
+    patch_draw.line((ANCHOR_PX[0], ANCHOR_PX[1] - 12, ANCHOR_PX[0], ANCHOR_PX[1] + 12), fill=(232, 45, 45, 255), width=3)
+    _draw_label(patch_draw, (ANCHOR_PX[0] + 14, ANCHOR_PX[1] + 8), "anchor")
+
+    canvas = Image.new("RGBA", (raw_overlay.width + patch_bg.width + 24, max(raw_overlay.height, patch_bg.height)), (246, 243, 235, 255))
+    canvas.alpha_composite(raw_overlay, (0, 0))
+    canvas.alpha_composite(patch_bg, (raw_overlay.width + 24, 0))
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.convert("RGB").save(target_path)
+    return {
+        "overlay": _rel(target_path),
+        "bbox_px": [round(value, 3) for value in bbox],
+        "origin_px": origin,
+    }
 
 
 def build_manifest() -> dict:
@@ -193,16 +282,22 @@ def prepare(root: Path) -> None:
     raw_dir = root / "raw"
     asset_dir = root / "assets" / "baked"
     missing: list[Path] = []
+    report: dict[str, dict] = {}
 
     for terrain in TERRAINS:
         for elevation in ELEVATIONS:
+            key = f"{terrain}_e{elevation}"
             raw_path = raw_dir / f"{terrain}_e{elevation}_design_raw.png"
             if not raw_path.exists():
                 missing.append(raw_path)
                 continue
             fit_path = root / "beveled_uv" / "fit" / f"{terrain}_e{elevation}_beveled_design_fit.json"
             target_path = asset_dir / f"tile_{terrain}_e{elevation}_v0.png"
-            make_transparent_patch(raw_path, fit_path, target_path)
+            tile_report = make_transparent_patch(raw_path, fit_path, target_path)
+            overlay_path = root / "patch_fit_overlay" / f"{key}_patch_fit_overlay.png"
+            tile_report.update(make_patch_fit_overlay(raw_path, fit_path, target_path, overlay_path))
+            tile_report["source_script"] = _rel(Path(__file__))
+            report[key] = tile_report
 
     if missing:
         joined = "\n".join(str(path) for path in missing)
@@ -210,6 +305,15 @@ def prepare(root: Path) -> None:
 
     manifest_path = asset_dir / "manifest.json"
     manifest_path.write_text(json.dumps(build_manifest(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (asset_dir / "patch_assets_report.json").write_text(
+        json.dumps({
+            "source_script": _rel(Path(__file__)),
+            "output_dir": _rel(asset_dir),
+            "manifest": _rel(manifest_path),
+            "tiles": report,
+        }, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     make_contact_sheet(asset_dir, root / "assets" / "concept_patch_contact.png")
 
 

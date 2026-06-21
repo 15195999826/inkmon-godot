@@ -27,6 +27,18 @@ BEVEL_INSET_WORLD = 0.055
 BEVEL_DROP_WORLD = 0.035
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _rel(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(_repo_root()).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -167,22 +179,35 @@ def bake_set(
             _build_beveled_mesh(uv_path, uv_sidecar_path, elevation)
             out_path = out_dir / f"tile_{terrain}_e{elevation}_v0.png"
             bake_assets.render_to(str(out_path))
-            results[key] = {"uv": str(uv_path), "baked": str(out_path), "uv_sidecar": str(uv_sidecar_path)}
+            results[key] = {"uv": _rel(uv_path), "baked": _rel(out_path), "uv_sidecar": _rel(uv_sidecar_path)}
 
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(
         json.dumps(build_manifest(pipeline), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    return {
+    report = {
+        "source_script": _rel(Path(__file__)),
         "pipeline": pipeline,
-        "uv_dir": str(uv_dir),
-        "out_dir": str(out_dir),
-        "manifest": str(manifest_path),
+        "pipeline_mode": tile_pipeline_modes.MODE3_TOP_EDGE_BEVEL,
+        "uv_dir": _rel(uv_dir),
+        "out_dir": _rel(out_dir),
+        "manifest": _rel(manifest_path),
         "samples": samples,
         "ink_enabled": ink_enabled,
+        "mesh_contract": {
+            "type": "explicit_top_edge_bevel",
+            "bevel_inset_world": BEVEL_INSET_WORLD,
+            "bevel_drop_world": BEVEL_DROP_WORLD,
+            "tile_smooth_enabled": bake_assets.CONFIG.get("tile_smooth_enabled"),
+        },
+        "config_snapshot": dict(bake_assets.CONFIG),
         "results": results,
     }
+    report_path = out_dir / "bake_report.json"
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report["bake_report"] = _rel(report_path)
+    return report
 
 
 def main(argv: list[str]) -> int:

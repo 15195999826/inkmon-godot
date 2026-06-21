@@ -1,0 +1,154 @@
+{
+  "source_script": "blender/scripts/bake_art_concept_beveled_set.py",
+  "pipeline": {
+    "id": "mode3_top_edge_bevel",
+    "index": 3,
+    "zh_name": "倒角",
+    "en_name": "explicit_top_edge_bevel",
+    "aliases": [
+      "3",
+      "mode3",
+      "模式3",
+      "倒角",
+      "bevel",
+      "top-bevel",
+      "top_edge_bevel",
+      "edged"
+    ],
+    "mesh_contract": "explicit_top_bevel_faces",
+    "texture_layout": "beveled UV: top + bevel_0..5 + visible walls",
+    "template_set": "blender/templates/standard-edged-templates",
+    "builder": "texgen.beveled_tile_prototype._build_beveled_mesh",
+    "config_patch": {
+      "tile_pipeline_mode": "mode3_top_edge_bevel",
+      "tile_bevel_enabled": false,
+      "tile_smooth_enabled": false,
+      "bevel_width": 0.0,
+      "bevel_segments": 0
+    },
+    "notes": "Candidate mode: topology has real bevel-band faces; do not reuse standard paper-net UV directly."
+  },
+  "pipeline_mode": "mode3_top_edge_bevel",
+  "uv_dir": "inkmon美术探索/concept素材-v1/beveled_uv",
+  "out_dir": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink",
+  "manifest": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/manifest.json",
+  "samples": 16,
+  "ink_enabled": true,
+  "mesh_contract": {
+    "type": "explicit_top_edge_bevel",
+    "bevel_inset_world": 0.055,
+    "bevel_drop_world": 0.035,
+    "tile_smooth_enabled": false
+  },
+  "config_snapshot": {
+    "pitch_deg": 35.26,
+    "yaw_deg": -15.0,
+    "sun_elevation_deg": 50.0,
+    "sun_azimuth_deg": -45.0,
+    "sun_energy": 4.0,
+    "sun_color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "sun_softness_deg": 8.0,
+    "ambient_color": [
+      0.55,
+      0.6,
+      0.66
+    ],
+    "ambient_strength": 0.35,
+    "hex_edge": 1.0,
+    "thickness": 0.55,
+    "elevation_step": 0.5,
+    "water_recess": 0.12,
+    "tile_pipeline_mode": "mode3_top_edge_bevel",
+    "tile_bevel_enabled": false,
+    "tile_smooth_enabled": false,
+    "bevel_width": 0.0,
+    "bevel_segments": 0,
+    "ink_enabled": true,
+    "ink_color": [
+      0.16,
+      0.12,
+      0.08
+    ],
+    "ink_thickness_px": 3.2,
+    "ink_wobble_px": 1.5,
+    "ink_exclude_wall_stitch_edges": false,
+    "ink_corner_enabled": false,
+    "ink_corner_color": [
+      0.13,
+      0.1,
+      0.07
+    ],
+    "ink_corner_thickness_px": 2.0,
+    "ink_corner_wobble_px": 0.35,
+    "px_per_unit": 128,
+    "canvas_px": 512,
+    "samples": 16,
+    "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked"
+  },
+  "results": {
+    "grass_e0": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/grass_e0_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_grass_e0_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e0.json"
+    },
+    "grass_e1": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/grass_e1_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_grass_e1_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e1.json"
+    },
+    "grass_e2": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/grass_e2_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_grass_e2_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e2.json"
+    },
+    "dirt_e0": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/dirt_e0_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_dirt_e0_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e0.json"
+    },
+    "dirt_e1": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/dirt_e1_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_dirt_e1_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e1.json"
+    },
+    "dirt_e2": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/dirt_e2_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_dirt_e2_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e2.json"
+    },
+    "stone_e0": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/stone_e0_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_stone_e0_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e0.json"
+    },
+    "stone_e1": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/stone_e1_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_stone_e1_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e1.json"
+    },
+    "stone_e2": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/stone_e2_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_stone_e2_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e2.json"
+    },
+    "water_e0": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/water_e0_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_water_e0_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e0.json"
+    },
+    "water_e1": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/water_e1_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_water_e1_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e1.json"
+    },
+    "water_e2": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv/water_e2_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/assets/concept-baked-ink/tile_water_e2_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/sidecars/beveled_uv_e2.json"
+    }
+  }
+}

@@ -21,6 +21,18 @@ TERRAINS = ("grass", "dirt", "stone", "water")
 ELEVATIONS = (0, 1, 2)
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _rel(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(_repo_root()).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def build_manifest(pipeline: dict) -> dict:
     cfg = bake_assets.CONFIG
     assets: dict[str, dict] = {}
@@ -71,22 +83,36 @@ def bake_set(uv_dir: Path, out_dir: Path, pipeline_mode: str, samples: int, ink_
                 raise FileNotFoundError(str(uv_path))
             out_path = out_dir / f"tile_{terrain}_e{elevation}_v0.png"
             bake_assets.bake_tile_candidate(str(uv_path), terrain, elevation, str(out_path))
-            results[key] = {"uv": str(uv_path), "baked": str(out_path)}
+            results[key] = {"uv": _rel(uv_path), "baked": _rel(out_path)}
 
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(
         json.dumps(build_manifest(pipeline), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    return {
+    report = {
+        "source_script": _rel(Path(__file__)),
         "pipeline": pipeline,
-        "uv_dir": str(uv_dir),
-        "out_dir": str(out_dir),
-        "manifest": str(manifest_path),
+        "pipeline_mode": pipeline_mode,
+        "uv_dir": _rel(uv_dir),
+        "out_dir": _rel(out_dir),
+        "manifest": _rel(manifest_path),
         "samples": samples,
         "ink_enabled": ink_enabled,
+        "mesh_contract": {
+            "type": "standard_hex_prism",
+            "tile_bevel_enabled": bake_assets.CONFIG.get("tile_bevel_enabled"),
+            "tile_smooth_enabled": bake_assets.CONFIG.get("tile_smooth_enabled"),
+            "bevel_width": bake_assets.CONFIG.get("bevel_width"),
+            "bevel_segments": bake_assets.CONFIG.get("bevel_segments"),
+        },
+        "config_snapshot": dict(bake_assets.CONFIG),
         "results": results,
     }
+    report_path = out_dir / "bake_report.json"
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    report["bake_report"] = _rel(report_path)
+    return report
 
 
 def main(argv: list[str]) -> int:

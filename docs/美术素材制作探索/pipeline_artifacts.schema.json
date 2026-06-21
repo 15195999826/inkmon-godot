@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pipeline_artifacts.schema.json",
+  "title": "InkMon Art Pipeline Artifacts",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "repo_root", "tiles", "pipelines", "overview", "artifacts", "warnings"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "generated_at": { "type": "string" },
+    "repo_root": { "type": "string" },
+    "style_source": { "type": "object" },
+    "tiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["tile", "decor"] }
+        }
+      }
+    },
+    "pipelines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "default_variant", "variants", "stages"],
+        "properties": {
+          "id": { "type": "string", "enum": ["hard", "bevel", "patch"] },
+          "label": { "type": "string" },
+          "default_variant": { "type": "string" },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "label", "asset_dir", "scene", "shot", "bake_report"],
+              "properties": {
+                "id": { "type": "string" },
+                "label": { "type": "string" },
+                "asset_dir": { "type": "string" },
+                "scene": { "type": "string" },
+                "shot": { "type": "string" },
+                "bake_report": { "type": "string" }
+              }
+            }
+          },
+          "stages": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "overview": { "type": "object" },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pipeline", "variant", "tile_id", "stage", "kind", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "pipeline": { "type": "string" },
+          "variant": { "type": "string" },
+          "tile_id": { "type": "string" },
+          "stage": { "type": "string" },
+          "kind": { "type": "string", "enum": ["image", "image_set", "metadata", "note"] },
+          "status": { "type": "string", "enum": ["ok", "missing", "not_applicable"] },
+          "path": { "type": "string" },
+          "title": { "type": "string" },
+          "notes": { "type": "string" },
+          "source_script": { "type": "string" },
+          "source_report": { "type": "string" },
+          "size_bytes": { "type": "integer" },
+          "image_size_px": {
+            "type": "array",
+            "prefixItems": [{ "type": "integer" }, { "type": "integer" }]
+          },
+          "data": { "type": "object" },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "path"],
+              "properties": {
+                "label": { "type": "string" },
+                "path": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  }
+}

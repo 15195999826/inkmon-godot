@@ -1,7 +1,24 @@
 {
   "grass_e0": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\grass_e0_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/grass_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e0_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e0.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/grass_e0_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/grass_e0_beveled_fit_overlay.png",
+    "bbox_px": [
+      122.955,
+      189.613,
+      905.045,
+      806.387
+    ],
+    "origin_px": [
+      512.0,
+      398.38559801319366
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -415,13 +432,28 @@
         865.3035633366641
       ],
       "scale": 0.8728683035714285
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\grass_e0_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e0.json"
+    }
   },
   "grass_e1": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\grass_e1_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/grass_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e1_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e1.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e1.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/grass_e1_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/grass_e1_beveled_fit_overlay.png",
+    "bbox_px": [
+      147.55,
+      147.564,
+      876.45,
+      876.436
+    ],
+    "origin_px": [
+      512.0,
+      303.70692969085496
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -835,13 +867,28 @@
         959.9822316590028
       ],
       "scale": 0.8135044642857142
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\grass_e1_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e1.json"
+    }
   },
   "grass_e2": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\grass_e2_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/grass_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e2_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e2.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e2.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/grass_e2_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/grass_e2_beveled_fit_overlay.png",
+    "bbox_px": [
+      147.543,
+      70.639,
+      875.457,
+      952.361
+    ],
+    "origin_px": [
+      512.0,
+      261.878167172959
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -1255,13 +1302,28 @@
         960.0
       ],
       "scale": 0.9840636185873677
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\grass_e2_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e2.json"
+    }
   },
   "dirt_e0": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\dirt_e0_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/dirt_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/dirt_e0_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e0.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/dirt_e0_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/dirt_e0_beveled_fit_overlay.png",
+    "bbox_px": [
+      134.828,
+      203.215,
+      900.172,
+      806.785
+    ],
+    "origin_px": [
+      512.0,
+      398.38559801319366
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -1675,13 +1737,28 @@
         865.3035633366641
       ],
       "scale": 0.8541796875
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\dirt_e0_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e0.json"
+    }
   },
   "dirt_e1": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\dirt_e1_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/dirt_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/dirt_e1_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e1.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e1.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/dirt_e1_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/dirt_e1_beveled_fit_overlay.png",
+    "bbox_px": [
+      148.505,
+      147.019,
+      871.495,
+      869.981
+    ],
+    "origin_px": [
+      512.0,
+      303.70692969085496
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -2095,13 +2172,28 @@
         959.9822316590028
       ],
       "scale": 0.8069084821428572
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\dirt_e1_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e1.json"
+    }
   },
   "dirt_e2": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\dirt_e2_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/dirt_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/dirt_e2_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e2.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e2.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/dirt_e2_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/dirt_e2_beveled_fit_overlay.png",
+    "bbox_px": [
+      149.513,
+      75.026,
+      873.487,
+      951.974
+    ],
+    "origin_px": [
+      512.0,
+      261.878167172959
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -2515,13 +2607,28 @@
         960.0
       ],
       "scale": 0.9787371578642966
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\dirt_e2_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e2.json"
+    }
   },
   "stone_e0": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\stone_e0_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/stone_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/stone_e0_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e0.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/stone_e0_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/stone_e0_beveled_fit_overlay.png",
+    "bbox_px": [
+      134.753,
+      218.099,
+      890.247,
+      813.901
+    ],
+    "origin_px": [
+      512.0,
+      398.38559801319366
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -2935,13 +3042,28 @@
         865.3035633366641
       ],
       "scale": 0.8431863839285714
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\stone_e0_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e0.json"
+    }
   },
   "stone_e1": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\stone_e1_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/stone_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/stone_e1_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e1.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e1.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/stone_e1_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/stone_e1_beveled_fit_overlay.png",
+    "bbox_px": [
+      149.512,
+      138.527,
+      873.487,
+      862.473
+    ],
+    "origin_px": [
+      512.0,
+      303.70692969085496
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -3355,13 +3477,28 @@
         959.9822316590028
       ],
       "scale": 0.8080078125
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\stone_e1_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e1.json"
+    }
   },
   "stone_e2": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\stone_e2_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/stone_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/stone_e2_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e2.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e2.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/stone_e2_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/stone_e2_beveled_fit_overlay.png",
+    "bbox_px": [
+      134.648,
+      55.788,
+      876.352,
+      954.212
+    ],
+    "origin_px": [
+      512.0,
+      261.878167172959
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -3775,13 +3912,28 @@
         960.0
       ],
       "scale": 1.002706231118116
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\stone_e2_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e2.json"
+    }
   },
   "water_e0": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\water_e0_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/water_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/water_e0_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e0.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/water_e0_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/water_e0_beveled_fit_overlay.png",
+    "bbox_px": [
+      123.91,
+      209.943,
+      900.09,
+      822.057
+    ],
+    "origin_px": [
+      512.0,
+      398.38559801319366
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -4195,13 +4347,28 @@
         865.3035633366641
       ],
       "scale": 0.8662723214285714
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\water_e0_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e0.json"
+    }
   },
   "water_e1": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\water_e1_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/water_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/water_e1_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e1.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e1.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/water_e1_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/water_e1_beveled_fit_overlay.png",
+    "bbox_px": [
+      145.55,
+      144.564,
+      874.45,
+      873.436
+    ],
+    "origin_px": [
+      512.0,
+      303.70692969085496
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -4615,13 +4782,28 @@
         959.9822316590028
       ],
       "scale": 0.8135044642857142
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\water_e1_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e1.json"
+    }
   },
   "water_e2": {
-    "design": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\water_e2_beveled_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
+    "design": "inkmon美术探索/concept素材-v1/raw/water_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/water_e2_beveled_uv.png",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_design_e2.json",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e2.json",
+    "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit/water_e2_beveled_design_fit.json",
+    "overlay": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/fit_overlay/water_e2_beveled_fit_overlay.png",
+    "bbox_px": [
+      145.543,
+      68.639,
+      873.457,
+      950.361
+    ],
+    "origin_px": [
+      512.0,
+      261.878167172959
+    ],
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05,
     "faces": {
       "top": {
         "source_poly": [
@@ -5035,8 +5217,6 @@
         960.0
       ],
       "scale": 0.9840636185873677
-    },
-    "fit_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\fit\\water_e2_beveled_design_fit.json",
-    "uv_sidecar": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\beveled_uv_wide_rim\\sidecars\\beveled_uv_e2.json"
+    }
   }
 }

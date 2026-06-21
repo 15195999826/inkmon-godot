@@ -1,0 +1,439 @@
+{
+  "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py",
+  "output_dir": "inkmon美术探索/concept素材-v1/assets/baked",
+  "manifest": "inkmon美术探索/concept素材-v1/assets/baked/manifest.json",
+  "tiles": {
+    "grass_e0": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/grass_e0_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/grass_e0_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_grass_e0_v0.png",
+      "origin_px": [
+        512.0,
+        401.2259580628638
+      ],
+      "source_top_width": 732.4206140766436,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.33761612764236776,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.9619438116987307,
+        0.0,
+        -246.25761579487505,
+        0.0,
+        2.9619438116987307,
+        -357.03165773201124
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/grass_e0_patch_fit_overlay.png",
+      "bbox_px": [
+        122.955,
+        187.133,
+        905.045,
+        808.867
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "grass_e1": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/grass_e1_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/grass_e1_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_grass_e1_v0.png",
+      "origin_px": [
+        512.0,
+        307.8336252684428
+      ],
+      "source_top_width": 682.6086327666451,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3622529802000541,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7605017892406307,
+        0.0,
+        -194.68845804560146,
+        0.0,
+        2.7605017892406307,
+        -398.85483277715866
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/grass_e1_patch_fit_overlay.png",
+      "bbox_px": [
+        147.55,
+        145.254,
+        876.45,
+        878.746
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "grass_e2": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/grass_e2_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/grass_e2_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_grass_e2_v0.png",
+      "origin_px": [
+        512.0,
+        265.513204356286
+      ],
+      "source_top_width": 681.6861886683115,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3627431736779975,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7567713814173307,
+        0.0,
+        -193.73347364283666,
+        0.0,
+        2.7567713814173307,
+        -440.22026928655066
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/grass_e2_patch_fit_overlay.png",
+      "bbox_px": [
+        147.543,
+        68.332,
+        875.457,
+        954.668
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "dirt_e0": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e0_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/dirt_e0_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_dirt_e0_v0.png",
+      "origin_px": [
+        512.0,
+        401.2259580628638
+      ],
+      "source_top_width": 716.7390644049774,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3450028382857658,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.898526878702662,
+        0.0,
+        -230.0228809478815,
+        0.0,
+        2.898526878702662,
+        -340.7969228850177
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/dirt_e0_patch_fit_overlay.png",
+      "bbox_px": [
+        134.828,
+        200.789,
+        900.172,
+        809.211
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "dirt_e1": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e1_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/dirt_e1_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_dirt_e1_v0.png",
+      "origin_px": [
+        512.0,
+        307.8336252684428
+      ],
+      "source_top_width": 677.0739681766454,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.36521417622348773,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.738119342300842,
+        0.0,
+        -188.95855162901557,
+        0.0,
+        2.738119342300842,
+        -393.1249263605728
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/dirt_e1_patch_fit_overlay.png",
+      "bbox_px": [
+        148.505,
+        144.727,
+        871.495,
+        872.273
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "dirt_e2": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e2_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/dirt_e2_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_dirt_e2_v0.png",
+      "origin_px": [
+        512.0,
+        265.513204356286
+      ],
+      "source_top_width": 677.9964122749784,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3647172861878097,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7418497501241386,
+        0.0,
+        -189.91353603177947,
+        0.0,
+        2.7418497501241386,
+        -436.4003316754935
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/dirt_e2_patch_fit_overlay.png",
+      "bbox_px": [
+        149.512,
+        72.731,
+        873.487,
+        954.269
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "stone_e0": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/stone_e0_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/stone_e0_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_stone_e0_v0.png",
+      "origin_px": [
+        512.0,
+        401.2259580628638
+      ],
+      "source_top_width": 707.5146234216444,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3495009196193481,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.861222800469681,
+        0.0,
+        -220.47303692023831,
+        0.0,
+        2.861222800469681,
+        -331.2470788573745
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/stone_e0_patch_fit_overlay.png",
+      "bbox_px": [
+        134.753,
+        215.704,
+        890.247,
+        816.296
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "stone_e1": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/stone_e1_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/stone_e1_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_stone_e1_v0.png",
+      "origin_px": [
+        512.0,
+        307.8336252684428
+      ],
+      "source_top_width": 677.9964122749784,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3647172861878097,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7418497501241386,
+        0.0,
+        -189.91353603177947,
+        0.0,
+        2.7418497501241386,
+        -394.07991076333667
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/stone_e1_patch_fit_overlay.png",
+      "bbox_px": [
+        149.513,
+        136.232,
+        873.487,
+        864.768
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "stone_e2": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/stone_e2_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/stone_e2_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_stone_e2_v0.png",
+      "origin_px": [
+        512.0,
+        265.513204356286
+      ],
+      "source_top_width": 694.6004060449778,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.35599894468531224,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.8089970909435054,
+        0.0,
+        -207.10325528153737,
+        0.0,
+        2.8089970909435054,
+        -453.5900509252514
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/stone_e2_patch_fit_overlay.png",
+      "bbox_px": [
+        134.647,
+        53.436,
+        876.352,
+        956.564
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "water_e0": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/water_e0_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/water_e0_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_water_e0_v0.png",
+      "origin_px": [
+        512.0,
+        401.2259580628638
+      ],
+      "source_top_width": 726.8859494866438,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.34018680881730967,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.9395613647589416,
+        0.0,
+        -240.52770937828905,
+        0.0,
+        2.9395613647589416,
+        -351.30175131542524
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/water_e0_patch_fit_overlay.png",
+      "bbox_px": [
+        123.91,
+        207.482,
+        900.09,
+        824.518
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "water_e1": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/water_e1_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/water_e1_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_water_e1_v0.png",
+      "origin_px": [
+        512.0,
+        307.8336252684428
+      ],
+      "source_top_width": 682.6086327666451,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3622529802000541,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7605017892406307,
+        0.0,
+        -194.68845804560146,
+        0.0,
+        2.7605017892406307,
+        -398.85483277715866
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/water_e1_patch_fit_overlay.png",
+      "bbox_px": [
+        145.55,
+        142.254,
+        874.45,
+        875.746
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    },
+    "water_e2": {
+      "raw": "inkmon美术探索/concept素材-v1/raw/water_e2_design_raw.png",
+      "fit_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv/fit/water_e2_beveled_design_fit.json",
+      "output_patch": "inkmon美术探索/concept素材-v1/assets/baked/tile_water_e2_v0.png",
+      "origin_px": [
+        512.0,
+        265.513204356286
+      ],
+      "source_top_width": 681.6861886683115,
+      "target_top_width": 247.2770115300015,
+      "scale": 0.3627431736779975,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "output_size_px": [
+        512,
+        512
+      ],
+      "transform_coeffs": [
+        2.7567713814173307,
+        0.0,
+        -193.73347364283666,
+        0.0,
+        2.7567713814173307,
+        -440.22026928655066
+      ],
+      "overlay": "inkmon美术探索/concept素材-v1/patch_fit_overlay/water_e2_patch_fit_overlay.png",
+      "bbox_px": [
+        145.543,
+        66.332,
+        873.457,
+        952.668
+      ],
+      "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_patch_assets.py"
+    }
+  }
+}

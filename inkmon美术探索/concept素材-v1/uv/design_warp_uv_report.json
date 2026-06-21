@@ -1,7 +1,21 @@
 {
   "grass_e0": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e0_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/grass_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/grass_e0_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e0_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      217.645,
+      875.509,
+      806.355
+    ],
+    "origin_px": [
+      512.0,
+      427.4949885721091
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003935,
@@ -22,8 +36,22 @@
     }
   },
   "grass_e1": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e1_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/grass_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/grass_e1_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e1_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      140.823,
+      875.509,
+      883.177
+    ],
+    "origin_px": [
+      512.0,
+      350.67225091039006
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.178353991400394,
@@ -44,8 +72,22 @@
     }
   },
   "grass_e2": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e2_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/grass_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/grass_e2_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e2_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      64.0,
+      875.509,
+      960.0
+    ],
+    "origin_px": [
+      512.0,
+      273.8495132486711
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003938,
@@ -66,8 +108,22 @@
     }
   },
   "dirt_e0": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e0_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e0_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e0_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      217.645,
+      875.509,
+      806.355
+    ],
+    "origin_px": [
+      512.0,
+      427.4949885721091
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003935,
@@ -88,8 +144,22 @@
     }
   },
   "dirt_e1": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e1_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e1_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e1_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      140.823,
+      875.509,
+      883.177
+    ],
+    "origin_px": [
+      512.0,
+      350.67225091039006
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.178353991400394,
@@ -110,8 +180,22 @@
     }
   },
   "dirt_e2": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e2_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e2_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e2_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      64.0,
+      875.509,
+      960.0
+    ],
+    "origin_px": [
+      512.0,
+      273.8495132486711
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003938,
@@ -132,8 +216,22 @@
     }
   },
   "stone_e0": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e0_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/stone_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/stone_e0_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e0_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      217.645,
+      875.509,
+      806.355
+    ],
+    "origin_px": [
+      512.0,
+      427.4949885721091
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003935,
@@ -154,8 +252,22 @@
     }
   },
   "stone_e1": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e1_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/stone_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/stone_e1_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e1_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      140.823,
+      875.509,
+      883.177
+    ],
+    "origin_px": [
+      512.0,
+      350.67225091039006
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.178353991400394,
@@ -176,8 +288,22 @@
     }
   },
   "stone_e2": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e2_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/stone_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/stone_e2_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e2_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      64.0,
+      875.509,
+      960.0
+    ],
+    "origin_px": [
+      512.0,
+      273.8495132486711
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003938,
@@ -198,8 +324,22 @@
     }
   },
   "water_e0": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e0_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e0_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/water_e0_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/water_e0_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e0_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      217.645,
+      875.509,
+      806.355
+    ],
+    "origin_px": [
+      512.0,
+      427.4949885721091
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003935,
@@ -220,8 +360,22 @@
     }
   },
   "water_e1": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e1_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e1_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/water_e1_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/water_e1_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e1_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      140.823,
+      875.509,
+      883.177
+    ],
+    "origin_px": [
+      512.0,
+      350.67225091039006
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.178353991400394,
@@ -242,8 +396,22 @@
     }
   },
   "water_e2": {
-    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e2_design_raw.png",
-    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e2_warp_uv.png",
+    "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
+    "raw": "inkmon美术探索/concept素材-v1/raw/water_e2_design_raw.png",
+    "uv": "inkmon美术探索/concept素材-v1/uv/water_e2_warp_uv.png",
+    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
+    "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e2_fit_overlay.png",
+    "bbox_px": [
+      148.491,
+      64.0,
+      875.509,
+      960.0
+    ],
+    "origin_px": [
+      512.0,
+      273.8495132486711
+    ],
     "warp": {
       "top": {
         "stretch_max": 1.1783539914003938,

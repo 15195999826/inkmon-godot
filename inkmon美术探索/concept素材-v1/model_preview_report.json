@@ -1,0 +1,24 @@
+{
+  "source_script": "blender/scripts/render_art_pipeline_previews.py",
+  "outputs": {
+    "hard": {
+      "wire": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_wire.png",
+      "shaded": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_shaded.png"
+    },
+    "bevel": {
+      "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_wire.png",
+      "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_shaded.png"
+    }
+  },
+  "hard": {
+    "pipeline_mode": "mode2_hard",
+    "uv": "inkmon美术探索/concept素材-v1/uv/grass_e0_warp_uv.png"
+  },
+  "bevel": {
+    "pipeline_mode": "mode3_top_edge_bevel",
+    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e0_beveled_uv.png",
+    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "bevel_inset_world": 0.085,
+    "bevel_drop_world": 0.05
+  }
+}

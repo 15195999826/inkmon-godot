@@ -6,6 +6,8 @@ import math
 import sys
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFont
+
 
 TERRAINS = ("grass", "dirt", "stone", "water")
 ELEVATIONS = (0, 1, 2)
@@ -13,6 +15,13 @@ ELEVATIONS = (0, 1, 2)
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def _rel(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root()).as_posix()
+    except ValueError:
+        return str(path.resolve())
 
 
 def _load_modules():
@@ -26,6 +35,59 @@ def _load_modules():
 
 def _face_poly(face: dict) -> list:
     return face.get("polygon_px") or face["quad_px"]
+
+
+def _draw_label(draw: ImageDraw.ImageDraw, xy: tuple[float, float], text: str) -> None:
+    x, y = xy
+    draw.rectangle((x - 3, y - 2, x + 8 + len(text) * 6, y + 11), fill=(255, 255, 255, 210))
+    draw.text((x, y), text, fill=(32, 28, 22, 255), font=ImageFont.load_default())
+
+
+def make_fit_overlay(raw_path: Path, fitted_sidecar: dict, target_path: Path) -> dict:
+    image = Image.open(raw_path).convert("RGBA")
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    polys: list[list] = []
+    for face_name, face in fitted_sidecar["faces"].items():
+        poly = _face_poly(face)
+        polys.append(poly)
+        if face_name == "top":
+            color = (232, 45, 45, 255)
+            width = 4
+        elif face_name.startswith("bevel_"):
+            color = (255, 160, 35, 235)
+            width = 3
+        else:
+            color = (45, 111, 242, 235)
+            width = 3
+        draw.line([tuple(point) for point in poly + [poly[0]]], fill=color, width=width)
+        cx = sum(point[0] for point in poly) / len(poly)
+        cy = sum(point[1] for point in poly) / len(poly)
+        if face_name == "top" or face_name.startswith("wall_"):
+            _draw_label(draw, (cx, cy), face_name)
+
+    all_points = [point for poly in polys for point in poly]
+    bbox = [
+        min(point[0] for point in all_points),
+        min(point[1] for point in all_points),
+        max(point[0] for point in all_points),
+        max(point[1] for point in all_points),
+    ]
+    draw.rectangle(tuple(bbox), outline=(255, 215, 0, 255), width=3)
+    origin = fitted_sidecar.get("origin_px")
+    if origin:
+        x, y = origin
+        draw.ellipse((x - 7, y - 7, x + 7, y + 7), fill=(255, 215, 0, 255), outline=(45, 35, 0, 255), width=2)
+        _draw_label(draw, (x + 10, y + 8), "origin")
+
+    composed = Image.alpha_composite(image, overlay)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    composed.convert("RGB").save(target_path)
+    return {
+        "overlay": _rel(target_path),
+        "bbox_px": [round(value, 3) for value in bbox],
+        "origin_px": fitted_sidecar.get("origin_px"),
+    }
 
 
 def _bevel_world(manifest: dict, elevation: int, proto, geometry) -> dict:
@@ -186,6 +248,7 @@ def prepare(root: Path, out_dir: Path, bevel_inset_world: float | None = None, b
     out_dir.mkdir(parents=True, exist_ok=True)
     report: dict[str, dict] = {}
     missing: list[Path] = []
+    overlay_dir = out_dir / "fit_overlay"
 
     sidecar_dir = out_dir / "sidecars"
     sidecar_dir.mkdir(parents=True, exist_ok=True)
@@ -215,10 +278,23 @@ def prepare(root: Path, out_dir: Path, bevel_inset_world: float | None = None, b
             fit_path.parent.mkdir(parents=True, exist_ok=True)
             fit_path.write_text(json.dumps(fitted, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             uv_path = out_dir / f"{key}_beveled_uv.png"
+            overlay_path = overlay_dir / f"{key}_beveled_fit_overlay.png"
+            overlay_report = make_fit_overlay(raw_path, fitted, overlay_path)
+            warp_report = proto._warp_design_to_uv(raw_path, fitted, uv, uv_path)
             report[key] = {
-                **proto._warp_design_to_uv(raw_path, fitted, uv, uv_path),
-                "fit_sidecar": str(fit_path),
-                "uv_sidecar": str(sidecar_dir / f"beveled_uv_e{elevation}.json"),
+                "source_script": _rel(Path(__file__)),
+                "design": _rel(raw_path),
+                "uv": _rel(uv_path),
+                "design_sidecar": _rel(sidecar_dir / f"beveled_design_e{elevation}.json"),
+                "uv_sidecar": _rel(sidecar_dir / f"beveled_uv_e{elevation}.json"),
+                "fit_sidecar": _rel(fit_path),
+                "overlay": overlay_report["overlay"],
+                "bbox_px": overlay_report["bbox_px"],
+                "origin_px": overlay_report["origin_px"],
+                "bevel_inset_world": proto.BEVEL_INSET_WORLD,
+                "bevel_drop_world": proto.BEVEL_DROP_WORLD,
+                "faces": warp_report.get("faces", {}),
+                "fit": warp_report.get("fit", {}),
             }
 
     if missing:
