@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:,">
-  <title>InkMon 三管线素材生产追踪页</title>
+  <title>InkMon 资产审计看板</title>
   <style>
     :root {
       color-scheme: light;
@@ -20,6 +20,12 @@
       --warn: #a65628;
       --miss: #a53333;
       --shadow: 0 10px 28px rgba(45, 35, 22, 0.09);
+      --tab-line: #2a241e;
+      --tab-inactive: #ece5d6;
+      --grass: #6b7f3a;
+      --dirt: #8a6a3f;
+      --stone: #7d7a70;
+      --water: #3f6f8a;
     }
 
     * { box-sizing: border-box; }
@@ -30,718 +36,691 @@
       color: var(--ink);
       font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
       line-height: 1.5;
-      letter-spacing: 0;
     }
 
-    button, select {
-      font: inherit;
-    }
+    button, select { font: inherit; color: inherit; }
 
-    .layout {
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
-      min-height: 100vh;
-    }
-
-    aside {
+    /* ===== top folder-tab bar (replaces the old sidebar) ===== */
+    .topbar {
       position: sticky;
       top: 0;
-      height: 100vh;
-      overflow: auto;
-      padding: 22px 18px;
-      color: #f5efe4;
-      background: #2a241e;
-      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 20;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 52px;
+      padding: 0 16px;
+      background: linear-gradient(180deg, #fbf7ef 0%, #f3eee2 100%);
+      border-bottom: 2px solid var(--tab-line);
     }
 
-    aside h1 {
-      margin: 0 0 8px;
-      font-size: 20px;
-      line-height: 1.2;
-    }
+    #pipeTabs { display: contents; }
 
-    aside p {
-      margin: 0 0 18px;
-      color: #d2c5b6;
-      font-size: 13px;
-    }
-
-    .side-nav {
-      display: grid;
-      gap: 8px;
-    }
-
-    .tab-button {
+    .brand {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      padding: 10px 12px;
-      color: #f4eee4;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
+      gap: 9px;
+      align-self: center;
+      margin-right: 6px;
+      padding: 4px 8px 4px 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
       cursor: pointer;
-      text-align: left;
+      flex-shrink: 0;
     }
-
-    .tab-button[aria-selected="true"] {
-      background: #f5ead8;
-      color: #241e18;
-      border-color: #f5ead8;
-    }
-
-    main {
-      padding: 28px;
-      max-width: 1480px;
-      width: 100%;
-    }
-
-    .hero {
-      padding: 24px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
-    }
-
-    .hero h2 {
-      margin: 0 0 8px;
-      font-size: 30px;
-      line-height: 1.15;
-    }
-
-    .hero p {
-      margin: 0;
-      max-width: 980px;
-      color: var(--muted);
-    }
-
-    .status-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 16px;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--surface-2);
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .badge.ok { color: var(--ok); border-color: rgba(40, 107, 58, 0.35); }
-    .badge.missing { color: var(--miss); border-color: rgba(165, 51, 51, 0.35); }
-    .badge.not_applicable { color: var(--warn); border-color: rgba(166, 86, 40, 0.35); }
-
-    section {
-      margin: 18px 0;
-      padding: 18px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-    }
-
-    h3 {
-      margin: 0 0 10px;
-      font-size: 20px;
-    }
-
-    h4 {
-      margin: 0 0 8px;
-      font-size: 15px;
-    }
-
-    .muted {
-      color: var(--muted);
-    }
-
-    .panel {
-      display: none;
-    }
-
-    .panel.active {
-      display: block;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    figure {
-      margin: 0;
-      background: #f6f1e8;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    figure img {
-      display: block;
-      width: 100%;
-      height: auto;
-      background: #eee9df;
-    }
-
-    figcaption {
-      padding: 10px 12px;
-      color: var(--muted);
-      font-size: 13px;
-      border-top: 1px solid var(--line);
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: end;
-      margin-bottom: 16px;
-    }
-
-    .control {
-      display: grid;
-      gap: 5px;
-    }
-
-    .control label {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    select {
-      min-width: 160px;
-      height: 38px;
-      padding: 0 10px;
-      color: var(--ink);
-      background: #fffdfa;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-    }
-
-    .timeline {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 8px 0 16px;
-    }
-
-    .stage-button {
-      min-height: 38px;
-      padding: 8px 12px;
-      color: var(--muted);
-      background: #f6f1e8;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .stage-button.active {
-      color: #fffaf2;
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .artifact-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.75fr);
-      gap: 16px;
-    }
-
-    .stage-view {
-      min-height: 380px;
+    .brand .logo {
       display: grid;
       place-items: center;
-      background: #f4efe7;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
+      width: 30px;
+      height: 30px;
+      border-radius: 7px 9px 6px 8px;
+      background: var(--accent);
+      color: #fdf3e6;
+      font-weight: 700;
+      font-size: 17px;
     }
+    .brand .b-text { display: grid; line-height: 1.15; text-align: left; }
+    .brand .b-name { font-size: 15px; font-weight: 650; }
+    .brand .b-sub { font-size: 11px; color: var(--muted); }
+    .brand.active .b-name { color: var(--accent); }
 
-    .stage-view img {
-      display: block;
-      max-width: 100%;
-      max-height: 720px;
-      object-fit: contain;
-    }
-
-    .image-set {
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      padding: 12px;
-    }
-
-    .empty-stage {
-      padding: 28px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .detail-card {
-      padding: 14px;
-      background: #f8f3ea;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      min-width: 0;
-    }
-
-    .path-list {
-      display: grid;
+    .tab {
+      align-self: flex-end;
+      display: flex;
+      align-items: center;
       gap: 7px;
-      margin: 10px 0;
-    }
-
-    code, .path {
-      font-family: Consolas, "Cascadia Mono", monospace;
-      font-size: 12px;
-    }
-
-    .path {
-      display: block;
-      padding: 7px 8px;
-      overflow-wrap: anywhere;
-      background: #fffaf2;
-      border: 1px solid var(--line);
-      border-radius: 5px;
-      color: #574a3b;
-    }
-
-    pre {
-      max-height: 360px;
-      overflow: auto;
-      margin: 10px 0 0;
-      padding: 12px;
-      background: #27221d;
-      color: #f4ead9;
-      border-radius: 6px;
-      font-size: 12px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fffaf2;
-    }
-
-    th, td {
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-      font-size: 13px;
-    }
-
-    th {
-      color: #514437;
-      background: #f1e8d9;
-      font-weight: 650;
-    }
-
-    tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .warning-list {
-      display: grid;
-      gap: 8px;
-    }
-
-    .warning {
-      padding: 10px 12px;
-      color: #7f341d;
-      background: #fff2e6;
-      border: 1px solid #efc7ad;
-      border-radius: 6px;
-      font-size: 13px;
-    }
-
-    .loading {
-      padding: 24px;
+      height: 34px;
+      padding: 0 16px;
+      margin-bottom: -2px;            /* overlap the bar's bottom line */
       color: var(--muted);
+      background: var(--tab-inactive);
+      border: 1px solid var(--line);
+      border-bottom: none;
+      border-radius: 7px 9px 0 0;
+      cursor: pointer;
+      position: relative;
+      white-space: nowrap;
+    }
+    .tab:hover { background: var(--surface-2); }
+    .tab.active {
+      height: 38px;
+      color: var(--ink);
+      background: var(--surface);
+      border-color: var(--tab-line);
+    }
+    .tab.active::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      border-radius: 7px 9px 0 0;
+      background: var(--accent);
+    }
+    .tab .ico { font-size: 13px; opacity: 0.85; }
+    .badge-flag {
+      margin-left: auto;
+      align-self: center;
+      padding-left: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .badge-flag b { color: var(--accent-2); font-weight: 650; }
+
+    main { padding: 22px 26px 8px; max-width: 1560px; width: 100%; }
+
+    /* ===== shared blocks ===== */
+    .panel { display: grid; gap: 16px; }
+    section.card {
+      margin: 0;
+      padding: 16px 18px;
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 9px;
+      box-shadow: var(--shadow);
+    }
+    h2 { margin: 0; font-size: 22px; }
+    h3 { margin: 0 0 10px; font-size: 18px; }
+    h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    .muted { color: var(--muted); }
+    .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+    code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }
+
+    .crumb {
+      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .crumb .here { font-size: 19px; font-weight: 650; }
+    .crumb .ctx { color: var(--muted); font-size: 13px; }
+
+    /* ===== segmented pills (config / filters) ===== */
+    .seg { display: inline-flex; vertical-align: middle; }
+    .seg button {
+      padding: 6px 13px;
+      background: var(--surface-2);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-right-width: 0;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .seg button:first-child { border-radius: 6px 0 0 6px; }
+    .seg button:last-child { border-radius: 0 6px 6px 0; border-right-width: 1px; }
+    .seg button:hover:not(.on) { background: #efe7d7; }
+    .seg button.on { background: var(--ink); color: #fbf3e6; border-color: var(--ink); }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: flex-end; }
+    .control { display: grid; gap: 6px; }
+    .control > .lab { font-size: 11px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin-top: 4px; }
+    .search {
+      height: 34px; min-width: 230px; padding: 0 12px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
     }
 
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      aside {
-        position: static;
-        height: auto;
-      }
-      main { padding: 16px; }
-      .grid-2, .grid-3, .artifact-layout { grid-template-columns: 1fr; }
-      .stage-view { min-height: 260px; }
+    /* ===== KPI row ===== */
+    .kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+    .kpi {
+      padding: 12px 14px; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 9px; box-shadow: var(--shadow);
+    }
+    .kpi .t { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .kpi .v { font-size: 30px; font-weight: 680; line-height: 1.1; margin-top: 2px; }
+    .kpi .v small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+    .kpi .bar { height: 6px; border-radius: 4px; background: #eadfca; overflow: hidden; margin: 8px 0 4px; }
+    .kpi .bar > i { display: block; height: 100%; border-radius: 4px; }
+    .kpi .note { font-size: 12px; color: var(--muted); }
+    .kpi.ok .v { color: var(--ok); } .kpi.ok .bar > i { background: var(--ok); }
+    .kpi.miss .v { color: var(--miss); } .kpi.miss .bar > i { background: var(--miss); }
+    .kpi.na .v { color: var(--warn); } .kpi.na .bar > i { background: var(--warn); }
+    .kpi.cov .v { color: var(--accent-2); } .kpi.cov .bar > i { background: var(--accent-2); }
+
+    /* ===== status legend ===== */
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 12px; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 13px; height: 13px; border-radius: 4px; display: inline-grid; place-items: center; font-size: 10px; line-height: 1; color: #fff; }
+    .dot.ok { background: var(--ok); } .dot.missing { background: var(--miss); } .dot.not_applicable { background: #c6b48f; color: #5a4a32; }
+
+    /* ===== coverage matrix ===== */
+    .matrix-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+    .matrix-switch { display: flex; gap: 12px; flex-wrap: wrap; }
+    .mtx { width: 100%; border-collapse: collapse; }
+    .mtx th, .mtx td { padding: 5px 6px; text-align: center; font-size: 12px; }
+    .mtx thead th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    .mtx th.row-h { text-align: left; min-width: 120px; }
+    .mtx td.row-h { text-align: left; }
+    .fam-row td { padding-top: 12px; }
+    .fam-row .fam { display: inline-flex; align-items: center; gap: 7px; font-weight: 650; font-size: 13px; color: var(--ink); }
+    .hex { width: 15px; height: 15px; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); display: inline-block; }
+    .tile-name { display: inline-flex; align-items: center; gap: 8px; }
+    .tile-name code { color: var(--muted); }
+    .cell {
+      width: 100%; height: 26px; border-radius: 5px; display: grid; place-items: center;
+      font-size: 12px; cursor: pointer; border: 1px solid transparent;
+    }
+    .cell.ok { background: #e3efdd; color: var(--ok); }
+    .cell.missing { background: #f6dede; color: var(--miss); }
+    .cell.not_applicable { background: #efe7d4; color: #98855f; }
+    .cell.void { background: repeating-linear-gradient(45deg, #f3eee2, #f3eee2 4px, #ece4d3 4px, #ece4d3 8px); color: #b9ac92; cursor: default; }
+    .cell:hover:not(.void) { border-color: var(--ink); }
+
+    /* ===== gallery ===== */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    figure { margin: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+    figure img { display: block; width: 100%; height: 150px; object-fit: cover; background: #eee9df; }
+    figcaption { padding: 8px 10px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+
+    /* ===== warnings ===== */
+    .warns { display: grid; gap: 8px; }
+    .warn-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 9px 12px; background: #fff3ea; border: 1px solid #efc7ad; border-radius: 7px; font-size: 13px;
+    }
+    .warn-item .wx { color: var(--miss); flex-shrink: 0; font-weight: 700; }
+    .warn-item .wmeta { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    /* ===== tables (ledger / variants) ===== */
+    table.data { width: 100%; border-collapse: collapse; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    table.data th, table.data td { padding: 8px 10px; text-align: left; font-size: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.data th { background: #f1e8d9; color: #514437; font-weight: 650; }
+    table.data tr:last-child td { border-bottom: none; }
+
+    /* ===== pipeline trace ===== */
+    .tile-pick { display: flex; flex-wrap: wrap; gap: 16px; }
+    .fam-group { display: grid; gap: 5px; }
+    .fam-group .glab { font-size: 11px; color: var(--muted); }
+    .fam-group .tiles { display: flex; gap: 6px; }
+    .tchip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--muted);
+    }
+    .tchip:hover { background: #efe7d7; }
+    .tchip.on { background: var(--surface); border-color: var(--ink); color: var(--ink); }
+
+    /* stepper */
+    .stepper { display: flex; align-items: stretch; overflow-x: auto; padding: 6px 2px 2px; }
+    .step { display: grid; justify-items: center; gap: 6px; min-width: 84px; position: relative; }
+    .step .link { position: absolute; top: 17px; left: 50%; width: 100%; height: 2px; background: var(--line); z-index: 0; }
+    .step:last-child .link { display: none; }
+    .step .node {
+      position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 9px;
+      display: grid; place-items: center; font-size: 14px; cursor: pointer;
+      background: var(--surface-2); border: 1.5px solid var(--line);
+    }
+    .step .node.ok { background: #e3efdd; border-color: #b9d4ab; color: var(--ok); }
+    .step .node.missing { background: #f6dede; border-color: #e3b4b4; color: var(--miss); }
+    .step .node.not_applicable { background: #efe7d4; border-color: #d9caa6; color: #98855f; }
+    .step.active .node { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .step .slab { font-size: 11px; color: var(--muted); }
+    .step.active .slab { color: var(--ink); font-weight: 600; }
+
+    .trace-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(330px, 0.8fr); gap: 16px; }
+    .viewer {
+      min-height: 360px; display: grid; place-items: center; padding: 14px;
+      background: #f4efe7; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    }
+    .viewer img { display: block; max-width: 100%; max-height: 560px; object-fit: contain; }
+    .imgset { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
+    .imgset figure img { height: auto; max-height: 280px; object-fit: contain; background: #eee9df; }
+    .empty { text-align: center; color: var(--muted); padding: 24px; }
+    .empty .big { font-size: 34px; color: var(--miss); }
+    .empty.na .big { color: var(--warn); }
+    .viewer-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .chiplabel { display: inline-flex; align-items: center; gap: 6px; }
+
+    .detail { padding: 14px; background: #f8f3ea; border: 1px solid var(--line); border-radius: 8px; min-width: 0; align-self: start; }
+    .detail .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 11px; }
+    .badge.ok { color: var(--ok); border-color: rgba(40,107,58,.35); }
+    .badge.missing { color: var(--miss); border-color: rgba(165,51,51,.35); }
+    .badge.not_applicable { color: var(--warn); border-color: rgba(166,86,40,.35); }
+    .rows { display: grid; grid-template-columns: auto 1fr; gap: 7px 12px; margin: 10px 0; font-size: 12px; align-items: baseline; }
+    .rows .k { color: var(--muted); white-space: nowrap; }
+    .rows .val { overflow-wrap: anywhere; }
+    .copyline { display: flex; gap: 6px; align-items: baseline; }
+    .copy { padding: 1px 7px; font-size: 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; cursor: pointer; color: var(--accent); flex-shrink: 0; }
+    .copy:hover { background: #fdf3e6; }
+    .block {
+      margin: 10px 0; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface);
+    }
+    .block .bh { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: #f1e8d9; font-size: 12px; font-weight: 650; color: #514437; }
+    .block .bb { padding: 10px; font-size: 12px; max-height: 230px; overflow: auto; white-space: pre-wrap; line-height: 1.55; color: #4a3f30; }
+    .inputs { display: grid; gap: 7px; margin-top: 6px; }
+    .inp { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; padding: 7px 9px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 11px; }
+    .inp .f { font-weight: 600; }
+    .inp .u { color: var(--accent-2); }
+    .inp .p { grid-column: 1 / -1; color: var(--muted); overflow-wrap: anywhere; }
+    details.raw { margin-top: 8px; }
+    details.raw summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+    details.raw pre { margin: 8px 0 0; padding: 10px; background: #27221d; color: #f4ead9; border-radius: 6px; font-size: 11px; max-height: 260px; overflow: auto; }
+
+    /* ===== meta footer ===== */
+    .meta-foot {
+      max-width: 1560px; margin: 18px auto 0; padding: 10px 26px 26px;
+      display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 11px; color: var(--muted);
+    }
+    .meta-foot b { color: var(--ink); font-weight: 600; }
+
+    .loading { margin: 26px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; color: var(--muted); }
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fbf3e6; padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 1000px) {
+      .kpis { grid-template-columns: repeat(3, 1fr); }
+      .trace-body { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <aside>
-      <h1>三管线素材追踪</h1>
-      <p>从 texture-gen call 到 raw、fit、UV、mesh、bake、manifest、Godot 截图的可审计链路。</p>
-      <nav class="side-nav" aria-label="pipeline tabs">
-        <button class="tab-button" type="button" data-tab="overview" aria-selected="true">总览</button>
-        <button class="tab-button" type="button" data-tab="hard" aria-selected="false">管线 A：硬边</button>
-        <button class="tab-button" type="button" data-tab="bevel" aria-selected="false">管线 B：顶面倒角</button>
-        <button class="tab-button" type="button" data-tab="patch" aria-selected="false">管线 C：面片</button>
-      </nav>
-    </aside>
+  <header class="topbar" id="topbar">
+    <button class="brand" type="button" data-nav="home" title="回到总览">
+      <span class="logo">墨</span>
+      <span class="b-text"><span class="b-name">Tile Forge</span><span class="b-sub">资产审计看板</span></span>
+    </button>
+    <span id="pipeTabs"></span>
+    <span class="badge-flag">只读审计 · <b>read-only</b></span>
+  </header>
 
-    <main>
-      <div class="hero">
-        <h2>InkMon 地块素材三管线生产追踪页</h2>
-        <p>这页不再手写素材路径；它读取同目录的 <code>pipeline_artifacts.json</code>，把每个 tile 在每条管线里的真实阶段产物串起来。</p>
-        <div id="statusRow" class="status-row">
-          <span class="badge">loading pipeline_artifacts.json</span>
-        </div>
-      </div>
-
-      <div id="app" class="loading">正在读取 artifact index...</div>
-    </main>
-  </div>
+  <main><div id="app" class="loading">正在读取 <code>pipeline_artifacts.json</code> …</div></main>
+  <footer class="meta-foot" id="footer"></footer>
+  <div class="toast" id="toast"></div>
 
   <script>
-    const STAGE_LABELS = {
-      ai_call: "AI call",
-      raw: "raw",
-      fit: "fit overlay",
-      uv: "UV",
-      mesh: "mesh preview",
-      baked: "baked result",
-      manifest: "manifest",
-      godot_scene: "Godot scene",
-    };
+    "use strict";
+
+    const STAGE_LABEL = { ai_call: "AI", raw: "原图", fit: "套版", uv: "UV", mesh: "模型", baked: "烘焙", manifest: "清单", godot_scene: "场景" };
+    const STAGE_FULL = { ai_call: "AI 调用", raw: "AI 原图", fit: "几何套版", uv: "UV 展开", mesh: "模型预览", baked: "烘焙成品", manifest: "清单条目", godot_scene: "Godot 场景" };
+    const STATUS_LABEL = { ok: "OK", missing: "缺失", not_applicable: "N-A" };
+    const STATUS_FULL = { ok: "正常产出", missing: "缺失", not_applicable: "不适用" };
+    const STATUS_ICON = { ok: "✓", missing: "✕", not_applicable: "–" };
+    const FAMILY = { grass: "草地", dirt: "泥土", stone: "岩石", water: "水面" };
+    const FAMILY_ORDER = ["grass", "dirt", "stone", "water"];
+    const FAMILY_COLOR = { grass: "var(--grass)", dirt: "var(--dirt)", stone: "var(--stone)", water: "var(--water)" };
+    const PIPE_TAB = { hard: "管线 A · 硬边", bevel: "管线 B · 倒角", patch: "管线 C · 面片" };
 
     const state = {
       data: null,
-      activeTab: (location.hash || "#overview").slice(1) || "overview",
-      selected: {
-        hard: { tile: "grass_e0", variant: null, stage: "ai_call" },
-        bevel: { tile: "grass_e0", variant: null, stage: "ai_call" },
-        patch: { tile: "grass_e0", variant: null, stage: "ai_call" },
+      tileKind: {},
+      view: (location.hash || "#home").slice(1) || "home",
+      matrix: { pipeline: "hard", variant: null },
+      sel: {
+        hard: { variant: null, tile: "grass_e0", stage: "ai_call" },
+        bevel: { variant: null, tile: "grass_e0", stage: "ai_call" },
+        patch: { variant: null, tile: "grass_e0", stage: "ai_call" },
       },
     };
 
     const app = document.getElementById("app");
-    const statusRow = document.getElementById("statusRow");
-    const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
+    const pipeTabsEl = document.getElementById("pipeTabs");
+    const footerEl = document.getElementById("footer");
+
+    const esc = (v) => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    const attr = (v) => esc(v).replaceAll("'", "&#39;");
 
     function repoUrl(path) {
       if (!path) return "";
-      if (/^[a-zA-Z]:[\\/]/.test(path)) return "";
-      return "../../" + path.split("\\").join("/");
+      if (/^[a-zA-Z]:[\\/]/.test(path) || path.startsWith("%")) return "";  // external / non-repo path
+      return "../../" + String(path).split("\\").join("/");
+    }
+    function isTerrain(tileId) { return state.tileKind[tileId] === "tile"; }
+    function tileOptions() { return state.data.tiles.filter((t) => t.kind === "tile"); }
+    function getPipeline(id) { return state.data.pipelines.find((p) => p.id === id); }
+    function aKey(p, v, t, s) { return p + ":" + v + ":" + t + ":" + s; }
+
+    let _map = null;
+    function buildMap() {
+      _map = new Map();
+      for (const a of state.data.artifacts) _map.set(aKey(a.pipeline, a.variant, a.tile_id, a.stage), a);
+    }
+    function getArt(p, v, t, s) { return _map.get(aKey(p, v, t, s)); }
+
+    function familyTiles(fam) { return tileOptions().filter((t) => t.id.startsWith(fam + "_")); }
+
+    function fmtBytes(n) {
+      if (!n && n !== 0) return "";
+      if (n < 1024) return n + " B";
+      if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
+      return (n / 1048576).toFixed(1) + " MB";
+    }
+    function fmtDur(ms) { return ms ? Math.round(ms / 1000) + "s" : ""; }
+
+    // ---------- KPI ----------
+    function kpis() {
+      const arts = state.data.artifacts;
+      const terr = arts.filter((a) => isTerrain(a.tile_id));
+      const c = { ok: 0, missing: 0, not_applicable: 0 };
+      for (const a of terr) if (c[a.status] != null) c[a.status]++;
+      return {
+        total: terr.length,
+        allTotal: arts.length,
+        decor: arts.length - terr.length,
+        ok: c.ok, missing: c.missing, na: c.not_applicable,
+        warns: (state.data.warnings || []).length,
+        coverage: terr.length ? Math.round((c.ok / terr.length) * 100) : 0,
+      };
     }
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
+    function kpiCard(cls, t, v, sub, pct, note) {
+      return `<div class="kpi ${cls}"><div class="t">${esc(t)}</div>
+        <div class="v">${esc(v)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>
+        ${pct != null ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ""}
+        ${note ? `<div class="note">${esc(note)}</div>` : ""}</div>`;
     }
 
-    function compactJson(value) {
-      if (!value || Object.keys(value).length === 0) return "{}";
-      return JSON.stringify(value, null, 2);
-    }
+    // ---------- coverage matrix ----------
+    function renderMatrix() {
+      const pid = state.matrix.pipeline;
+      const pipe = getPipeline(pid);
+      if (!state.matrix.variant || !pipe.variants.some((v) => v.id === state.matrix.variant))
+        state.matrix.variant = pipe.default_variant;
+      const variant = state.matrix.variant;
+      const stages = pipe.stages;
 
-    function artifactKey(a) {
-      return `${a.pipeline}:${a.variant}:${a.tile_id}:${a.stage}`;
-    }
+      const pipeSeg = `<div class="seg" data-seg="mtx-pipe">` +
+        state.data.pipelines.map((p) => `<button data-v="${p.id}" class="${p.id === pid ? "on" : ""}">${esc(PIPE_TAB[p.id].split(" · ")[1] || p.id)}</button>`).join("") + `</div>`;
+      const varSeg = `<div class="seg" data-seg="mtx-var">` +
+        pipe.variants.map((v) => `<button data-v="${v.id}" class="${v.id === variant ? "on" : ""}">${esc(v.label)}</button>`).join("") + `</div>`;
 
-    function artifactsByKey() {
-      const map = new Map();
-      for (const artifact of state.data.artifacts) {
-        map.set(artifactKey(artifact), artifact);
+      const head = `<thead><tr><th class="row-h">tile</th>${stages.map((s) => `<th>${esc(STAGE_LABEL[s] || s)}</th>`).join("")}</tr></thead>`;
+      let rows = "";
+      for (const fam of FAMILY_ORDER) {
+        rows += `<tr class="fam-row"><td class="row-h"><span class="fam"><span class="hex" style="background:${FAMILY_COLOR[fam]}"></span>${esc(FAMILY[fam])}</span></td>${stages.map(() => "<td></td>").join("")}</tr>`;
+        for (const tile of familyTiles(fam)) {
+          rows += `<tr><td class="row-h"><span class="tile-name"><code>${esc(tile.id)}</code></span></td>` +
+            stages.map((s) => {
+              const a = getArt(pid, variant, tile.id, s);
+              if (!a) return `<td><div class="cell void" title="该阶段无记录">·</div></td>`;
+              const st = a.status;
+              return `<td><div class="cell ${st}" data-cell="${pid}|${variant}|${tile.id}|${s}" title="${esc(STATUS_FULL[st] || st)}">${STATUS_ICON[st] || ""}</div></td>`;
+            }).join("") + `</tr>`;
+        }
       }
-      return map;
+
+      return `<section class="card">
+        <div class="matrix-head">
+          <div><h3>覆盖矩阵 · Coverage Matrix</h3>
+          <p class="sub">行 = tile（按家族）· 列 = stage · 单元格 = 状态 · 点单元格跳到对应追踪。</p></div>
+          <div class="matrix-switch">${pipeSeg}${varSeg}</div>
+        </div>
+        <div class="legend">
+          <span><span class="dot ok">✓</span> ${STATUS_FULL.ok}</span>
+          <span><span class="dot missing">✕</span> ${STATUS_FULL.missing}</span>
+          <span><span class="dot not_applicable">–</span> ${STATUS_FULL.not_applicable}</span>
+        </div>
+        <div style="overflow-x:auto"><table class="mtx">${head}<tbody>${rows}</tbody></table></div>
+      </section>`;
     }
 
-    function getPipeline(id) {
-      return state.data.pipelines.find((pipeline) => pipeline.id === id);
+    // ---------- home / overview ----------
+    function renderHome() {
+      const k = kpis();
+      const ov = state.data.overview || {};
+      const gal = [
+        [ov.final_compare, "三管线最终对比"], [ov.raw_contact, "12 张 raw 输入"],
+        [ov.standard_uv_contact, "standard UV"], [ov.beveled_uv_contact, "倒角 UV"], [ov.patch_contact, "面片 patch"],
+      ].filter(([p]) => p);
+
+      const warns = (state.data.warnings || []).map((w) => {
+        const ctx = [w.pipeline, w.variant, w.tile_id, w.stage].filter(Boolean).join(" · ");
+        return `<div class="warn-item"><span class="wx">✕</span><div>${esc(w.message)}<span class="wmeta">${esc(ctx)}</span></div></div>`;
+      }).join("");
+
+      // texture-gen ledger (ai_call per terrain tile, default layer hard/current)
+      const ledger = tileOptions().map((t) => {
+        const a = getArt("hard", "current", t.id, "ai_call");
+        const d = (a && a.data) || {};
+        return `<tr><td><code>${esc(t.id)}</code></td><td><span class="badge ${a ? a.status : "missing"}">${esc(a ? STATUS_LABEL[a.status] : "缺失")}</span></td>
+          <td><code>${esc(d.call_id || "-")}</code></td><td>${esc([d.quality, d.size].filter(Boolean).join(" / "))}</td><td>${esc(fmtDur(d.duration_ms))}</td></tr>`;
+      }).join("");
+
+      const vrows = state.data.pipelines.flatMap((p) => p.variants.map((v) =>
+        `<tr><td>${esc(PIPE_TAB[p.id] || p.label)}</td><td><code>${esc(v.id)}</code></td><td><code>${esc(v.asset_dir || "")}</code></td><td><code>${esc(v.scene || "")}</code></td></tr>`)).join("");
+
+      return `<div class="panel">
+        <div>
+          <div class="crumb"><span class="here">总览仪表盘</span>
+            <span class="ctx">${k.allTotal} 条 artifact · ${tileOptions().length} 地形 tile · ${state.data.pipelines.length} 管线</span></div>
+          <div class="filter-row">
+            <input class="search" id="homeSearch" placeholder="搜索 tile（grass / dirt / stone / water）…" value="${attr(state._q || "")}">
+          </div>
+        </div>
+        <div class="kpis">
+          ${kpiCard("", "记录总数", k.total, "条", null, tileOptions().length + " 地形 tile × " + state.data.pipelines.length + " 管线")}
+          ${kpiCard("ok", "OK 正常", k.ok, null, Math.round(k.ok / k.total * 100), "已产出并校验")}
+          ${kpiCard("miss", "MISSING 缺失", k.missing, null, Math.round(k.missing / k.total * 100), "存在断链")}
+          ${kpiCard("na", "N-A 不适用", k.na, null, Math.round(k.na / k.total * 100), "按管线不产出")}
+          ${kpiCard("", "告警", k.warns, "条", null, "显式 warning")}
+          ${kpiCard("cov", "覆盖率", k.coverage, "%", k.coverage, "OK / 记录")}
+        </div>
+        ${renderMatrix()}
+        <section class="card"><h3>总览对比图 · Overview Renders</h3>
+          <p class="sub">${gal.length} 张管线/阶段对照 · 点击放大。</p>
+          <div class="gallery">${gal.map(([p, c]) => figureFor(p, c)).join("")}</div>
+        </section>
+        <section class="card"><h3>告警 · Warnings <span class="badge missing">${k.warns}</span></h3>
+          <div class="warns">${warns || "<p class='muted'>无 warning。</p>"}</div></section>
+        <section class="card"><h3>texture-gen 台账</h3>
+          <table class="data"><thead><tr><th>tile</th><th>状态</th><th>call</th><th>quality / size</th><th>用时</th></tr></thead><tbody>${ledger}</tbody></table></section>
+        <section class="card"><h3>variant 矩阵</h3>
+          <table class="data"><thead><tr><th>管线</th><th>variant</th><th>baked_dir</th><th>scene</th></tr></thead><tbody>${vrows}</tbody></table></section>
+      </div>`;
     }
 
-    function getArtifact(map, pipeline, variant, tile, stage) {
-      return map.get(`${pipeline}:${variant}:${tile}:${stage}`);
-    }
-
-    function tileOptions() {
-      return state.data.tiles.filter((tile) => tile.kind === "tile");
-    }
-
-    function statusBadge(status) {
-      return `<span class="badge ${escapeHtml(status)}">${escapeHtml(status)}</span>`;
-    }
-
-    function renderImage(path, alt) {
+    function figureFor(path, cap) {
       const url = repoUrl(path);
-      if (!url) {
-        return `<div class="empty-stage">外部路径不可直接预览：<br><code>${escapeHtml(path)}</code></div>`;
-      }
-      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}">`;
+      const img = url ? `<img src="${attr(url)}" alt="${attr(cap)}" onclick="window.open(this.src,'_blank')">`
+        : `<div class="empty" style="height:150px;display:grid;place-items:center">外部路径</div>`;
+      return `<figure>${img}<figcaption>${esc(cap)}</figcaption></figure>`;
     }
 
-    function renderArtifactVisual(artifact) {
-      if (!artifact) return `<div class="empty-stage">此阶段没有 artifact 记录。</div>`;
-      if (artifact.status === "missing") {
-        return `<div class="empty-stage">缺失：${escapeHtml(artifact.title || artifact.stage)}<br>${escapeHtml(artifact.notes || "")}</div>`;
-      }
-      if (artifact.kind === "image") {
-        return renderImage(artifact.path, artifact.title || artifact.stage);
-      }
-      if (artifact.kind === "image_set") {
-        const images = artifact.images || [];
-        if (!images.length) return `<div class="empty-stage">image_set 还没有图片。</div>`;
-        return `<div class="image-set">${images.map((image) => `
-          <figure>
-            ${renderImage(image.path, image.label)}
-            <figcaption>${escapeHtml(image.label)}</figcaption>
-          </figure>
-        `).join("")}</div>`;
-      }
-      return `<div class="empty-stage">${escapeHtml(artifact.title || STAGE_LABELS[artifact.stage] || artifact.stage)}<br>${escapeHtml(artifact.notes || "")}</div>`;
-    }
+    // ---------- pipeline trace ----------
+    function renderTrace(pid) {
+      const pipe = getPipeline(pid);
+      const sel = state.sel[pid];
+      if (!sel.variant || !pipe.variants.some((v) => v.id === sel.variant)) sel.variant = pipe.default_variant;
+      if (!pipe.stages.includes(sel.stage)) sel.stage = pipe.stages[0];
+      const a = getArt(pid, sel.variant, sel.tile, sel.stage);
 
-    function pathLine(label, value) {
-      if (!value) return "";
-      const url = repoUrl(value);
-      const body = url
-        ? `<a class="path" href="${escapeHtml(url)}">${escapeHtml(value)}</a>`
-        : `<span class="path">${escapeHtml(value)}</span>`;
-      return `<h4>${escapeHtml(label)}</h4>${body}`;
-    }
+      const varSeg = `<div class="seg" data-seg="trace-var" data-pid="${pid}">` +
+        pipe.variants.map((v) => `<button data-v="${v.id}" class="${v.id === sel.variant ? "on" : ""}">${esc(v.label)}</button>`).join("") + `</div>`;
 
-    function renderArtifactDetails(artifact) {
-      if (!artifact) {
-        return `<div class="detail-card"><h3>无记录</h3><p class="muted">当前 pipeline / variant / tile / stage 没有 artifact。</p></div>`;
-      }
-      return `
-        <div class="detail-card">
-          <div class="status-row">
-            ${statusBadge(artifact.status)}
-            <span class="badge">${escapeHtml(artifact.kind)}</span>
-            <span class="badge">${escapeHtml(artifact.stage)}</span>
+      const tilePick = FAMILY_ORDER.map((fam) => `<div class="fam-group"><span class="glab"><span class="hex" style="background:${FAMILY_COLOR[fam]}"></span> ${esc(FAMILY[fam])}</span><div class="tiles">` +
+        familyTiles(fam).map((t) => `<button class="tchip ${t.id === sel.tile ? "on" : ""}" data-tile="${t.id}" data-pid="${pid}"><span class="hex" style="background:${FAMILY_COLOR[fam]};width:11px;height:11px"></span>${esc(t.id.split("_")[1])}</button>`).join("") + `</div></div>`).join("");
+
+      const stepper = `<div class="stepper">` + pipe.stages.map((s, i) => {
+        const sa = getArt(pid, sel.variant, sel.tile, s);
+        const st = sa ? sa.status : "missing";
+        return `<div class="step ${s === sel.stage ? "active" : ""}"><div class="link"></div>
+          <button class="node ${st}" data-step="${s}" data-pid="${pid}" title="${esc(STATUS_FULL[st] || st)}">${STATUS_ICON[st] || ""}</button>
+          <span class="slab">${esc(STAGE_LABEL[s] || s)}</span></div>`;
+      }).join("") + `</div>`;
+
+      return `<div class="panel">
+        <div class="crumb"><span class="here">${esc(PIPE_TAB[pid])}</span>
+          <span class="ctx">${esc(tileLabel(sel.tile))} · ${esc(sel.variant)} · ${esc(STAGE_FULL[sel.stage] || sel.stage)}</span></div>
+        <section class="card">
+          <div class="controls">
+            <div class="control"><span class="lab">变体 variant</span>${varSeg}</div>
+            <div class="control" style="flex:1"><span class="lab">砖块 tile</span><div class="tile-pick">${tilePick}</div></div>
           </div>
-          <h3>${escapeHtml(artifact.title || STAGE_LABELS[artifact.stage] || artifact.stage)}</h3>
-          <p class="muted">${escapeHtml(artifact.notes || "")}</p>
-          <div class="path-list">
-            ${pathLine("path", artifact.path)}
-            ${pathLine("source_script", artifact.source_script)}
-            ${pathLine("source_report", artifact.source_report)}
-          </div>
-          <h4>data</h4>
-          <pre><code>${escapeHtml(compactJson(artifact.data || {}))}</code></pre>
-        </div>`;
+        </section>
+        <section class="card">${stepper}</section>
+        <div class="trace-body">
+          <div><div class="viewer-tools">
+            <span class="badge ${a ? a.status : "missing"}">${a ? STATUS_LABEL[a.status] : "缺失"}</span>
+            <span class="badge">${esc(STAGE_FULL[sel.stage] || sel.stage)}</span>
+            <span class="badge">${a ? esc(a.kind) : "—"}</span>
+          </div><div class="viewer">${renderViewer(a)}</div></div>
+          ${renderDetail(a, pid, sel)}
+        </div>
+      </div>`;
     }
 
-    function renderOverview(map) {
-      const overview = state.data.overview;
-      const warnings = state.data.warnings || [];
-      const defaultCalls = tileOptions().map((tile) => getArtifact(map, "hard", "current", tile.id, "ai_call"));
-      const callRows = defaultCalls.map((artifact) => {
-        const data = artifact?.data || {};
-        return `
-          <tr>
-            <td><code>${escapeHtml(artifact?.tile_id)}</code></td>
-            <td>${statusBadge(artifact?.status || "missing")}</td>
-            <td><code>${escapeHtml(data.call_id || "missing")}</code></td>
-            <td>${escapeHtml([data.quality, data.size].filter(Boolean).join(" / "))}</td>
-            <td>${escapeHtml(data.duration_ms ? `${Math.round(data.duration_ms / 1000)}s` : "")}</td>
-          </tr>`;
-      }).join("");
-      const variantRows = state.data.pipelines.flatMap((pipeline) =>
-        pipeline.variants.map((variant) => `
-          <tr>
-            <td>${escapeHtml(pipeline.label)}</td>
-            <td><code>${escapeHtml(variant.id)}</code></td>
-            <td><code>${escapeHtml(variant.asset_dir)}</code></td>
-            <td><code>${escapeHtml(variant.scene)}</code></td>
-            <td><code>${escapeHtml(variant.bake_report)}</code></td>
-          </tr>`)
-      ).join("");
-      return `
-        <article id="tab-overview" class="panel active">
-          <section>
-            <h3>当前结果入口</h3>
-            <div class="grid-2">
-              <figure>${renderImage(overview.final_compare, "三管线最终对比")}<figcaption>三条管线当前 Godot 场景对比。</figcaption></figure>
-              <figure>${renderImage(overview.raw_contact, "AI raw contact")}<figcaption>12 张 terrain raw 输入。</figcaption></figure>
-              <figure>${renderImage(overview.standard_uv_contact, "standard UV contact")}<figcaption>硬边使用的 standard design_warp UV。</figcaption></figure>
-              <figure>${renderImage(overview.beveled_uv_contact, "wide rim beveled UV contact")}<figcaption>倒角 wide_rim 使用的 beveled UV。</figcaption></figure>
-              <figure>${renderImage(overview.patch_contact, "patch contact")}<figcaption>面片 fit 后透明 patch。</figcaption></figure>
-            </div>
-          </section>
+    function tileLabel(id) { const f = id.split("_")[0]; return (FAMILY[f] || f) + " " + id.split("_")[1]; }
 
-          <section>
-            <h3>texture-gen 台账</h3>
-            <table>
-              <thead><tr><th>tile</th><th>status</th><th>call</th><th>quality / size</th><th>duration</th></tr></thead>
-              <tbody>${callRows}</tbody>
-            </table>
-          </section>
-
-          <section>
-            <h3>variant matrix</h3>
-            <table>
-              <thead><tr><th>pipeline</th><th>variant</th><th>baked_dir</th><th>scene</th><th>bake report</th></tr></thead>
-              <tbody>${variantRows}</tbody>
-            </table>
-          </section>
-
-          <section>
-            <h3>显式 warning</h3>
-            <div class="warning-list">
-              ${warnings.length ? warnings.map((warning) => `<div class="warning"><code>${escapeHtml(warning.tile_id || warning.pipeline || "")}</code> ${escapeHtml(warning.message)}</div>`).join("") : "<p class='muted'>无 warning。</p>"}
-            </div>
-          </section>
-        </article>`;
+    function renderViewer(a) {
+      if (!a) return `<div class="empty">此 pipeline / variant / tile / stage 没有 artifact 记录。</div>`;
+      if (a.status === "missing") return `<div class="empty"><div class="big">✕</div><b>产物缺失 · Missing</b><br>${esc(a.notes || a.title || "")}</div>`;
+      if (a.kind === "note" || a.status === "not_applicable")
+        return `<div class="empty na"><div class="big">–</div><b>${esc(a.title || "不适用")}</b><br>${esc(a.notes || "")}</div>`;
+      if (a.kind === "image") return imgOrExternal(a.path, a.title || a.stage);
+      if (a.kind === "image_set") {
+        const imgs = a.images || [];
+        if (!imgs.length) return `<div class="empty">image_set 暂无图片。</div>`;
+        return `<div class="imgset">${imgs.map((im) => `<figure>${imgOrExternal(im.path, im.label, true)}<figcaption>${esc(im.label)}</figcaption></figure>`).join("")}</div>`;
+      }
+      // metadata (ai_call, manifest)
+      return `<div class="empty"><div class="big" style="color:var(--muted)">{ }</div><b>${esc(STAGE_FULL[a.stage] || a.stage)} · 元数据</b><br>无图像产物，详情见右侧。</div>`;
+    }
+    function imgOrExternal(path, alt, inFig) {
+      const url = repoUrl(path);
+      if (!url) return `<div class="empty">外部路径不可直接预览：<br><code>${esc(path)}</code></div>`;
+      return `<img src="${attr(url)}" alt="${attr(alt)}"${inFig ? "" : ' onclick="window.open(this.src,\'_blank\')"'}>`;
     }
 
-    function renderPipeline(pipelineId, map) {
-      const pipeline = getPipeline(pipelineId);
-      const selected = state.selected[pipelineId];
-      if (!selected.variant) selected.variant = pipeline.default_variant;
-      const variant = pipeline.variants.find((item) => item.id === selected.variant) || pipeline.variants[0];
-      selected.variant = variant.id;
-      if (!pipeline.stages.includes(selected.stage)) selected.stage = pipeline.stages[0];
-      const artifact = getArtifact(map, pipeline.id, selected.variant, selected.tile, selected.stage);
+    function row(k, v, copy) {
+      if (v == null || v === "") return "";
+      const val = copy ? `<span class="copyline"><span class="mono">${esc(v)}</span><button class="copy" data-copy="${attr(v)}">复制</button></span>` : `<span>${esc(v)}</span>`;
+      return `<div class="k">${esc(k)}</div><div class="val">${val}</div>`;
+    }
 
-      const tileSelect = `
-        <div class="control">
-          <label for="${pipelineId}-tile">tile</label>
-          <select id="${pipelineId}-tile" data-pipeline="${pipelineId}" data-control="tile">
-            ${tileOptions().map((tile) => `<option value="${escapeHtml(tile.id)}" ${tile.id === selected.tile ? "selected" : ""}>${escapeHtml(tile.id)}</option>`).join("")}
-          </select>
-        </div>`;
-      const variantSelect = `
-        <div class="control">
-          <label for="${pipelineId}-variant">variant</label>
-          <select id="${pipelineId}-variant" data-pipeline="${pipelineId}" data-control="variant">
-            ${pipeline.variants.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected.variant ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
-          </select>
-        </div>`;
+    function renderDetail(a, pid, sel) {
+      if (!a) return `<div class="detail"><h3>无记录</h3><p class="muted">当前选择没有 artifact。</p></div>`;
+      const d = a.data || {};
+      let extra = "";
 
-      const timeline = pipeline.stages.map((stage) => {
-        const item = getArtifact(map, pipeline.id, selected.variant, selected.tile, stage);
-        const status = item?.status || "missing";
-        return `<button class="stage-button ${stage === selected.stage ? "active" : ""}" type="button" data-pipeline="${pipelineId}" data-stage="${escapeHtml(stage)}">
-          ${escapeHtml(STAGE_LABELS[stage] || stage)} · ${escapeHtml(status)}
-        </button>`;
-      }).join("");
+      if (a.stage === "ai_call") {
+        extra += `<div class="block"><div class="bh">TEXTURE-GEN 调用</div><div class="bb" style="white-space:normal">
+          <div class="rows">${row("call_id", d.call_id, true)}${row("status", d.status)}${row("quality / size", [d.quality, d.size].filter(Boolean).join(" / "))}${row("用时", fmtDur(d.duration_ms))}${row("缓存", d.call_cache_path, true)}</div></div></div>`;
+        if (d.prompt) extra += `<div class="block"><div class="bh">PROMPT 文本 <button class="copy" data-copy="${attr(d.final_prompt || d.prompt)}">复制</button></div><div class="bb">${esc(d.final_prompt || d.prompt)}</div></div>`;
+        if (Array.isArray(d.inputs) && d.inputs.length) extra += `<h4>输入底图 inputs</h4><div class="inputs">${d.inputs.map((i) => `<div class="inp"><span class="f">${esc(i.filename || "")}</span><span class="u">${esc(i.usage || "")}</span>${i.sourcePath ? `<span class="p">${esc(i.sourcePath)}</span>` : ""}</div>`).join("")}</div>`;
+      } else if (a.stage === "manifest" && d.entry) {
+        const e = d.entry;
+        extra += `<div class="block"><div class="bh">manifest entry</div><div class="bb" style="white-space:normal"><div class="rows">
+          ${row("file", e.file, true)}${row("terrain", e.terrain)}${row("elevation", e.elevation)}${row("anchor_px", Array.isArray(e.anchor_px) ? e.anchor_px.join(", ") : e.anchor_px)}${row("size_px", Array.isArray(e.size_px) ? e.size_px.join(" × ") : e.size_px)}</div></div></div>`;
+      }
 
-      return `
-        <article id="tab-${pipelineId}" class="panel">
-          <section>
-            <h3>${escapeHtml(pipeline.label)}</h3>
-            <p class="muted">${pipelineId === "patch"
-              ? "面片管线没有 Blender mesh；它审计 raw 清底、fit/anchor、透明 patch、manifest 和 Godot 场景。"
-              : "此管线审计 texture-gen raw、几何 overlay、UV、真实 Blender model preview、baked PNG、manifest 和 Godot 场景。"
-            }</p>
-            <div class="controls">${tileSelect}${variantSelect}</div>
-            <div class="timeline">${timeline}</div>
-            <div class="artifact-layout">
-              <div class="stage-view">${renderArtifactVisual(artifact)}</div>
-              ${renderArtifactDetails(artifact)}
-            </div>
-          </section>
-        </article>`;
+      const px = Array.isArray(a.image_size_px) ? a.image_size_px.join(" × ") + " px" : "";
+      return `<div class="detail">
+        <div class="badges"><span class="badge ${a.status}">${esc(STATUS_FULL[a.status] || a.status)}</span>
+          <span class="badge">${esc(PIPE_TAB[pid].split(" · ")[1])}</span><span class="badge">${esc(sel.variant)}</span><span class="badge">${esc(a.tile_id)}</span></div>
+        <h3>${esc(a.title || STAGE_FULL[a.stage] || a.stage)}</h3>
+        ${a.notes ? `<p class="muted" style="font-size:12px">${esc(a.notes)}</p>` : ""}
+        <div class="rows">
+          ${row("kind", a.kind)}${row("status", a.status)}${row("尺寸", px)}${row("大小", fmtBytes(a.size_bytes))}
+        </div>
+        <div class="rows">
+          ${row("path", a.path, true)}${row("source_script", a.source_script, true)}${row("source_report", a.source_report, true)}
+        </div>
+        ${extra}
+        <details class="raw"><summary>查看原始 JSON</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details>
+      </div>`;
+    }
+
+    // ---------- shell / nav ----------
+    function renderTabs() {
+      pipeTabsEl.innerHTML = state.data.pipelines.map((p) =>
+        `<button class="tab ${state.view === p.id ? "active" : ""}" data-nav="${p.id}"><span class="ico">▦</span>${esc(PIPE_TAB[p.id])}</button>`).join("");
+      document.querySelector(".brand").classList.toggle("active", state.view === "home");
+    }
+
+    function renderFooter() {
+      const k = kpis();
+      const d = state.data;
+      const ss = (d.style_source && d.style_source.path) || "";
+      footerEl.innerHTML = `<span>追踪记录 <b>${k.total}</b></span><span>装饰物过滤 <b>${k.decor}</b> 条</span>
+        <span>schema_version <b>${esc(d.schema_version)}</b></span><span>generated_at <b>${esc((d.generated_at || "").slice(0, 19).replace("T", " "))}</b></span>
+        <span>repo_root <b>${esc(d.repo_root)}</b></span><span>style_source <b>${esc(ss)}</b></span>`;
     }
 
     function render() {
-      const map = artifactsByKey();
-      statusRow.innerHTML = `
-        <span class="badge ok">artifacts: ${state.data.artifacts.length}</span>
-        <span class="badge ${state.data.warnings.length ? "not_applicable" : "ok"}">warnings: ${state.data.warnings.length}</span>
-        <span class="badge">generated: ${escapeHtml(state.data.generated_at)}</span>
-        <span class="badge">schema v${state.data.schema_version}</span>`;
-
+      const y = window.scrollY;
+      renderTabs();
       app.className = "";
-      app.innerHTML = [
-        renderOverview(map),
-        renderPipeline("hard", map),
-        renderPipeline("bevel", map),
-        renderPipeline("patch", map),
-      ].join("");
-      wireEvents();
-      selectTab(state.activeTab, false);
+      app.innerHTML = state.view === "home" ? renderHome() : renderTrace(state.view);
+      renderFooter();
+      wire();
+      window.scrollTo(0, y);
     }
 
-    function selectTab(tab, updateHash = true) {
-      const valid = ["overview", "hard", "bevel", "patch"].includes(tab) ? tab : "overview";
-      state.activeTab = valid;
-      for (const button of tabButtons) {
-        button.setAttribute("aria-selected", String(button.dataset.tab === valid));
-      }
-      for (const panel of document.querySelectorAll(".panel")) {
-        panel.classList.toggle("active", panel.id === `tab-${valid}`);
-      }
-      if (updateHash) history.replaceState(null, "", `#${valid}`);
+    function setView(v) {
+      const valid = ["home", "hard", "bevel", "patch"].includes(v) ? v : "home";
+      state.view = valid;
+      history.replaceState(null, "", "#" + valid);
+      render();
     }
 
-    function wireEvents() {
-      for (const select of document.querySelectorAll("select[data-pipeline]")) {
-        select.addEventListener("change", () => {
-          const pipeline = select.dataset.pipeline;
-          const control = select.dataset.control;
-          state.selected[pipeline][control] = select.value;
-          render();
+    function openTrace(pid, variant, tile, stage) {
+      state.sel[pid].variant = variant; state.sel[pid].tile = tile; state.sel[pid].stage = stage;
+      setView(pid);
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 1200);
+    }
+
+    function wire() {
+      document.querySelectorAll("[data-nav]").forEach((b) => b.onclick = () => setView(b.dataset.nav));
+      // matrix segmented
+      app.querySelectorAll('[data-seg="mtx-pipe"] button').forEach((b) => b.onclick = () => { state.matrix.pipeline = b.dataset.v; state.matrix.variant = null; render(); });
+      app.querySelectorAll('[data-seg="mtx-var"] button').forEach((b) => b.onclick = () => { state.matrix.variant = b.dataset.v; render(); });
+      app.querySelectorAll(".cell[data-cell]").forEach((c) => c.onclick = () => { const [p, v, t, s] = c.dataset.cell.split("|"); openTrace(p, v, t, s); });
+      // trace controls
+      app.querySelectorAll('[data-seg="trace-var"] button').forEach((b) => b.onclick = () => { state.sel[b.closest("[data-pid]").dataset.pid].variant = b.dataset.v; render(); });
+      app.querySelectorAll(".tchip[data-tile]").forEach((b) => b.onclick = () => { state.sel[b.dataset.pid].tile = b.dataset.tile; render(); });
+      app.querySelectorAll(".node[data-step]").forEach((b) => b.onclick = () => { state.sel[b.dataset.pid].stage = b.dataset.step; render(); });
+      // copy
+      app.querySelectorAll(".copy[data-copy]").forEach((b) => b.onclick = () => { navigator.clipboard.writeText(b.dataset.copy).then(() => toast("已复制")); });
+      // search
+      const s = document.getElementById("homeSearch");
+      if (s) s.oninput = () => {
+        state._q = s.value.trim().toLowerCase();
+        const q = state._q;
+        app.querySelectorAll(".mtx tbody tr").forEach((tr) => {
+          const code = tr.querySelector("code");
+          if (!code || tr.classList.contains("fam-row")) return;
+          tr.style.display = !q || code.textContent.toLowerCase().includes(q) ? "" : "none";
         });
-      }
-      for (const button of document.querySelectorAll(".stage-button")) {
-        button.addEventListener("click", () => {
-          state.selected[button.dataset.pipeline].stage = button.dataset.stage;
-          render();
-        });
-      }
+      };
     }
 
-    for (const button of tabButtons) {
-      button.addEventListener("click", () => selectTab(button.dataset.tab));
-    }
-
-    window.addEventListener("hashchange", () => selectTab((location.hash || "#overview").slice(1), false));
+    window.addEventListener("hashchange", () => { state.view = (location.hash || "#home").slice(1) || "home"; render(); });
 
     fetch("pipeline_artifacts.json", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
+      .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then((data) => {
         state.data = data;
-        for (const pipeline of data.pipelines) {
-          if (state.selected[pipeline.id]) {
-            state.selected[pipeline.id].variant = pipeline.default_variant;
-            state.selected[pipeline.id].stage = pipeline.stages[0];
-          }
-        }
+        state.tileKind = Object.fromEntries(data.tiles.map((t) => [t.id, t.kind]));
+        for (const p of data.pipelines) { state.sel[p.id].variant = p.default_variant; state.sel[p.id].stage = p.stages[0]; }
+        state.matrix.variant = getPipeline(state.matrix.pipeline).default_variant;
+        buildMap();
         render();
       })
-      .catch((error) => {
-        app.className = "loading";
-        app.innerHTML = `读取 <code>pipeline_artifacts.json</code> 失败：${escapeHtml(error.message)}。请通过本地 HTTP server 打开此页，例如 <code>python -m http.server 8766</code>。`;
-      });
+      .catch((e) => { app.className = "loading"; app.innerHTML = `读取 <code>pipeline_artifacts.json</code> 失败：${esc(e.message)}。请用本地 HTTP server 打开（项目根目录运行 <code>start_pipeline_artifacts_web.bat</code>）。`; });
   </script>
 </body>
 </html>

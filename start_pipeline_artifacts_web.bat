@@ -1,8 +1,9 @@
 @echo off
 setlocal
 
+rem This script now lives at the repo root, so REPO_ROOT is its own folder.
 set "SCRIPT_DIR=%~dp0"
-for %%I in ("%SCRIPT_DIR%..\..") do set "REPO_ROOT=%%~fI"
+for %%I in ("%SCRIPT_DIR%.") do set "REPO_ROOT=%%~fI"
 
 set "PORT="
 for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "$listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0); $listener.Start(); $port=$listener.LocalEndpoint.Port; $listener.Stop(); $port"') do set "PORT=%%P"
