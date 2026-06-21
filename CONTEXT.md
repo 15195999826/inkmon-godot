@@ -2,7 +2,7 @@
 
 地块/装饰物美术资产的 AI 生图 → Blender 烘焙 → Godot 拼装管线的领域语言。生图能力宿主在
 inkmon-lab（MCP 操作活的 lab app，要求 lab 常驻打开）；Blender 环节在本仓根 `blender/`，
-Godot 拼装环节在 `inkmon/tools/tile_pipeline/`。
+Godot 拼装环节在 `inkmon美术探索/fable-圆角-v1/`。
 
 ## Language
 

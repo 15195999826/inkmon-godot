@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon美术探索/fable-圆角-v1/candidate_seam_preview/tile_pipeline_seam_candidate.gd" id="1_candidate"]
+
+[node name="TilePipelineSeamCandidate" type="Node2D"]
+script = ExtResource("1_candidate")

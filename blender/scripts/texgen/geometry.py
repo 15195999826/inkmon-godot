@@ -19,7 +19,7 @@ import os
 # ---------------------------------------------------------------- manifest
 
 _REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-MANIFEST_PATH = os.path.join(_REPO_ROOT, "inkmon", "tools", "tile_pipeline", "assets", "baked", "manifest.json")
+MANIFEST_PATH = os.path.join(_REPO_ROOT, "inkmon美术探索", "fable-圆角-v1", "assets", "baked", "manifest.json")
 
 
 def repo_root() -> str:

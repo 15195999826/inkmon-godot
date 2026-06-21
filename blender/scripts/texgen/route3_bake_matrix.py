@@ -152,7 +152,7 @@ def _bake_matrix(ns: dict, run_dir: Path, winner: str) -> dict:
 
 
 def _slots(repo: Path) -> list:
-    baked = repo / "inkmon" / "tools" / "tile_pipeline" / "assets" / "baked"
+    baked = repo / "inkmon美术探索" / "fable-圆角-v1" / "assets" / "baked"
     return [baked / ("tile_grass_e0_v%d.png" % idx) for idx in range(3)]
 
 
@@ -253,7 +253,7 @@ def _capture_round(repo: Path, run_dir: Path, godot: str, round_name: str, sessi
             godot,
             "--path",
             str(repo),
-            "res://inkmon/tools/tile_pipeline/tile_pipeline_scene.tscn",
+            "res://inkmon美术探索/fable-圆角-v1/tile_pipeline_scene.tscn",
             "--",
             "--dev-agent",
             "--dev-agent-session=%s" % session,

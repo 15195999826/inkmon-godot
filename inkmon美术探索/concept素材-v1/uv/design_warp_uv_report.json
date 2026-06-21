@@ -1,0 +1,266 @@
+{
+  "grass_e0": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e0_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e0_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003935,
+        "stretch_min": 0.6802492797224066
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981896,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_4": {
+        "stretch_max": 0.862474803202199,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224072
+      }
+    }
+  },
+  "grass_e1": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e1_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e1_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.178353991400394,
+        "stretch_min": 0.6802492797224065
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981894,
+        "stretch_min": 0.680249279722407
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021995,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224069
+      }
+    }
+  },
+  "grass_e2": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\grass_e2_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\grass_e2_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003938,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981898,
+        "stretch_min": 0.6802492797224069
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021996,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985784,
+        "stretch_min": 0.6802492797224067
+      }
+    }
+  },
+  "dirt_e0": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e0_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e0_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003935,
+        "stretch_min": 0.6802492797224066
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981896,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_4": {
+        "stretch_max": 0.862474803202199,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224072
+      }
+    }
+  },
+  "dirt_e1": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e1_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e1_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.178353991400394,
+        "stretch_min": 0.6802492797224065
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981894,
+        "stretch_min": 0.680249279722407
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021995,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224069
+      }
+    }
+  },
+  "dirt_e2": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\dirt_e2_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\dirt_e2_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003938,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981898,
+        "stretch_min": 0.6802492797224069
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021996,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985784,
+        "stretch_min": 0.6802492797224067
+      }
+    }
+  },
+  "stone_e0": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e0_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e0_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003935,
+        "stretch_min": 0.6802492797224066
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981896,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_4": {
+        "stretch_max": 0.862474803202199,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224072
+      }
+    }
+  },
+  "stone_e1": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e1_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e1_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.178353991400394,
+        "stretch_min": 0.6802492797224065
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981894,
+        "stretch_min": 0.680249279722407
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021995,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224069
+      }
+    }
+  },
+  "stone_e2": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\stone_e2_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\stone_e2_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003938,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981898,
+        "stretch_min": 0.6802492797224069
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021996,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985784,
+        "stretch_min": 0.6802492797224067
+      }
+    }
+  },
+  "water_e0": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e0_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e0_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003935,
+        "stretch_min": 0.6802492797224066
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981896,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_4": {
+        "stretch_max": 0.862474803202199,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224072
+      }
+    }
+  },
+  "water_e1": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e1_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e1_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.178353991400394,
+        "stretch_min": 0.6802492797224065
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981894,
+        "stretch_min": 0.680249279722407
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021995,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985775,
+        "stretch_min": 0.6802492797224069
+      }
+    }
+  },
+  "water_e2": {
+    "raw": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\raw\\water_e2_design_raw.png",
+    "uv": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\concept素材-v1\\uv\\water_e2_warp_uv.png",
+    "warp": {
+      "top": {
+        "stretch_max": 1.1783539914003938,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_3": {
+        "stretch_max": 1.1781624912981898,
+        "stretch_min": 0.6802492797224069
+      },
+      "wall_4": {
+        "stretch_max": 0.8624748032021996,
+        "stretch_min": 0.6802492797224067
+      },
+      "wall_5": {
+        "stretch_max": 3.2187997857985784,
+        "stretch_min": 0.6802492797224067
+      }
+    }
+  }
+}

@@ -4,6 +4,10 @@
 .env*
 .claude/settings.local.json
 .claude/tmp/
+.codex/tmp/
+docs/**/*.import
+__pycache__/
+*.pyc
 art/kaykit
 .claude-goal/*
 

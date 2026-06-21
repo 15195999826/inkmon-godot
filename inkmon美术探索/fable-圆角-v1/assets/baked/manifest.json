@@ -1,0 +1,295 @@
+{
+  "comment": "tile 美术管线单一真相：Blender bake_assets.py 写，Godot 读。anchor = 资产原点（tile=顶面中心@海拔0平面 / decor=落地点）在图中的像素位置；海拔抬升由 Godot 按 elevation*elevation_step_world*cos(pitch) 计算。",
+  "pitch_deg": 35.26,
+  "yaw_deg": -15.0,
+  "hex_orientation": "flat_top",
+  "sun_elevation_deg": 50.0,
+  "sun_azimuth_deg": -45.0,
+  "px_per_unit": 128,
+  "hex_edge_world": 1.0,
+  "px_per_hex_edge": 128.0,
+  "thickness_world": 0.55,
+  "elevation_step_world": 0.5,
+  "water_recess_world": 0.12,
+  "assets": {
+    "tile_grass_e0": {
+      "file": "tile_grass_e0_v0.png",
+      "variants": [
+        "tile_grass_e0_v0.png",
+        "tile_grass_e0_v1.png",
+        "tile_grass_e0_v2.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_grass_e1": {
+      "file": "tile_grass_e1_v0.png",
+      "variants": [
+        "tile_grass_e1_v0.png",
+        "tile_grass_e1_v1.png",
+        "tile_grass_e1_v2.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_grass_e2": {
+      "file": "tile_grass_e2_v0.png",
+      "variants": [
+        "tile_grass_e2_v0.png",
+        "tile_grass_e2_v1.png",
+        "tile_grass_e2_v2.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e0": {
+      "file": "tile_dirt_e0_v0.png",
+      "variants": [
+        "tile_dirt_e0_v0.png",
+        "tile_dirt_e0_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e1": {
+      "file": "tile_dirt_e1_v0.png",
+      "variants": [
+        "tile_dirt_e1_v0.png",
+        "tile_dirt_e1_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e2": {
+      "file": "tile_dirt_e2_v0.png",
+      "variants": [
+        "tile_dirt_e2_v0.png",
+        "tile_dirt_e2_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e0": {
+      "file": "tile_stone_e0_v0.png",
+      "variants": [
+        "tile_stone_e0_v0.png",
+        "tile_stone_e0_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e1": {
+      "file": "tile_stone_e1_v0.png",
+      "variants": [
+        "tile_stone_e1_v0.png",
+        "tile_stone_e1_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e2": {
+      "file": "tile_stone_e2_v0.png",
+      "variants": [
+        "tile_stone_e2_v0.png",
+        "tile_stone_e2_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e0": {
+      "file": "tile_water_e0_v0.png",
+      "variants": [
+        "tile_water_e0_v0.png",
+        "tile_water_e0_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e1": {
+      "file": "tile_water_e1_v0.png",
+      "variants": [
+        "tile_water_e1_v0.png",
+        "tile_water_e1_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e2": {
+      "file": "tile_water_e2_v0.png",
+      "variants": [
+        "tile_water_e2_v0.png",
+        "tile_water_e2_v1.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_pine": {
+      "file": "decor_pine.png",
+      "variants": [
+        "decor_pine.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_pine_tall": {
+      "file": "decor_pine_tall.png",
+      "variants": [
+        "decor_pine_tall.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_rocks": {
+      "file": "decor_rocks.png",
+      "variants": [
+        "decor_rocks.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_bush": {
+      "file": "decor_bush.png",
+      "variants": [
+        "decor_bush.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    }
+  }
+}

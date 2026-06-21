@@ -70,7 +70,7 @@ CONFIG = {
     "canvas_px": 512,
     "samples": 64,
     # 输出（相对 blend 文件所在 blender/ 目录）
-    "output_rel": "//../inkmon/tools/tile_pipeline/assets/baked",
+    "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked",
 }
 
 TERRAINS = ["grass", "dirt", "stone", "water"]
