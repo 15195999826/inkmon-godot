@@ -52,6 +52,8 @@
       padding: 0 16px;
       background: linear-gradient(180deg, #fbf7ef 0%, #f3eee2 100%);
       border-bottom: 2px solid var(--tab-line);
+      overflow-x: auto;
+      overflow-y: hidden;
     }
 
     #pipeTabs { display: contents; }
@@ -129,10 +131,10 @@
     }
     .badge-flag b { color: var(--accent-2); font-weight: 650; }
 
-    main { padding: 22px 26px 8px; max-width: 1560px; width: 100%; }
+    main { padding: 22px 26px 8px; width: 100%; }
 
     /* ===== shared blocks ===== */
-    .panel { display: grid; gap: 16px; }
+    .panel { display: grid; gap: 16px; min-width: 0; }
     section.card {
       margin: 0;
       padding: 16px 18px;
@@ -140,6 +142,7 @@
       border: 1px solid var(--line);
       border-radius: 9px;
       box-shadow: var(--shadow);
+      min-width: 0;
     }
     h2 { margin: 0; font-size: 22px; }
     h3 { margin: 0 0 10px; font-size: 18px; }
@@ -151,9 +154,10 @@
     .crumb {
       display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
       margin-bottom: 14px;
+      min-width: 0;
     }
     .crumb .here { font-size: 19px; font-weight: 650; }
-    .crumb .ctx { color: var(--muted); font-size: 13px; }
+    .crumb .ctx { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 
     /* ===== segmented pills (config / filters) ===== */
     .seg { display: inline-flex; vertical-align: middle; }
@@ -171,8 +175,8 @@
     .seg button:hover:not(.on) { background: #efe7d7; }
     .seg button.on { background: var(--ink); color: #fbf3e6; border-color: var(--ink); }
 
-    .controls { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: flex-end; }
-    .control { display: grid; gap: 6px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: flex-end; min-width: 0; }
+    .control { display: grid; gap: 6px; min-width: 0; }
     .control > .lab { font-size: 11px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
     .filter-row { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin-top: 4px; }
     .search {
@@ -260,7 +264,7 @@
     .tchip.on { background: var(--surface); border-color: var(--ink); color: var(--ink); }
 
     /* stepper */
-    .stepper { display: flex; align-items: stretch; overflow-x: auto; padding: 6px 2px 2px; }
+    .stepper { display: flex; align-items: stretch; overflow-x: auto; padding: 6px 2px 2px; min-width: 0; max-width: 100%; }
     .step { display: grid; justify-items: center; gap: 6px; min-width: 84px; position: relative; }
     .step .link { position: absolute; top: 17px; left: 50%; width: 100%; height: 2px; background: var(--line); z-index: 0; }
     .step:last-child .link { display: none; }
@@ -276,19 +280,233 @@
     .step .slab { font-size: 11px; color: var(--muted); }
     .step.active .slab { color: var(--ink); font-weight: 600; }
 
-    .trace-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(330px, 0.8fr); gap: 16px; }
+    .trace-body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(330px, 0.8fr); gap: 16px; min-width: 0; }
     .viewer {
       min-height: 360px; display: grid; place-items: center; padding: 14px;
       background: #f4efe7; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+      min-width: 0;
     }
     .viewer img { display: block; max-width: 100%; max-height: 560px; object-fit: contain; }
     .imgset { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
     .imgset figure img { height: auto; max-height: 280px; object-fit: contain; background: #eee9df; }
+    .trace-body.ai-raw-body { grid-template-columns: 1fr; }
+    .ai-raw-flow { display: grid; gap: 14px; width: 100%; align-items: start; }
+    .ai-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+    .ai-panel .ph { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #f1e8d9; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 650; color: #514437; }
+    .ai-panel .pc { padding: 10px; }
+    .ai-panel img { width: 100%; max-height: 620px; object-fit: contain; background: #eee9df; }
+    .ai-panel img, .gallery img, .viewer img { cursor: zoom-in; }
+    .ai-fold > summary { cursor: pointer; list-style: none; }
+    .ai-fold > summary::-webkit-details-marker { display: none; }
+    .ai-fold > summary::after {
+      content: "展开";
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .ai-fold[open] > summary::after { content: "收起"; }
+    .prompt-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+    .ai-output-img { display: grid; place-items: center; background: #eee9df; border-radius: 6px; overflow: hidden; }
+    .ai-prompt { max-height: 360px; overflow: auto; white-space: pre-wrap; line-height: 1.55; font-size: 12px; color: #4a3f30; }
+    .ai-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .ai-input { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: start; padding: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; }
+    .ai-input .thumb { width: 92px; height: 92px; display: grid; place-items: center; background: #eee9df; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+    .ai-input .thumb img { width: 100%; height: 100%; object-fit: contain; }
+    .ai-input .it { display: grid; gap: 4px; min-width: 0; font-size: 11px; }
+    .ai-input .name { font-weight: 650; color: var(--ink); }
+    .ai-input .usage { color: var(--accent-2); }
+    .ai-input .path { color: var(--muted); overflow-wrap: anywhere; }
+    .stage-flow { display: grid; gap: 14px; width: 100%; }
+    .stage-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+    .stage-card .sh { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #f1e8d9; border-bottom: 1px solid var(--line); }
+    .stage-card .st { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; font-size: 12px; font-weight: 650; color: #514437; }
+    .stage-card .sm { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .stage-card .sc { padding: 10px; display: grid; gap: 8px; }
+    .stage-card .sc > .empty { min-height: 180px; display: grid; place-items: center; }
+    .stage-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .geometry-view { display: grid; gap: 14px; width: 100%; }
+    .mapping-trace { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .mapping-trace .mh { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: #f1e8d9; border-bottom: 1px solid var(--line); }
+    .mapping-trace .mt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; font-size: 12px; font-weight: 650; color: #514437; }
+    .mapping-trace .mc { padding: 12px; display: grid; gap: 12px; overflow-x: auto; }
+    .map-tree { display: grid; grid-template-columns: minmax(520px, 1fr) 86px minmax(640px, 1.28fr); gap: 0; align-items: start; width: 100%; }
+    .map-root { min-width: 0; }
+    .map-children { display: grid; gap: 14px; min-width: 0; }
+    .map-step { background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; min-width: 0; display: grid; grid-template-rows: auto 1fr; }
+    .map-step .ms-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 32px; padding: 7px 9px; border-bottom: 1px solid var(--line); font-size: 12px; color: #514437; font-weight: 650; }
+    .map-step .ms-num { color: var(--muted); font-weight: 500; }
+    .map-step .ms-route { padding: 5px 9px; border-bottom: 1px solid var(--line); background: #fbf6ec; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .map-step .ms-route b { margin-right: 6px; color: #6d5c47; }
+    .map-step .ms-route code { white-space: normal; }
+    .map-step .ms-img { display: grid; place-items: start center; background: #eee9df; overflow: hidden; }
+    .map-step .ms-img img { width: 100%; height: auto; object-fit: contain; }
+    .map-root .map-step .ms-img img { max-height: 720px; }
+    .map-children .map-step .ms-img img { max-height: 560px; }
+    .tree-connector { position: relative; align-self: stretch; min-height: 760px; margin: 0 10px; }
+    .tree-connector .line-main { position: absolute; top: 162px; left: 0; right: 34px; border-top: 2px solid #b7a88e; }
+    .tree-connector .trunk { position: absolute; top: 113px; bottom: 278px; right: 34px; border-left: 2px solid #b7a88e; }
+    .tree-connector .twig { position: absolute; right: 0; width: 34px; border-top: 2px solid #b7a88e; }
+    .tree-connector .twig::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -5px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid #b7a88e;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .tree-connector .t1 { top: 113px; }
+    .tree-connector .t2 { top: 354px; }
+    .tree-connector .t3 { bottom: 278px; }
+    .face-map { display: flex; flex-wrap: wrap; gap: 6px; }
+    .face-link { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
+    .face-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .face-tree { display: grid; grid-template-columns: minmax(420px, 1fr) 42px minmax(680px, 1.45fr) 42px minmax(500px, 1.1fr); gap: 0; align-items: start; width: 100%; min-width: 1684px; }
+    .face-root, .face-final { display: grid; gap: 10px; min-width: 0; align-content: start; }
+    .face-node { background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; min-width: 0; }
+    .face-node .fn-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 34px; padding: 7px 9px; border-bottom: 1px solid var(--line); font-size: 12px; color: #514437; font-weight: 650; }
+    .face-node .fn-img { display: grid; place-items: start center; background: #eee9df; overflow: hidden; }
+    .face-node .fn-img img { width: 100%; height: auto; object-fit: contain; }
+    .face-root .fn-img img, .face-final .fn-img img { max-height: 640px; }
+    .face-node .fn-img .imgset { padding: 8px; box-sizing: border-box; }
+    .face-node .fn-img .imgset figure img { max-height: 220px; }
+    .face-branches { display: grid; gap: 10px; min-width: 0; }
+    .face-branch { position: relative; display: grid; gap: 6px; padding: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; min-width: 0; }
+    .face-branch::before, .face-branch::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 30px;
+      border-top: 2px solid #b7a88e;
+    }
+    .face-branch::before { left: -34px; }
+    .face-branch::after { right: -34px; }
+    .face-branch .fb-head { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; color: #514437; }
+    .face-branch .fb-flow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); gap: 8px; align-items: center; }
+    .face-branch .fb-mini { min-width: 0; background: #eee9df; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .face-branch .fb-mini span { display: block; padding: 5px 7px; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--muted); background: #f6efe3; }
+    .face-branch .fb-mini img { display: block; max-width: 100%; height: auto; max-height: 210px; object-fit: contain; margin: 0 auto; }
+    .face-branch .fb-route { padding: 5px 7px; border-top: 1px solid var(--line); background: #fbf6ec; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .face-branch .fb-route b { margin-right: 6px; color: #6d5c47; }
+    .face-branch .fb-route code { white-space: normal; }
+    .face-branch .fb-arrow { color: #9b8b70; text-align: center; font-size: 18px; }
+    .face-rail { position: relative; align-self: stretch; min-height: 360px; }
+    .face-rail::before { content: ""; position: absolute; top: 20px; bottom: 20px; left: 50%; border-left: 2px solid #b7a88e; }
+    .face-rail.left::after { content: ""; position: absolute; top: 50%; left: 0; right: 50%; border-top: 2px solid #b7a88e; }
+    .face-rail.right::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      right: 0;
+      border-top: 2px solid #b7a88e;
+    }
+    .bake-view { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(420px, 1.1fr); gap: 14px; width: 100%; align-items: start; }
+    .bake-view .stage-card .sc { min-height: 320px; }
     .empty { text-align: center; color: var(--muted); padding: 24px; }
     .empty .big { font-size: 34px; color: var(--miss); }
     .empty.na .big { color: var(--warn); }
     .viewer-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
     .chiplabel { display: inline-flex; align-items: center; gap: 6px; }
+    .process-wrap { display: grid; gap: 10px; min-width: 0; }
+    .process-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 2px 2px 14px;
+      scroll-behavior: auto;
+      outline: none;
+    }
+    .process-zoom {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      width: max-content;
+      transform-origin: 0 0;
+    }
+    .process-hint .zoom-ctl { display: inline-flex; align-items: center; gap: 6px; }
+    .process-hint .zoom-ctl b { color: var(--ink); font-weight: 600; min-width: 40px; text-align: right; }
+    .process-hint .zoom-ctl button { padding: 2px 9px; font-size: 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; color: var(--accent); }
+    .process-hint .zoom-ctl button:hover { background: #fdf3e6; }
+    .process-scroll:focus-visible { box-shadow: 0 0 0 2px rgba(139, 94, 52, .28); border-radius: 9px; }
+    .process-stage {
+      flex: 0 0 760px;
+      scroll-snap-align: start;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto auto auto;
+      align-content: start;
+      gap: 6px;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      overflow: visible;
+      box-shadow: none;
+    }
+    .process-stage.is-ai { flex-basis: 1000px; }
+    .process-stage.is-geometry { flex-basis: max(1720px, calc(94vw - 64px)); }
+    .process-stage.is-baked { flex-basis: 1700px; }
+    .process-stage.is-godot-scene { flex-basis: 560px; }
+    .process-stage.active .flow-node-head { border-bottom: 2px solid var(--accent); }
+    .process-stage.active .fnh-title { color: var(--accent); }
+    .process-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 12px;
+      background: #f1e8d9;
+      border-bottom: 1px solid var(--line);
+      min-width: 0;
+    }
+    .process-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; font-size: 13px; font-weight: 650; color: #514437; }
+    .process-title .stage-index { color: var(--muted); font-weight: 500; }
+    .process-body { padding: 12px; min-width: 0; display: grid; }
+    .process-body > .viewer { padding: 0; border: 0; border-radius: 0; background: transparent; min-height: 0; place-items: stretch; overflow: visible; }
+    .process-hint { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    .process-hint kbd { padding: 1px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); font-family: Consolas, "Cascadia Mono", monospace; font-size: 11px; color: var(--ink); }
+
+    /* ===== 图片优先「树状主干」节点 ===== */
+    .flow-node-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 2px 2px 6px; border-bottom: 1px solid var(--line); }
+    .flow-node-head .fnh-title { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: #514437; }
+    .flow-node-head .stage-index { color: var(--muted); font-weight: 500; font-size: 11px; }
+    .flow-node-body { min-width: 0; display: grid; padding-top: 6px; }
+    .flow-node-body img { cursor: zoom-in; }
+    .flow-node-body > img { display: block; width: 100%; height: auto; max-height: 600px; object-fit: contain; background: #eee9df; border: 1px solid var(--line); border-radius: 8px; }
+    .flow-node-body > .empty { background: #eee9df; border: 1px solid var(--line); border-radius: 8px; min-height: 160px; display: grid; place-items: center; align-content: center; }
+
+    .img-flow { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+    .img-flow .flow-cell { min-width: 0; flex: 1 1 0; display: grid; gap: 6px; align-content: start; }
+    .flow-cell .fc-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .flow-cell .cell-img { background: #eee9df; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: grid; place-items: start center; min-height: 120px; }
+    .flow-cell .cell-img img { display: block; max-width: 100%; width: auto; height: auto; max-height: 460px; object-fit: contain; }
+    .flow-cell.baked-cell .cell-img img { max-height: 1300px; }
+    .flow-cell .cell-img .empty { padding: 18px; }
+    .baked-runtime-route { margin-top: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: #fbf6ec; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .baked-runtime-route b { margin-right: 6px; color: #6d5c47; }
+    .baked-runtime-route code { white-space: normal; }
+    .input-thumbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; align-content: start; }
+    .ithumb { background: #eee9df; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; aspect-ratio: 1; display: grid; place-items: center; }
+    .ithumb img { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
+    .flow-arrow { flex: 0 0 auto; align-self: center; margin-top: 40px; color: #9b8b70; font-size: 20px; }
+
+    /* 主干节点之间的连线箭头：让整条卷轴读作一棵树 */
+    .flow-link { flex: 0 0 30px; align-self: flex-start; margin: 92px -8px 0; position: relative; height: 2px; background: #b7a88e; }
+    .flow-link::after { content: ""; position: absolute; right: -1px; top: -5px; width: 0; height: 0; border-left: 9px solid #b7a88e; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+    /* mapping-trace 在主干内去掉卡片外壳，让树直接流动 */
+    .process-stage .mapping-trace { border: 0; background: transparent; border-radius: 0; }
+    .process-stage .mapping-trace .mc { padding: 0; overflow-x: visible; }
+
+    /* ▸详情 折叠体：点开就地向下展开文字 metadata */
+    .node-detail > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--accent); padding: 4px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; }
+    .node-detail > summary::-webkit-details-marker { display: none; }
+    .node-detail > summary::before { content: "▸"; display: inline-block; transition: transform .15s ease; }
+    .node-detail[open] > summary::before { transform: rotate(90deg); }
+    .node-detail .nd-wrap { margin-top: 10px; padding: 12px 14px; background: #f8f3ea; border: 1px solid var(--line); border-radius: 8px; }
+    .node-detail .nd-wrap > .block:first-child, .node-detail .nd-wrap > .rows:first-child { margin-top: 0; }
+    .nd-h { margin: 12px 0 4px; font-size: 12px; color: #514437; font-weight: 650; }
 
     .detail { padding: 14px; background: #f8f3ea; border: 1px solid var(--line); border-radius: 8px; min-width: 0; align-self: start; }
     .detail .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -318,7 +536,7 @@
 
     /* ===== meta footer ===== */
     .meta-foot {
-      max-width: 1560px; margin: 18px auto 0; padding: 10px 26px 26px;
+      max-width: 1840px; margin: 18px auto 0; padding: 10px 26px 26px;
       display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 11px; color: var(--muted);
     }
     .meta-foot b { color: var(--ink); font-weight: 600; }
@@ -326,10 +544,81 @@
     .loading { margin: 26px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; color: var(--muted); }
     .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fbf3e6; padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; }
     .toast.show { opacity: 1; }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      place-items: center;
+      padding: 34px;
+      background: rgba(24, 20, 16, .82);
+      overflow: hidden;
+    }
+    .lightbox.open { display: grid; }
+    .lightbox img {
+      max-width: min(96vw, 1500px);
+      max-height: 86vh;
+      object-fit: contain;
+      background: #eee9df;
+      border-radius: 8px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.42);
+      cursor: grab;
+      transform-origin: center center;
+      user-select: none;
+      will-change: transform;
+    }
+    .lightbox .lb-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.3);
+      background: rgba(255,255,255,.12);
+      color: #fff8ed;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .lightbox .lb-caption { margin-top: 10px; max-width: min(96vw, 1500px); color: #fff3df; font-size: 12px; overflow-wrap: anywhere; text-align: center; }
 
     @media (max-width: 1000px) {
       .kpis { grid-template-columns: repeat(3, 1fr); }
       .trace-body { grid-template-columns: 1fr; }
+      .ai-inputs { grid-template-columns: 1fr; }
+      .map-tree { grid-template-columns: 1fr; gap: 10px; }
+      .tree-connector { min-height: 34px; margin: 0; display: grid; place-items: center; }
+      .tree-connector .line-main,
+      .tree-connector .trunk,
+      .tree-connector .twig { display: none; }
+      .tree-connector::after { content: "↓"; color: var(--muted); font-size: 18px; }
+      .map-children { grid-template-columns: 1fr; }
+      .face-tree { grid-template-columns: 1fr; gap: 10px; min-width: 0; }
+      .face-rail { display: grid; place-items: center; min-height: 28px; }
+      .face-rail::before { display: none; }
+      .face-rail.left::after, .face-rail.right::after { content: "↓"; display: block; position: static; border: 0; color: var(--muted); font-size: 18px; }
+      .face-branch::before, .face-branch::after { display: none; }
+      .process-stage,
+      .process-stage.is-ai,
+      .process-stage.is-geometry,
+      .process-stage.is-baked,
+      .process-stage.is-godot-scene { flex-basis: calc(100vw - 32px); min-width: min(760px, calc(100vw - 32px)); }
+      .process-stage.is-baked { flex-basis: 1400px; min-width: 1400px; }
+    }
+    @media (max-width: 640px) {
+      main { padding: 14px 10px 8px; }
+      .topbar { padding: 0 10px; gap: 4px; }
+      .brand { margin-right: 2px; }
+      .brand .b-sub, .badge-flag { display: none; }
+      .tab { padding: 0 10px; }
+      .viewer { padding: 8px; }
+      .ai-input { grid-template-columns: 74px 1fr; }
+      .ai-input .thumb { width: 74px; height: 74px; }
+      .copyline { display: grid; gap: 4px; }
+      .rows { grid-template-columns: 1fr; }
+      .face-branch .fb-flow { grid-template-columns: 1fr; }
+      .face-branch .fb-arrow { transform: rotate(90deg); }
     }
   </style>
 </head>
@@ -346,18 +635,29 @@
   <main><div id="app" class="loading">正在读取 <code>pipeline_artifacts.json</code> …</div></main>
   <footer class="meta-foot" id="footer"></footer>
   <div class="toast" id="toast"></div>
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="lb-close" type="button" aria-label="关闭">×</button>
+    <div>
+      <img id="lightboxImg" alt="">
+      <div class="lb-caption" id="lightboxCaption"></div>
+    </div>
+  </div>
 
   <script>
     "use strict";
 
-    const STAGE_LABEL = { ai_call: "AI", raw: "原图", fit: "套版", uv: "UV", mesh: "模型", baked: "烘焙", manifest: "清单", godot_scene: "场景" };
-    const STAGE_FULL = { ai_call: "AI 调用", raw: "AI 原图", fit: "几何套版", uv: "UV 展开", mesh: "模型预览", baked: "烘焙成品", manifest: "清单条目", godot_scene: "Godot 场景" };
+    const AI_RAW_STAGE = "ai_raw";
+    const GEOMETRY_STAGE = "geometry";
+    const STAGE_LABEL = { ai_raw: "AI原图", ai_call: "AI", raw: "原图", geometry: "套版UV", fit: "套版", uv: "UV", mesh: "模型", baked: "烘焙", manifest: "清单", godot_scene: "场景" };
+    const STAGE_FULL = { ai_raw: "AI原图", ai_call: "AI 调用", raw: "AI 原图", geometry: "套版 / UV / 模型", fit: "几何套版", uv: "UV 展开", mesh: "模型预览", baked: "烘焙成品", manifest: "清单条目", godot_scene: "Godot 场景" };
     const STATUS_LABEL = { ok: "OK", missing: "缺失", not_applicable: "N-A" };
     const STATUS_FULL = { ok: "正常产出", missing: "缺失", not_applicable: "不适用" };
     const STATUS_ICON = { ok: "✓", missing: "✕", not_applicable: "–" };
     const FAMILY = { grass: "草地", dirt: "泥土", stone: "岩石", water: "水面" };
     const FAMILY_ORDER = ["grass", "dirt", "stone", "water"];
     const FAMILY_COLOR = { grass: "var(--grass)", dirt: "var(--dirt)", stone: "var(--stone)", water: "var(--water)" };
+    const FACE_COLOR = { top: "#e43636", wall_3: "#2869eb", wall_4: "#199db2", wall_5: "#7c49ce" };
+    const BEVEL_FACE_COLORS = ["#e58425", "#d56930", "#be5246", "#aa722c", "#ce962d", "#e06027"];
     const PIPE_TAB = { hard: "管线 A · 硬边", bevel: "管线 B · 倒角", patch: "管线 C · 面片" };
 
     const state = {
@@ -365,6 +665,7 @@
       tileKind: {},
       view: (location.hash || "#home").slice(1) || "home",
       matrix: { pipeline: "hard", variant: null },
+      pendingScroll: null,
       sel: {
         hard: { variant: null, tile: "grass_e0", stage: "ai_call" },
         bevel: { variant: null, tile: "grass_e0", stage: "ai_call" },
@@ -375,14 +676,23 @@
     const app = document.getElementById("app");
     const pipeTabsEl = document.getElementById("pipeTabs");
     const footerEl = document.getElementById("footer");
+    const lightboxEl = document.getElementById("lightbox");
+    const lightboxImgEl = document.getElementById("lightboxImg");
+    const lightboxCaptionEl = document.getElementById("lightboxCaption");
+    const lightboxState = { scale: 1, x: 0, y: 0 };
 
     const esc = (v) => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
     const attr = (v) => esc(v).replaceAll("'", "&#39;");
+    const assetVersion = new URLSearchParams(location.search).get("v") || String(Date.now());
+
+    function withAssetVersion(url) {
+      return url + (url.includes("?") ? "&" : "?") + "v=" + encodeURIComponent(assetVersion);
+    }
 
     function repoUrl(path) {
       if (!path) return "";
       if (/^[a-zA-Z]:[\\/]/.test(path) || path.startsWith("%")) return "";  // external / non-repo path
-      return "../../" + String(path).split("\\").join("/");
+      return withAssetVersion("../../" + String(path).split("\\").join("/"));
     }
     function isTerrain(tileId) { return state.tileKind[tileId] === "tile"; }
     function tileOptions() { return state.data.tiles.filter((t) => t.kind === "tile"); }
@@ -397,6 +707,83 @@
     function getArt(p, v, t, s) { return _map.get(aKey(p, v, t, s)); }
 
     function familyTiles(fam) { return tileOptions().filter((t) => t.id.startsWith(fam + "_")); }
+    function faceColor(name) {
+      if (FACE_COLOR[name]) return FACE_COLOR[name];
+      if (String(name).startsWith("bevel_")) {
+        const idx = Number(String(name).split("_").pop());
+        return BEVEL_FACE_COLORS[Number.isFinite(idx) ? idx % BEVEL_FACE_COLORS.length : 0];
+      }
+      return "#3a7dbc";
+    }
+
+    function displayStages(pipe) {
+      const stages = pipe.stages || [];
+      const hasAiRaw = stages.includes("ai_call") && stages.includes("raw");
+      const out = [];
+      for (const s of stages) {
+        if (s === "manifest") continue;
+        if (hasAiRaw && s === "ai_call") out.push(AI_RAW_STAGE);
+        else if (hasAiRaw && s === "raw") continue;
+        else if (s === "fit") out.push(GEOMETRY_STAGE);
+        else if (s === "uv" || s === "mesh") continue;
+        else out.push(s);
+      }
+      return out;
+    }
+
+    function normalizeStage(pipe, stage) {
+      const stages = displayStages(pipe);
+      if ((stage === "ai_call" || stage === "raw") && stages.includes(AI_RAW_STAGE)) return AI_RAW_STAGE;
+      if ((stage === "fit" || stage === "uv" || stage === "mesh") && stages.includes(GEOMETRY_STAGE)) return GEOMETRY_STAGE;
+      return stages.includes(stage) ? stage : stages[0];
+    }
+
+    function combinedAiRawStatus(ai, raw) {
+      if (raw && raw.status === "ok") return "ok";
+      if (raw && raw.status) return raw.status;
+      if (ai && ai.status === "not_applicable") return "not_applicable";
+      return "missing";
+    }
+
+    function getDisplayArt(p, v, t, s) {
+      if (s === GEOMETRY_STAGE) {
+        const pipe = getPipeline(p);
+        const expected = ["fit", "uv"].filter((stage) => pipe && pipe.stages.includes(stage));
+        const parts = Object.fromEntries(["fit", "uv"].map((stage) => [stage, getArt(p, v, t, stage)]));
+        if (!Object.values(parts).some(Boolean)) return null;
+        parts.mesh = getArt(p, v, t, "mesh"); // 模型预览归入 geometry（与 UV 同属烘焙前置资源）
+        const statuses = expected.map((stage) => parts[stage] ? parts[stage].status : "missing");
+        const status = statuses.includes("missing") ? "missing" : (statuses.some((st) => st === "ok") ? "ok" : "not_applicable");
+        return {
+          id: aKey(p, v, t, GEOMETRY_STAGE),
+          pipeline: p,
+          variant: v,
+          tile_id: t,
+          stage: GEOMETRY_STAGE,
+          kind: "compound",
+          status,
+          title: "套版 / UV",
+          notes: "合并展示几何套版和 UV 展开；模型预览归入烘焙阶段。",
+          data: { stages: ["fit", "uv"], expected, parts },
+        };
+      }
+      if (s !== AI_RAW_STAGE) return getArt(p, v, t, s);
+      const ai = getArt(p, v, t, "ai_call");
+      const raw = getArt(p, v, t, "raw");
+      if (!ai && !raw) return null;
+      return {
+        id: aKey(p, v, t, AI_RAW_STAGE),
+        pipeline: p,
+        variant: v,
+        tile_id: t,
+        stage: AI_RAW_STAGE,
+        kind: "compound",
+        status: combinedAiRawStatus(ai, raw),
+        title: "AI原图",
+        notes: "texture-gen 输入与输出原图的合并视图。",
+        data: { ai_call: ai, raw },
+      };
+    }
 
     function fmtBytes(n) {
       if (!n && n !== 0) return "";
@@ -405,6 +792,11 @@
       return (n / 1048576).toFixed(1) + " MB";
     }
     function fmtDur(ms) { return ms ? Math.round(ms / 1000) + "s" : ""; }
+    function fmtNum(n, digits = 3) {
+      if (n == null || n === "") return "";
+      const value = Number(n);
+      return Number.isFinite(value) ? value.toFixed(digits).replace(/\.?0+$/, "") : String(n);
+    }
 
     // ---------- KPI ----------
     function kpis() {
@@ -436,7 +828,7 @@
       if (!state.matrix.variant || !pipe.variants.some((v) => v.id === state.matrix.variant))
         state.matrix.variant = pipe.default_variant;
       const variant = state.matrix.variant;
-      const stages = pipe.stages;
+      const stages = displayStages(pipe);
 
       const pipeSeg = `<div class="seg" data-seg="mtx-pipe">` +
         state.data.pipelines.map((p) => `<button data-v="${p.id}" class="${p.id === pid ? "on" : ""}">${esc(PIPE_TAB[p.id].split(" · ")[1] || p.id)}</button>`).join("") + `</div>`;
@@ -450,7 +842,7 @@
         for (const tile of familyTiles(fam)) {
           rows += `<tr><td class="row-h"><span class="tile-name"><code>${esc(tile.id)}</code></span></td>` +
             stages.map((s) => {
-              const a = getArt(pid, variant, tile.id, s);
+              const a = getDisplayArt(pid, variant, tile.id, s);
               if (!a) return `<td><div class="cell void" title="该阶段无记录">·</div></td>`;
               const st = a.status;
               return `<td><div class="cell ${st}" data-cell="${pid}|${variant}|${tile.id}|${s}" title="${esc(STATUS_FULL[st] || st)}">${STATUS_ICON[st] || ""}</div></td>`;
@@ -530,57 +922,283 @@
 
     function figureFor(path, cap) {
       const url = repoUrl(path);
-      const img = url ? `<img src="${attr(url)}" alt="${attr(cap)}" onclick="window.open(this.src,'_blank')">`
+      const img = url ? `<img src="${attr(url)}" alt="${attr(cap)}">`
         : `<div class="empty" style="height:150px;display:grid;place-items:center">外部路径</div>`;
       return `<figure>${img}<figcaption>${esc(cap)}</figcaption></figure>`;
     }
 
     // ---------- pipeline trace ----------
-    function renderTrace(pid) {
+    function processStageClass(stage) {
+      if (stage === AI_RAW_STAGE) return "is-ai";
+      if (stage === GEOMETRY_STAGE) return "is-geometry";
+      if (stage === "baked") return "is-baked";
+      if (stage === "godot_scene") return "is-godot-scene";
+      return "";
+    }
+
+    function renderProcessStage(pid, sel, stage, index, total) {
+      const art = getDisplayArt(pid, sel.variant, sel.tile, stage);
+      const status = art ? art.status : "missing";
+      const detail = renderNodeDetail(art, pid, sel);
+      return `<section class="process-stage ${processStageClass(stage)} ${stage === sel.stage ? "active" : ""}" data-process-stage="${attr(stage)}" data-pid="${attr(pid)}">
+        <div class="flow-node-head">
+          <span class="fnh-title"><span class="stage-index">${index + 1}/${total}</span>${esc(STAGE_FULL[stage] || stage)}</span>
+          <span class="badge ${status}">${esc(STATUS_LABEL[status] || status)}</span>
+        </div>
+        <div class="flow-node-body">${renderViewer(art)}</div>
+        ${detail ? `<details class="node-detail"><summary>详情</summary><div class="nd-wrap">${detail}</div></details>` : ""}
+      </section>`;
+    }
+
+    function normalizePipelineSelection(pid) {
       const pipe = getPipeline(pid);
       const sel = state.sel[pid];
+      if (!pipe || !sel) return null;
       if (!sel.variant || !pipe.variants.some((v) => v.id === sel.variant)) sel.variant = pipe.default_variant;
-      if (!pipe.stages.includes(sel.stage)) sel.stage = pipe.stages[0];
-      const a = getArt(pid, sel.variant, sel.tile, sel.stage);
+      sel.stage = normalizeStage(pipe, sel.stage);
+      const stages = displayStages(pipe);
+      return { pipe, sel, stages };
+    }
 
-      const varSeg = `<div class="seg" data-seg="trace-var" data-pid="${pid}">` +
+    function renderTraceVariantControl(pid, pipe, sel) {
+      return `<div class="seg" data-seg="trace-var" data-pid="${pid}">` +
         pipe.variants.map((v) => `<button data-v="${v.id}" class="${v.id === sel.variant ? "on" : ""}">${esc(v.label)}</button>`).join("") + `</div>`;
+    }
 
-      const tilePick = FAMILY_ORDER.map((fam) => `<div class="fam-group"><span class="glab"><span class="hex" style="background:${FAMILY_COLOR[fam]}"></span> ${esc(FAMILY[fam])}</span><div class="tiles">` +
+    function renderTraceTilePick(pid, sel) {
+      return FAMILY_ORDER.map((fam) => `<div class="fam-group"><span class="glab"><span class="hex" style="background:${FAMILY_COLOR[fam]}"></span> ${esc(FAMILY[fam])}</span><div class="tiles">` +
         familyTiles(fam).map((t) => `<button class="tchip ${t.id === sel.tile ? "on" : ""}" data-tile="${t.id}" data-pid="${pid}"><span class="hex" style="background:${FAMILY_COLOR[fam]};width:11px;height:11px"></span>${esc(t.id.split("_")[1])}</button>`).join("") + `</div></div>`).join("");
+    }
 
-      const stepper = `<div class="stepper">` + pipe.stages.map((s, i) => {
-        const sa = getArt(pid, sel.variant, sel.tile, s);
+    function renderPipelineStepper(pid, sel, stages) {
+      return `<div class="stepper">` + stages.map((s) => {
+        const sa = getDisplayArt(pid, sel.variant, sel.tile, s);
         const st = sa ? sa.status : "missing";
         return `<div class="step ${s === sel.stage ? "active" : ""}"><div class="link"></div>
           <button class="node ${st}" data-step="${s}" data-pid="${pid}" title="${esc(STATUS_FULL[st] || st)}">${STATUS_ICON[st] || ""}</button>
           <span class="slab">${esc(STAGE_LABEL[s] || s)}</span></div>`;
       }).join("") + `</div>`;
+    }
 
-      return `<div class="panel">
-        <div class="crumb"><span class="here">${esc(PIPE_TAB[pid])}</span>
-          <span class="ctx">${esc(tileLabel(sel.tile))} · ${esc(sel.variant)} · ${esc(STAGE_FULL[sel.stage] || sel.stage)}</span></div>
-        <section class="card">
+    function renderTrace(activePid) {
+      const fallback = state.data.pipelines[0] && state.data.pipelines[0].id;
+      const pid = getPipeline(activePid) ? activePid : fallback;
+      if (!pid) return "<div class='panel'><section class='card'>无管线数据。</section></div>";
+      state.view = pid;
+      const normalized = normalizePipelineSelection(pid);
+      const { pipe, sel, stages } = normalized;
+      const varSeg = renderTraceVariantControl(pid, pipe, sel);
+      const tilePick = renderTraceTilePick(pid, sel);
+      const stepper = renderPipelineStepper(pid, sel, stages);
+
+      const controlsCard = `<section class="card">
           <div class="controls">
             <div class="control"><span class="lab">变体 variant</span>${varSeg}</div>
             <div class="control" style="flex:1"><span class="lab">砖块 tile</span><div class="tile-pick">${tilePick}</div></div>
           </div>
-        </section>
+        </section>`;
+
+      return `<div class="panel">
+        <div class="crumb"><span class="here">${esc(PIPE_TAB[pid])}</span>
+          <span class="ctx">${esc(tileLabel(sel.tile))} · ${esc(sel.variant)} · 横向素材流程</span></div>
         <section class="card">${stepper}</section>
-        <div class="trace-body">
-          <div><div class="viewer-tools">
-            <span class="badge ${a ? a.status : "missing"}">${a ? STATUS_LABEL[a.status] : "缺失"}</span>
-            <span class="badge">${esc(STAGE_FULL[sel.stage] || sel.stage)}</span>
-            <span class="badge">${a ? esc(a.kind) : "—"}</span>
-          </div><div class="viewer">${renderViewer(a)}</div></div>
-          ${renderDetail(a, pid, sel)}
+        ${controlsCard}
+        <div class="process-wrap">
+          <div class="process-hint"><span>横向卷轴</span><span>点击上方阶段定位</span><span><kbd>A</kbd><kbd>D</kbd> 横向 · <kbd>W</kbd><kbd>S</kbd> 纵向</span><span class="zoom-ctl">滚轮缩放 <b data-zoom-pct>100%</b> <button data-zoom-reset>重置</button></span></div>
+          <div class="process-scroll" tabindex="0" data-process-scroll data-pid="${attr(pid)}">
+            <div class="process-zoom">
+              ${stages.map((stage, index) => renderProcessStage(pid, sel, stage, index, stages.length)).join('<div class="flow-link" aria-hidden="true"></div>')}
+            </div>
+          </div>
         </div>
       </div>`;
     }
 
     function tileLabel(id) { const f = id.split("_")[0]; return (FAMILY[f] || f) + " " + id.split("_")[1]; }
 
-    function renderViewer(a) {
+    function renderInputThumb(path, alt) {
+      const url = repoUrl(path);
+      if (!url) return `<span class="muted">no preview</span>`;
+      return `<img src="${attr(url)}" alt="${attr(alt)}">`;
+    }
+
+    function renderInputCards(inputs) {
+      if (!Array.isArray(inputs) || !inputs.length) return `<div class="empty" style="padding:14px">无输入图记录。</div>`;
+      return `<div class="ai-inputs">${inputs.map((i) => `<div class="ai-input">
+        <div class="thumb">${renderInputThumb(i.sourcePath, i.filename || i.usage || "input")}</div>
+        <div class="it">
+          <span class="name">${esc(i.filename || "input")}</span>
+          <span class="usage">${esc(i.usage || "")}</span>
+          ${i.sourcePath ? `<span class="path">${esc(i.sourcePath)}</span>` : ""}
+        </div>
+      </div>`).join("")}</div>`;
+    }
+
+    function stageImageCell(label, art, className = "") {
+      return `<div class="flow-cell ${attr(className)}"><div class="fc-label">${esc(label)}</div><div class="cell-img">${renderPlainArtifactViewer(art)}</div></div>`;
+    }
+
+    function detectedVertexArtFor(a) {
+      const fit = getArt(a.pipeline, a.variant, a.tile_id, "fit");
+      const uv = getArt(a.pipeline, a.variant, a.tile_id, "uv");
+      const trace = (fit && fit.data && fit.data.trace) || (uv && uv.data && uv.data.trace);
+      const detected = trace && trace.detected_vertices;
+      if (!detected || !detected.path) return null;
+      return {
+        id: a.id + ":detected_vertices",
+        pipeline: a.pipeline,
+        variant: a.variant,
+        tile_id: a.tile_id,
+        stage: "detected_vertices",
+        kind: "image",
+        status: "ok",
+        title: detected.label || "AI 轮廓顶点编号",
+        path: detected.path,
+      };
+    }
+
+    function renderAiRawViewer(a) {
+      const ai = a.data.ai_call;
+      const raw = a.data.raw;
+      const detected = detectedVertexArtFor(a);
+      const d = (ai && ai.data) || {};
+      const inputs = Array.isArray(d.inputs) ? d.inputs : [];
+      const referenceInputs = inputs.filter((i) => String(i.usage || "").includes("参考"));
+      const baseInputs = inputs.filter((i) => !String(i.usage || "").includes("参考"));
+      const ordered = [...baseInputs, ...referenceInputs];
+      const inputCell = ordered.length
+        ? `<div class="flow-cell"><div class="fc-label">输入模板 / 参考</div><div class="input-thumbs">${ordered.map((i) => `<div class="ithumb" title="${attr((i.filename || "") + " " + (i.usage || ""))}">${renderInputThumb(i.sourcePath, i.filename || i.usage || "input")}</div>`).join("")}</div></div>`
+        : `<div class="flow-cell"><div class="fc-label">输入</div><div class="cell-img"><div class="empty na" style="padding:20px">无输入图</div></div></div>`;
+      return `<div class="img-flow">
+        ${inputCell}
+        <div class="flow-arrow">→</div>
+        ${stageImageCell("AI原图", raw)}
+        ${detected ? `<div class="flow-arrow">→</div>${stageImageCell("AI顶点编号", detected)}` : ""}
+      </div>`;
+    }
+
+    function renderStageFlowCard(stage, art, expected) {
+      const status = art ? art.status : (expected ? "missing" : "not_applicable");
+      const title = STAGE_FULL[stage] || stage;
+      const body = art ? renderPlainArtifactViewer(art) : expected
+        ? `<div class="empty"><div class="big">✕</div><b>${esc(title)}缺失</b><br>当前管线没有这一阶段的 artifact。</div>`
+        : `<div class="empty na"><div class="big">–</div><b>${esc(title)}不适用</b><br>当前管线不产生这一阶段。</div>`;
+      const meta = art ? [
+        art.title,
+        art.path,
+        art.source_report,
+      ].filter(Boolean) : [];
+      return `<div class="stage-card">
+        <div class="sh">
+          <div class="st"><span>${esc(title)}</span><span class="badge ${status}">${esc(STATUS_LABEL[status] || status)}</span></div>
+          <div class="sm">${art ? `<span class="badge">${esc(art.kind)}</span>` : ""}</div>
+        </div>
+        <div class="sc">
+          ${body}
+          ${art && art.notes ? `<p class="muted" style="font-size:12px;margin:0">${esc(art.notes)}</p>` : ""}
+          ${meta.length ? `<div class="stage-meta">${meta.map((item) => `<span>${esc(item)}</span>`).join("")}</div>` : ""}
+        </div>
+      </div>`;
+    }
+
+    function renderMappingTrace(trace, parts, expected) {
+      if (!trace || !Array.isArray(trace.steps) || !trace.steps.length) return "";
+      const renderRoute = (route, className) => route
+        ? `<div class="${className}"><b>route:</b> <code>${esc(route)}</code></div>`
+        : "";
+      const renderStep = (step, index) => `<div class="map-step">
+        <div class="ms-head"><span>${esc(step.label || step.id || "step")}</span><span class="ms-num">${index + 1}</span></div>
+        ${renderRoute(step.route, "ms-route")}
+        <div class="ms-img">${imgOrExternal(step.path, step.label || step.id || "mapping step", true)}</div>
+      </div>`;
+      const renderFaceNode = (step, className) => `<div class="face-node ${className}">
+        <div class="fn-head"><span>${esc(step.label || step.id || "node")}</span></div>
+        <div class="fn-img">${imgOrExternal(step.path, step.label || step.id || "mapping node", true)}</div>
+      </div>`;
+      const renderInlineStageNode = (stage, art, shouldExist) => {
+        const status = art ? art.status : (shouldExist ? "missing" : "not_applicable");
+        const title = STAGE_FULL[stage] || stage;
+        const body = art ? renderViewer(art) : shouldExist
+          ? `<div class="empty"><div class="big">✕</div><b>${esc(title)}缺失</b><br>当前管线没有这一阶段的 artifact。</div>`
+          : `<div class="empty na"><div class="big">–</div><b>${esc(title)}不适用</b><br>当前管线不产生这一阶段。</div>`;
+        return `<div class="face-node face-stage-node" data-stage="${attr(stage)}">
+          <div class="fn-head"><span>${esc(title)}</span><span class="badge ${status}">${esc(STATUS_LABEL[status] || status)}</span></div>
+          <div class="fn-img">${body}</div>
+        </div>`;
+      };
+      const renderRootNodes = () => {
+        const roots = Array.isArray(trace.roots) && trace.roots.length ? trace.roots : [trace.root || rootStep];
+        return [
+          ...roots.map((root) => renderFaceNode(root, "face-root-node")),
+          renderInlineStageNode("fit", parts.fit, expected.has("fit")),
+        ].join("");
+      };
+      const renderBranch = (branch) => {
+        const face = branch.face || branch.source || branch.name || "";
+        const route = branch.normalize_route || branch.route || "";
+        return `<div class="face-branch">
+          <div class="fb-head"><span class="face-dot" style="background:${faceColor(face)}"></span><code>${esc(face)}</code><span class="muted">-></span><code>${esc(branch.uv || face)}</code></div>
+          <div class="fb-flow">
+            <div class="fb-mini"><span>部分切图</span>${imgOrExternal(branch.source_cut, face + " source cut", true)}</div>
+            <div class="fb-arrow">→</div>
+            <div class="fb-mini"><span>标准化</span>${imgOrExternal(branch.normalized_cut, face + " normalized cut", true)}${renderRoute(route, "fb-route")}</div>
+          </div>
+        </div>`;
+      };
+      const rootStep = trace.steps[0];
+      const branchSteps = trace.steps.slice(1);
+      const finalStep = trace.final || trace.steps.find((step) => step.id === "uv_compose") || trace.steps[trace.steps.length - 1];
+      const branches = Array.isArray(trace.branches) ? trace.branches : [];
+      const faces = Array.isArray(trace.faces) ? trace.faces : [];
+      const faceMap = faces.length ? `<div class="face-map">${faces.map((face) => {
+        const source = face.source || face.name || "";
+        const uv = face.uv || source;
+        return `<span class="face-link"><span class="face-dot" style="background:${faceColor(source)}"></span><code>${esc(source)}</code><span>-></span><code>${esc(uv)}</code></span>`;
+      }).join("")}</div>` : "";
+      const branchTree = branches.length
+        ? `<div class="face-tree">
+          <div class="face-root">${renderRootNodes()}</div>
+          <div class="face-rail left" aria-hidden="true"></div>
+          <div class="face-branches">${branches.map((branch) => renderBranch(branch)).join("")}</div>
+          <div class="face-rail right" aria-hidden="true"></div>
+          <div class="face-final">
+            ${renderFaceNode(finalStep, "face-final-node")}
+            ${renderInlineStageNode("uv", parts.uv, expected.has("uv"))}
+            ${parts.mesh && parts.mesh.status !== "not_applicable" ? renderInlineStageNode("mesh", parts.mesh, true) : ""}
+          </div>
+        </div>`
+        : "";
+      const stepTree = branchSteps.length
+        ? `<div class="map-tree">
+          <div class="map-root">${renderStep(rootStep, 0)}</div>
+          <div class="tree-connector" aria-hidden="true">
+            <span class="line-main"></span><span class="trunk"></span><span class="twig t1"></span><span class="twig t2"></span><span class="twig t3"></span>
+          </div>
+          <div class="map-children">${branchSteps.map((step, index) => renderStep(step, index + 1)).join("")}</div>
+        </div>`
+        : `<div class="map-root">${renderStep(rootStep, 0)}</div>`;
+      return `<div class="mapping-trace">
+        <div class="mc">
+          ${branchTree || stepTree}
+          ${faceMap}
+        </div>
+      </div>`;
+    }
+
+    function renderGeometryViewer(a) {
+      const parts = (a.data && a.data.parts) || {};
+      const stages = (a.data && a.data.stages) || ["fit", "uv"];
+      const expected = new Set((a.data && a.data.expected) || stages);
+      const trace = (parts.fit && parts.fit.data && parts.fit.data.trace)
+        || (parts.uv && parts.uv.data && parts.uv.data.trace);
+      const traceView = renderMappingTrace(trace, parts, expected);
+      if (traceView) return `<div class="geometry-view">${traceView}</div>`;
+      // 无面分支树（如 patch）→ 只摆出存在的几何图，不留空 uv/mesh 占位
+      const cells = stages.filter((s) => parts[s]).map((s) => stageImageCell(STAGE_FULL[s] || s, parts[s])).join(`<div class="flow-arrow">→</div>`);
+      return `<div class="geometry-view"><div class="img-flow">${cells || `<div class="empty"><div class="big">✕</div><b>套版缺失</b></div>`}</div></div>`;
+    }
+
+    function renderPlainArtifactViewer(a) {
       if (!a) return `<div class="empty">此 pipeline / variant / tile / stage 没有 artifact 记录。</div>`;
       if (a.status === "missing") return `<div class="empty"><div class="big">✕</div><b>产物缺失 · Missing</b><br>${esc(a.notes || a.title || "")}</div>`;
       if (a.kind === "note" || a.status === "not_applicable")
@@ -594,10 +1212,53 @@
       // metadata (ai_call, manifest)
       return `<div class="empty"><div class="big" style="color:var(--muted)">{ }</div><b>${esc(STAGE_FULL[a.stage] || a.stage)} · 元数据</b><br>无图像产物，详情见右侧。</div>`;
     }
+
+    function renderBakedRuntimeRoute(a) {
+      const manifest = getArt(a.pipeline, a.variant, a.tile_id, "manifest");
+      const contract = manifest && manifest.data && manifest.data.contract;
+      const runtime = contract && contract.runtime_export;
+      if (!contract) return "";
+      const bakeScript = a.pipeline === "bevel" ? "bake_art_concept_beveled_set.bake_set" : "bake_art_concept_uv_set.bake_set";
+      const route = [
+        bakeScript,
+        `bake_assets tile material_mode=${contract.material_mode || "unknown"}`,
+        `uv_inset_px=${fmtNum(contract.uv_inset_px)}`,
+        `ink_color=${Array.isArray(contract.ink_color) ? contract.ink_color.join(",") : (contract.ink_color || "unknown")}`,
+        `stroke_mode=${contract.stroke_mode || "default"}`,
+        `extra_stroke_px=${contract.extra_stroke_px ?? 0}`,
+        `extra_stroke_scope=${contract.extra_stroke_scope || "none"}`,
+        `rim_profile=${contract.rim_profile || "regular"}`,
+        `chip_count_per_edge=${contract.chip_count_per_edge ?? 0}`,
+        `chip_depth_world=${fmtNum(contract.chip_depth_world)}`,
+        `chip_width_ratio=${fmtNum(contract.chip_width_ratio)}`,
+        `ink_thickness_position=${contract.ink_thickness_position || "unknown"}`,
+        `ink_select_crease=${contract.ink_select_crease}`,
+        `ink_wobble_px=${fmtNum(contract.ink_wobble_px)}`,
+        `export_runtime_tiles mode=${runtime && runtime.mode || "unknown"}`,
+        `target_max_opaque_side_px=${runtime && runtime.target_max_opaque_side_px || "?"}`,
+        `runtime_px_per_unit=${fmtNum(contract.px_per_unit)}`,
+        `runtime_px_per_hex_edge=${fmtNum(contract.px_per_hex_edge)}`,
+        `exporter=${runtime && runtime.exporter || "unknown"}`,
+      ].join(" -> ");
+      return `<div class="baked-runtime-route"><b>route:</b> <code>${esc(route)}</code></div>`;
+    }
+
+    function renderBakedViewer(a) {
+      // 模型(mesh) 已移到 geometry 节点的 UV 列（与 UV 同属烘焙前置资源）
+      return `<div><div class="img-flow">${stageImageCell("烘焙成品", a, "baked-cell")}</div>${renderBakedRuntimeRoute(a)}</div>`;
+    }
+
+    function renderViewer(a) {
+      if (!a) return `<div class="empty">此 pipeline / variant / tile / stage 没有 artifact 记录。</div>`;
+      if (a.stage === AI_RAW_STAGE) return renderAiRawViewer(a);
+      if (a.stage === GEOMETRY_STAGE) return renderGeometryViewer(a);
+      if (a.stage === "baked") return renderBakedViewer(a);
+      return renderPlainArtifactViewer(a);
+    }
     function imgOrExternal(path, alt, inFig) {
       const url = repoUrl(path);
       if (!url) return `<div class="empty">外部路径不可直接预览：<br><code>${esc(path)}</code></div>`;
-      return `<img src="${attr(url)}" alt="${attr(alt)}"${inFig ? "" : ' onclick="window.open(this.src,\'_blank\')"'}>`;
+      return `<img src="${attr(url)}" alt="${attr(alt)}">`;
     }
 
     function row(k, v, copy) {
@@ -606,44 +1267,112 @@
       return `<div class="k">${esc(k)}</div><div class="val">${val}</div>`;
     }
 
-    function renderDetail(a, pid, sel) {
-      if (!a) return `<div class="detail"><h3>无记录</h3><p class="muted">当前选择没有 artifact。</p></div>`;
-      const d = a.data || {};
-      let extra = "";
-
-      if (a.stage === "ai_call") {
-        extra += `<div class="block"><div class="bh">TEXTURE-GEN 调用</div><div class="bb" style="white-space:normal">
-          <div class="rows">${row("call_id", d.call_id, true)}${row("status", d.status)}${row("quality / size", [d.quality, d.size].filter(Boolean).join(" / "))}${row("用时", fmtDur(d.duration_ms))}${row("缓存", d.call_cache_path, true)}</div></div></div>`;
-        if (d.prompt) extra += `<div class="block"><div class="bh">PROMPT 文本 <button class="copy" data-copy="${attr(d.final_prompt || d.prompt)}">复制</button></div><div class="bb">${esc(d.final_prompt || d.prompt)}</div></div>`;
-        if (Array.isArray(d.inputs) && d.inputs.length) extra += `<h4>输入底图 inputs</h4><div class="inputs">${d.inputs.map((i) => `<div class="inp"><span class="f">${esc(i.filename || "")}</span><span class="u">${esc(i.usage || "")}</span>${i.sourcePath ? `<span class="p">${esc(i.sourcePath)}</span>` : ""}</div>`).join("")}</div>`;
-      } else if (a.stage === "manifest" && d.entry) {
-        const e = d.entry;
-        extra += `<div class="block"><div class="bh">manifest entry</div><div class="bb" style="white-space:normal"><div class="rows">
-          ${row("file", e.file, true)}${row("terrain", e.terrain)}${row("elevation", e.elevation)}${row("anchor_px", Array.isArray(e.anchor_px) ? e.anchor_px.join(", ") : e.anchor_px)}${row("size_px", Array.isArray(e.size_px) ? e.size_px.join(" × ") : e.size_px)}</div></div></div>`;
-      }
-
-      const px = Array.isArray(a.image_size_px) ? a.image_size_px.join(" × ") + " px" : "";
-      return `<div class="detail">
-        <div class="badges"><span class="badge ${a.status}">${esc(STATUS_FULL[a.status] || a.status)}</span>
-          <span class="badge">${esc(PIPE_TAB[pid].split(" · ")[1])}</span><span class="badge">${esc(sel.variant)}</span><span class="badge">${esc(a.tile_id)}</span></div>
-        <h3>${esc(a.title || STAGE_FULL[a.stage] || a.stage)}</h3>
-        ${a.notes ? `<p class="muted" style="font-size:12px">${esc(a.notes)}</p>` : ""}
-        <div class="rows">
-          ${row("kind", a.kind)}${row("status", a.status)}${row("尺寸", px)}${row("大小", fmtBytes(a.size_bytes))}
-        </div>
-        <div class="rows">
-          ${row("path", a.path, true)}${row("source_script", a.source_script, true)}${row("source_report", a.source_report, true)}
-        </div>
-        ${extra}
-        <details class="raw"><summary>查看原始 JSON</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details>
-      </div>`;
+    function detailRows(pairs) {
+      const body = pairs.map((p) => row(p[0], p[1], p[2])).join("");
+      return body ? `<div class="rows">${body}</div>` : `<span class="muted">无字段。</span>`;
     }
 
+    // ▸详情 折叠体：每个主干节点的文字 metadata 收进来；图片留在卷轴主干常驻可见。
+    function renderNodeDetail(a, pid, sel) {
+      if (!a) return "";
+      if (a.stage === AI_RAW_STAGE) {
+        const ai = a.data.ai_call;
+        const raw = a.data.raw;
+        const d = (ai && ai.data) || {};
+        const promptText = d.final_prompt || d.prompt || "";
+        const rawPx = raw && Array.isArray(raw.image_size_px) ? raw.image_size_px.join(" × ") + " px" : "";
+        let h = `<div class="block"><div class="bh">输出原图 output</div><div class="bb" style="white-space:normal">${detailRows([
+          ["title", raw && raw.title], ["status", raw && raw.status], ["尺寸", rawPx], ["大小", raw ? fmtBytes(raw.size_bytes) : ""],
+          ["path", raw && raw.path, true], ["source_script", raw && raw.source_script, true],
+        ])}</div></div>`;
+        h += `<div class="block"><div class="bh">输入与调用 input</div><div class="bb" style="white-space:normal">${ai ? detailRows([
+          ["call_id", d.call_id, true], ["status", d.status || ai.status], ["quality / size", [d.quality, d.size].filter(Boolean).join(" / ")],
+          ["用时", fmtDur(d.duration_ms)], ["缓存", d.call_cache_path, true], ["输出缓存", d.output_cache_path, true],
+        ]) : "texture-gen 调用记录缺失；raw 图仍可继续审计。"}</div></div>`;
+        if (promptText) h += `<div class="block"><div class="bh">PROMPT 文本 <button class="copy" data-copy="${attr(promptText)}">复制</button></div><div class="bb">${esc(promptText)}</div></div>`;
+        if (ai && Array.isArray(d.inputs) && d.inputs.length) h += `<h4 class="nd-h">输入图 inputs</h4><div class="inputs">${d.inputs.map((i) => `<div class="inp"><span class="f">${esc(i.filename || "")}</span><span class="u">${esc(i.usage || "")}</span>${i.sourcePath ? `<span class="p">${esc(i.sourcePath)}</span>` : ""}</div>`).join("")}</div>`;
+        h += `<details class="raw"><summary>原始 JSON</summary><pre>${esc(JSON.stringify({ ai_call: ai || null, raw: raw || null }, null, 2))}</pre></details>`;
+        return h;
+      }
+      if (a.stage === GEOMETRY_STAGE) {
+        const parts = (a.data && a.data.parts) || {};
+        let h = "";
+        for (const st of ["fit", "uv", "mesh"]) {
+          const p = parts[st];
+          if (!p || p.status === "not_applicable") continue;
+          const px = Array.isArray(p.image_size_px) ? p.image_size_px.join(" × ") + " px" : "";
+          h += `<div class="block"><div class="bh">${esc(STAGE_FULL[st] || st)}</div><div class="bb" style="white-space:normal">${detailRows([
+            ["status", p.status], ["尺寸", px], ["大小", fmtBytes(p.size_bytes)], ["path", p.path, true], ["source_report", p.source_report, true],
+          ])}</div></div>`;
+        }
+        h += `<details class="raw"><summary>原始 JSON</summary><pre>${esc(JSON.stringify(a.data || {}, null, 2))}</pre></details>`;
+        return h || `<p class="muted">无几何 artifact。</p>`;
+      }
+      const px = Array.isArray(a.image_size_px) ? a.image_size_px.join(" × ") + " px" : "";
+      let h = detailRows([
+        ["kind", a.kind], ["status", a.status], ["尺寸", px], ["大小", fmtBytes(a.size_bytes)],
+        ["path", a.path, true], ["source_script", a.source_script, true], ["source_report", a.source_report, true],
+      ]);
+      if (a.stage === "baked") {
+        const manifest = getArt(pid, sel.variant, sel.tile, "manifest");
+        const entry = manifest && manifest.data && manifest.data.entry;
+        const contract = manifest && manifest.data && manifest.data.contract;
+        const runtime = contract && contract.runtime_export;
+        if (entry) h += `<div class="block"><div class="bh">Godot manifest entry</div><div class="bb" style="white-space:normal">${detailRows([
+          ["manifest", manifest.path, true], ["file", entry.file, true], ["terrain", entry.terrain], ["elevation", entry.elevation],
+          ["anchor_px", Array.isArray(entry.anchor_px) ? entry.anchor_px.join(", ") : entry.anchor_px],
+          ["size_px", Array.isArray(entry.size_px) ? entry.size_px.join(" × ") : entry.size_px],
+          ["crop_bbox_px", Array.isArray(entry.crop_bbox_px) ? entry.crop_bbox_px.join(", ") : entry.crop_bbox_px],
+          ["opaque_size_px", Array.isArray(entry.opaque_size_px) ? entry.opaque_size_px.join(" × ") : entry.opaque_size_px],
+        ])}</div></div>`;
+        if (contract) h += `<div class="block"><div class="bh">Bake / runtime route</div><div class="bb" style="white-space:normal">${detailRows([
+          ["material_mode", contract.material_mode],
+          ["uv_inset_px", fmtNum(contract.uv_inset_px)],
+          ["ink_color", Array.isArray(contract.ink_color) ? contract.ink_color.join(", ") : contract.ink_color],
+          ["stroke_mode", contract.stroke_mode],
+          ["extra_stroke_px", contract.extra_stroke_px],
+          ["extra_stroke_scope", contract.extra_stroke_scope],
+          ["rim_profile", contract.rim_profile],
+          ["chip_count_per_edge", contract.chip_count_per_edge],
+          ["chip_depth_world", fmtNum(contract.chip_depth_world)],
+          ["chip_width_ratio", fmtNum(contract.chip_width_ratio)],
+          ["chip_segments_per_edge", contract.chip_segments_per_edge],
+          ["chip_seed", contract.chip_seed],
+          ["ink_thickness_position", contract.ink_thickness_position],
+          ["ink_select_crease", contract.ink_select_crease],
+          ["ink_wobble_px", fmtNum(contract.ink_wobble_px)],
+          ["export_mode", runtime && runtime.mode],
+          ["target_max_opaque_side_px", runtime && runtime.target_max_opaque_side_px],
+          ["runtime_max_opaque_side_px", runtime && runtime.runtime_max_opaque_side_px],
+          ["source_canvas_px", contract.source_canvas_px],
+          ["runtime_canvas_px", contract.runtime_canvas_px],
+          ["source_px_per_unit", fmtNum(contract.source_px_per_unit)],
+          ["runtime px_per_unit", fmtNum(contract.px_per_unit)],
+          ["runtime px_per_hex_edge", fmtNum(contract.px_per_hex_edge)],
+          ["runtime_scale", runtime && fmtNum(runtime.runtime_scale, 4)],
+          ["crop_padding_px", runtime && runtime.crop_padding_px],
+          ["alpha_threshold", runtime && runtime.alpha_threshold],
+          ["exporter", runtime && runtime.exporter],
+        ])}</div></div>`;
+      }
+      h += `<details class="raw"><summary>原始 JSON</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details>`;
+      return h;
+    }
+
+    // (旧 renderDetail / renderAiRawDetail 侧栏详情已并入 renderNodeDetail 折叠体)
+
     // ---------- shell / nav ----------
+    function updateActiveTabs() {
+      document.querySelectorAll("[data-nav]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.nav === state.view);
+      });
+      document.querySelector(".brand").classList.toggle("active", state.view === "home");
+    }
+
     function renderTabs() {
       pipeTabsEl.innerHTML = state.data.pipelines.map((p) =>
         `<button class="tab ${state.view === p.id ? "active" : ""}" data-nav="${p.id}"><span class="ico">▦</span>${esc(PIPE_TAB[p.id])}</button>`).join("");
-      document.querySelector(".brand").classList.toggle("active", state.view === "home");
+      updateActiveTabs();
     }
 
     function renderFooter() {
@@ -657,12 +1386,25 @@
 
     function render() {
       const y = window.scrollY;
+      const pending = state.pendingScroll;
+      state.pendingScroll = null;
       renderTabs();
       app.className = "";
       app.innerHTML = state.view === "home" ? renderHome() : renderTrace(state.view);
       renderFooter();
       wire();
       window.scrollTo(0, y);
+      if (state.view !== "home") {
+        requestAnimationFrame(() => {
+          const scroller = app.querySelector("[data-process-scroll]");
+          if (!scroller) return;
+          if (pending && pending.stage) {
+            scrollProcessToStage(pending.pid || state.view, pending.stage, "auto");
+          } else {
+            scrollProcessToStage(state.view, state.sel[state.view].stage, "auto");
+          }
+        });
+      }
     }
 
     function setView(v) {
@@ -674,6 +1416,7 @@
 
     function openTrace(pid, variant, tile, stage) {
       state.sel[pid].variant = variant; state.sel[pid].tile = tile; state.sel[pid].stage = stage;
+      state.pendingScroll = { pid, stage };
       setView(pid);
     }
 
@@ -682,6 +1425,293 @@
       t.textContent = msg; t.classList.add("show");
       clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 1200);
     }
+
+    function setActiveProcessStage(pid, stage) {
+      const sel = state.sel[pid];
+      if (sel) sel.stage = stage;
+      app.querySelectorAll(`.step .node[data-pid="${pid}"]`).forEach((node) => {
+        const step = node.closest(".step");
+        if (step) step.classList.toggle("active", node.dataset.step === stage);
+      });
+      app.querySelectorAll(`[data-process-stage][data-pid="${pid}"]`).forEach((section) => {
+        section.classList.toggle("active", section.dataset.processStage === stage);
+      });
+    }
+
+    function scrollTargetLeft(scroller, target) {
+      // getBoundingClientRect 对 zoom/transform 透明：给出把 target 顶到卷轴左缘所需的 scrollLeft
+      return Math.max(0, scroller.scrollLeft + target.getBoundingClientRect().left - scroller.getBoundingClientRect().left);
+    }
+
+    let carouselZoom = 1;
+    const ZOOM_MIN = 0.4, ZOOM_MAX = 2.5;
+    function setCarouselZoom(scroller, z, cursorX) {
+      const zoomEl = scroller.querySelector(".process-zoom");
+      if (!zoomEl) return;
+      const prev = carouselZoom;
+      const next = clamp(z, ZOOM_MIN, ZOOM_MAX);
+      if (next === prev) return;
+      const cx = cursorX == null ? scroller.clientWidth / 2 : cursorX;
+      const contentX = scroller.scrollLeft + cx;       // 光标下的内容坐标（缩放前 scroll 像素）
+      carouselZoom = next;
+      zoomEl.style.zoom = String(next);
+      scroller.scrollLeft = clamp(contentX * (next / prev) - cx, 0, maxScrollLeft(scroller)); // 让光标下的点不动
+      updateActiveProcessFromScroll(scroller);
+      updateZoomLabel(scroller);
+    }
+    function updateZoomLabel(scroller) {
+      const wrap = scroller.closest(".process-wrap");
+      const pct = wrap && wrap.querySelector("[data-zoom-pct]");
+      if (pct) pct.textContent = Math.round(carouselZoom * 100) + "%";
+    }
+
+    function maxScrollLeft(scroller) {
+      return Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    }
+
+    function processFollow(scroller) {
+      if (!scroller._follow) scroller._follow = { target: scroller.scrollLeft, raf: 0, last: 0, active: false };
+      return scroller._follow;
+    }
+
+    // One continuous rAF chase toward f.target. Frame-rate-independent exponential
+    // smoothing => a held key keeps pushing the target and the scroller glides without
+    // ever restarting from a standstill. CSS scroll-behavior is "auto" so we are the
+    // only animator (no double-animation fight with the browser).
+    function runProcessFollow(scroller) {
+      const f = processFollow(scroller);
+      if (f.active) return;
+      f.active = true;
+      f.last = performance.now();
+      const tau = 0.2; // seconds; larger = softer / longer settle
+      const tick = (now) => {
+        const dt = Math.min(0.064, Math.max(0, (now - f.last) / 1000)); // clamp dt so tab-away can't fling
+        f.last = now;
+        const cur = scroller.scrollLeft;
+        let next = cur + (f.target - cur) * (1 - Math.exp(-dt / tau));
+        if (Math.abs(f.target - next) < 0.5) next = f.target;
+        if (next !== cur) scroller.scrollLeft = next;
+        updateActiveProcessFromScroll(scroller);
+        if (next !== f.target) {
+          f.raf = requestAnimationFrame(tick);
+        } else {
+          f.raf = 0;
+          f.active = false;
+        }
+      };
+      f.raf = requestAnimationFrame(tick);
+    }
+
+    // Velocity-based panning for arrow keys: hold to glide the strip continuously at a
+    // steady speed, release for a soft stop. No stages, no chunked jumps — just smooth
+    // left/right travel. Its own rAF loop, mutually exclusive with the click-to-stage
+    // follower above (each cancels the other so they never fight over scrollLeft).
+    const heldDir = { left: false, right: false, up: false, down: false };
+    let panScroller = null, panRaf = 0, panLast = 0, panVelX = 0, panVelY = 0, panFast = false;
+    const PAN_SPEED = 1100; // px/s cruising speed while a key is held
+    const PAN_TAU = 0.09;   // velocity smoothing => soft ramp-up and stop
+
+    function stopPan() {
+      heldDir.left = heldDir.right = heldDir.up = heldDir.down = false;
+      if (panRaf) cancelAnimationFrame(panRaf);
+      panRaf = 0; panScroller = null; panVelX = 0; panVelY = 0;
+    }
+
+    function maxScrollTop() {
+      return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    }
+
+    function panTick(now) {
+      const sc = panScroller;
+      if (!sc || !sc.isConnected) { panRaf = 0; panScroller = null; return; }
+      const dt = Math.min(0.064, Math.max(0, (now - panLast) / 1000));
+      panLast = now;
+      const boost = panFast ? 1.9 : 1;
+      const k = 1 - Math.exp(-dt / PAN_TAU); // frame-rate-independent velocity easing
+      // A/D：横向平移卷轴本体
+      const dirX = (heldDir.right ? 1 : 0) - (heldDir.left ? 1 : 0);
+      panVelX += (dirX * PAN_SPEED * boost - panVelX) * k;
+      let left = sc.scrollLeft + panVelX * dt;
+      const maxLeft = maxScrollLeft(sc);
+      if (left <= 0) { left = 0; panVelX = 0; }
+      else if (left >= maxLeft) { left = maxLeft; panVelX = 0; }
+      sc.scrollLeft = left;
+      updateActiveProcessFromScroll(sc);
+      // W/S：纵向翻整页（卷轴本体 overflow-y 隐藏，高内容靠窗口滚动）
+      const dirY = (heldDir.down ? 1 : 0) - (heldDir.up ? 1 : 0);
+      panVelY += (dirY * PAN_SPEED * boost - panVelY) * k;
+      if (dirY !== 0 || Math.abs(panVelY) > 0.5) {
+        let top = window.scrollY + panVelY * dt;
+        const maxTop = maxScrollTop();
+        if (top <= 0) { top = 0; panVelY = 0; }
+        else if (top >= maxTop) { top = maxTop; panVelY = 0; }
+        window.scrollTo(window.scrollX, top);
+      }
+      if (dirX !== 0 || dirY !== 0 || Math.abs(panVelX) > 4 || Math.abs(panVelY) > 4) {
+        panRaf = requestAnimationFrame(panTick);
+      } else {
+        panRaf = 0; panScroller = null; // idle + stopped => let the loop sleep
+      }
+    }
+
+    function startPan(scroller) {
+      if (scroller._follow && scroller._follow.raf) { // cancel any in-flight click-to-stage glide
+        cancelAnimationFrame(scroller._follow.raf);
+        scroller._follow.raf = 0;
+        scroller._follow.active = false;
+      }
+      panScroller = scroller;
+      if (!panRaf) { panLast = performance.now(); panRaf = requestAnimationFrame(panTick); }
+    }
+
+    // Absolute move for click-to-stage / initial positioning.
+    function moveProcessScroll(scroller, left, instant) {
+      const f = processFollow(scroller);
+      const target = clamp(left, 0, maxScrollLeft(scroller));
+      if (instant) {
+        if (f.raf) cancelAnimationFrame(f.raf);
+        f.active = false;
+        f.target = target;
+        scroller.scrollLeft = target;
+        updateActiveProcessFromScroll(scroller);
+        return;
+      }
+      f.target = target;
+      runProcessFollow(scroller);
+    }
+
+    function scrollProcessToStage(pid, stage, behavior) {
+      const scroller = app.querySelector(`[data-process-scroll][data-pid="${pid}"]`);
+      const target = scroller && scroller.querySelector(`[data-process-stage="${stage}"]`);
+      if (!scroller || !target) return;
+      stopPan(); // a click-to-stage glide overrides any in-flight key panning
+      setActiveProcessStage(pid, stage);
+      scroller._activeStage = stage; // keep the change-guard cache in sync
+      scroller.focus({ preventScroll: true });
+      moveProcessScroll(scroller, scrollTargetLeft(scroller, target), behavior === "auto");
+    }
+
+    function processStages(scroller) {
+      // Cache the stage element list on the scroller; render() rebuilds the DOM so a
+      // fresh scroller element naturally has no cache => no stale refs to invalidate.
+      if (!scroller._stages) scroller._stages = Array.from(scroller.querySelectorAll("[data-process-stage]"));
+      return scroller._stages;
+    }
+
+    function updateActiveProcessFromScroll(scroller) {
+      const pid = scroller.dataset.pid;
+      const sections = processStages(scroller);
+      if (!pid || !sections.length) return;
+      const anchor = scroller.scrollLeft + scroller.clientWidth * 0.35;
+      let best = sections[0];
+      let bestDist = Math.abs(scrollTargetLeft(scroller, best) - anchor);
+      for (let i = 1; i < sections.length; i++) {
+        const dist = Math.abs(scrollTargetLeft(scroller, sections[i]) - anchor);
+        if (dist < bestDist) { best = sections[i]; bestDist = dist; }
+      }
+      const stage = best.dataset.processStage;
+      if (scroller._activeStage === stage) return; // only touch the DOM when the active stage truly changes
+      scroller._activeStage = stage;
+      setActiveProcessStage(pid, stage);
+    }
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function updateLightboxTransform() {
+      lightboxImgEl.style.transform = `translate3d(${lightboxState.x}px, ${lightboxState.y}px, 0) scale(${lightboxState.scale})`;
+    }
+
+    function resetLightboxTransform() {
+      lightboxState.scale = 1;
+      lightboxState.x = 0;
+      lightboxState.y = 0;
+      updateLightboxTransform();
+    }
+
+    function openLightbox(src, caption) {
+      stopPan(); // 看大图时停掉卷轴平移：左右键不应再驱动背后的卷轴（含松手后的惯性滑动）
+      resetLightboxTransform();
+      lightboxImgEl.src = src;
+      lightboxImgEl.alt = caption || "";
+      lightboxCaptionEl.textContent = caption || src;
+      lightboxEl.classList.add("open");
+      lightboxEl.setAttribute("aria-hidden", "false");
+    }
+
+    function closeLightbox() {
+      lightboxEl.classList.remove("open");
+      lightboxEl.setAttribute("aria-hidden", "true");
+      lightboxImgEl.removeAttribute("src");
+      lightboxCaptionEl.textContent = "";
+      resetLightboxTransform();
+    }
+
+    lightboxEl.addEventListener("click", (ev) => {
+      if (ev.target === lightboxEl || ev.target.classList.contains("lb-close")) closeLightbox();
+    });
+    lightboxEl.addEventListener("wheel", (ev) => {
+      if (!lightboxEl.classList.contains("open")) return;
+      ev.preventDefault();
+      const previous = lightboxState.scale;
+      const next = clamp(previous * Math.exp(-ev.deltaY * 0.0015), 0.5, 8);
+      if (next === previous) return;
+      const rect = lightboxEl.getBoundingClientRect();
+      const focusX = ev.clientX - rect.left - rect.width / 2;
+      const focusY = ev.clientY - rect.top - rect.height / 2;
+      const ratio = next / previous;
+      lightboxState.x = focusX - (focusX - lightboxState.x) * ratio;
+      lightboxState.y = focusY - (focusY - lightboxState.y) * ratio;
+      lightboxState.scale = next;
+      updateLightboxTransform();
+    }, { passive: false });
+    window.addEventListener("keydown", (ev) => {
+      if (!lightboxEl.classList.contains("open")) return;
+      if (ev.key === "Escape") {
+        closeLightbox();
+        return;
+      }
+      const step = ev.shiftKey ? 90 : 45;
+      const key = ev.key.toLowerCase();
+      if (key === "w") lightboxState.y -= step;
+      else if (key === "s") lightboxState.y += step;
+      else if (key === "a") lightboxState.x -= step;
+      else if (key === "d") lightboxState.x += step;
+      else return;
+      ev.preventDefault();
+      updateLightboxTransform();
+    });
+
+    const PAN_KEYS = { w: "up", a: "left", s: "down", d: "right" };
+    window.addEventListener("keydown", (ev) => {
+      const active = document.activeElement;
+      const inInput = active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName);
+      // 方向移动已迁移到 WASD：在画卷视图或看大图时，方向键一律不再驱动卷轴/页面
+      if (!inInput && (state.view !== "home" || lightboxEl.classList.contains("open"))
+          && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(ev.key)) {
+        ev.preventDefault();
+        return;
+      }
+      if (lightboxEl.classList.contains("open")) return; // 大图开着：WASD 交给大图自己的平移 handler
+      if (state.view === "home") return;
+      if (inInput || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      const dirName = PAN_KEYS[ev.key.toLowerCase()];
+      if (!dirName) return;
+      const scroller = (active && active.matches && active.matches("[data-process-scroll]") ? active : null)
+        || app.querySelector(`[data-process-scroll][data-pid="${state.view}"]`)
+        || app.querySelector("[data-process-scroll]");
+      if (!scroller) return;
+      ev.preventDefault();
+      heldDir[dirName] = true;
+      panFast = ev.shiftKey;
+      scroller.focus({ preventScroll: true });
+      startPan(scroller);
+    });
+
+    window.addEventListener("keyup", (ev) => {
+      const dirName = PAN_KEYS[ev.key.toLowerCase()];
+      if (dirName) heldDir[dirName] = false;
+      if (!ev.shiftKey) panFast = false;
+    });
 
     function wire() {
       document.querySelectorAll("[data-nav]").forEach((b) => b.onclick = () => setView(b.dataset.nav));
@@ -692,9 +1722,43 @@
       // trace controls
       app.querySelectorAll('[data-seg="trace-var"] button').forEach((b) => b.onclick = () => { state.sel[b.closest("[data-pid]").dataset.pid].variant = b.dataset.v; render(); });
       app.querySelectorAll(".tchip[data-tile]").forEach((b) => b.onclick = () => { state.sel[b.dataset.pid].tile = b.dataset.tile; render(); });
-      app.querySelectorAll(".node[data-step]").forEach((b) => b.onclick = () => { state.sel[b.dataset.pid].stage = b.dataset.step; render(); });
+      app.querySelectorAll(".node[data-step]").forEach((b) => b.onclick = () => scrollProcessToStage(b.dataset.pid, b.dataset.step, "smooth"));
+      app.querySelectorAll("[data-process-scroll]").forEach((scroller) => {
+        let raf = 0;
+        scroller.addEventListener("scroll", () => {
+          if ((scroller._follow && scroller._follow.active) || panScroller === scroller) return; // a drive loop already syncs active stage
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => updateActiveProcessFromScroll(scroller));
+        }, { passive: true });
+        // 滚轮 = 整体缩放卷轴（以光标为中心）
+        scroller.addEventListener("wheel", (ev) => {
+          ev.preventDefault();
+          const rect = scroller.getBoundingClientRect();
+          setCarouselZoom(scroller, carouselZoom * Math.exp(-ev.deltaY * 0.0012), ev.clientX - rect.left);
+        }, { passive: false });
+        // 持久化：render 重建 DOM 后把当前缩放贴回
+        const zoomEl = scroller.querySelector(".process-zoom");
+        if (zoomEl && carouselZoom !== 1) zoomEl.style.zoom = String(carouselZoom);
+        updateZoomLabel(scroller);
+        const wrap = scroller.closest(".process-wrap");
+        const resetBtn = wrap && wrap.querySelector("[data-zoom-reset]");
+        if (resetBtn) resetBtn.onclick = () => {
+          carouselZoom = 1;
+          if (zoomEl) zoomEl.style.zoom = "1";
+          scroller.scrollLeft = 0;
+          window.scrollTo({ top: 0 });
+          updateActiveProcessFromScroll(scroller);
+          updateZoomLabel(scroller);
+        };
+      });
       // copy
       app.querySelectorAll(".copy[data-copy]").forEach((b) => b.onclick = () => { navigator.clipboard.writeText(b.dataset.copy).then(() => toast("已复制")); });
+      // image zoom
+      app.querySelectorAll("img").forEach((img) => img.onclick = (ev) => {
+        ev.stopPropagation();
+        const cap = img.alt || img.closest("figure")?.querySelector("figcaption")?.textContent || img.currentSrc || img.src;
+        openLightbox(img.currentSrc || img.src, cap);
+      });
       // search
       const s = document.getElementById("homeSearch");
       if (s) s.oninput = () => {
@@ -710,12 +1774,12 @@
 
     window.addEventListener("hashchange", () => { state.view = (location.hash || "#home").slice(1) || "home"; render(); });
 
-    fetch("pipeline_artifacts.json", { cache: "no-store" })
+    fetch(withAssetVersion("pipeline_artifacts.json"), { cache: "no-store" })
       .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then((data) => {
         state.data = data;
         state.tileKind = Object.fromEntries(data.tiles.map((t) => [t.id, t.kind]));
-        for (const p of data.pipelines) { state.sel[p.id].variant = p.default_variant; state.sel[p.id].stage = p.stages[0]; }
+        for (const p of data.pipelines) { state.sel[p.id].variant = p.default_variant; state.sel[p.id].stage = displayStages(p)[0]; }
         state.matrix.variant = getPipeline(state.matrix.pipeline).default_variant;
         buildMap();
         render();

@@ -63,78 +63,149 @@ def _reset_scene(*, ink_enabled: bool) -> None:
     bpy.context.scene.world.color = (0.78, 0.76, 0.70)
 
 
-def _build_hard(uv_path: Path | None, *, textured: bool) -> bpy.types.Object:
+def _build_hard(uv_path: Path | None, elevation: int, *, textured: bool) -> bpy.types.Object:
     bake_assets.apply_tile_pipeline_mode(tile_pipeline_modes.MODE2_HARD)
     if textured and uv_path and uv_path.exists():
-        mat = bake_assets._tile_material_image("preview_hard_grass", str(uv_path))
+        mat = bake_assets._tile_material_image(f"preview_hard_grass_e{elevation}", str(uv_path))
     else:
-        mat = _material("preview_hard_plain", (0.64, 0.68, 0.38, 1.0))
-    obj = bake_assets.build_hex_tile("grass", 0, {}, override_mat=mat, uv_layout="uv")
-    obj.name = "mode2_hard_preview"
+        mat = _material(f"preview_hard_plain_e{elevation}", (0.64, 0.68, 0.38, 1.0))
+    obj = bake_assets.build_hex_tile("grass", elevation, {}, override_mat=mat, uv_layout="uv")
+    obj.name = f"mode2_hard_e{elevation}_preview"
     return obj
 
 
-def _build_bevel(uv_path: Path | None, sidecar_path: Path, *, textured: bool) -> bpy.types.Object:
+def _build_bevel(
+    uv_path: Path | None,
+    sidecar_path: Path,
+    elevation: int,
+    *,
+    textured: bool,
+    chipped: bool = False,
+) -> bpy.types.Object:
+    bake_assets.CONFIG["rim_profile"] = "chipped" if chipped else "regular"
+    bake_assets.CONFIG["chip_count_per_edge"] = 3 if chipped else 0
+    bake_assets.CONFIG["chip_depth_world"] = 0.070 if chipped else 0.0
+    bake_assets.CONFIG["chip_width_ratio"] = 0.100 if chipped else 0.0
+    bake_assets.CONFIG["chip_segments_per_edge"] = 12 if chipped else 0
+    bake_assets.CONFIG["chip_seed"] = 20260625 if chipped else None
     if textured and uv_path and uv_path.exists():
-        obj = bake_art_concept_beveled_set._build_beveled_mesh(uv_path, sidecar_path, 0)
+        obj = bake_art_concept_beveled_set._build_beveled_mesh(uv_path, sidecar_path, elevation)
     else:
-        fallback_uv = uv_path if uv_path and uv_path.exists() else _repo_root() / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / "grass_e0_beveled_uv.png"
-        obj = bake_art_concept_beveled_set._build_beveled_mesh(fallback_uv, sidecar_path, 0)
+        fallback_uv = uv_path if uv_path and uv_path.exists() else _repo_root() / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / f"grass_e{elevation}_beveled_uv.png"
+        obj = bake_art_concept_beveled_set._build_beveled_mesh(fallback_uv, sidecar_path, elevation)
         obj.data.materials.clear()
-        obj.data.materials.append(_material("preview_bevel_plain", (0.64, 0.68, 0.38, 1.0)))
-    obj.name = "mode3_wide_rim_preview"
+        obj.data.materials.append(_material(f"preview_bevel_plain_e{elevation}", (0.64, 0.68, 0.38, 1.0)))
+    obj.name = f"mode3_wide_rim{'_chipped' if chipped else ''}_e{elevation}_preview"
     return obj
 
 
 def render_previews(repo: Path) -> dict:
     hard_dir = repo / "inkmon美术探索" / "codex-硬边-v1" / "model_preview"
     bevel_dir = repo / "inkmon美术探索" / "codex-倒角-v1" / "model_preview"
-    hard_uv = repo / "inkmon美术探索" / "concept素材-v1" / "uv" / "grass_e0_warp_uv.png"
-    bevel_uv = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / "grass_e0_beveled_uv.png"
-    bevel_sidecar = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / "sidecars" / "beveled_uv_e0.json"
+    regular_inset = 0.085
+    regular_drop = 0.050
+    chipped_inset = 0.150
+    chipped_drop = 0.075
+    bake_art_concept_beveled_set.BEVEL_INSET_WORLD = regular_inset
+    bake_art_concept_beveled_set.BEVEL_DROP_WORLD = regular_drop
 
-    outputs = {
-        "hard": {
-            "wire": hard_dir / "mode2_hard_e0_wire.png",
-            "shaded": hard_dir / "mode2_hard_e0_shaded.png",
-        },
-        "bevel": {
-            "wire": bevel_dir / "mode3_wide_rim_e0_wire.png",
-            "shaded": bevel_dir / "mode3_wide_rim_e0_shaded.png",
-        },
-    }
+    outputs = {"hard": {}, "bevel": {}, "bevel_chipped": {}}
+    hard_uvs = {}
+    bevel_uvs = {}
+    bevel_chipped_uvs = {}
+    bevel_sidecars = {}
+    bevel_chipped_sidecars = {}
 
-    _reset_scene(ink_enabled=True)
-    _build_hard(hard_uv, textured=False)
-    _render(outputs["hard"]["wire"], freestyle=True)
+    for elevation in (0, 1, 2):
+        key = f"e{elevation}"
+        hard_uv = repo / "inkmon美术探索" / "concept素材-v1" / "uv" / f"grass_e{elevation}_warp_uv.png"
+        bevel_uv = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / f"grass_e{elevation}_beveled_uv.png"
+        bevel_sidecar = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim" / "sidecars" / f"beveled_uv_e{elevation}.json"
+        chipped_uv = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim_chipped" / f"grass_e{elevation}_beveled_uv.png"
+        chipped_sidecar = repo / "inkmon美术探索" / "concept素材-v1" / "beveled_uv_wide_rim_chipped" / "sidecars" / f"beveled_uv_e{elevation}.json"
+        hard_uvs[key] = _rel(hard_uv)
+        bevel_uvs[key] = _rel(bevel_uv)
+        bevel_sidecars[key] = _rel(bevel_sidecar)
+        bevel_chipped_uvs[key] = _rel(chipped_uv)
+        bevel_chipped_sidecars[key] = _rel(chipped_sidecar)
+        outputs["hard"][key] = {
+            "wire": hard_dir / f"mode2_hard_e{elevation}_wire.png",
+            "shaded": hard_dir / f"mode2_hard_e{elevation}_shaded.png",
+        }
+        outputs["bevel"][key] = {
+            "wire": bevel_dir / f"mode3_wide_rim_e{elevation}_wire.png",
+            "shaded": bevel_dir / f"mode3_wide_rim_e{elevation}_shaded.png",
+        }
+        outputs["bevel_chipped"][key] = {
+            "wire": bevel_dir / f"mode3_wide_rim_chipped_e{elevation}_wire.png",
+            "shaded": bevel_dir / f"mode3_wide_rim_chipped_e{elevation}_shaded.png",
+        }
 
-    _reset_scene(ink_enabled=False)
-    _build_hard(hard_uv, textured=True)
-    _render(outputs["hard"]["shaded"], freestyle=False)
+        _reset_scene(ink_enabled=True)
+        _build_hard(hard_uv, elevation, textured=False)
+        _render(outputs["hard"][key]["wire"], freestyle=True)
 
-    bake_art_concept_beveled_set.BEVEL_INSET_WORLD = 0.085
-    bake_art_concept_beveled_set.BEVEL_DROP_WORLD = 0.050
-    _reset_scene(ink_enabled=True)
-    _build_bevel(bevel_uv, bevel_sidecar, textured=False)
-    _render(outputs["bevel"]["wire"], freestyle=True)
+        _reset_scene(ink_enabled=False)
+        _build_hard(hard_uv, elevation, textured=True)
+        _render(outputs["hard"][key]["shaded"], freestyle=False)
 
-    _reset_scene(ink_enabled=False)
-    _build_bevel(bevel_uv, bevel_sidecar, textured=True)
-    _render(outputs["bevel"]["shaded"], freestyle=False)
+        _reset_scene(ink_enabled=True)
+        bake_art_concept_beveled_set.BEVEL_INSET_WORLD = regular_inset
+        bake_art_concept_beveled_set.BEVEL_DROP_WORLD = regular_drop
+        _build_bevel(bevel_uv, bevel_sidecar, elevation, textured=False)
+        _render(outputs["bevel"][key]["wire"], freestyle=True)
+
+        _reset_scene(ink_enabled=False)
+        bake_art_concept_beveled_set.BEVEL_INSET_WORLD = regular_inset
+        bake_art_concept_beveled_set.BEVEL_DROP_WORLD = regular_drop
+        _build_bevel(bevel_uv, bevel_sidecar, elevation, textured=True)
+        _render(outputs["bevel"][key]["shaded"], freestyle=False)
+
+        if chipped_uv.exists() and chipped_sidecar.exists():
+            _reset_scene(ink_enabled=True)
+            bake_art_concept_beveled_set.BEVEL_INSET_WORLD = chipped_inset
+            bake_art_concept_beveled_set.BEVEL_DROP_WORLD = chipped_drop
+            _build_bevel(chipped_uv, chipped_sidecar, elevation, textured=False, chipped=True)
+            _render(outputs["bevel_chipped"][key]["wire"], freestyle=True)
+
+            _reset_scene(ink_enabled=False)
+            bake_art_concept_beveled_set.BEVEL_INSET_WORLD = chipped_inset
+            bake_art_concept_beveled_set.BEVEL_DROP_WORLD = chipped_drop
+            _build_bevel(chipped_uv, chipped_sidecar, elevation, textured=True, chipped=True)
+            _render(outputs["bevel_chipped"][key]["shaded"], freestyle=False)
 
     report = {
         "source_script": _rel(Path(__file__)),
-        "outputs": {group: {name: _rel(path) for name, path in values.items()} for group, values in outputs.items()},
+        "outputs": {
+            group: {
+                elevation: {name: _rel(path) for name, path in values.items()}
+                for elevation, values in by_elevation.items()
+            }
+            for group, by_elevation in outputs.items()
+        },
         "hard": {
             "pipeline_mode": tile_pipeline_modes.MODE2_HARD,
-            "uv": _rel(hard_uv),
+            "uv": hard_uvs,
         },
         "bevel": {
             "pipeline_mode": tile_pipeline_modes.MODE3_TOP_EDGE_BEVEL,
-            "uv": _rel(bevel_uv),
-            "uv_sidecar": _rel(bevel_sidecar),
-            "bevel_inset_world": 0.085,
-            "bevel_drop_world": 0.050,
+            "uv": bevel_uvs,
+            "uv_sidecar": bevel_sidecars,
+            "bevel_inset_world": regular_inset,
+            "bevel_drop_world": regular_drop,
+        },
+        "bevel_chipped": {
+            "pipeline_mode": tile_pipeline_modes.MODE3_TOP_EDGE_BEVEL,
+            "uv": bevel_chipped_uvs,
+            "uv_sidecar": bevel_chipped_sidecars,
+            "bevel_inset_world": chipped_inset,
+            "bevel_drop_world": chipped_drop,
+            "rim_profile": "chipped",
+            "chip_count_per_edge": 3,
+            "chip_depth_world": 0.070,
+            "chip_width_ratio": 0.100,
+            "chip_segments_per_edge": 12,
+            "chip_seed": 20260625,
         },
     }
     report_path = repo / "inkmon美术探索" / "concept素材-v1" / "model_preview_report.json"

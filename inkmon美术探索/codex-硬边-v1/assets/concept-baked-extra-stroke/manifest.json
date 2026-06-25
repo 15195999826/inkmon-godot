@@ -1,0 +1,590 @@
+{
+  "comment": "Concept UV candidate bake set. Source raw style: docs/concept.jpg. Runtime tile output uses fixed-density tight export when runtime_export is present.",
+  "pipeline": "mode2_hard",
+  "pipeline_name": "硬边",
+  "pitch_deg": 35.26,
+  "yaw_deg": -15.0,
+  "hex_orientation": "flat_top",
+  "sun_elevation_deg": 50.0,
+  "sun_azimuth_deg": -45.0,
+  "material_mode": "emission",
+  "uv_inset_px": 0.0,
+  "ink_color": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "stroke_mode": "extra_stroke",
+  "extra_stroke_px": 1,
+  "extra_stroke_scope": "alpha_silhouette_only",
+  "ink_thickness_position": "ALPHA_OUTSIDE",
+  "ink_select_crease": false,
+  "ink_wobble_px": 0.0,
+  "source_canvas_px": 2048,
+  "runtime_canvas_px": 846,
+  "px_per_unit": 211.5,
+  "source_px_per_unit": 512,
+  "hex_edge_world": 1.0,
+  "px_per_hex_edge": 211.5,
+  "thickness_world": 0.55,
+  "elevation_step_world": 0.5,
+  "water_recess_world": 0.12,
+  "runtime_export": {
+    "mode": "tight_global_max_opaque_side",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512.0,
+    "target_max_opaque_side_px": 512,
+    "runtime_canvas_px": 846,
+    "runtime_scale": 0.4130859375,
+    "runtime_px_per_unit": 211.5,
+    "source_max_opaque_side_px": 1222,
+    "runtime_max_opaque_side_px": 510,
+    "crop_padding_px": 2,
+    "alpha_threshold": 1,
+    "exporter": "external_pillow_lanczos",
+    "pre_stroke_target_max_opaque_side_px": 510,
+    "extra_stroke_px": 1
+  },
+  "assets": {
+    "tile_grass_e0": {
+      "file": "tile_grass_e0_v0.png",
+      "variants": [
+        "tile_grass_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 0,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        339
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        640
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        338
+      ],
+      "opaque_size_px": [
+        416,
+        337
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1540
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_grass_e1": {
+      "file": "tile_grass_e1_v0.png",
+      "variants": [
+        "tile_grass_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 1,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        426
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        727
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        425
+      ],
+      "opaque_size_px": [
+        416,
+        424
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1749
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_grass_e2": {
+      "file": "tile_grass_e2_v0.png",
+      "variants": [
+        "tile_grass_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 2,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        512
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        813
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        511
+      ],
+      "opaque_size_px": [
+        416,
+        510
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1959
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_dirt_e0": {
+      "file": "tile_dirt_e0_v0.png",
+      "variants": [
+        "tile_dirt_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 0,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        339
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        640
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        338
+      ],
+      "opaque_size_px": [
+        416,
+        337
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1540
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_dirt_e1": {
+      "file": "tile_dirt_e1_v0.png",
+      "variants": [
+        "tile_dirt_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 1,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        426
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        727
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        425
+      ],
+      "opaque_size_px": [
+        416,
+        424
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1749
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_dirt_e2": {
+      "file": "tile_dirt_e2_v0.png",
+      "variants": [
+        "tile_dirt_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 2,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        512
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        813
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        511
+      ],
+      "opaque_size_px": [
+        416,
+        510
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1959
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_stone_e0": {
+      "file": "tile_stone_e0_v0.png",
+      "variants": [
+        "tile_stone_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 0,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        339
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        640
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        338
+      ],
+      "opaque_size_px": [
+        416,
+        337
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1540
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_stone_e1": {
+      "file": "tile_stone_e1_v0.png",
+      "variants": [
+        "tile_stone_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 1,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        426
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        727
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        425
+      ],
+      "opaque_size_px": [
+        416,
+        424
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1749
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_stone_e2": {
+      "file": "tile_stone_e2_v0.png",
+      "variants": [
+        "tile_stone_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 2,
+      "anchor_px": [
+        209.0,
+        122.0
+      ],
+      "size_px": [
+        418,
+        512
+      ],
+      "crop_bbox_px": [
+        214,
+        301,
+        632,
+        813
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        511
+      ],
+      "opaque_size_px": [
+        416,
+        510
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        737,
+        1520,
+        1959
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_water_e0": {
+      "file": "tile_water_e0_v0.png",
+      "variants": [
+        "tile_water_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 0,
+      "anchor_px": [
+        209.0,
+        102.0
+      ],
+      "size_px": [
+        418,
+        319
+      ],
+      "crop_bbox_px": [
+        214,
+        321,
+        632,
+        640
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        318
+      ],
+      "opaque_size_px": [
+        416,
+        317
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        788,
+        1520,
+        1540
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_water_e1": {
+      "file": "tile_water_e1_v0.png",
+      "variants": [
+        "tile_water_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 1,
+      "anchor_px": [
+        209.0,
+        102.0
+      ],
+      "size_px": [
+        418,
+        406
+      ],
+      "crop_bbox_px": [
+        214,
+        321,
+        632,
+        727
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        405
+      ],
+      "opaque_size_px": [
+        416,
+        404
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        788,
+        1520,
+        1749
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "tile_water_e2": {
+      "file": "tile_water_e2_v0.png",
+      "variants": [
+        "tile_water_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 2,
+      "anchor_px": [
+        209.0,
+        102.0
+      ],
+      "size_px": [
+        418,
+        492
+      ],
+      "crop_bbox_px": [
+        214,
+        321,
+        632,
+        813
+      ],
+      "opaque_bbox_px": [
+        1,
+        1,
+        417,
+        491
+      ],
+      "opaque_size_px": [
+        416,
+        490
+      ],
+      "source_opaque_bbox_px": [
+        528,
+        788,
+        1520,
+        1959
+      ],
+      "runtime_scale": 0.4130859375
+    },
+    "decor_pine": {
+      "file": "decor_pine.png",
+      "variants": [
+        "decor_pine.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        372.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_pine_tall": {
+      "file": "decor_pine_tall.png",
+      "variants": [
+        "decor_pine_tall.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        404.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_bush": {
+      "file": "decor_bush.png",
+      "variants": [
+        "decor_bush.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        324.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_rocks": {
+      "file": "decor_rocks.png",
+      "variants": [
+        "decor_rocks.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        322.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    }
+  }
+}

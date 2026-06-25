@@ -28,12 +28,31 @@
     },
     "notes": "Diagnostic mode: same prism topology and UV as mode 1, but no bevel modifier and flat face shading."
   },
-  "pipeline_mode": "mode2_hard",
+  "pipeline_mode": "hard",
   "uv_dir": "inkmon美术探索/concept素材-v1/uv",
   "out_dir": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-ink",
   "manifest": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-ink/manifest.json",
-  "samples": 32,
+  "samples": 64,
   "ink_enabled": true,
+  "canvas_px": 2048,
+  "px_per_unit": 512,
+  "use_denoising": false,
+  "material_mode": "emission",
+  "runtime_export_enabled": true,
+  "runtime_export": {
+    "mode": "tight_global_max_opaque_side",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512.0,
+    "target_max_opaque_side_px": 512,
+    "runtime_canvas_px": 843,
+    "runtime_scale": 0.41162109375,
+    "runtime_px_per_unit": 210.75,
+    "source_max_opaque_side_px": 1231,
+    "runtime_max_opaque_side_px": 510,
+    "crop_padding_px": 2,
+    "alpha_threshold": 1,
+    "exporter": "external_pillow_lanczos"
+  },
   "mesh_contract": {
     "type": "standard_hex_prism",
     "tile_bevel_enabled": false,
@@ -74,8 +93,8 @@
       0.12,
       0.08
     ],
-    "ink_thickness_px": 3.2,
-    "ink_wobble_px": 1.5,
+    "ink_thickness_px": 12.8,
+    "ink_wobble_px": 6.0,
     "ink_exclude_wall_stitch_edges": false,
     "ink_corner_enabled": false,
     "ink_corner_color": [
@@ -83,11 +102,13 @@
       0.1,
       0.07
     ],
-    "ink_corner_thickness_px": 2.0,
-    "ink_corner_wobble_px": 0.35,
-    "px_per_unit": 128,
-    "canvas_px": 512,
-    "samples": 32,
+    "ink_corner_thickness_px": 8.0,
+    "ink_corner_wobble_px": 1.4,
+    "px_per_unit": 512,
+    "canvas_px": 2048,
+    "samples": 64,
+    "use_denoising": false,
+    "tile_image_material_mode": "emission",
     "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked"
   },
   "results": {

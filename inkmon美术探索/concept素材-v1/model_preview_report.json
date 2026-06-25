@@ -2,23 +2,90 @@
   "source_script": "blender/scripts/render_art_pipeline_previews.py",
   "outputs": {
     "hard": {
-      "wire": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_wire.png",
-      "shaded": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_shaded.png"
+      "e0": {
+        "wire": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_wire.png",
+        "shaded": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e0_shaded.png"
+      },
+      "e1": {
+        "wire": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e1_wire.png",
+        "shaded": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e1_shaded.png"
+      },
+      "e2": {
+        "wire": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e2_wire.png",
+        "shaded": "inkmon美术探索/codex-硬边-v1/model_preview/mode2_hard_e2_shaded.png"
+      }
     },
     "bevel": {
-      "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_wire.png",
-      "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_shaded.png"
+      "e0": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e0_shaded.png"
+      },
+      "e1": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e1_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e1_shaded.png"
+      },
+      "e2": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e2_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_e2_shaded.png"
+      }
+    },
+    "bevel_chipped": {
+      "e0": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e0_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e0_shaded.png"
+      },
+      "e1": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e1_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e1_shaded.png"
+      },
+      "e2": {
+        "wire": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e2_wire.png",
+        "shaded": "inkmon美术探索/codex-倒角-v1/model_preview/mode3_wide_rim_chipped_e2_shaded.png"
+      }
     }
   },
   "hard": {
     "pipeline_mode": "mode2_hard",
-    "uv": "inkmon美术探索/concept素材-v1/uv/grass_e0_warp_uv.png"
+    "uv": {
+      "e0": "inkmon美术探索/concept素材-v1/uv/grass_e0_warp_uv.png",
+      "e1": "inkmon美术探索/concept素材-v1/uv/grass_e1_warp_uv.png",
+      "e2": "inkmon美术探索/concept素材-v1/uv/grass_e2_warp_uv.png"
+    }
   },
   "bevel": {
     "pipeline_mode": "mode3_top_edge_bevel",
-    "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e0_beveled_uv.png",
-    "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+    "uv": {
+      "e0": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e0_beveled_uv.png",
+      "e1": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e1_beveled_uv.png",
+      "e2": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/grass_e2_beveled_uv.png"
+    },
+    "uv_sidecar": {
+      "e0": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e0.json",
+      "e1": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e1.json",
+      "e2": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim/sidecars/beveled_uv_e2.json"
+    },
     "bevel_inset_world": 0.085,
     "bevel_drop_world": 0.05
+  },
+  "bevel_chipped": {
+    "pipeline_mode": "mode3_top_edge_bevel",
+    "uv": {
+      "e0": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/grass_e0_beveled_uv.png",
+      "e1": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/grass_e1_beveled_uv.png",
+      "e2": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/grass_e2_beveled_uv.png"
+    },
+    "uv_sidecar": {
+      "e0": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/sidecars/beveled_uv_e0.json",
+      "e1": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/sidecars/beveled_uv_e1.json",
+      "e2": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/sidecars/beveled_uv_e2.json"
+    },
+    "bevel_inset_world": 0.15,
+    "bevel_drop_world": 0.075,
+    "rim_profile": "chipped",
+    "chip_count_per_edge": 3,
+    "chip_depth_world": 0.07,
+    "chip_width_ratio": 0.1,
+    "chip_segments_per_edge": 12,
+    "chip_seed": 20260625
   }
 }

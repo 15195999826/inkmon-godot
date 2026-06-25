@@ -1,0 +1,100 @@
+{
+  "createdAt": "2026-06-25T02:27:34.792Z",
+  "baseImagePath": "D:\\GodotProjects\\inkmon\\inkmon-godot\\blender\\templates\\standard-edged-templates\\beveled_design_e0.png",
+  "crackRefPath": "C:\\Users\\37065\\AppData\\Local\\Temp\\codex-clipboard-f11ab2a9-fc45-4195-a29b-3daa68b048c4.png",
+  "outDir": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625",
+  "results": [
+    {
+      "terrain": "grass",
+      "imageId": "img_mqsvrx3h_jg4pa",
+      "targetPath": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\grass_e0_beveled_painter_candidate.png",
+      "prompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: mossy grass top, olive green turf, tiny weeds, small stones, natural worn soil patches; side walls are mossy stacked earth-stone blocks.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.",
+      "generated": {
+        "callId": "call_mqsvqzpk_eiovr",
+        "images": [
+          {
+            "imageId": "img_mqsvrx3h_jg4pa",
+            "previewPath": "C:\\Users\\37065\\AppData\\Roaming\\InkMon\\Lab\\texture-gen\\calls\\call_mqsvqzpk_eiovr\\outputs\\output_01.png"
+          }
+        ],
+        "finalPrompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: mossy grass top, olive green turf, tiny weeds, small stones, natural worn soil patches; side walls are mossy stacked earth-stone blocks.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.\n\n[参考图说明] 参考图1: Geometry/template reference only: preserve this exact beveled hex tile silhouette, camera angle, top bevel band, and wall layout. Do not copy its flat placeholder colors.; 参考图2: Style reference for subtle hand-painted vertical wall cracks and edge nicks only. Do not copy crop shape.",
+        "durationMs": 43261
+      },
+      "exported": {
+        "ok": true,
+        "imageId": "img_mqsvrx3h_jg4pa",
+        "exportedTo": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\grass_e0_beveled_painter_candidate.png",
+        "bytes": 1313960
+      }
+    },
+    {
+      "terrain": "dirt",
+      "imageId": "img_mqsvsfp0_h5nsv",
+      "targetPath": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\dirt_e0_beveled_painter_candidate.png",
+      "prompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: dry compact dirt top, tan brown earth, sparse pebbles, scuffed worn patches; side walls are packed earth with subtle embedded stones.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.",
+      "generated": {
+        "callId": "call_mqsvrx4d_lsfjf",
+        "images": [
+          {
+            "imageId": "img_mqsvsfp0_h5nsv",
+            "previewPath": "C:\\Users\\37065\\AppData\\Roaming\\InkMon\\Lab\\texture-gen\\calls\\call_mqsvrx4d_lsfjf\\outputs\\output_01.png"
+          }
+        ],
+        "finalPrompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: dry compact dirt top, tan brown earth, sparse pebbles, scuffed worn patches; side walls are packed earth with subtle embedded stones.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.\n\n[参考图说明] 参考图1: Geometry/template reference only: preserve this exact beveled hex tile silhouette, camera angle, top bevel band, and wall layout. Do not copy its flat placeholder colors.; 参考图2: Style reference for subtle hand-painted vertical wall cracks and edge nicks only. Do not copy crop shape.",
+        "durationMs": 24066
+      },
+      "exported": {
+        "ok": true,
+        "imageId": "img_mqsvsfp0_h5nsv",
+        "exportedTo": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\dirt_e0_beveled_painter_candidate.png",
+        "bytes": 1289045
+      }
+    },
+    {
+      "terrain": "stone",
+      "imageId": "img_mqsvszub_0sm6x",
+      "targetPath": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\stone_e0_beveled_painter_candidate.png",
+      "prompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: pale grey stone slab top, irregular tile seams, chipped stone corners, mild moss in cracks; side walls are stacked grey masonry.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.",
+      "generated": {
+        "callId": "call_mqsvsfpq_v4oza",
+        "images": [
+          {
+            "imageId": "img_mqsvszub_0sm6x",
+            "previewPath": "C:\\Users\\37065\\AppData\\Roaming\\InkMon\\Lab\\texture-gen\\calls\\call_mqsvsfpq_v4oza\\outputs\\output_01.png"
+          }
+        ],
+        "finalPrompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: pale grey stone slab top, irregular tile seams, chipped stone corners, mild moss in cracks; side walls are stacked grey masonry.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.\n\n[参考图说明] 参考图1: Geometry/template reference only: preserve this exact beveled hex tile silhouette, camera angle, top bevel band, and wall layout. Do not copy its flat placeholder colors.; 参考图2: Style reference for subtle hand-painted vertical wall cracks and edge nicks only. Do not copy crop shape.",
+        "durationMs": 26081
+      },
+      "exported": {
+        "ok": true,
+        "imageId": "img_mqsvszub_0sm6x",
+        "exportedTo": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\stone_e0_beveled_painter_candidate.png",
+        "bytes": 1368176
+      }
+    },
+    {
+      "terrain": "water",
+      "imageId": "img_mqsvtn1q_73kp4",
+      "targetPath": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\water_e0_beveled_painter_candidate.png",
+      "prompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: shallow blue-green water surface contained in the hex tile, wet stone/earth bevel rim, darker damp side walls, subtle ripples but still a terrain tile.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.",
+      "generated": {
+        "callId": "call_mqsvszv4_65wit",
+        "images": [
+          {
+            "imageId": "img_mqsvtn1q_73kp4",
+            "previewPath": "C:\\Users\\37065\\AppData\\Roaming\\InkMon\\Lab\\texture-gen\\calls\\call_mqsvszv4_65wit\\outputs\\output_01.png"
+          }
+        ],
+        "finalPrompt": "Generate one game-ready isometric flat-top hex terrain tile concept image.\nUse the base image strictly as the geometry template: same camera angle, same centered composition, same explicit top-edge bevel band, same vertical side-wall layout, same full hex silhouette.\nThe bevel area must contain natural hand-painted detail, not a clean vector edge.\nDo not draw any additional closed outline on the upper top surface inner rim. The top face should stay mostly clean and readable.\nOn the lower visible bevel edges and side-wall vertical seams, add very thin semi-transparent dark hand-drawn strokes, uneven and painterly, integrated into the art.\nAdd a few short random vertical hairline cracks, notches, and tiny chips on visible side walls, similar to the edge crack reference image. They should feel like painted material detail, not a postprocess overlay.\nTerrain material: shallow blue-green water surface contained in the hex tile, wet stone/earth bevel rim, darker damp side walls, subtle ripples but still a terrain tile.\nStyle: low-saturation painterly fantasy tactics/board-game tile, crisp small-scale details, hand-painted natural edge wear, no heavy black border.\nAvoid: no labels, no text, no arrows, no UI overlay, no red guide marks, no thick cartoon black outline, no extra closed black line on the top inner rim, do not cover the top face with a programmatic outline.\nPlain white background is acceptable. Single tile only.\n\n[参考图说明] 参考图1: Geometry/template reference only: preserve this exact beveled hex tile silhouette, camera angle, top bevel band, and wall layout. Do not copy its flat placeholder colors.; 参考图2: Style reference for subtle hand-painted vertical wall cracks and edge nicks only. Do not copy crop shape.",
+        "durationMs": 30042
+      },
+      "exported": {
+        "ok": true,
+        "imageId": "img_mqsvtn1q_73kp4",
+        "exportedTo": "D:\\GodotProjects\\inkmon\\inkmon-godot\\inkmon美术探索\\codex-倒角-v1\\texture-gen-candidates\\beveled-template-painter-20260625\\water_e0_beveled_painter_candidate.png",
+        "bytes": 1099886
+      }
+    }
+  ]
+}

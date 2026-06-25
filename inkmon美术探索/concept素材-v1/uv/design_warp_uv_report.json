@@ -3,295 +3,2297 @@
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/grass_e0_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/grass_e0_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/grass_e0_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e0_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      217.645,
-      875.509,
-      806.355
+      118,
+      172,
+      908,
+      822
     ],
-    "origin_px": [
-      512.0,
-      427.4949885721091
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9863477533963101,
+            -0.05988414690764476,
+            -6.71631187780992
+          ],
+          [
+            -0.011826968549111942,
+            0.9930377013469756,
+            -45.80827580018388
+          ],
+          [
+            -4.4468985175419144e-05,
+            -0.00011284566055053558,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.062684430318905,
+            0.008336820338308114,
+            -43.604758604665065
+          ],
+          [
+            -0.052982329042405366,
+            1.1454776913299165,
+            -84.3423775444109
+          ],
+          [
+            -5.3003787313191096e-05,
+            2.024074798605635e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            1.040638082665947,
+            0.00011709286721793517,
+            -31.729719928852838
+          ],
+          [
+            -0.01969954660739726,
+            1.1218106998463664,
+            -86.93995294486186
+          ],
+          [
+            -3.6761150764090105e-05,
+            -3.0605485882361187e-09,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.1874139514993636,
+            0.04824580000346315,
+            -100.45246148702468
+          ],
+          [
+            0.2471692108010681,
+            1.2734294560708146,
+            -330.81264866819345
+          ],
+          [
+            3.623056323393581e-05,
+            6.006862685650538e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 400.21759742818364,
+          "y": 640.0271816970813
+        },
+        "top_5": {
+          "x": 806.791263333034,
+          "y": 580.1799368997342
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.5878912288621231,
+        "vertical_direction": {
+          "x": -0.00010523546260334085,
+          "y": -0.9999999944627487
+        },
+        "center": {
+          "x": 513.0,
+          "y": 400.5
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 191.0026177831079,
+          "right_3_4": 199.00251254695254
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 405.97959313003764,
+              "y": 628.0837160352957
+            },
+            "top_5": {
+              "x": 800.9791711253582,
+              "y": 563.0736165248627
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 413.0,
+              "y": 629.0
+            },
+            "top_5": {
+              "x": 797.0,
+              "y": 568.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 405.98137727491644,
+              "y": 645.0375529268159
+            },
+            "top_5": {
+              "x": 800.9799365771548,
+              "y": 570.34732174885
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 405.9797879594389,
+              "y": 629.9350824378591
+            },
+            "top_5": {
+              "x": 800.9792305242321,
+              "y": 563.638053773313
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 400.21759742818364,
+              "y": 640.0271816970813
+            },
+            "top_5": {
+              "x": 806.791263333034,
+              "y": 580.1799368997342
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 405.97959313003764,
+            "y": 628.0837160352957
+          },
+          "top_5": {
+            "x": 800.9791711253582,
+            "y": 563.0736165248627
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.12745825908245934,
+          "height_transfer_delta_px": {
+            "top_4": 1.3838251870626823,
+            "top_5": 2.745410361954444
+          },
+          "constraint_spread_px": {
+            "top_4": 12.029452361253519,
+            "top_5": 15.492443545270422
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 12.029452361253519,
+          "top_5": 15.492443545270422
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 405.9796905447383,
+          "y": 629.4675412189296
+        },
+        "top_5": {
+          "x": 800.9792008247952,
+          "y": 565.8190268866565
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 229,
+          "y": 233
+        },
+        {
+          "id": 2,
+          "x": 613,
+          "y": 172
+        },
+        {
+          "id": 3,
+          "x": 908,
+          "y": 340
+        },
+        {
+          "id": 4,
+          "x": 907,
+          "y": 539
+        },
+        {
+          "id": 5,
+          "x": 801,
+          "y": 761
+        },
+        {
+          "id": 6,
+          "x": 406,
+          "y": 822
+        },
+        {
+          "id": 7,
+          "x": 119,
+          "y": 652
+        },
+        {
+          "id": 8,
+          "x": 118,
+          "y": 461
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003935,
-        "stretch_min": 0.6802492797224066
+        "stretch_max": 1.0946127290386263,
+        "stretch_min": 0.6226041819988104,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981896,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.0799224846613276,
+        "stretch_min": 0.6099073190388036,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.862474803202199,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.7621119063142942,
+        "stretch_min": 0.6185201895034795,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224072
-      }
+        "stretch_max": 2.8775494512767676,
+        "stretch_min": 0.5944674523199088,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "grass_e1": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/grass_e1_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/grass_e1_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/grass_e1_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e1_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      140.823,
-      875.509,
-      883.177
+      145,
+      138,
+      878,
+      886
     ],
-    "origin_px": [
-      512.0,
-      350.67225091039006
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9447074103423715,
+            -0.03647846785601622,
+            16.148483109128335
+          ],
+          [
+            -0.014321030041448215,
+            0.971151862001552,
+            5.355964130666925
+          ],
+          [
+            -4.527436666370164e-05,
+            -4.1349999602129145e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.024297080003509,
+            0.005339555465845909,
+            -9.34205068441623
+          ],
+          [
+            0.01970385904234712,
+            0.993229713898449,
+            0.7282524962863482
+          ],
+          [
+            1.2663607237048202e-05,
+            -5.822962195894866e-06,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9466052912480027,
+            0.011307888240766104,
+            13.546921609969083
+          ],
+          [
+            -0.040035733586691526,
+            0.9917908682357013,
+            18.221686819153618
+          ],
+          [
+            -4.1434219164727155e-05,
+            8.652177461962458e-06,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.0150043219362932,
+            0.04186860914866439,
+            -29.753009149753478
+          ],
+          [
+            0.10278491153441234,
+            1.057114102610947,
+            -109.51930646856759
+          ],
+          [
+            -2.4856571382167614e-05,
+            4.7686342993713954e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 404.33646262840455,
+          "y": 567.5791944181695
+        },
+        "top_5": {
+          "x": 776.3762590137799,
+          "y": 512.7107559804208
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.3558698306222651,
+        "vertical_direction": {
+          "x": -0.003105545134552768,
+          "y": -0.9999951777830818
+        },
+        "center": {
+          "x": 511.5,
+          "y": 351.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 322.0062111202205,
+          "right_3_4": 334.0
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 418.98608478106047,
+              "y": 559.5161507268153
+            },
+            "top_5": {
+              "x": 777.9677923546317,
+              "y": 495.6259326085077
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 416.0,
+              "y": 564.0
+            },
+            "top_5": {
+              "x": 777.0,
+              "y": 505.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 418.97937290722194,
+              "y": 557.354906500123
+            },
+            "top_5": {
+              "x": 777.9987030899688,
+              "y": 505.5792854081175
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 419.0031336514108,
+              "y": 565.0059399194267
+            },
+            "top_5": {
+              "x": 777.9732667602466,
+              "y": 497.3887082434843
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 404.33646262840455,
+              "y": 567.5791944181695
+            },
+            "top_5": {
+              "x": 776.3762590137799,
+              "y": 512.7107559804208
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 418.98608478106047,
+            "y": 559.5161507268153
+          },
+          "top_5": {
+            "x": 777.9677923546317,
+            "y": 495.6259326085077
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.6920786614776944,
+          "height_transfer_delta_px": {
+            "top_4": 5.205529909771131,
+            "top_5": 5.589407272642886
+          },
+          "constraint_spread_px": {
+            "top_4": 13.51143027055167,
+            "top_5": 11.569545015108547
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 13.51143027055167,
+          "top_5": 11.569545015108547
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 417.49304239053026,
+          "y": 564.5029699597134
+        },
+        "top_5": {
+          "x": 777.4838961773158,
+          "y": 501.19435412174215
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 246,
+          "y": 197
+        },
+        {
+          "id": 2,
+          "x": 607,
+          "y": 138
+        },
+        {
+          "id": 3,
+          "x": 878,
+          "y": 294
+        },
+        {
+          "id": 4,
+          "x": 878,
+          "y": 628
+        },
+        {
+          "id": 5,
+          "x": 779,
+          "y": 828
+        },
+        {
+          "id": 6,
+          "x": 420,
+          "y": 886
+        },
+        {
+          "id": 7,
+          "x": 147,
+          "y": 730
+        },
+        {
+          "id": 8,
+          "x": 145,
+          "y": 408
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.178353991400394,
-        "stretch_min": 0.6802492797224065
+        "stretch_max": 1.195117204146103,
+        "stretch_min": 0.6719365467035864,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981894,
-        "stretch_min": 0.680249279722407
+        "stretch_max": 1.1731619498533037,
+        "stretch_min": 0.6725556954270917,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021995,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8659917592541051,
+        "stretch_min": 0.6798448802834299,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224069
-      }
+        "stretch_max": 3.0770551141756393,
+        "stretch_min": 0.6670737911290969,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "grass_e2": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/grass_e2_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/grass_e2_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/grass_e2_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/grass_e2_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      64.0,
-      875.509,
-      960.0
+      145,
+      62,
+      878,
+      961
     ],
-    "origin_px": [
-      512.0,
-      273.8495132486711
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9564023411350696,
+            -0.030369668903299188,
+            11.485164399498926
+          ],
+          [
+            -0.009549574263118862,
+            0.991455859241089,
+            2.6738319783533306
+          ],
+          [
+            -4.3510970798861643e-05,
+            -1.2235720018088653e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.0278770362216434,
+            0.000398164608868269,
+            -7.766604084141991
+          ],
+          [
+            0.03330348224278541,
+            0.9836542755308939,
+            2.359905207518023
+          ],
+          [
+            2.5665209193443437e-05,
+            -1.1652563484845985e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9792663499539765,
+            0.010151307790955329,
+            5.094829875856845
+          ],
+          [
+            -0.01935997340610598,
+            0.9999784054282264,
+            13.271848088913028
+          ],
+          [
+            -1.649335901266274e-05,
+            1.1702153197972553e-05,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.1703902436905569,
+            0.027766351874019792,
+            -87.47348070434882
+          ],
+          [
+            0.05881842819215425,
+            1.1020165854792323,
+            -56.04047738079768
+          ],
+          [
+            7.638362215086234e-05,
+            3.423250793918358e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 402.97222801971117,
+          "y": 490.0207315884803
+        },
+        "top_5": {
+          "x": 772.8966462682139,
+          "y": 436.10683041953325
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.24099801841558247,
+        "vertical_direction": {
+          "x": -1.1057298920991381e-05,
+          "y": -0.9999999999388681
+        },
+        "center": {
+          "x": 511.5,
+          "y": 275.5
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 473.0010570812712,
+          "right_3_4": 478.0010460239601
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 418.9947492386173,
+              "y": 486.1316420156735
+            },
+            "top_5": {
+              "x": 777.9947220870337,
+              "y": 426.6761070904812
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 414.0,
+              "y": 489.0
+            },
+            "top_5": {
+              "x": 777.0,
+              "y": 430.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 418.9946600209782,
+              "y": 478.06297523611454
+            },
+            "top_5": {
+              "x": 777.9947652410721,
+              "y": 430.5788746883075
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 418.9947934373237,
+              "y": 490.1288826767479
+            },
+            "top_5": {
+              "x": 777.9947373524374,
+              "y": 428.05668234727955
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 402.97222801971117,
+              "y": 490.0207315884803
+            },
+            "top_5": {
+              "x": 772.8966462682139,
+              "y": 436.10683041953325
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 418.9947492386173,
+            "y": 486.1316420156735
+          },
+          "top_5": {
+            "x": 777.9947220870337,
+            "y": 426.6761070904812
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.2792061751081292,
+          "height_transfer_delta_px": {
+            "top_4": 4.20150620147335,
+            "top_5": 2.4042406679825308
+          },
+          "constraint_spread_px": {
+            "top_4": 13.534772395002925,
+            "top_5": 8.442250082052768
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 13.534772395002925,
+          "top_5": 8.442250082052768
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 416.49737461930863,
+          "y": 489.51036579424016
+        },
+        "top_5": {
+          "x": 777.4973610435168,
+          "y": 429.0283411736398
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 246,
+          "y": 121
+        },
+        {
+          "id": 2,
+          "x": 609,
+          "y": 62
+        },
+        {
+          "id": 3,
+          "x": 878,
+          "y": 219
+        },
+        {
+          "id": 4,
+          "x": 877,
+          "y": 697
+        },
+        {
+          "id": 5,
+          "x": 778,
+          "y": 904
+        },
+        {
+          "id": 6,
+          "x": 419,
+          "y": 961
+        },
+        {
+          "id": 7,
+          "x": 146,
+          "y": 805
+        },
+        {
+          "id": 8,
+          "x": 145,
+          "y": 332
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003938,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.1776422088652279,
+        "stretch_min": 0.6722324148168516,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981898,
-        "stretch_min": 0.6802492797224069
+        "stretch_max": 1.1798018974757745,
+        "stretch_min": 0.6746898679188794,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021996,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8709721029106037,
+        "stretch_min": 0.6813800927126171,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985784,
-        "stretch_min": 0.6802492797224067
-      }
+        "stretch_max": 3.1498450895792356,
+        "stretch_min": 0.6778278074646903,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "dirt_e0": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e0_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e0_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/dirt_e0_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e0_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      217.645,
-      875.509,
-      806.355
+      130,
+      182,
+      904,
+      827
     ],
-    "origin_px": [
-      512.0,
-      427.4949885721091
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9749478578283504,
+            -0.04581724327503653,
+            3.487773128160033
+          ],
+          [
+            -0.030460618088143907,
+            1.008047372958237,
+            -27.210003054799344
+          ],
+          [
+            -5.991098479617408e-05,
+            -4.369993515565326e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.0184074203951818,
+            0.004616750751538594,
+            -24.9369794942428
+          ],
+          [
+            -0.06112519909678713,
+            1.105186118949667,
+            -60.878659866544254
+          ],
+          [
+            -4.600581715967406e-05,
+            -9.409965999123448e-06,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9460821181667148,
+            -0.004732977457277714,
+            -0.6210556407039933
+          ],
+          [
+            -0.0576828988989444,
+            1.054576204024691,
+            -48.010867427141484
+          ],
+          [
+            -8.036473058745039e-05,
+            -3.1504484238045334e-05,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            2.0175684176917934,
+            0.14887268208827098,
+            -501.72134198620785
+          ],
+          [
+            0.6582613942005576,
+            1.8108498801862682,
+            -745.2253778002143
+          ],
+          [
+            0.00046753395013075783,
+            0.00014552637919347373,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 399.55045344957097,
+          "y": 636.1540580874022
+        },
+        "top_5": {
+          "x": 792.5497656249257,
+          "y": 576.3870312499665
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.27138474781494465,
+        "vertical_direction": {
+          "x": -0.0076313139194451865,
+          "y": -0.9999708810999762
+        },
+        "center": {
+          "x": 516.0,
+          "y": 407.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 190.0026315607234,
+          "right_3_4": 200.0099997500125
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 410.5222685751702,
+              "y": 633.3651409816937
+            },
+            "top_5": {
+              "x": 799.4838369008957,
+              "y": 565.3292381749006
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 416.0,
+              "y": 632.0
+            },
+            "top_5": {
+              "x": 795.0,
+              "y": 566.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 410.604496408891,
+              "y": 644.1398830799953
+            },
+            "top_5": {
+              "x": 799.5085642890172,
+              "y": 568.5693968528808
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 410.53287375184243,
+              "y": 634.7547926182841
+            },
+            "top_5": {
+              "x": 799.4603696349462,
+              "y": 562.2541998626488
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 399.55045344957097,
+              "y": 636.1540580874022
+            },
+            "top_5": {
+              "x": 792.5497656249257,
+              "y": 576.3870312499665
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 410.5222685751702,
+            "y": 633.3651409816937
+          },
+          "top_5": {
+            "x": 799.4838369008957,
+            "y": 565.3292381749006
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.1514986428885834,
+          "height_transfer_delta_px": {
+            "top_4": 0.6948460514477993,
+            "top_5": 2.278470554915543
+          },
+          "constraint_spread_px": {
+            "top_4": 11.175076358826972,
+            "top_5": 11.699420772022945
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 11.175076358826972,
+          "top_5": 11.699420772022945
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 410.5275711635063,
+          "y": 634.0599667999888
+        },
+        "top_5": {
+          "x": 797.2301848174732,
+          "y": 565.6646190874503
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 237,
+          "y": 248
+        },
+        {
+          "id": 2,
+          "x": 616,
+          "y": 182
+        },
+        {
+          "id": 3,
+          "x": 902,
+          "y": 344
+        },
+        {
+          "id": 4,
+          "x": 904,
+          "y": 544
+        },
+        {
+          "id": 5,
+          "x": 801,
+          "y": 764
+        },
+        {
+          "id": 6,
+          "x": 412,
+          "y": 827
+        },
+        {
+          "id": 7,
+          "x": 131,
+          "y": 660
+        },
+        {
+          "id": 8,
+          "x": 130,
+          "y": 470
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003935,
-        "stretch_min": 0.6802492797224066
+        "stretch_max": 1.1214425284650418,
+        "stretch_min": 0.6382450602950546,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981896,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.0959797988084838,
+        "stretch_min": 0.6149644011748259,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.862474803202199,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.7626892564818553,
+        "stretch_min": 0.625966137458954,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224072
-      }
+        "stretch_max": 2.8236722672689996,
+        "stretch_min": 0.5965811304916117,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "dirt_e1": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e1_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e1_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/dirt_e1_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e1_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      140.823,
-      875.509,
-      883.177
+      144,
+      129,
+      872,
+      886
     ],
-    "origin_px": [
-      512.0,
-      350.67225091039006
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9083759396599042,
+            -0.05413698172133996,
+            24.10821004829083
+          ],
+          [
+            -0.01610965904190558,
+            0.9441539834138972,
+            -0.37558978492740097
+          ],
+          [
+            -5.631054743600776e-05,
+            -9.951302670327107e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.0467937338936104,
+            -0.004457114428453686,
+            -11.430622700621031
+          ],
+          [
+            0.06114197753976502,
+            0.9539908957495903,
+            -1.2860983527414986
+          ],
+          [
+            5.7644730176488465e-05,
+            -5.1845118810723164e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9861587893069239,
+            0.038882413101742924,
+            2.0350334714698053
+          ],
+          [
+            -0.01932116413808488,
+            1.072643717626,
+            -17.646986126890845
+          ],
+          [
+            -5.4892618364248295e-06,
+            4.817082479818931e-05,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.068971000336707,
+            0.014379419628190344,
+            -41.237519054322306
+          ],
+          [
+            0.030072495031518938,
+            1.0580376801236107,
+            -43.041185000199704
+          ],
+          [
+            2.9676885760732083e-05,
+            1.6490160123979993e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 402.1981672393932,
+          "y": 567.0308053627518
+        },
+        "top_5": {
+          "x": 776.6234174202591,
+          "y": 511.2793028960225
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.17683826413891604,
+        "vertical_direction": {
+          "x": -0.001543204363853229,
+          "y": -0.9999988092594367
+        },
+        "center": {
+          "x": 508.0,
+          "y": 343.5
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 324.0015432062014,
+          "right_3_4": 328.0
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 427.4975974329917,
+              "y": 560.4423612678665
+            },
+            "top_5": {
+              "x": 773.4946607468203,
+              "y": 497.53938409688277
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 417.0,
+              "y": 558.0
+            },
+            "top_5": {
+              "x": 771.0,
+              "y": 499.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 427.4557948113438,
+              "y": 533.3541979446894
+            },
+            "top_5": {
+              "x": 773.4991951139359,
+              "y": 500.4776609894183
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 427.50146287564877,
+              "y": 562.947174090074
+            },
+            "top_5": {
+              "x": 773.4942496218366,
+              "y": 497.27297447725937
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 402.1981672393932,
+              "y": 567.0308053627518
+            },
+            "top_5": {
+              "x": 776.6234174202591,
+              "y": 511.2793028960225
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 427.4975974329917,
+            "y": 560.4423612678665
+          },
+          "top_5": {
+            "x": 773.4946607468203,
+            "y": 497.53938409688277
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.7733843076849496,
+          "height_transfer_delta_px": {
+            "top_4": 5.396147680045668,
+            "top_5": 0.7303079804888049
+          },
+          "constraint_spread_px": {
+            "top_4": 20.748520930257122,
+            "top_5": 13.380597112213682
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 20.748520930257122,
+          "top_5": 13.380597112213682
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 422.24879871649586,
+          "y": 561.6947676789703
+        },
+        "top_5": {
+          "x": 773.4944551843284,
+          "y": 498.26969204844136
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 245,
+          "y": 188
+        },
+        {
+          "id": 2,
+          "x": 599,
+          "y": 129
+        },
+        {
+          "id": 3,
+          "x": 872,
+          "y": 286
+        },
+        {
+          "id": 4,
+          "x": 872,
+          "y": 614
+        },
+        {
+          "id": 5,
+          "x": 774,
+          "y": 825
+        },
+        {
+          "id": 6,
+          "x": 428,
+          "y": 886
+        },
+        {
+          "id": 7,
+          "x": 145,
+          "y": 725
+        },
+        {
+          "id": 8,
+          "x": 144,
+          "y": 401
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.178353991400394,
-        "stretch_min": 0.6802492797224065
+        "stretch_max": 1.1667535117625663,
+        "stretch_min": 0.6705837375104338,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981894,
-        "stretch_min": 0.680249279722407
+        "stretch_max": 1.1681130317333257,
+        "stretch_min": 0.6591159782543838,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021995,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8665113645703422,
+        "stretch_min": 0.691788373759144,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224069
-      }
+        "stretch_max": 3.1802649550672974,
+        "stretch_min": 0.6703233475947653,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "dirt_e2": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/dirt_e2_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/dirt_e2_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/dirt_e2_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/dirt_e2_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      64.0,
-      875.509,
-      960.0
+      144,
+      58,
+      876,
+      967
     ],
-    "origin_px": [
-      512.0,
-      273.8495132486711
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9640426663630967,
+            -0.005943640915499129,
+            2.4513656058372115
+          ],
+          [
+            -0.007507394975678599,
+            1.0079699391725634,
+            -3.415199687048823
+          ],
+          [
+            -4.3120194579104254e-05,
+            1.1840396371371931e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.0096546836075537,
+            3.875639026191452e-14,
+            -5.97038114975068
+          ],
+          [
+            0.014851390504618884,
+            1.0053442873061094,
+            -5.153303796303394
+          ],
+          [
+            -2.1586354360706004e-06,
+            1.120860831361996e-16,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            1.0370000369058576,
+            1.0687675290663059e-12,
+            -11.412594744405414
+          ],
+          [
+            0.014094731263392859,
+            1.0197073086930617,
+            -4.82524986599077
+          ],
+          [
+            3.226961800350734e-05,
+            1.9106106869862843e-15,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.019119157975615,
+            -4.276501777236195e-12,
+            -19.70716912229588
+          ],
+          [
+            -0.056891979252976364,
+            0.9912397939998573,
+            50.23856433923611
+          ],
+          [
+            -4.509782318574609e-06,
+            -4.589535424012949e-15,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 404.1774436090293,
+          "y": 486.9428571428315
+        },
+        "top_5": {
+          "x": 772.0351681956712,
+          "y": 433.9847094800737
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.0,
+        "vertical_direction": {
+          "x": 0.0,
+          "y": -1.0
+        },
+        "center": {
+          "x": 510.0,
+          "y": 273.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 479.0,
+          "right_3_4": 474.0
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 413.0,
+              "y": 489.83743169398906
+            },
+            "top_5": {
+              "x": 776.0,
+              "y": 430.3169398907104
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 415.0,
+              "y": 488.0
+            },
+            "top_5": {
+              "x": 779.0,
+              "y": 429.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 413.0,
+              "y": 492.5263157894737
+            },
+            "top_5": {
+              "x": 776.0,
+              "y": 427.26022304832713
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 413.0,
+              "y": 487.44920430014207
+            },
+            "top_5": {
+              "x": 776.0,
+              "y": 432.1009469358582
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 404.1774436090293,
+              "y": 486.9428571428315
+            },
+            "top_5": {
+              "x": 772.0351681956712,
+              "y": 433.9847094800737
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 413.0,
+            "y": 489.83743169398906
+          },
+          "top_5": {
+            "x": 776.0,
+            "y": 430.3169398907104
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.35751668239424816,
+          "height_transfer_delta_px": {
+            "top_4": 2.1128295439179965,
+            "top_5": 0.8920035225738729
+          },
+          "constraint_spread_px": {
+            "top_4": 8.857122926108794,
+            "top_5": 4.839914099873785
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 8.857122926108794,
+          "top_5": 4.839914099873785
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 413.0,
+          "y": 487.72460215007106
+        },
+        "top_5": {
+          "x": 776.0,
+          "y": 431.20894341328426
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 241,
+          "y": 117
+        },
+        {
+          "id": 2,
+          "x": 605,
+          "y": 58
+        },
+        {
+          "id": 3,
+          "x": 876,
+          "y": 217
+        },
+        {
+          "id": 4,
+          "x": 876,
+          "y": 691
+        },
+        {
+          "id": 5,
+          "x": 776,
+          "y": 905
+        },
+        {
+          "id": 6,
+          "x": 413,
+          "y": 967
+        },
+        {
+          "id": 7,
+          "x": 144,
+          "y": 808
+        },
+        {
+          "id": 8,
+          "x": 144,
+          "y": 329
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003938,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.1646532799832676,
+        "stretch_min": 0.6727309178765432,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981898,
-        "stretch_min": 0.6802492797224069
+        "stretch_max": 1.17555335506466,
+        "stretch_min": 0.6706277034662894,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021996,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8669828085101415,
+        "stretch_min": 0.6762248620919769,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985784,
-        "stretch_min": 0.6802492797224067
-      }
+        "stretch_max": 3.1640533487553073,
+        "stretch_min": 0.6773131221582342,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "stone_e0": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/stone_e0_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/stone_e0_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/stone_e0_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e0_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      217.645,
-      875.509,
-      806.355
+      130,
+      201,
+      895,
+      827
     ],
-    "origin_px": [
-      512.0,
-      427.4949885721091
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.7956533397679129,
+            -0.15228814210220099,
+            66.7804713409602
+          ],
+          [
+            -0.040294567453630824,
+            0.8309910510222377,
+            17.394471832408996
+          ],
+          [
+            -0.00013079161029765516,
+            -0.00025782579480532,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.07249968519395,
+            0.008573272360081477,
+            -32.934021616398816
+          ],
+          [
+            0.00027606572537443666,
+            1.058372797469746,
+            -27.25808574720565
+          ],
+          [
+            -4.122217524503382e-05,
+            2.0115334104109507e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9535180516531034,
+            0.00014012388677075456,
+            14.326897105014062
+          ],
+          [
+            -0.04655276511382212,
+            1.0231463070003657,
+            3.057462327312979
+          ],
+          [
+            -5.3142213352998395e-05,
+            -5.339690408272626e-09,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.0775893059447892,
+            0.04594778569312406,
+            -61.836607770965095
+          ],
+          [
+            0.1088292792301281,
+            1.131184903884117,
+            -145.74589046161478
+          ],
+          [
+            -1.9939588327565877e-05,
+            5.8041166288267345e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 383.385528736008,
+          "y": 678.6305701727304
+        },
+        "top_5": {
+          "x": 798.2153608876091,
+          "y": 626.5907816879607
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.63524459861787,
+        "vertical_direction": {
+          "x": -0.0001382021397093497,
+          "y": -0.9999999904500843
+        },
+        "center": {
+          "x": 512.5,
+          "y": 425.5
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 176.00284088616297,
+          "right_3_4": 185.00270268296083
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 418.9752065492149,
+              "y": 647.60009634809
+            },
+            "top_5": {
+              "x": 788.9746033957965,
+              "y": 582.2358121632742
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 425.0,
+              "y": 650.0
+            },
+            "top_5": {
+              "x": 779.0,
+              "y": 589.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 418.9776736608861,
+              "y": 665.4515687214978
+            },
+            "top_5": {
+              "x": 788.9763841005181,
+              "y": 595.1205958740514
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 418.97558821614524,
+              "y": 650.3617537236681
+            },
+            "top_5": {
+              "x": 788.9745032205781,
+              "y": 581.5109663438187
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 383.385528736008,
+              "y": 678.6305701727304
+            },
+            "top_5": {
+              "x": 798.2153608876091,
+              "y": 626.5907816879607
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 418.9752065492149,
+            "y": 647.60009634809
+          },
+          "top_5": {
+            "x": 788.9746033957965,
+            "y": 582.2358121632742
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.12117677693541395,
+          "height_transfer_delta_px": {
+            "top_4": 2.5807805207996197,
+            "top_5": 3.382093918733788
+          },
+          "constraint_spread_px": {
+            "top_4": 45.56340417233359,
+            "top_5": 42.00201257286564
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 45.56340417233359,
+          "top_5": 42.00201257286564
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 418.97539738268006,
+          "y": 650.1808768618341
+        },
+        "top_5": {
+          "x": 788.9745533081873,
+          "y": 585.6179060816371
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 246,
+          "y": 262
+        },
+        {
+          "id": 2,
+          "x": 600,
+          "y": 201
+        },
+        {
+          "id": 3,
+          "x": 895,
+          "y": 368
+        },
+        {
+          "id": 4,
+          "x": 894,
+          "y": 553
+        },
+        {
+          "id": 5,
+          "x": 789,
+          "y": 766
+        },
+        {
+          "id": 6,
+          "x": 419,
+          "y": 827
+        },
+        {
+          "id": 7,
+          "x": 131,
+          "y": 659
+        },
+        {
+          "id": 8,
+          "x": 130,
+          "y": 483
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003935,
-        "stretch_min": 0.6802492797224066
+        "stretch_max": 1.1342550154914475,
+        "stretch_min": 0.6389662347009099,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981896,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.1191380162679612,
+        "stretch_min": 0.6373802433060116,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.862474803202199,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8307967281800006,
+        "stretch_min": 0.6581391011660938,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224072
-      }
+        "stretch_max": 2.941088773919577,
+        "stretch_min": 0.6318266086775374,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "stone_e1": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/stone_e1_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/stone_e1_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/stone_e1_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e1_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      140.823,
-      875.509,
-      883.177
+      147,
+      121,
+      875,
+      879
     ],
-    "origin_px": [
-      512.0,
-      350.67225091039006
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9639105821623674,
+            -0.022585966394349375,
+            10.06464453254884
+          ],
+          [
+            -0.00817961127922948,
+            0.9941518219707778,
+            -16.352022989228534
+          ],
+          [
+            -2.1987972672991892e-05,
+            -4.202999587549163e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            0.9911488655980029,
+            -0.0014041588611166847,
+            -1.8989943156012006
+          ],
+          [
+            0.025176423491275662,
+            0.9487279821613158,
+            -0.9413947770486921
+          ],
+          [
+            -2.2610205389099237e-05,
+            -3.0101842462872073e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9584716352958463,
+            0.026653176966280778,
+            9.325615313090575
+          ],
+          [
+            -0.034074751348950154,
+            1.0382760430176008,
+            -8.798284644581345
+          ],
+          [
+            -3.39847122586956e-05,
+            3.53482372665604e-05,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            0.8512715414677917,
+            -0.006007657710441464,
+            52.096426241399264
+          ],
+          [
+            -0.04462568806436608,
+            0.9286188289482632,
+            18.425702410998213
+          ],
+          [
+            -0.00010130570087146135,
+            -6.86589452699627e-06,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 410.45152941659074,
+          "y": 555.6564775500971
+        },
+        "top_5": {
+          "x": 778.5214344511088,
+          "y": 497.69067972502603
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.1801748133659354,
+        "vertical_direction": {
+          "x": -0.0015723212133729296,
+          "y": -0.9999987639022371
+        },
+        "center": {
+          "x": 511.0,
+          "y": 336.5
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 318.0015723231569,
+          "right_3_4": 331.0
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 422.4922684761957,
+              "y": 556.0819525424463
+            },
+            "top_5": {
+              "x": 774.4823729168298,
+              "y": 491.7883612266973
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 416.0,
+              "y": 552.0
+            },
+            "top_5": {
+              "x": 776.0,
+              "y": 493.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 422.4627995191237,
+              "y": 537.3396495118827
+            },
+            "top_5": {
+              "x": 774.4828692565887,
+              "y": 492.1040341081364
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 422.4972742711184,
+              "y": 559.2656459861934
+            },
+            "top_5": {
+              "x": 774.4827922815061,
+              "y": 492.0550778346746
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 410.45152941659074,
+              "y": 555.6564775500971
+            },
+            "top_5": {
+              "x": 778.5214344511088,
+              "y": 497.69067972502603
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 422.4922684761957,
+            "y": 556.0819525424463
+          },
+          "top_5": {
+            "x": 774.4823729168298,
+            "y": 491.7883612266973
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.7815654191306862,
+          "height_transfer_delta_px": {
+            "top_4": 3.2530977135692973,
+            "top_5": 1.059480963866145
+          },
+          "constraint_spread_px": {
+            "top_4": 8.79717745693212,
+            "top_5": 6.116917059877605
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 8.79717745693212,
+          "top_5": 6.116917059877605
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 419.24613423809785,
+          "y": 555.8692150462716
+        },
+        "top_5": {
+          "x": 775.2413961407531,
+          "y": 492.5275389173373
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 246,
+          "y": 180
+        },
+        {
+          "id": 2,
+          "x": 606,
+          "y": 121
+        },
+        {
+          "id": 3,
+          "x": 875,
+          "y": 278
+        },
+        {
+          "id": 4,
+          "x": 875,
+          "y": 609
+        },
+        {
+          "id": 5,
+          "x": 775,
+          "y": 821
+        },
+        {
+          "id": 6,
+          "x": 423,
+          "y": 879
+        },
+        {
+          "id": 7,
+          "x": 148,
+          "y": 713
+        },
+        {
+          "id": 8,
+          "x": 147,
+          "y": 395
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.178353991400394,
-        "stretch_min": 0.6802492797224065
+        "stretch_max": 1.1552802482398157,
+        "stretch_min": 0.6754691421699459,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981894,
-        "stretch_min": 0.680249279722407
+        "stretch_max": 1.1859949331094817,
+        "stretch_min": 0.6647399122970897,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021995,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8641887632192882,
+        "stretch_min": 0.6839086084188164,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224069
-      }
+        "stretch_max": 3.1390891279791218,
+        "stretch_min": 0.6638763944753453,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "stone_e2": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/stone_e2_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/stone_e2_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "fit_mode": "fallback_template",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/stone_e2_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/stone_e2_fit_overlay.png",
     "bbox_px": [
@@ -304,131 +2306,891 @@
       512.0,
       273.8495132486711
     ],
+    "auto_fit": null,
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003938,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.1783539914003944,
+        "stretch_min": 0.6802492797224067,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
         "stretch_max": 1.1781624912981898,
-        "stretch_min": 0.6802492797224069
+        "stretch_min": 0.6802492797224069,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021996,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8624748032021999,
+        "stretch_min": 0.6802492797224067,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
         "stretch_max": 3.2187997857985784,
-        "stretch_min": 0.6802492797224067
-      }
+        "stretch_min": 0.6802492797224067,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "water_e0": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/water_e0_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/water_e0_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/water_e0_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e0.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e0.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e0_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      217.645,
-      875.509,
-      806.355
+      121,
+      181,
+      905,
+      848
     ],
-    "origin_px": [
-      512.0,
-      427.4949885721091
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9928084011762958,
+            -0.07960875168149169,
+            3.509398200074325
+          ],
+          [
+            0.0007181936805317575,
+            1.0045961680152418,
+            -45.6513355367165
+          ],
+          [
+            -1.828177976548178e-05,
+            -0.00014091911096119058,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.1129900003021171,
+            0.005593478315245258,
+            -43.445343386721376
+          ],
+          [
+            -0.07078401513653215,
+            1.3226581283935412,
+            -141.46674912113485
+          ],
+          [
+            4.5816575640496705e-05,
+            4.6227093514594177e-05,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.8515612758766664,
+            -0.01994662873127128,
+            25.738766464964783
+          ],
+          [
+            -0.12345999853869234,
+            1.095999828558074,
+            -63.63238648004668
+          ],
+          [
+            -0.0001823260648195633,
+            -2.1866700397190783e-05,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            0.0825801619762824,
+            0.00878989359881205,
+            382.04417663492006
+          ],
+          [
+            0.18124520608640685,
+            0.7527897738721344,
+            -260.1806410596774
+          ],
+          [
+            -0.0005701769176952561,
+            1.3032841727327904e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 403.70589857001005,
+          "y": 659.1137357611652
+        },
+        "top_5": {
+          "x": 807.358694563928,
+          "y": 595.9764490941578
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.23010229509669786,
+        "vertical_direction": {
+          "x": 0.0020080199834808386,
+          "y": -0.9999979839258407
+        },
+        "center": {
+          "x": 513.0,
+          "y": 413.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 212.0,
+          "right_3_4": 249.0020080240318
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 400.4521752240586,
+              "y": 622.8158304401077
+            },
+            "top_5": {
+              "x": 800.4901321954717,
+              "y": 542.9131824578652
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 409.0,
+              "y": 645.0
+            },
+            "top_5": {
+              "x": 790.0,
+              "y": 586.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 400.368966697959,
+              "y": 664.2538435199374
+            },
+            "top_5": {
+              "x": 800.390581909488,
+              "y": 592.4894248026766
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 400.42325784030476,
+              "y": 637.2167456136425
+            },
+            "top_5": {
+              "x": 800.4907415735252,
+              "y": 542.6097109887273
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 403.70589857001005,
+              "y": 659.1137357611652
+            },
+            "top_5": {
+              "x": 807.358694563928,
+              "y": 595.9764490941578
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 400.4521752240586,
+            "y": 622.8158304401077
+          },
+          "top_5": {
+            "x": 800.4901321954717,
+            "y": 542.9131824578652
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 2.0876147284177193,
+          "height_transfer_delta_px": {
+            "top_4": 18.364742991422737,
+            "top_5": 21.543408773222062
+          },
+          "constraint_spread_px": {
+            "top_4": 18.364742991422737,
+            "top_5": 32.25948547939102
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 18.078710518747126,
+          "top_5": 32.25948547939102
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 402.0790368970343,
+          "y": 641.1083728068213
+        },
+        "top_5": {
+          "x": 800.4904368844984,
+          "y": 564.4565912289327
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 236,
+          "y": 240
+        },
+        {
+          "id": 2,
+          "x": 617,
+          "y": 181
+        },
+        {
+          "id": 3,
+          "x": 905,
+          "y": 352
+        },
+        {
+          "id": 4,
+          "x": 904,
+          "y": 601
+        },
+        {
+          "id": 5,
+          "x": 800,
+          "y": 787
+        },
+        {
+          "id": 6,
+          "x": 400,
+          "y": 848
+        },
+        {
+          "id": 7,
+          "x": 121,
+          "y": 686
+        },
+        {
+          "id": 8,
+          "x": 121,
+          "y": 474
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003935,
-        "stretch_min": 0.6802492797224066
+        "stretch_max": 1.1636330683476062,
+        "stretch_min": 0.621754962326336,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981896,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.0447460681695186,
+        "stretch_min": 0.5832997771860987,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.862474803202199,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.7218917368750108,
+        "stretch_min": 0.5789277980689145,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224072
-      }
+        "stretch_max": 2.740079541892497,
+        "stretch_min": 0.5096644014798793,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "water_e1": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/water_e1_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/water_e1_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/water_e1_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e1.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e1.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e1_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      140.823,
-      875.509,
-      883.177
+      144,
+      132,
+      878,
+      886
     ],
-    "origin_px": [
-      512.0,
-      350.67225091039006
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9423301558258709,
+            -0.03745910312959025,
+            15.560290079446226
+          ],
+          [
+            -0.015280706804263902,
+            0.9627794084996801,
+            1.05708769528892
+          ],
+          [
+            -4.72811548914036e-05,
+            -4.6825878245562226e-05,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.017130852520382,
+            0.0018663344301064627,
+            -8.402500954344271
+          ],
+          [
+            0.0014710416049266016,
+            1.0030562090593078,
+            -9.058392881330759
+          ],
+          [
+            -5.41510323687251e-06,
+            -8.412724108034352e-06,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9718987112692976,
+            0.0018769898269578409,
+            8.314517518406841
+          ],
+          [
+            -0.024156362854020504,
+            0.9981834009033705,
+            1.5846036398579317
+          ],
+          [
+            -1.7270417263802892e-05,
+            -8.324249189299182e-06,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            1.7198757172037455,
+            0.10632166796224457,
+            -330.75205456237944
+          ],
+          [
+            0.34636164324883945,
+            1.493070293789462,
+            -348.54600400468655
+          ],
+          [
+            0.0003863878914339557,
+            0.00012109529380662283,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 403.7642222253327,
+          "y": 560.0590295004698
+        },
+        "top_5": {
+          "x": 776.8272511335789,
+          "y": 505.2060893975085
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.17521590490482736,
+        "vertical_direction": {
+          "x": -0.0015290466254146936,
+          "y": -0.9999988310075254
+        },
+        "center": {
+          "x": 511.0,
+          "y": 344.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 327.00152904841286,
+          "right_3_4": 333.0
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 418.4965708861116,
+              "y": 556.7565897495195
+            },
+            "top_5": {
+              "x": 781.492028710312,
+              "y": 492.7859998313621
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 416.0,
+              "y": 556.0
+            },
+            "top_5": {
+              "x": 777.0,
+              "y": 497.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 418.48692814680885,
+              "y": 550.4502235039633
+            },
+            "top_5": {
+              "x": 781.5024319657083,
+              "y": 499.5897447020804
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 418.4993581926518,
+              "y": 558.5794924913191
+            },
+            "top_5": {
+              "x": 781.4909064152585,
+              "y": 492.052017084478
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 403.7642222253327,
+              "y": 560.0590295004698
+            },
+            "top_5": {
+              "x": 776.8272511335789,
+              "y": 505.2060893975085
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 418.4965708861116,
+            "y": 556.7565897495195
+          },
+          "top_5": {
+            "x": 781.492028710312,
+            "y": 492.7859998313621
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 0.5559329601560421,
+          "height_transfer_delta_px": {
+            "top_4": 1.5456261348916243,
+            "top_5": 3.080024487658205
+          },
+          "constraint_spread_px": {
+            "top_4": 13.694407117253768,
+            "top_5": 10.592804913294728
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 13.694407117253768,
+          "top_5": 10.592804913294728
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 417.2482854430558,
+          "y": 557.6680411204193
+        },
+        "top_5": {
+          "x": 779.2454532076292,
+          "y": 494.89299991568106
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 245,
+          "y": 191
+        },
+        {
+          "id": 2,
+          "x": 606,
+          "y": 132
+        },
+        {
+          "id": 3,
+          "x": 878,
+          "y": 287
+        },
+        {
+          "id": 4,
+          "x": 878,
+          "y": 620
+        },
+        {
+          "id": 5,
+          "x": 782,
+          "y": 825
+        },
+        {
+          "id": 6,
+          "x": 419,
+          "y": 886
+        },
+        {
+          "id": 7,
+          "x": 145,
+          "y": 728
+        },
+        {
+          "id": 8,
+          "x": 144,
+          "y": 401
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.178353991400394,
-        "stretch_min": 0.6802492797224065
+        "stretch_max": 1.1914981265508537,
+        "stretch_min": 0.6704428904822541,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981894,
-        "stretch_min": 0.680249279722407
+        "stretch_max": 1.1562053187484436,
+        "stretch_min": 0.6654301528078462,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021995,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8521811934091791,
+        "stretch_min": 0.6769059164100372,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985775,
-        "stretch_min": 0.6802492797224069
-      }
+        "stretch_max": 3.1570171597674617,
+        "stretch_min": 0.6679884877674127,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   },
   "water_e2": {
     "source_script": "inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
     "raw": "inkmon美术探索/concept素材-v1/raw/water_e2_design_raw.png",
     "uv": "inkmon美术探索/concept素材-v1/uv/water_e2_warp_uv.png",
-    "design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
+    "fit_mode": "auto_fit_source_faces",
+    "design_sidecar": "inkmon美术探索/concept素材-v1/uv/auto_fit_sidecars/water_e2_design_auto_fit.json",
+    "template_design_sidecar": "blender/templates/standard-templates/template_design_e2.json",
     "uv_sidecar": "blender/templates/standard-templates/template_uv_e2.json",
     "overlay": "inkmon美术探索/concept素材-v1/fit_overlay/water_e2_fit_overlay.png",
     "bbox_px": [
-      148.491,
-      64.0,
-      875.509,
-      960.0
+      143,
+      49,
+      877,
+      970
     ],
-    "origin_px": [
-      512.0,
-      273.8495132486711
-    ],
+    "origin_px": null,
+    "auto_fit": {
+      "method": "per-face source fit: outer 8-point silhouette plus orthographic/perspective internal-point solver, then each visible face uses its constrained polygon",
+      "transforms": {
+        "top_outer": [
+          [
+            0.9020653487030734,
+            -0.05501650140856571,
+            20.953610836826826
+          ],
+          [
+            -0.022262715145133703,
+            0.9573658565390976,
+            -1.2320651404436618
+          ],
+          [
+            -7.201191814977242e-05,
+            -0.00012030238712938325,
+            1.0
+          ]
+        ],
+        "wall_3": [
+          [
+            1.0206966949684966,
+            -0.0015858533553289639,
+            -7.939561866592888
+          ],
+          [
+            0.014472805129780119,
+            0.9896724551458342,
+            -2.8667807579608615
+          ],
+          [
+            -4.983178856096961e-05,
+            3.5003480139710235e-06,
+            1.0
+          ]
+        ],
+        "wall_4": [
+          [
+            0.9354492083413931,
+            -0.0030570621077947355,
+            29.7027779357266
+          ],
+          [
+            -0.05351397270901568,
+            0.9900868296866308,
+            26.965234768290287
+          ],
+          [
+            -3.672543230081465e-05,
+            3.362134213599617e-08,
+            1.0
+          ]
+        ],
+        "wall_5": [
+          [
+            0.9555687430581454,
+            0.0046877692650159185,
+            17.724499035708057
+          ],
+          [
+            0.0017818033558757236,
+            1.0082982608106066,
+            -20.070810258229027
+          ],
+          [
+            -3.068640265856789e-05,
+            1.0037891959922615e-05,
+            1.0
+          ]
+        ]
+      },
+      "initial_top_plane_points": {
+        "top_4": {
+          "x": 403.8983132874433,
+          "y": 496.3132588428301
+        },
+        "top_5": {
+          "x": 783.5372566702393,
+          "y": 437.7280230368575
+        }
+      },
+      "internal_point_fit": {
+        "method": "orthographic four-constraint median: vertical-height transfer, central symmetry, side VP seed, top-plane prior",
+        "status": "orthographic_symmetry",
+        "vertical_angle_deg": 0.11320471408973035,
+        "vertical_direction": {
+          "x": 0.003102054274773652,
+          "y": -0.9999951886180635
+        },
+        "center": {
+          "x": 510.5,
+          "y": 267.0
+        },
+        "visible_vertical_heights_px": {
+          "left_8_7": 473.0010570812712,
+          "right_3_4": 489.004089962446
+        },
+        "constraint_estimates": {
+          "height_transfer": {
+            "top_4": {
+              "x": 422.48612816541277,
+              "y": 490.9235933852262
+            },
+            "top_5": {
+              "x": 778.510271130515,
+              "y": 419.14073505889854
+            }
+          },
+          "central_symmetry": {
+            "top_4": {
+              "x": 423.0,
+              "y": 485.0
+            },
+            "top_5": {
+              "x": 777.0,
+              "y": 422.0
+            }
+          },
+          "symmetry_ray_vertical_intersection": {
+            "top_4": {
+              "x": 422.50064424921356,
+              "y": 486.24410918481635
+            },
+            "top_5": {
+              "x": 778.4986975347343,
+              "y": 422.8716627312714
+            }
+          },
+          "side_vp_seed": {
+            "top_4": {
+              "x": 422.48470529077736,
+              "y": 491.3822790348328
+            },
+            "top_5": {
+              "x": 778.513132063473,
+              "y": 418.2184690699252
+            }
+          },
+          "top_plane_prior": {
+            "top_4": {
+              "x": 403.8983132874433,
+              "y": 496.3132588428301
+            },
+            "top_5": {
+              "x": 783.5372566702393,
+              "y": 437.7280230368575
+            }
+          }
+        },
+        "height_transfer_estimates": {
+          "top_4": {
+            "x": 422.48612816541277,
+            "y": 490.9235933852262
+          },
+          "top_5": {
+            "x": 778.510271130515,
+            "y": 419.14073505889854
+          }
+        },
+        "validation": {
+          "front_edge_angle_delta_deg": 1.1224870907986713,
+          "height_transfer_delta_px": {
+            "top_4": 0.22934392826451638,
+            "top_5": 1.4296331862010652
+          },
+          "constraint_spread_px": {
+            "top_4": 19.29013592456218,
+            "top_5": 17.878516334000334
+          }
+        },
+        "delta_from_top_plane_px": {
+          "top_4": 19.29013592456218,
+          "top_5": 17.878516334000334
+        }
+      },
+      "derived_points": {
+        "top_4": {
+          "x": 422.48541672809506,
+          "y": 491.15293621002945
+        },
+        "top_5": {
+          "x": 778.511701596994,
+          "y": 420.5703675294493
+        }
+      },
+      "point_order": {
+        "1": "top[2]",
+        "2": "top[1]",
+        "3": "top[0]",
+        "4": "wall_5[2]",
+        "5": "wall_5[3]",
+        "6": "wall_4[3]",
+        "7": "wall_3[3]",
+        "8": "top[3]",
+        "9": "top[4] predicted internal",
+        "10": "top[5] predicted internal"
+      },
+      "fit_mode": "auto_fit_source_faces",
+      "detected_vertices": [
+        {
+          "id": 1,
+          "x": 244,
+          "y": 112
+        },
+        {
+          "id": 2,
+          "x": 598,
+          "y": 49
+        },
+        {
+          "id": 3,
+          "x": 877,
+          "y": 206
+        },
+        {
+          "id": 4,
+          "x": 875,
+          "y": 695
+        },
+        {
+          "id": 5,
+          "x": 777,
+          "y": 906
+        },
+        {
+          "id": 6,
+          "x": 421,
+          "y": 970
+        },
+        {
+          "id": 7,
+          "x": 143,
+          "y": 801
+        },
+        {
+          "id": 8,
+          "x": 144,
+          "y": 328
+        }
+      ]
+    },
     "warp": {
       "top": {
-        "stretch_max": 1.1783539914003938,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 1.1593011833101514,
+        "stretch_min": 0.6686557945386743,
+        "triangle_count": 6,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_3": {
-        "stretch_max": 1.1781624912981898,
-        "stretch_min": 0.6802492797224069
+        "stretch_max": 1.1721508277095467,
+        "stretch_min": 0.6582098600266704,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_4": {
-        "stretch_max": 0.8624748032021996,
-        "stretch_min": 0.6802492797224067
+        "stretch_max": 0.8711958145944033,
+        "stretch_min": 0.6770503476294035,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
       },
       "wall_5": {
-        "stretch_max": 3.2187997857985784,
-        "stretch_min": 0.6802492797224067
-      }
+        "stretch_max": 3.207877796836785,
+        "stretch_min": 0.6634183538659605,
+        "triangle_count": 2,
+        "warp_route": "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
+      },
+      "_warp_route": "texgen.warp.warp_design_to_uv -> texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
     }
   }
 }

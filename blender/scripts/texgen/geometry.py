@@ -463,19 +463,63 @@ def _manifest_excerpt(manifest: dict) -> dict:
 
 # ---------------------------------------------------------------- warp 对应关系（design ↔ UV 的逐面控制点）
 
-def face_correspondences(design: dict, uv: dict) -> list:
-    """逐面仿射控制点：[(face_name, src_tri_px, dst_tri_px, dst_mask_poly_px)]。
-    src = design 画布像素，dst = uv 画布像素；每面 3 个对应点唯一确定仿射。"""
+def _copy_poly(poly: list) -> list:
+    return [[float(x), float(y)] for x, y in poly]
+
+
+def _poly_center(poly: list) -> list:
+    return [
+        sum(point[0] for point in poly) / len(poly),
+        sum(point[1] for point in poly) / len(poly),
+    ]
+
+
+def polygon_triangle_correspondences(src_poly: list, dst_poly: list) -> list:
+    """同一面多边形的逐三角仿射对应。
+
+    不新增边界控制点：三角剖分只让已有顶点全部参与 warp，避免 6 点顶面被
+    0/2/4 三点仿射强行拉平。
+    """
+    src = _copy_poly(src_poly)
+    dst = _copy_poly(dst_poly)
+    if len(src) != len(dst):
+        raise ValueError("source/destination polygon point counts differ")
+    if len(src) < 3:
+        raise ValueError("polygon needs at least 3 points")
+    if len(src) == 3:
+        return [(src, dst)]
+    if len(src) == 4:
+        return [
+            ([src[0], src[1], src[2]], [dst[0], dst[1], dst[2]]),
+            ([src[0], src[2], src[3]], [dst[0], dst[2], dst[3]]),
+        ]
+
+    src_center = _poly_center(src)
+    dst_center = _poly_center(dst)
+    return [
+        (
+            [src_center, src[i], src[(i + 1) % len(src)]],
+            [dst_center, dst[i], dst[(i + 1) % len(dst)]],
+        )
+        for i in range(len(src))
+    ]
+
+
+def face_polygon_pairs(design: dict, uv: dict) -> list:
+    """逐面多边形对应：[(face_name, src_poly_px, dst_poly_px)]。"""
     out = []
-    # 顶面：取角点 0/2/4（非退化三角形）
-    src_p = design["faces"]["top"]["polygon_px"]
-    dst_p = uv["faces"]["top"]["polygon_px"]
-    out.append(("top", [src_p[0], src_p[2], src_p[4]], [dst_p[0], dst_p[2], dst_p[4]], dst_p))
+    out.append(("top", design["faces"]["top"]["polygon_px"], uv["faces"]["top"]["polygon_px"]))
     for name in design["faces"]:
         if not name.startswith("wall_"):
             continue
-        sq = design["faces"][name]["quad_px"]
-        dq = uv["faces"][name]["quad_px"]
-        # quad 顺序一致（左上/右上/右下/左下）→ 取前 3 点
-        out.append((name, sq[:3], dq[:3], dq))
+        out.append((name, design["faces"][name]["quad_px"], uv["faces"][name]["quad_px"]))
+    return out
+
+
+def face_correspondences(design: dict, uv: dict) -> list:
+    """逐面逐三角仿射控制点：[(face_name, src_tri_px, dst_tri_px, dst_mask_poly_px)]。"""
+    out = []
+    for name, src_poly, dst_poly in face_polygon_pairs(design, uv):
+        for src_tri, dst_tri in polygon_triangle_correspondences(src_poly, dst_poly):
+            out.append((name, src_tri, dst_tri, dst_poly))
     return out

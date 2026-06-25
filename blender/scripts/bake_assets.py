@@ -20,7 +20,9 @@ import bmesh
 import math
 import json
 import os
+import subprocess
 import sys
+import tempfile
 from mathutils import Euler, Vector
 
 # texgen.geometry = 生图管线几何契约（UV 展开布局与模板/warp 共享，drift 即对不上）
@@ -60,6 +62,14 @@ CONFIG = {
     "ink_color": (0.16, 0.12, 0.08),   # 暖墨褐（线性空间）
     "ink_thickness_px": 3.2,
     "ink_wobble_px": 1.5,              # 手绘抖动幅度
+    "ink_thickness_position": "INSIDE",
+    "ink_thickness_noise_px": None,
+    "ink_select_silhouette": True,
+    "ink_select_border": True,
+    "ink_select_crease": True,
+    "ink_select_external_contour": True,
+    "extra_stroke_px": 0,
+    "extra_stroke_scope": "none",
     "ink_exclude_wall_stitch_edges": False,  # candidate-only: 不让 wall-wall 缝合竖边吃 Freestyle 墨线
     "ink_corner_enabled": False,       # candidate-only: 单独给 wall-wall 立体转角补受控 crease line
     "ink_corner_color": (0.13, 0.10, 0.07),
@@ -69,6 +79,9 @@ CONFIG = {
     "px_per_unit": 128,         # 1 世界单位 = 128 px → px_per_hex_edge = 128
     "canvas_px": 512,
     "samples": 64,
+    "use_denoising": True,
+    "tile_image_material_mode": "emission",  # emission = UV color直出；lit = 旧Base Color受光照
+    "uv_inset_px": 0.0,       # image tile candidate: shrink source UV samples inward to avoid source outlines
     # 输出（相对 blend 文件所在 blender/ 目录）
     "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked",
 }
@@ -221,7 +234,7 @@ def setup_stage():
     # 渲染：Cycles GPU + 透明片 + Standard 色彩（保配色不被 Filmic 洗灰）
     scene.render.engine = "CYCLES"
     scene.cycles.samples = cfg["samples"]
-    scene.cycles.use_denoising = True
+    scene.cycles.use_denoising = bool(cfg.get("use_denoising", True))
     try:
         bpy.context.preferences.addons["cycles"].preferences.compute_device_type = "OPTIX"
         scene.cycles.device = "GPU"
@@ -252,10 +265,10 @@ def _reset_linesets(fs):
         fs.linesets.remove(fs.linesets[0])
 
 
-def _configure_ink_style(style, color, thickness_px: float, wobble_px: float):
+def _configure_ink_style(style, color, thickness_px: float, wobble_px: float, cfg: dict):
     style.color = color
     style.thickness = thickness_px
-    style.thickness_position = "INSIDE"
+    style.thickness_position = cfg.get("ink_thickness_position", "INSIDE")
     mod = next((m for m in style.geometry_modifiers if m.type == "PERLIN_NOISE_2D"), None)
     if mod is None:
         mod = style.geometry_modifiers.new("wobble", "PERLIN_NOISE_2D")
@@ -265,7 +278,8 @@ def _configure_ink_style(style, color, thickness_px: float, wobble_px: float):
     tmod = next((m for m in style.thickness_modifiers if m.type == "NOISE"), None)
     if tmod is None:
         tmod = style.thickness_modifiers.new("taper", "NOISE")
-    tmod.amplitude = thickness_px * 0.5
+    thickness_noise = cfg.get("ink_thickness_noise_px")
+    tmod.amplitude = thickness_px * 0.5 if thickness_noise is None else float(thickness_noise)
     tmod.period = 18.0
 
 
@@ -289,10 +303,10 @@ def _setup_freestyle_linesets(fs, cfg: dict):
     base.select_by_edge_types = True
     base.select_by_visibility = True
     base.visibility = "VISIBLE"
-    base.select_silhouette = True
-    base.select_border = True
-    base.select_crease = True
-    base.select_external_contour = True
+    base.select_silhouette = bool(cfg.get("ink_select_silhouette", True))
+    base.select_border = bool(cfg.get("ink_select_border", True))
+    base.select_crease = bool(cfg.get("ink_select_crease", True))
+    base.select_external_contour = bool(cfg.get("ink_select_external_contour", True))
     base.select_edge_mark = exclude_marked
     base.exclude_edge_mark = exclude_marked
     _configure_ink_style(
@@ -300,6 +314,7 @@ def _setup_freestyle_linesets(fs, cfg: dict):
         cfg["ink_color"],
         cfg["ink_thickness_px"],
         cfg["ink_wobble_px"],
+        cfg,
     )
 
     if cfg.get("ink_corner_enabled", False):
@@ -319,7 +334,74 @@ def _setup_freestyle_linesets(fs, cfg: dict):
             cfg.get("ink_corner_color", cfg["ink_color"]),
             cfg.get("ink_corner_thickness_px", cfg["ink_thickness_px"]),
             cfg.get("ink_corner_wobble_px", cfg["ink_wobble_px"]),
+            cfg,
         )
+
+
+def apply_alpha_extra_stroke(image_paths: list, stroke_px: float, alpha_threshold: int = 1):
+    """Draw a straight black outside stroke from final PNG alpha.
+
+    Freestyle is good for hand-drawn lines, but external runtime tile strokes need
+    exact pixel width and closed corners. Doing this on final alpha avoids broken
+    caps at mesh corners and keeps inner crease/stitch edges untouched.
+    """
+    stroke_px = float(stroke_px)
+    if stroke_px <= 0 or not image_paths:
+        return
+    helper = r'''
+import json
+import math
+import sys
+from pathlib import Path
+from PIL import Image, ImageFilter
+
+request = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+stroke_px = float(request["stroke_px"])
+threshold = int(request["alpha_threshold"])
+for raw_path in request["paths"]:
+    path = Path(raw_path)
+    image = Image.open(path).convert("RGBA")
+    alpha = image.getchannel("A")
+    mask = alpha.point(lambda value: 255 if value > threshold else 0)
+    if abs(stroke_px - round(stroke_px)) < 1e-6 and stroke_px >= 1.0:
+        radius = int(round(stroke_px))
+        dilated = mask.filter(ImageFilter.MaxFilter(radius * 2 + 1))
+    else:
+        scale = 8
+        radius = max(1, int(round(stroke_px * scale)))
+        large_size = (mask.width * scale, mask.height * scale)
+        large = mask.resize(large_size, Image.Resampling.NEAREST)
+        large = large.filter(ImageFilter.MaxFilter(radius * 2 + 1))
+        dilated = large.resize(mask.size, Image.Resampling.LANCZOS)
+    stroke = Image.new("RGBA", image.size, (0, 0, 0, 255))
+    stroke.putalpha(dilated)
+    out = Image.alpha_composite(stroke, image)
+    out.save(path)
+'''
+    python_exe = os.environ.get("PYTHON", "python")
+    with tempfile.TemporaryDirectory(prefix="inkmon_alpha_stroke_") as temp_dir:
+        request_path = os.path.join(temp_dir, "request.json")
+        helper_path = os.path.join(temp_dir, "alpha_stroke.py")
+        with open(request_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "paths": [str(p) for p in image_paths],
+                "stroke_px": stroke_px,
+                "alpha_threshold": alpha_threshold,
+            }, f, ensure_ascii=False)
+        with open(helper_path, "w", encoding="utf-8") as f:
+            f.write(helper)
+        proc = subprocess.run(
+            [python_exe, helper_path, request_path],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(
+                "alpha extra stroke failed:\nSTDOUT:\n%s\nSTDERR:\n%s"
+                % (proc.stdout, proc.stderr)
+            )
 
 
 def ensure_shadow_catcher(visible: bool):
@@ -361,6 +443,18 @@ def _new_mat(name, roughness=0.92):
     bsdf.inputs["Roughness"].default_value = roughness
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return mat, nt, bsdf
+
+
+def _new_output_mat(name):
+    mat = bpy.data.materials.get(name)
+    if mat is not None:
+        bpy.data.materials.remove(mat)
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    return mat, nt, out
 
 
 def _obj_coords(nt, offset=(0.0, 0.0, 0.0)):
@@ -565,16 +659,28 @@ def _load_image(path: str):
     return img
 
 
-def _tile_material_image(name: str, image_path: str):
+def _tile_material_image(name: str, image_path: str, material_mode: str | None = None):
     """生图贴图 tile 材质：UV 展开布局贴图（texgen uv_layout）直进 Base Color。
-    光影/墨线仍由场景日光 + Freestyle 叠加（设计稿自带光影的叠加问题 = Round 1 实拍裁决）。"""
-    mat, nt, bsdf = _new_mat(name)
+    material_mode=emission 时颜色不再受 Blender 灯光洗软；material_mode=lit 保留旧路径。"""
     img = _load_image(image_path)
     if tuple(img.size) != texgen_geometry.UV_CANVAS:
         raise ValueError(
             "UV 贴图 %s 尺寸 %s ≠ UV 画布 %s：疑似旧布局（%s 之前）贴图，"
             "需先 `python blender/scripts/texgen/warp.py relayout` 迁移，禁止静默错套"
             % (image_path, tuple(img.size), texgen_geometry.UV_CANVAS, texgen_geometry.UV_LAYOUT_VERSION))
+    mode = material_mode or CONFIG.get("tile_image_material_mode", "emission")
+    if mode == "emission":
+        mat, nt, out = _new_output_mat(name)
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.extension = "EXTEND"
+        emit = nt.nodes.new("ShaderNodeEmission")
+        nt.links.new(tex.outputs["Color"], emit.inputs["Color"])
+        nt.links.new(emit.outputs["Emission"], out.inputs["Surface"])
+        return mat
+    if mode != "lit":
+        raise ValueError("未知 tile image material_mode=%r，允许 emission|lit" % mode)
+    mat, nt, bsdf = _new_mat(name)
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = img
     tex.extension = "EXTEND"
@@ -582,15 +688,27 @@ def _tile_material_image(name: str, image_path: str):
     return mat
 
 
-def _tile_material_atlas_image(name: str, image_path: str):
+def _tile_material_atlas_image(name: str, image_path: str, material_mode: str | None = None):
     """候选 atlas tile 材质：top hex + continuous wall strip 的 1024px atlas。"""
-    mat, nt, bsdf = _new_mat(name)
     img = _load_image(image_path)
     expected = tuple(texgen_geometry.ATLAS_CANVAS)
     if tuple(img.size) != expected:
         raise ValueError(
             "Atlas 贴图 %s 尺寸 %s ≠ atlas 画布 %s：禁止静默错套"
             % (image_path, tuple(img.size), expected))
+    mode = material_mode or CONFIG.get("tile_image_material_mode", "emission")
+    if mode == "emission":
+        mat, nt, out = _new_output_mat(name)
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.extension = "EXTEND"
+        emit = nt.nodes.new("ShaderNodeEmission")
+        nt.links.new(tex.outputs["Color"], emit.inputs["Color"])
+        nt.links.new(emit.outputs["Emission"], out.inputs["Surface"])
+        return mat
+    if mode != "lit":
+        raise ValueError("未知 tile image material_mode=%r，允许 emission|lit" % mode)
+    mat, nt, bsdf = _new_mat(name)
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = img
     tex.extension = "EXTEND"
@@ -652,6 +770,26 @@ def _smooth(obj, angle_deg=40.0):
     obj.data.set_sharp_from_angle(angle=math.radians(angle_deg))
 
 
+def _poly_center_px(points):
+    return (
+        sum(p[0] for p in points) / len(points),
+        sum(p[1] for p in points) / len(points),
+    )
+
+
+def _inset_uv_sample_px(point, center):
+    inset = float(CONFIG.get("uv_inset_px", 0.0))
+    if inset <= 0.0:
+        return point
+    dx = center[0] - point[0]
+    dy = center[1] - point[1]
+    dist = math.hypot(dx, dy)
+    if dist <= 1e-6:
+        return point
+    step = min(inset, dist - 1e-6) / dist
+    return (point[0] + dx * step, point[1] + dy * step)
+
+
 def _assign_tile_uvs(bm, elevation: int, depth: float):
     """按 texgen uv_layout 给 hex 棱柱赋 UV（与线稿模板/warp 同一布局函数 = 零 drift）：
     顶面 → hex（世界 +y = 图像上）；可见壁 → 铰接 quad（unfold net，t 沿铰接边左→右、
@@ -668,13 +806,14 @@ def _assign_tile_uvs(bm, elevation: int, depth: float):
 
     top_poly = faces_px["top"]["polygon_px"]
     top_center = faces_px["top"]["center_px"]
+    top_sample_poly = [_inset_uv_sample_px(point, top_center) for point in top_poly]
     for face in bm.faces:
         nz = face.normal.z
         if nz > 0.5:  # 顶面：角点按方位角对回 corner k
             for loop in face.loops:
                 co = loop.vert.co
                 k = int(round((math.degrees(math.atan2(co.y, co.x)) % 360.0) / 60.0)) % 6
-                loop[uv_layer].uv = uv_of(*top_poly[k])
+                loop[uv_layer].uv = uv_of(*top_sample_poly[k])
         elif nz < -0.5:  # 底面：永不可见，收拢到 island 中心
             for loop in face.loops:
                 loop[uv_layer].uv = uv_of(*top_center)
@@ -682,14 +821,15 @@ def _assign_tile_uvs(bm, elevation: int, depth: float):
             ang = math.degrees(math.atan2(face.normal.y, face.normal.x)) % 360.0
             i = int(round((ang - 30.0) / 60.0)) % 6
             quad = wall_quads.get(i) or wall_quads[(i + 3) % 6]
+            sample_quad = [_inset_uv_sample_px(point, _poly_center_px(quad)) for point in quad]
             left, _right = texgen_geometry.wall_corners_lr(_manifest_like(), i)
             for loop in face.loops:
                 co = loop.vert.co
                 d_left = math.hypot(co.x - left[0], co.y - left[1])
                 t = 0.0 if d_left < CONFIG["hex_edge"] * 0.5 else 1.0  # 角点二择一
                 v = max(0.0, min(1.0, -co.z / depth))  # quad 代表 z 0→-depth（水面顶沉入 quad 内）
-                px = quad[0][0] + (quad[1][0] - quad[0][0]) * t + (quad[3][0] - quad[0][0]) * v
-                py = quad[0][1] + (quad[1][1] - quad[0][1]) * t + (quad[3][1] - quad[0][1]) * v
+                px = sample_quad[0][0] + (sample_quad[1][0] - sample_quad[0][0]) * t + (sample_quad[3][0] - sample_quad[0][0]) * v
+                py = sample_quad[0][1] + (sample_quad[1][1] - sample_quad[0][1]) * t + (sample_quad[3][1] - sample_quad[0][1]) * v
                 loop[uv_layer].uv = uv_of(px, py)
 
 
@@ -700,6 +840,7 @@ def _assign_tile_atlas_uvs(bm, elevation: int, depth: float):
     cw, ch = layout["canvas"]
     top_poly = layout["faces"]["top"]["polygon_px"]
     top_center = layout["faces"]["top"]["center_px"]
+    top_sample_poly = [_inset_uv_sample_px(point, top_center) for point in top_poly]
     segments = layout["wall_segments"]
     first_seg = next(iter(segments.values()))
     uv_layer = bm.loops.layers.uv.new("UVMap")
@@ -713,7 +854,7 @@ def _assign_tile_atlas_uvs(bm, elevation: int, depth: float):
             for loop in face.loops:
                 co = loop.vert.co
                 k = int(round((math.degrees(math.atan2(co.y, co.x)) % 360.0) / 60.0)) % 6
-                loop[uv_layer].uv = uv_of(*top_poly[k])
+                loop[uv_layer].uv = uv_of(*top_sample_poly[k])
         elif nz < -0.5:
             for loop in face.loops:
                 loop[uv_layer].uv = uv_of(*top_center)
@@ -725,13 +866,15 @@ def _assign_tile_atlas_uvs(bm, elevation: int, depth: float):
             q = seg["quad_px"]
             y0 = q[0][1]
             y1 = q[3][1]
+            center = ((x0 + x1) * 0.5, (y0 + y1) * 0.5)
             left, _right = texgen_geometry.wall_corners_lr(_manifest_like(), i)
             for loop in face.loops:
                 co = loop.vert.co
                 d_left = math.hypot(co.x - left[0], co.y - left[1])
                 t = 0.0 if d_left < CONFIG["hex_edge"] * 0.5 else 1.0
                 v = max(0.0, min(1.0, -co.z / depth))
-                loop[uv_layer].uv = uv_of(x0 + (x1 - x0) * t, y0 + (y1 - y0) * v)
+                sample = _inset_uv_sample_px((x0 + (x1 - x0) * t, y0 + (y1 - y0) * v), center)
+                loop[uv_layer].uv = uv_of(*sample)
 
 
 def _mark_wall_stitch_freestyle_edges(mesh: bpy.types.Mesh):
@@ -1214,9 +1357,15 @@ def _cli(argv):
       --candidate-tile <uv_png> <terrain> <elev> --out <png>
       --candidate-tile-atlas <atlas_png> <terrain> <elev> --out <png>
       --candidate-decor <sprite_png> --out <png> [--height <world_h>]
-      --tile-pipeline <圆边|硬边|倒角|mode1|mode2|mode3>   覆盖 tile mesh pipeline"""
+      --tile-pipeline <圆边|硬边|倒角|mode1|mode2|mode3>   覆盖 tile mesh pipeline
+      --material-mode <emission|lit>   image texture tile 颜色层模式"""
     if "--tile-pipeline" in argv:
         apply_tile_pipeline_mode(argv[argv.index("--tile-pipeline") + 1])
+    if "--material-mode" in argv:
+        mode = argv[argv.index("--material-mode") + 1]
+        if mode not in {"emission", "lit"}:
+            raise ValueError("--material-mode 只允许 emission|lit")
+        CONFIG["tile_image_material_mode"] = mode
     if "--subset" in argv:
         bake_all(subset=set(argv[argv.index("--subset") + 1].split(",")))
     elif "--candidate-tile" in argv:

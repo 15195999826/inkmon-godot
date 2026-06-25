@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -72,6 +73,31 @@ def make_fit_overlay(raw_path: Path, design_sidecar: dict, target_path: Path) ->
     }
 
 
+def auto_fit_design_sidecar(raw_path: Path, design_sidecar: dict) -> tuple[dict, dict | None]:
+    from render_uv_mapping_trace import _auto_fit_source_faces, _detected_vertices  # noqa: PLC0415
+
+    raw = Image.open(raw_path).convert("RGBA")
+    vertex_points = [{"id": idx, "x": x, "y": y} for idx, (x, y) in enumerate(_detected_vertices(raw), 1)]
+    source_faces = [{"name": name, "poly": _face_poly(face)} for name, face in design_sidecar["faces"].items()]
+    auto_faces, auto_meta = _auto_fit_source_faces(source_faces, vertex_points)
+    if not auto_faces:
+        return design_sidecar, None
+
+    fitted = copy.deepcopy(design_sidecar)
+    fitted["origin_px"] = None
+    by_name = {face["name"]: face["poly"] for face in auto_faces}
+    for name, poly in by_name.items():
+        if name == "top":
+            fitted["faces"][name]["polygon_px"] = poly
+        elif name in fitted["faces"]:
+            fitted["faces"][name]["quad_px"] = poly
+    return fitted, {
+        **(auto_meta or {}),
+        "fit_mode": "auto_fit_source_faces",
+        "detected_vertices": vertex_points,
+    }
+
+
 def prepare(root: Path, out_dir: Path) -> None:
     scripts_dir = repo_root() / "blender" / "scripts"
     if str(scripts_dir) not in sys.path:
@@ -84,6 +110,7 @@ def prepare(root: Path, out_dir: Path) -> None:
     report: dict[str, dict] = {}
     missing: list[Path] = []
     overlay_dir = root / "fit_overlay"
+    sidecar_dir = out_dir / "auto_fit_sidecars"
 
     for terrain in TERRAINS:
         for elevation in ELEVATIONS:
@@ -94,19 +121,27 @@ def prepare(root: Path, out_dir: Path) -> None:
                 continue
             design_sidecar = warp.load_sidecar(warp.default_sidecar("design", elevation))
             uv_sidecar = warp.load_sidecar(warp.default_sidecar("uv", elevation))
+            fitted_sidecar, auto_meta = auto_fit_design_sidecar(raw_path, design_sidecar)
+            fit_mode = "auto_fit_source_faces" if auto_meta else "fallback_template"
+            fitted_sidecar_path = sidecar_dir / f"{key}_design_auto_fit.json"
+            fitted_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+            fitted_sidecar_path.write_text(json.dumps(fitted_sidecar, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             out_path = out_dir / f"{key}_warp_uv.png"
             overlay_path = overlay_dir / f"{key}_fit_overlay.png"
-            overlay_report = make_fit_overlay(raw_path, design_sidecar, overlay_path)
+            overlay_report = make_fit_overlay(raw_path, fitted_sidecar, overlay_path)
             report[key] = {
                 "source_script": _rel(Path(__file__)),
                 "raw": _rel(raw_path),
                 "uv": _rel(out_path),
-                "design_sidecar": _rel(Path(warp.default_sidecar("design", elevation))),
+                "fit_mode": fit_mode,
+                "design_sidecar": _rel(fitted_sidecar_path),
+                "template_design_sidecar": _rel(Path(warp.default_sidecar("design", elevation))),
                 "uv_sidecar": _rel(Path(warp.default_sidecar("uv", elevation))),
                 "overlay": overlay_report["overlay"],
                 "bbox_px": overlay_report["bbox_px"],
                 "origin_px": overlay_report["origin_px"],
-                "warp": warp.warp_design_to_uv(str(raw_path), design_sidecar, uv_sidecar, str(out_path)),
+                "auto_fit": auto_meta,
+                "warp": warp.warp_design_to_uv(str(raw_path), fitted_sidecar, uv_sidecar, str(out_path)),
             }
 
     if missing:

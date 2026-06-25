@@ -1,0 +1,181 @@
+{
+  "source_script": "blender/scripts/bake_art_concept_uv_set.py",
+  "pipeline": {
+    "id": "mode2_hard",
+    "index": 2,
+    "zh_name": "硬边",
+    "en_name": "hard_no_bevel_diagnostic",
+    "aliases": [
+      "2",
+      "mode2",
+      "模式2",
+      "硬边",
+      "hard",
+      "sharp",
+      "no-bevel",
+      "nobevel"
+    ],
+    "mesh_contract": "standard_hex_prism_no_bevel",
+    "texture_layout": "standard paper-net UV or atlas layout",
+    "template_set": "blender/templates/standard-templates",
+    "builder": "bake_assets.build_hex_tile",
+    "config_patch": {
+      "tile_pipeline_mode": "mode2_hard",
+      "tile_bevel_enabled": false,
+      "tile_smooth_enabled": false,
+      "bevel_width": 0.0,
+      "bevel_segments": 0
+    },
+    "notes": "Diagnostic mode: same prism topology and UV as mode 1, but no bevel modifier and flat face shading."
+  },
+  "pipeline_mode": "hard",
+  "uv_dir": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv",
+  "out_dir": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke",
+  "manifest": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/manifest.json",
+  "samples": 64,
+  "ink_enabled": false,
+  "canvas_px": 2048,
+  "px_per_unit": 512,
+  "use_denoising": false,
+  "material_mode": "emission",
+  "uv_inset_px": 0.0,
+  "black_ink": true,
+  "extra_stroke": true,
+  "extra_stroke_px": 1,
+  "runtime_export_enabled": true,
+  "runtime_export": {
+    "mode": "tight_global_max_opaque_side",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512.0,
+    "target_max_opaque_side_px": 512,
+    "runtime_canvas_px": 846,
+    "runtime_scale": 0.4130859375,
+    "runtime_px_per_unit": 211.5,
+    "source_max_opaque_side_px": 1222,
+    "runtime_max_opaque_side_px": 510,
+    "crop_padding_px": 2,
+    "alpha_threshold": 1,
+    "exporter": "external_pillow_lanczos",
+    "pre_stroke_target_max_opaque_side_px": 510,
+    "extra_stroke_px": 1
+  },
+  "mesh_contract": {
+    "type": "standard_hex_prism",
+    "tile_bevel_enabled": false,
+    "tile_smooth_enabled": false,
+    "bevel_width": 0.0,
+    "bevel_segments": 0
+  },
+  "config_snapshot": {
+    "pitch_deg": 35.26,
+    "yaw_deg": -15.0,
+    "sun_elevation_deg": 50.0,
+    "sun_azimuth_deg": -45.0,
+    "sun_energy": 4.0,
+    "sun_color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "sun_softness_deg": 8.0,
+    "ambient_color": [
+      0.55,
+      0.6,
+      0.66
+    ],
+    "ambient_strength": 0.35,
+    "hex_edge": 1.0,
+    "thickness": 0.55,
+    "elevation_step": 0.5,
+    "water_recess": 0.12,
+    "tile_pipeline_mode": "mode2_hard",
+    "tile_bevel_enabled": false,
+    "tile_smooth_enabled": false,
+    "bevel_width": 0.0,
+    "bevel_segments": 0,
+    "ink_enabled": false,
+    "ink_color": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ink_thickness_px": 0.0,
+    "ink_wobble_px": 0.0,
+    "ink_thickness_position": "ALPHA_OUTSIDE",
+    "ink_thickness_noise_px": 0.0,
+    "ink_select_silhouette": true,
+    "ink_select_border": true,
+    "ink_select_crease": false,
+    "ink_select_external_contour": true,
+    "extra_stroke_px": 1,
+    "extra_stroke_scope": "alpha_silhouette_only",
+    "ink_exclude_wall_stitch_edges": false,
+    "ink_corner_enabled": false,
+    "ink_corner_color": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ink_corner_thickness_px": 8.0,
+    "ink_corner_wobble_px": 0.0,
+    "px_per_unit": 512,
+    "canvas_px": 2048,
+    "samples": 64,
+    "use_denoising": false,
+    "tile_image_material_mode": "emission",
+    "uv_inset_px": 0.0,
+    "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked",
+    "stroke_mode": "extra_stroke"
+  },
+  "results": {
+    "grass_e0": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/grass_e0_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_grass_e0_v0.png"
+    },
+    "grass_e1": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/grass_e1_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_grass_e1_v0.png"
+    },
+    "grass_e2": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/grass_e2_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_grass_e2_v0.png"
+    },
+    "dirt_e0": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/dirt_e0_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_dirt_e0_v0.png"
+    },
+    "dirt_e1": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/dirt_e1_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_dirt_e1_v0.png"
+    },
+    "dirt_e2": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/dirt_e2_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_dirt_e2_v0.png"
+    },
+    "stone_e0": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/stone_e0_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_stone_e0_v0.png"
+    },
+    "stone_e1": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/stone_e1_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_stone_e1_v0.png"
+    },
+    "stone_e2": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/stone_e2_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_stone_e2_v0.png"
+    },
+    "water_e0": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/water_e0_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_water_e0_v0.png"
+    },
+    "water_e1": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/water_e1_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_water_e1_v0.png"
+    },
+    "water_e2": {
+      "uv": "inkmon美术探索/codex-硬边-v1/texture-gen-e0-replace/uv/water_e2_warp_uv.png",
+      "baked": "inkmon美术探索/codex-硬边-v1/assets/concept-baked-extra-stroke/tile_water_e2_v0.png"
+    }
+  }
+}
+

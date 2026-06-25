@@ -1,0 +1,143 @@
+{
+  "source_script": "blender/scripts/bake_art_concept_beveled_set.py",
+  "pipeline": {
+    "id": "mode3_top_edge_bevel",
+    "index": 3,
+    "zh_name": "倒角",
+    "en_name": "explicit_top_edge_bevel",
+    "aliases": [
+      "3",
+      "mode3",
+      "模式3",
+      "倒角",
+      "bevel",
+      "top-bevel",
+      "top_edge_bevel",
+      "edged"
+    ],
+    "mesh_contract": "explicit_top_bevel_faces",
+    "texture_layout": "beveled UV: top + bevel_0..5 + visible walls",
+    "template_set": "blender/templates/standard-edged-templates",
+    "builder": "texgen.beveled_tile_prototype._build_beveled_mesh",
+    "config_patch": {
+      "tile_pipeline_mode": "mode3_top_edge_bevel",
+      "tile_bevel_enabled": false,
+      "tile_smooth_enabled": false,
+      "bevel_width": 0.0,
+      "bevel_segments": 0
+    },
+    "notes": "Candidate mode: topology has real bevel-band faces; do not reuse standard paper-net UV directly."
+  },
+  "pipeline_mode": "mode3_top_edge_bevel",
+  "uv_dir": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped",
+  "out_dir": "inkmon美术探索/codex-倒角-v1/shots/painter_lines_preview/grass_e0_no_painter",
+  "manifest": "inkmon美术探索/codex-倒角-v1/shots/painter_lines_preview/grass_e0_no_painter/manifest.json",
+  "samples": 64,
+  "ink_enabled": false,
+  "uv_inset_px": 0.0,
+  "black_ink": false,
+  "extra_stroke": false,
+  "extra_stroke_px": 0,
+  "painter_lines": false,
+  "painter_line_mode": "none",
+  "painter_line_width_px": 0.0,
+  "painter_line_alpha": 0,
+  "painter_line_wobble_px": 0.0,
+  "painter_cracks_enabled": false,
+  "painter_seed": null,
+  "only_keys": [
+    "grass_e0"
+  ],
+  "mesh_contract": {
+    "type": "explicit_top_edge_bevel_chipped",
+    "bevel_inset_world": 0.15,
+    "bevel_drop_world": 0.075,
+    "rim_profile": "chipped",
+    "chip_count_per_edge": 3,
+    "chip_depth_world": 0.07,
+    "chip_width_ratio": 0.1,
+    "chip_segments_per_edge": 12,
+    "chip_seed": 20260625,
+    "tile_smooth_enabled": false
+  },
+  "config_snapshot": {
+    "pitch_deg": 35.26,
+    "yaw_deg": -15.0,
+    "sun_elevation_deg": 50.0,
+    "sun_azimuth_deg": -45.0,
+    "sun_energy": 4.0,
+    "sun_color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "sun_softness_deg": 8.0,
+    "ambient_color": [
+      0.55,
+      0.6,
+      0.66
+    ],
+    "ambient_strength": 0.35,
+    "hex_edge": 1.0,
+    "thickness": 0.55,
+    "elevation_step": 0.5,
+    "water_recess": 0.12,
+    "tile_pipeline_mode": "mode3_top_edge_bevel",
+    "tile_bevel_enabled": false,
+    "tile_smooth_enabled": false,
+    "bevel_width": 0.0,
+    "bevel_segments": 0,
+    "ink_enabled": false,
+    "ink_color": [
+      0.16,
+      0.12,
+      0.08
+    ],
+    "ink_thickness_px": 3.2,
+    "ink_wobble_px": 1.5,
+    "ink_thickness_position": "INSIDE",
+    "ink_thickness_noise_px": null,
+    "ink_select_silhouette": true,
+    "ink_select_border": true,
+    "ink_select_crease": true,
+    "ink_select_external_contour": true,
+    "extra_stroke_px": 0,
+    "extra_stroke_scope": "none",
+    "ink_exclude_wall_stitch_edges": false,
+    "ink_corner_enabled": false,
+    "ink_corner_color": [
+      0.13,
+      0.1,
+      0.07
+    ],
+    "ink_corner_thickness_px": 2.0,
+    "ink_corner_wobble_px": 0.35,
+    "px_per_unit": 128,
+    "canvas_px": 512,
+    "samples": 64,
+    "use_denoising": true,
+    "tile_image_material_mode": "emission",
+    "uv_inset_px": 0.0,
+    "output_rel": "//../inkmon美术探索/fable-圆角-v1/assets/baked",
+    "stroke_mode": "default",
+    "painter_line_mode": "none",
+    "painter_line_width_px": 0.0,
+    "painter_line_alpha": 0,
+    "painter_line_wobble_px": 0.0,
+    "painter_cracks_enabled": false,
+    "painter_seed": null,
+    "rim_profile": "chipped",
+    "chip_count_per_edge": 3,
+    "chip_depth_world": 0.07,
+    "chip_width_ratio": 0.1,
+    "chip_segments_per_edge": 12,
+    "chip_seed": 20260625
+  },
+  "results": {
+    "grass_e0": {
+      "uv": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/grass_e0_beveled_uv.png",
+      "baked": "inkmon美术探索/codex-倒角-v1/shots/painter_lines_preview/grass_e0_no_painter/tile_grass_e0_v0.png",
+      "uv_sidecar": "inkmon美术探索/concept素材-v1/beveled_uv_wide_rim_chipped/sidecars/beveled_uv_e0.json"
+    }
+  }
+}

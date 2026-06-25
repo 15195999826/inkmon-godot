@@ -193,6 +193,36 @@ def manifest_entry(manifest_path: Path, asset_id: str) -> dict | None:
     }
 
 
+def manifest_contract(manifest: dict) -> dict:
+    return {
+        key: manifest.get(key)
+        for key in (
+            "material_mode",
+            "uv_inset_px",
+            "ink_color",
+            "stroke_mode",
+            "extra_stroke_px",
+            "extra_stroke_scope",
+            "ink_thickness_position",
+            "ink_select_crease",
+            "ink_wobble_px",
+            "source_canvas_px",
+            "runtime_canvas_px",
+            "source_px_per_unit",
+            "px_per_unit",
+            "px_per_hex_edge",
+            "runtime_export",
+            "rim_profile",
+            "chip_count_per_edge",
+            "chip_depth_world",
+            "chip_width_ratio",
+            "chip_segments_per_edge",
+            "chip_seed",
+        )
+        if manifest.get(key) is not None
+    }
+
+
 def load_report(path: Path) -> dict:
     return read_json(path) if path.exists() else {}
 
@@ -207,10 +237,12 @@ def build(repo: Path) -> dict:
     beveled_report_path = concept / "beveled_uv_wide_rim" / "beveled_uv_report.json"
     patch_report_path = concept / "assets" / "baked" / "patch_assets_report.json"
     model_report_path = concept / "model_preview_report.json"
+    trace_report_path = concept / "trace" / "uv_mapping_trace_report.json"
     design_report = load_report(design_report_path)
     beveled_report = load_report(beveled_report_path)
     patch_report = load_report(patch_report_path).get("tiles", {})
     model_report = load_report(model_report_path)
+    trace_report = load_report(trace_report_path)
 
     pipeline_defs = [
         {
@@ -232,8 +264,15 @@ def build(repo: Path) -> dict:
                     "shot": art_root / "codex-硬边-v1" / "shots" / "concept_asset_ink.png",
                     "bake_report": art_root / "codex-硬边-v1" / "assets" / "concept-baked-ink" / "bake_report.json",
                 },
+                "extra_stroke": {
+                    "label": "extra_stroke",
+                    "asset_dir": art_root / "codex-硬边-v1" / "assets" / "concept-baked-extra-stroke",
+                    "scene": art_root / "codex-硬边-v1" / "asset_extra_stroke_scene.tscn",
+                    "shot": art_root / "codex-硬边-v1" / "shots" / "concept_asset_extra_stroke.png",
+                    "bake_report": art_root / "codex-硬边-v1" / "assets" / "concept-baked-extra-stroke" / "bake_report.json",
+                },
             },
-            "stages": ["ai_call", "raw", "fit", "uv", "mesh", "baked", "manifest", "godot_scene"],
+            "stages": ["ai_call", "raw", "fit", "uv", "mesh", "baked", "godot_scene"],
         },
         {
             "id": "bevel",
@@ -261,8 +300,25 @@ def build(repo: Path) -> dict:
                     "shot": art_root / "codex-倒角-v1" / "shots" / "concept_asset_ink.png",
                     "bake_report": art_root / "codex-倒角-v1" / "assets" / "concept-baked-ink" / "bake_report.json",
                 },
+                "wide_rim_extra_stroke": {
+                    "label": "wide_rim_extra_stroke",
+                    "asset_dir": art_root / "codex-倒角-v1" / "assets" / "concept-baked-wide-rim-extra-stroke",
+                    "scene": art_root / "codex-倒角-v1" / "asset_wide_rim_extra_stroke_scene.tscn",
+                    "shot": art_root / "codex-倒角-v1" / "shots" / "concept_asset_wide_rim_extra_stroke.png",
+                    "bake_report": art_root / "codex-倒角-v1" / "assets" / "concept-baked-wide-rim-extra-stroke" / "bake_report.json",
+                },
+                "wide_rim_chipped": {
+                    "label": "wide_rim_chipped",
+                    "asset_dir": art_root / "codex-倒角-v1" / "assets" / "concept-baked-wide-rim-chipped",
+                    "scene": art_root / "codex-倒角-v1" / "asset_wide_rim_chipped_scene.tscn",
+                    "shot": art_root / "codex-倒角-v1" / "shots" / "concept_asset_wide_rim_chipped.png",
+                    "bake_report": art_root / "codex-倒角-v1" / "assets" / "concept-baked-wide-rim-chipped" / "bake_report.json",
+                    "uv_root": concept / "beveled_uv_wide_rim_chipped",
+                    "model_preview_group": "bevel_chipped",
+                    "mesh_title": "mode3 wide-rim chipped Blender mesh preview",
+                },
             },
-            "stages": ["ai_call", "raw", "fit", "uv", "mesh", "baked", "manifest", "godot_scene"],
+            "stages": ["ai_call", "raw", "fit", "uv", "mesh", "baked", "godot_scene"],
         },
         {
             "id": "patch",
@@ -277,7 +333,7 @@ def build(repo: Path) -> dict:
                     "bake_report": patch_report_path,
                 },
             },
-            "stages": ["ai_call", "raw", "fit", "mesh", "baked", "manifest", "godot_scene"],
+            "stages": ["ai_call", "raw", "fit", "mesh", "baked", "godot_scene"],
         },
     ]
 
@@ -338,6 +394,26 @@ def build(repo: Path) -> dict:
             title=f"{tile_id} raw 3D tile",
         ))
 
+    def tile_elevation(tile_id: str) -> int:
+        return int(tile_id.rsplit("_e", 1)[1])
+
+    def model_preview_images(group: str, tile_id: str) -> list[dict]:
+        elevation_key = f"e{tile_elevation(tile_id)}"
+        preview_root = model_report.get("outputs", {}).get(group, {})
+        preview = preview_root.get(elevation_key, preview_root)
+        return [
+            {"label": "wire", "path": rel(repo, repo_path(repo, preview["wire"]))} for _ in [0] if preview.get("wire")
+        ] + [
+            {"label": "shaded", "path": rel(repo, repo_path(repo, preview["shaded"]))} for _ in [0] if preview.get("shaded")
+        ]
+
+    def stage_data_with_trace(stage_data: dict, pipeline: str, tile_id: str) -> dict:
+        data = dict(stage_data)
+        trace = trace_report.get(pipeline, {}).get(tile_id)
+        if trace:
+            data["trace"] = trace
+        return data
+
     for pipeline_def in pipeline_defs:
         pipeline = pipeline_def["id"]
         for variant, variant_def in pipeline_def["variants"].items():
@@ -359,7 +435,7 @@ def build(repo: Path) -> dict:
                         path=fit_overlay,
                         source_script="inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
                         source_report=design_report_path,
-                        data=design_report.get(tile_id, {}),
+                        data=stage_data_with_trace(design_report.get(tile_id, {}), pipeline, tile_id),
                         title="standard design geometry overlay",
                     ))
                     artifacts.append(artifact(
@@ -372,15 +448,10 @@ def build(repo: Path) -> dict:
                         path=uv_path,
                         source_script="inkmon美术探索/concept素材-v1/tools/prepare_design_warp_uvs.py",
                         source_report=design_report_path,
-                        data=design_report.get(tile_id, {}),
+                        data=stage_data_with_trace(design_report.get(tile_id, {}), pipeline, tile_id),
                         title="standard UV warp",
                     ))
-                    preview = model_report.get("outputs", {}).get("hard", {})
-                    images = [
-                        {"label": "wire", "path": rel(repo, repo_path(repo, preview["wire"]))} for _ in [0] if preview.get("wire")
-                    ] + [
-                        {"label": "shaded", "path": rel(repo, repo_path(repo, preview["shaded"]))} for _ in [0] if preview.get("shaded")
-                    ]
+                    images = model_preview_images("hard", tile_id)
                     if not images:
                         warnings.append({"pipeline": pipeline, "variant": variant, "stage": "mesh", "message": "hard mesh preview missing"})
                     artifacts.append(artifact(
@@ -394,12 +465,15 @@ def build(repo: Path) -> dict:
                         source_script="blender/scripts/render_art_pipeline_previews.py",
                         source_report=model_report_path,
                         title="mode2 hard Blender mesh preview",
-                        notes="Rendered once from grass_e0 geometry; same mesh contract is reused for all terrain tiles.",
+                        notes=f"Rendered from grass_e{tile_elevation(tile_id)} geometry.",
                         images=images,
                     ))
                 elif pipeline == "bevel":
-                    fit_overlay = concept / "beveled_uv_wide_rim" / "fit_overlay" / f"{tile_id}_beveled_fit_overlay.png"
-                    uv_path = concept / "beveled_uv_wide_rim" / f"{tile_id}_beveled_uv.png"
+                    uv_root = variant_def.get("uv_root", concept / "beveled_uv_wide_rim")
+                    variant_report_path = uv_root / "beveled_uv_report.json"
+                    variant_report = load_report(variant_report_path)
+                    fit_overlay = uv_root / "fit_overlay" / f"{tile_id}_beveled_fit_overlay.png"
+                    uv_path = uv_root / f"{tile_id}_beveled_uv.png"
                     artifacts.append(artifact(
                         repo,
                         pipeline=pipeline,
@@ -409,8 +483,8 @@ def build(repo: Path) -> dict:
                         kind="image",
                         path=fit_overlay,
                         source_script="inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
-                        source_report=beveled_report_path,
-                        data=beveled_report.get(tile_id, {}),
+                        source_report=variant_report_path,
+                        data=stage_data_with_trace(variant_report.get(tile_id, {}), pipeline, tile_id),
                         title="beveled design fit overlay",
                     ))
                     artifacts.append(artifact(
@@ -422,16 +496,11 @@ def build(repo: Path) -> dict:
                         kind="image",
                         path=uv_path,
                         source_script="inkmon美术探索/concept素材-v1/tools/prepare_beveled_uvs.py",
-                        source_report=beveled_report_path,
-                        data=beveled_report.get(tile_id, {}),
+                        source_report=variant_report_path,
+                        data=stage_data_with_trace(variant_report.get(tile_id, {}), pipeline, tile_id),
                         title="wide-rim beveled UV",
                     ))
-                    preview = model_report.get("outputs", {}).get("bevel", {})
-                    images = [
-                        {"label": "wire", "path": rel(repo, repo_path(repo, preview["wire"]))} for _ in [0] if preview.get("wire")
-                    ] + [
-                        {"label": "shaded", "path": rel(repo, repo_path(repo, preview["shaded"]))} for _ in [0] if preview.get("shaded")
-                    ]
+                    images = model_preview_images(str(variant_def.get("model_preview_group", "bevel")), tile_id)
                     if not images:
                         warnings.append({"pipeline": pipeline, "variant": variant, "stage": "mesh", "message": "bevel mesh preview missing"})
                     artifacts.append(artifact(
@@ -444,8 +513,8 @@ def build(repo: Path) -> dict:
                         status="ok" if images else "missing",
                         source_script="blender/scripts/render_art_pipeline_previews.py",
                         source_report=model_report_path,
-                        title="mode3 wide-rim Blender mesh preview",
-                        notes="Rendered once from grass_e0 geometry; e1/e2 use the same bevel contract with deeper walls.",
+                        title=str(variant_def.get("mesh_title", "mode3 wide-rim Blender mesh preview")),
+                        notes=f"Rendered from grass_e{tile_elevation(tile_id)} geometry.",
                         images=images,
                     ))
                 else:
@@ -500,7 +569,10 @@ def build(repo: Path) -> dict:
                     path=manifest_path,
                     status="ok" if manifest else "missing",
                     title="manifest entry",
-                    data={"entry": manifest["entry"]} if manifest else {},
+                    data={
+                        "entry": manifest["entry"],
+                        "contract": manifest_contract(manifest["manifest"]),
+                    } if manifest else {},
                 ))
                 artifacts.append(artifact(
                     repo,

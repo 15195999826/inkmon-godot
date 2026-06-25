@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon美术探索/art_tile_map_base.gd" id="1_art_map"]
+
+[node name="CodexBeveledTopWideRimExtraStrokeAssetScene" type="Node2D"]
+script = ExtResource("1_art_map")
+render_mode = 2
+scene_title = "codex-倒角-v1 concept asset wide rim extra stroke"
+ink_enabled = false
+decor_density = 0.75
+baked_dir = "res://inkmon美术探索/codex-倒角-v1/assets/concept-baked-wide-rim-extra-stroke/"

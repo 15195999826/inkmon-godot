@@ -1,0 +1,308 @@
+{
+  "comment": "Concept explicit top-edge bevel bake set. Source raw style: docs/concept.jpg. No fable texture/decor referenced.",
+  "pipeline": "mode3_top_edge_bevel",
+  "pipeline_name": "倒角",
+  "pitch_deg": 35.26,
+  "yaw_deg": -15.0,
+  "hex_orientation": "flat_top",
+  "sun_elevation_deg": 50.0,
+  "sun_azimuth_deg": -45.0,
+  "material_mode": "emission",
+  "uv_inset_px": 0.0,
+  "ink_color": [
+    0.16,
+    0.12,
+    0.08
+  ],
+  "stroke_mode": "default",
+  "extra_stroke_px": 0,
+  "extra_stroke_scope": "none",
+  "painter_line_mode": "none",
+  "painter_line_width_px": 0.0,
+  "painter_line_alpha": 0,
+  "painter_line_wobble_px": 0.0,
+  "painter_cracks_enabled": false,
+  "ink_thickness_position": "INSIDE",
+  "ink_select_crease": true,
+  "ink_wobble_px": 1.5,
+  "px_per_unit": 128,
+  "hex_edge_world": 1.0,
+  "px_per_hex_edge": 128.0,
+  "thickness_world": 0.55,
+  "elevation_step_world": 0.5,
+  "water_recess_world": 0.12,
+  "bevel_inset_world": 0.15,
+  "bevel_drop_world": 0.075,
+  "rim_profile": "chipped",
+  "chip_count_per_edge": 3,
+  "chip_depth_world": 0.07,
+  "chip_width_ratio": 0.1,
+  "chip_segments_per_edge": 12,
+  "chip_seed": 20260625,
+  "assets": {
+    "tile_grass_e0": {
+      "file": "tile_grass_e0_v0.png",
+      "variants": [
+        "tile_grass_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_grass_e1": {
+      "file": "tile_grass_e1_v0.png",
+      "variants": [
+        "tile_grass_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_grass_e2": {
+      "file": "tile_grass_e2_v0.png",
+      "variants": [
+        "tile_grass_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "grass",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e0": {
+      "file": "tile_dirt_e0_v0.png",
+      "variants": [
+        "tile_dirt_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e1": {
+      "file": "tile_dirt_e1_v0.png",
+      "variants": [
+        "tile_dirt_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_dirt_e2": {
+      "file": "tile_dirt_e2_v0.png",
+      "variants": [
+        "tile_dirt_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "dirt",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e0": {
+      "file": "tile_stone_e0_v0.png",
+      "variants": [
+        "tile_stone_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e1": {
+      "file": "tile_stone_e1_v0.png",
+      "variants": [
+        "tile_stone_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_stone_e2": {
+      "file": "tile_stone_e2_v0.png",
+      "variants": [
+        "tile_stone_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "stone",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e0": {
+      "file": "tile_water_e0_v0.png",
+      "variants": [
+        "tile_water_e0_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 0,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e1": {
+      "file": "tile_water_e1_v0.png",
+      "variants": [
+        "tile_water_e1_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 1,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "tile_water_e2": {
+      "file": "tile_water_e2_v0.png",
+      "variants": [
+        "tile_water_e2_v0.png"
+      ],
+      "kind": "tile",
+      "terrain": "water",
+      "elevation": 2,
+      "anchor_px": [
+        256.0,
+        256.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_pine": {
+      "file": "decor_pine.png",
+      "variants": [
+        "decor_pine.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        372.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_pine_tall": {
+      "file": "decor_pine_tall.png",
+      "variants": [
+        "decor_pine_tall.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        404.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_bush": {
+      "file": "decor_bush.png",
+      "variants": [
+        "decor_bush.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        324.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    },
+    "decor_rocks": {
+      "file": "decor_rocks.png",
+      "variants": [
+        "decor_rocks.png"
+      ],
+      "kind": "decor",
+      "anchor_px": [
+        256.0,
+        322.0
+      ],
+      "size_px": [
+        512,
+        512
+      ]
+    }
+  }
+}

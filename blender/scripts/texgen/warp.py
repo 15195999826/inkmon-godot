@@ -1,8 +1,8 @@
 # texgen.warp — 确定性几何后处理：正交反投影 warp + 俯视网格 mask 裁切
 #
 # warp（design_warp 方案 A′ 的核心）：设计稿（3D 全貌模板几何）→ UV 贴图。
-# 正交投影下每个平面面片的 设计稿像素 ↔ UV 像素 是精确仿射 —— 顶面 + 可见侧壁逐面
-# 解 3 点仿射、逐面重采样、按 UV island 多边形 mask 合成（往返恒等性来自 adr/0009 角度冻结）。
+# 正交投影下每个平面面片的 设计稿像素 ↔ UV 像素 是精确仿射 —— 顶面 + 可见侧壁逐面。
+# 对非标准 AI 自动套版面片，按已有多边形顶点逐三角重采样，避免 6 点顶面被 3 点仿射拉偏。
 #
 # cut（顶面网格填充流收获）：俯视网格画布 + 已知 cell 位置 → mask 裁出单格顶面（零 warp）。
 #
@@ -23,6 +23,7 @@
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -33,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from texgen import geometry as G
 
 TEMPLATES_DIR = os.path.join(G.repo_root(), "blender", "templates", "standard-templates")
+PIECEWISE_WARP_ROUTE = "texgen.warp.warp_polygon_piecewise -> texgen.warp._bleed_source_polygon -> texgen.geometry.polygon_triangle_correspondences -> texgen.warp.affine_coeffs -> texgen.warp._clean_output_polygon_edge"
 
 
 def load_sidecar(path: str) -> dict:
@@ -71,6 +73,149 @@ def _poly_mask(size, polygon, supersample: int = 4) -> Image.Image:
     return big.resize((w, h), Image.Resampling.LANCZOS)
 
 
+def _stretch_from_coeffs(coeffs) -> tuple[float, float]:
+    m = np.array([[coeffs[0], coeffs[1]], [coeffs[3], coeffs[4]]])
+    sv = np.linalg.svd(np.linalg.inv(m), compute_uv=False)
+    return float(sv.max()), float(sv.min())
+
+
+def _background_rgb(arr: np.ndarray) -> np.ndarray:
+    border = max(4, min(arr.shape[0], arr.shape[1]) // 100)
+    samples = np.concatenate(
+        [
+            arr[:border, :, :3].reshape(-1, 3),
+            arr[-border:, :, :3].reshape(-1, 3),
+            arr[:, :border, :3].reshape(-1, 3),
+            arr[:, -border:, :3].reshape(-1, 3),
+        ],
+        axis=0,
+    )
+    return np.median(samples, axis=0)
+
+
+def _neighbor_shift(arr: np.ndarray, dy: int, dx: int) -> np.ndarray:
+    shifted = np.zeros_like(arr)
+    h, w = arr.shape[:2]
+    y_src0 = max(0, -dy)
+    y_src1 = h - max(0, dy)
+    x_src0 = max(0, -dx)
+    x_src1 = w - max(0, dx)
+    y_dst0 = max(0, dy)
+    y_dst1 = h - max(0, -dy)
+    x_dst0 = max(0, dx)
+    x_dst1 = w - max(0, -dx)
+    shifted[y_dst0:y_dst1, x_dst0:x_dst1] = arr[y_src0:y_src1, x_src0:x_src1]
+    return shifted
+
+
+def _bleed_source_polygon(img: Image.Image, source_poly: list, bleed_px: int = 8) -> Image.Image:
+    """用面内颜色向 source polygon 边界外补色，避免 bicubic 在边缘采到白底。"""
+    src = img.convert("RGBA")
+    full_arr = np.asarray(src)
+    bg = _background_rgb(full_arr)
+    xs = [point[0] for point in source_poly]
+    ys = [point[1] for point in source_poly]
+    pad = bleed_px + 4
+    x0 = max(0, int(math.floor(min(xs))) - pad)
+    y0 = max(0, int(math.floor(min(ys))) - pad)
+    x1 = min(src.width, int(math.ceil(max(xs))) + pad + 1)
+    y1 = min(src.height, int(math.ceil(max(ys))) + pad + 1)
+    crop = src.crop((x0, y0, x1, y1))
+    arr = np.asarray(crop).copy()
+    local_poly = [[point[0] - x0, point[1] - y0] for point in source_poly]
+    mask = np.asarray(_poly_mask(crop.size, local_poly, supersample=1)) > 0
+    color_delta = np.linalg.norm(arr[:, :, :3].astype(np.float32) - bg.astype(np.float32), axis=2)
+    bg_like = (color_delta < 28) | (
+        (arr[:, :, 0] > 238) & (arr[:, :, 1] > 238) & (arr[:, :, 2] > 238)
+    )
+    inner = mask.copy()
+    for _i in range(bleed_px):
+        eroded = inner.copy()
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            eroded &= _neighbor_shift(inner, dy, dx)
+        inner = eroded
+    edge_band = mask & ~inner
+    alpha_ok = arr[:, :, 3] > 0
+    valid = mask & alpha_ok & ~(bg_like & edge_band)
+    filled = valid.copy()
+    out = arr.copy()
+
+    for _i in range(bleed_px):
+        neighbor_count = np.zeros(filled.shape, dtype=np.uint16)
+        rgb_sum = np.zeros((*filled.shape, 4), dtype=np.uint32)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            shifted_valid = _neighbor_shift(filled, dy, dx)
+            shifted_rgba = _neighbor_shift(out, dy, dx)
+            neighbor_count += shifted_valid.astype(np.uint16)
+            rgb_sum += shifted_rgba.astype(np.uint32) * shifted_valid[:, :, None].astype(np.uint32)
+        candidates = (~filled) & (neighbor_count > 0)
+        if not np.any(candidates):
+            break
+        out[candidates] = (rgb_sum[candidates] / neighbor_count[candidates, None]).astype(np.uint8)
+        filled[candidates] = True
+
+    result = src.copy()
+    result.paste(Image.fromarray(out, "RGBA"), (x0, y0))
+    return result
+
+
+def _clean_output_polygon_edge(img: Image.Image, dst_poly: list, clean_px: int = 3) -> Image.Image:
+    """清掉目标 polygon 边缘残留的白底像素，保留面内部亮色细节。"""
+    arr = np.asarray(img.convert("RGBA")).copy()
+    mask = np.asarray(_poly_mask(img.size, dst_poly, supersample=1)) > 0
+    inner = mask.copy()
+    for _i in range(clean_px):
+        eroded = inner.copy()
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            eroded &= _neighbor_shift(inner, dy, dx)
+        inner = eroded
+    edge_band = mask & ~inner
+    bad = (
+        edge_band
+        & (arr[:, :, 3] > 0)
+        & (arr[:, :, 0] > 238)
+        & (arr[:, :, 1] > 238)
+        & (arr[:, :, 2] > 238)
+    )
+    valid = mask & (arr[:, :, 3] > 0) & ~bad
+    out = arr.copy()
+    remaining = bad.copy()
+    for _i in range(clean_px + 2):
+        neighbor_count = np.zeros(remaining.shape, dtype=np.uint16)
+        rgba_sum = np.zeros((*remaining.shape, 4), dtype=np.uint32)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            shifted_valid = _neighbor_shift(valid, dy, dx)
+            shifted_rgba = _neighbor_shift(out, dy, dx)
+            neighbor_count += shifted_valid.astype(np.uint16)
+            rgba_sum += shifted_rgba.astype(np.uint32) * shifted_valid[:, :, None].astype(np.uint32)
+        candidates = remaining & (neighbor_count > 0)
+        if not np.any(candidates):
+            break
+        out[candidates] = (rgba_sum[candidates] / neighbor_count[candidates, None]).astype(np.uint8)
+        valid[candidates] = True
+        remaining[candidates] = False
+    return Image.fromarray(out, "RGBA")
+
+
+def warp_polygon_piecewise(img: Image.Image, out_size: tuple[int, int], source_poly: list, dst_poly: list) -> tuple[Image.Image, list]:
+    """把一个 source polygon 按现有顶点逐三角 warp 到目标 polygon。"""
+    safe_img = _bleed_source_polygon(img, source_poly)
+    layer = Image.new("RGBA", out_size, (0, 0, 0, 0))
+    stats = []
+    for src_tri, dst_tri in G.polygon_triangle_correspondences(source_poly, dst_poly):
+        coeffs = affine_coeffs(dst_tri, src_tri)
+        warped = safe_img.transform(out_size, Image.Transform.AFFINE, coeffs, resample=Image.Resampling.BICUBIC)
+        # 内部三角边不需要抗锯齿；最终面边界再用完整 polygon mask 做 AA。
+        tri_mask = _poly_mask(out_size, dst_tri, supersample=1)
+        layer.paste(warped, (0, 0), tri_mask)
+        stretch_max, stretch_min = _stretch_from_coeffs(coeffs)
+        stats.append({"stretch_max": stretch_max, "stretch_min": stretch_min})
+
+    out = Image.new("RGBA", out_size, (0, 0, 0, 0))
+    out.paste(layer, (0, 0), _poly_mask(out_size, dst_poly))
+    return _clean_output_polygon_edge(out, dst_poly), stats
+
+
 # ---------------------------------------------------------------- design → UV
 
 def warp_design_to_uv(design_png: str, design_sidecar: dict, uv_sidecar: dict, out_png: str) -> dict:
@@ -81,15 +226,16 @@ def warp_design_to_uv(design_png: str, design_sidecar: dict, uv_sidecar: dict, o
     uw, uh = uv_sidecar["canvas"]
     canvas = Image.new("RGBA", (uw, uh), (0, 0, 0, 0))
     report = {}
-    for face, src_tri, dst_tri, dst_poly in G.face_correspondences(design_sidecar, uv_sidecar):
-        coeffs = affine_coeffs(dst_tri, src_tri)
-        warped = img.transform((uw, uh), Image.Transform.AFFINE, coeffs, resample=Image.Resampling.BICUBIC)
-        mask = _poly_mask((uw, uh), dst_poly)
-        canvas.paste(warped, (0, 0), mask)
-        # 记录每面的有效缩放（仿射线性部分奇异值 = 轴向拉伸量，src→dst）
-        m = np.array([[coeffs[0], coeffs[1]], [coeffs[3], coeffs[4]]])
-        sv = np.linalg.svd(np.linalg.inv(m), compute_uv=False)
-        report[face] = {"stretch_max": float(sv.max()), "stretch_min": float(sv.min())}
+    for face, src_poly, dst_poly in G.face_polygon_pairs(design_sidecar, uv_sidecar):
+        face_layer, tri_stats = warp_polygon_piecewise(img, (uw, uh), src_poly, dst_poly)
+        canvas.alpha_composite(face_layer)
+        report[face] = {
+            "stretch_max": max(item["stretch_max"] for item in tri_stats),
+            "stretch_min": min(item["stretch_min"] for item in tri_stats),
+            "triangle_count": len(tri_stats),
+            "warp_route": PIECEWISE_WARP_ROUTE,
+        }
+    report["_warp_route"] = "texgen.warp.warp_design_to_uv -> " + PIECEWISE_WARP_ROUTE
     canvas.save(out_png)
     return report
 
@@ -98,7 +244,7 @@ def warp_design_to_uv(design_png: str, design_sidecar: dict, uv_sidecar: dict, o
 
 def relayout_uv(uv_png: str, old_sidecar: dict, new_sidecar: dict, out_png: str) -> dict:
     """已批准 UV 贴图跨布局迁移：face 同名（top/wall_i）→ 逐面仿射原样搬运，内容不变。
-    与 warp_design_to_uv 同一机器（face_correspondences 只看 face 名与 3 控制点）。"""
+    与 warp_design_to_uv 同一机器（按现有多边形顶点逐三角对应）。"""
     return warp_design_to_uv(uv_png, old_sidecar, new_sidecar, out_png)
 
 
