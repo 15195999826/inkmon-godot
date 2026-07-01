@@ -3,6 +3,8 @@
 > 本文记录主游戏 v1 里**有意留作占位 / 尚未实现**的机制:① 刻印 per-skill scoping ② 技能进化 X→X2 ③ lab 内容导入契约。
 > 目的是把「当前是什么 / 设计本意是什么 / 为何延后 / 将来怎么补」一次说清,避免又被当成「已完成」。
 > 关联:[`main-game-architecture.md`](../main-game-architecture.md) §8c(数据模型);历史决策轨迹见 git。
+>
+> 另见未来专用能力:[`AI Runtime Control Service`](ai-runtime-control-service.md) —— WebSocket + JSON 的主游戏 AI 控制面、`PlayerActionPort` 分层、FIFO 执行队列与 ASCII observation projection。
 
 ---
 
