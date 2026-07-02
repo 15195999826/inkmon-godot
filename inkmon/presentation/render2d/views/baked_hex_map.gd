@@ -11,7 +11,8 @@ extends Node2D
 ##   - 海拔抬升 = height_to_screen(elevation × elevation_step_world × px_per_unit, pitch)
 ##   - sprite centered，offset = size_px/2 − anchor_px（anchor = 顶面中心@海拔0平面）
 ##   - 变体：格子显式 variant 优先，否则 posmod((q·73856093) ^ (r·19349663), n) 确定性抽签
-##   - 画家序：(screen_y, screen_x) 排序,z_index 步进 32（decor 未来插层用）
+##   - 画家序：(screen_y, screen_x) 排序后按序 add_child（树序即绘制序，不用 z_index；
+##     decor 进场时沿同一排序列表插入）
 ##
 ## 坐标 API 与旧共享网格件同形（coord_to_world(_f) / world_to_coord_f / has_coord /
 ## get_all_coords），差异：返回的屏幕坐标**含海拔抬升**（单位站在顶面），拾取按画家序
