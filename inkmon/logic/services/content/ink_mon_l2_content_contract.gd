@@ -253,6 +253,16 @@ static func _require_item_id(value: Variant, label: String, errors: Array[String
 		errors.append("%s must match ^item_\\d+$ (item_id), got: %s" % [label, id_value])
 
 
+## 整数类型门: int 原样; JSON 数字进来是 float → 接受 integral float; 其余 (String/bool/NaN/非整) 返 null。
+## 曾用裸 int() 强转 —— `"price": "free"` 被吞成 0 通过校验混进 runtime (0 金币可买)。
+static func as_int_strict(value: Variant) -> Variant:
+	if value is int:
+		return value
+	if value is float and is_finite(value) and value == floorf(value):
+		return int(value)
+	return null
+
+
 # items[] catalog (adr/0003, spec §1b). OPTIONAL: an item-less bundle serves [] (or omits it).
 # Defensive structural checks only — id is item_NNNN, fields well-typed; the server POST /item is
 # the hard gate (uniqueness, equipable↔granted_abilities biz rule). Uses `is` type tests (not `as`
@@ -274,9 +284,11 @@ static func _validate_creature_items(value: Variant, errors: Array[String]) -> v
 		_require_string(item, "icon_key", label, errors)
 		_validate_item_tags(item.get("item_tags", []), "%s.item_tags" % label, errors)
 		_validate_item_stat_mods(item.get("stat_mods", {}), "%s.stat_mods" % label, errors)
-		if int(item.get("price", -1)) < 0:
+		var price_value: Variant = as_int_strict(item.get("price"))
+		if price_value == null or int(price_value) < 0:
 			errors.append("%s.price must be an int >= 0" % label)
-		if int(item.get("max_stack", 0)) < 1:
+		var max_stack_value: Variant = as_int_strict(item.get("max_stack"))
+		if max_stack_value == null or int(max_stack_value) < 1:
 			errors.append("%s.max_stack must be an int >= 1" % label)
 		# item_type enum（lab 投影的分类锚点；equipable 不再投，loader 从 item_type 派生）。
 		var item_type_value := str(item.get("item_type", ""))
@@ -440,7 +452,8 @@ static func _validate_items(value: Variant, errors: Array[String]) -> void:
 			continue
 		_require_string(item, "id", "items[%d]" % i, errors)
 		_require_string(item, "display_name", "items[%d]" % i, errors)
-		if int(item.get("price", -1)) < 0:
+		var price_value: Variant = as_int_strict(item.get("price"))
+		if price_value == null or int(price_value) < 0:
 			errors.append("items[%d].price must be >= 0" % i)
 		var tags := item.get("item_tags", []) as Array
 		if tags == null:

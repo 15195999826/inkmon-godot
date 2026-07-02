@@ -1,0 +1,87 @@
+# 待启动任务队列（跨主项目 + 框架，启动时才 review/给建议）
+
+> 本文**登记**一批已决定要做、但**尚未启动**的大任务，横跨主项目 `inkmon/` 与框架 submodule（`addons/logic-game-framework/`、`addons/sim-nav-map/`）。
+> **操作规则（钉死）**：这里只登记「目标 / 现状 / 启动时做什么 / 约束」。**具体 review、方案、建议一律等对应任务真正启动时才产出，不是现在。** 启动时统一由 **fable** 产出（部分 fable 独立跑、部分**用户 + fable 讨论**）；Claude/Opus 只做登记与编排，不替 fable 下结论。
+> **模型备注**：用户点名用 **fable** 跑 fable 标注的项。fable 5 access 已于 2026-07-02 恢复，本队列由 fable 接手推进。
+> 关联：本队列是对 [现有 future 文档全景](#关联现有-future-文档) 的收口；不重复其内容，只登记「下一步谁去动、怎么动」。
+
+---
+
+## 线 1 — sim-nav-map（导航/寻路 addon）+ dota2-auto-battle（LGF 示例）
+
+### 1a. sim-nav-map **core** — 对照 0ad 源码 review（fable）
+- **现状**：地图数据结构方案 + 基础寻路方案是**用户唯一相对满意**的部分，要保住。
+- **启动时 fable 做什么**：根据参考项目 **0ad 源码**做一次 review —— 有无缺陷、架构是否合理。
+- **约束**：**只 review 验证，不重写**（这是满意的部分）。
+- **0ad 源码位置**（已找到）：`addons/sim-nav-map/docs/references/0ad-source/` —— 真实 git 稀疏/浅 clone，寻路源码已 checkout。重点：`source/simulation2/helpers/`（`HierarchicalPathfinder`/`LongPathfinder`/`VertexPathfinder`/`Pathfinding`/`PathGoal`/`Grid.h`/`Spatial.h`/`Rasterize`/`PriorityQueue`）+ `source/simulation2/components/`（`CCmpPathfinder*`/`CCmpObstructionManager`/`CCmpUnitMotion*`）。
+- **相关**：`addons/sim-nav-map/examples/0ad-rts-pathfinding-lab/docs/steady-state-frame-performance-plan.md`
+
+### 1b. sim-nav-map **examples** — 删了重做 or 重构，fable 自行决定
+- **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**。
+- **启动时 fable 做什么**：了解后**自行决定** —— 删除示例源码、按各 example 目标从头重做，**还是**在当前 example 上重构。
+- **约束**：删除/重写是破坏性操作，**方向自决、动手前仍给用户过目**。手感是体验性的，fable 判断不了的部分需向用户要**具体手感问题**，不臆造结论。
+- **相关**：各 example 的 `docs/development-plan.md`、`docs/design-notes/layer-2-ai-control-plan.md`（含 example 目标）。约束记忆：lab 只做移动+编队、不抽 UnitAI 中间层；测试分 smoke/repro/stress 三类。
+
+### 1c. dota2-auto-battle 示例 — 从头重做（fable）
+- **现状**：用户评价"更垃圾"。定位（主仓 CLAUDE.md）：实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter / 当前 M1 垂直切片。
+- **启动时 fable 做什么**：**基于项目目标从头重新做**（已定调重做，非修补）。
+- **约束**：先出**重建方案**给用户过目，再落实现代码（别抢跑写一堆代码）。守 enforcing-lgf / GDScript 规范，不过度设计。
+- **相关**：`addons/logic-game-framework/example/dota2-auto-battle/README.md`（M1 目标 + M2–M5 里程碑 + Open Design Questions）
+
+---
+
+## 线 2 — inkmon 主项目
+
+### 2a.（第一要务，🔄 进行中 2026-07-02）review `architecture-optimization-plan` —— 用户 + fable 讨论
+- **做什么**：review [`docs/future/architecture-optimization-plan.md`](architecture-optimization-plan.md)，用 `/grill-with-docs` **跟用户讨论**有无建设性意见，**讨论并落地**。
+- **谁做**：**用户 + fable 讨论**（grill）；Claude/Opus 不代跑。
+- **相关**：`docs/future/architecture-optimization-plan.md`（P0/P1/P2 backlog，仅记录暂不执行 2026-06-13）。
+- **进度（2026-07-02）**：① fable 复核 plan 有效性（2 处修订回写）；② R3 独立验证（fable 逐条读码 + 2 agent 核查，覆盖 44/47）：1 条证伪、数条修正与净增发现，回写 plan 头部 🗳️ 记录；③ 用户拍板：进化 stat gate = 纯成长不含装备；执行策略 = 三波全推；④ **三波已落地**（`inkmon/all` 21 smoke 全绿，明细见 plan 头部 ✅ 记录）。**唯一遗留**：Presentation modal/drawer 增量下放（UI 结构重组，需编辑器人肉验证配合，另轮做完即可关闭 2a）。注：`/grill-with-docs` 已不存在，讨论在会话内按 grill 纪律进行。
+
+### 2b.（其次）大地图 vs 战斗地图的生成策略
+- **大地图**：判断是**自己拼**、还是**做地图生成算法**（保证每局不同体验）。
+- **战斗地图**：进战斗后**一定是生成的**；看是**基于模板**还是别的做法；**战场不会大**。
+- **谁做**：**用户 + fable 讨论**；设计决策，排在 2a 之后。
+- **相关**：[`docs/game-vision.md`](../game-vision.md)（游戏循环）、[`docs/gameplay-systems-roadmap.md`](../gameplay-systems-roadmap.md)。
+
+### 2c.（再其次，低优先级）剩余问题
+- 用户原话："那些问题没有 fable 我也能搞定，优先级不高"。**暂不展开。**
+
+### 2d. AI Runtime Control Service —— 外部 AI 像玩家一样操作主游戏（fable）
+- **现状**：设计边界已锁，完整设计见 [`ai-runtime-control-service.md`](ai-runtime-control-service.md)（`PlayerActionPort` 三分 WorldAction/ViewAction/HostAction + `InkMonAiObservationProjector` 出 state+ASCII screen+available_actions + WebSocket/JSON + 薄 MCP adapter；含 §7 五步实现顺序 + §8 open questions）。
+- **启动前置（硬门）**：**inkmon 基础游戏循环做完 / 可玩之后**才启动（用户明确要求排在基础循环之后）。
+- **启动时 fable 做什么**：先解 §8 open questions，再按 §7 五步落地（PlayerActionPort → ObservationProjector → RuntimeServer(WebSocket+FIFO) → 薄 MCP server → runtime smoke: observe→move→interact→observe）。
+- **谁做**：fable（先出实现切分再动手）。
+- **约束**：不复用 DevAgentBridge、不模拟鼠标点击、不在 MCP/TS/Python 层重写规则、不进 Web bridge `Simulation.tscn`；守现有 CQRS 写侧 / Host 控制面 / UI 本地态边界。
+
+---
+
+## 线 3 — LGF 框架（`addons/logic-game-framework/`）
+
+### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）
+- **意图**：**所有遗留问题都要改**。硬约束：**尽量少改 core 层**；**首要目标 = 优化 hex-atb-battle 架构**。
+- **启动时 fable 做什么**：除已知遗留问题外，**了解当前情况、提建设性意见**。
+- **已知遗留问题**（`addons/logic-game-framework/docs/README.md` 已知债务）：core→stdlib 反向依赖 / ProjectileActor 位置 / 强类型事件最后落回 Dictionary / Replay·Playback 命名混用 / ~28 个 hex 技能门控待迁移到 helper / WorldGameplayInstance 是否需抽象 hex 概念。
+- **约束**：少动 core；改动前出**提案**过目；守 enforcing-lgf。
+- **相关**：`addons/logic-game-framework/docs/README.md`、`addons/logic-game-framework/example/hex-atb-battle/README.md`（装备 V1 + 未来规划）。
+
+---
+
+## 关联：现有 future 文档
+
+本队列**触发**这些已有 future 文档的落地；启动某项时先读对应文档：
+
+| 队列项 | 关联 future 文档 |
+|---|---|
+| 2a | [`future/architecture-optimization-plan.md`](architecture-optimization-plan.md) |
+| 2b | [`game-vision.md`](../game-vision.md) · [`gameplay-systems-roadmap.md`](../gameplay-systems-roadmap.md) |
+| 2d | [`future/ai-runtime-control-service.md`](ai-runtime-control-service.md)（AI 像玩家操作主游戏,基础循环之后）|
+| （主项目占位） | [`future/deferred-features.md`](deferred-features.md)（刻印 per-slot / X→X2 / lab 导入契约） |
+| （美术管线） | [`plan/tile-texture-auto-fit-tool-plan.md`](../plan/tile-texture-auto-fit-tool-plan.md) |
+| 1a/1b | `addons/sim-nav-map/examples/**/docs/*-plan.md` |
+| 1c | `addons/logic-game-framework/example/dota2-auto-battle/README.md` |
+| 3 | `addons/logic-game-framework/docs/README.md`（已知债务）· `.../example/hex-atb-battle/README.md` |
+
+---
+
+> **状态**：**2a 进行中**（2026-07-02 fable 接手），其余未启动。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。

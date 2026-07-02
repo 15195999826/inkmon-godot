@@ -137,15 +137,15 @@ static func tick_actor_ability_runtime(
 
 func _start_actor_action(actor: InkMonUnitActor, logic_time: float) -> void:
 	var decision := actor.ai_strategy.decide(actor, _world_instance)
-	if decision["type"] == "skip":
+	if decision.is_skip():
 		actor.reset_atb()
 		return
 
 	var event := _create_action_use_event(
-		decision["ability_instance_id"],
+		decision.ability_instance_id,
 		actor.get_id(),
-		decision.get("target_actor_id", ""),
-		decision.get("target_coord", null),
+		decision.target_actor_id,
+		decision.target_coord,
 		logic_time
 	)
 

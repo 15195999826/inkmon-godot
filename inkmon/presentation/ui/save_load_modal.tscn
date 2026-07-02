@@ -1,4 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inkmon/presentation/ui/save_load_modal.gd" id="1_modal"]
 
 [sub_resource type="StyleBoxFlat" id="modal_style"]
 bg_color = Color(0.09, 0.08, 0.07, 0.98)
@@ -17,6 +19,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+script = ExtResource("1_modal")
 
 [node name="ModalOverlay" type="ColorRect" parent="."]
 visible = false
@@ -39,6 +42,7 @@ text = "Save / Load"
 theme_override_font_sizes/font_size = 24
 
 [node name="SaveLoadDetail" type="Label" parent="SaveLoadModal/SaveLoadBox"]
+custom_minimum_size = Vector2(340, 0)
 text = "Pick a slot to save or reload the local game state."
 autowrap_mode = 3
 

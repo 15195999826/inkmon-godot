@@ -49,8 +49,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var final_damage: float = mutable.get_current_value("damage")
 		var source_name := InkMonBattleGameStateUtils.get_actor_display_name(source_actor_id, battle)
 		var target_name := InkMonBattleGameStateUtils.get_actor_display_name(target_id, battle)
-		if absf(final_damage - base_damage) > 0.01 and battle != null:
-			battle.damage_mod_seen = true
 		print("  [InkMonDamageCalc] %s -> %s base=%.2f final=%.2f type=%s element=%s" % [
 			source_name, target_name, base_damage, final_damage, damage_type_str, element
 		])

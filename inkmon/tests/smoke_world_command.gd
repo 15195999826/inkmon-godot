@@ -37,6 +37,7 @@ func _run() -> String:
 		_test_buy_command_is_async_and_signals,
 		_test_cultivation_command,
 		_test_trainer_intent_surfaces_without_gi_flow,
+		_test_battle_freezes_command_drain,
 		_test_iworldquery_facade,
 	]
 	for check in checks:
@@ -129,25 +130,67 @@ func _test_trainer_intent_surfaces_without_gi_flow() -> String:
 	return ""
 
 
-## 6:IWorldQuery facade 转发 read + submit,且不暴露 concrete GI(无 get_gi 逃逸口)。
+## 5b (Wave 1 守卫):战斗期 procedure.tick_once 直调 base_tick 会跑 CommandDrain System,
+## drain_commands 的战斗守卫保证战斗期入队的 command 不生效 (世界冻结), 留队列待战后。
+func _test_battle_freezes_command_drain() -> String:
+	var gi := _make_gi()
+	gi.request_training_battle()
+	if not gi.has_active_battle():
+		return "training battle should be active after request"
+	gi.submit(InkMonMoveCommand.new(Vector2i(1, 0)))
+	gi.get_active_battle().tick_once()
+	var player := gi.get_world_actor(InkMonWorldGrid.PLAYER_ID)
+	if player == null:
+		return "player world actor should exist during battle"
+	if player.is_moving():
+		return "battle-time base_tick must NOT drain world commands (world frozen during battle)"
+	GameWorld.destroy_all_instances()
+	return ""
+
+
+## 6:IWorldQuery facade 只出 snapshot(读) + submit(写),不暴露 concrete GI / 活 actor / 内部 Dict 引用。
 func _test_iworldquery_facade() -> String:
 	var gi := _make_gi()
 	var query := IWorldQuery.new(gi)
-	# 只读转发与底层一致。
+	# 只读快照与底层一致。
 	if query.get_player_coord() != gi.get_player_coord():
 		return "IWorldQuery should forward get_player_coord to the gi"
-	if query.player_actor != gi.player_actor:
-		return "IWorldQuery should forward the player_actor getter"
-	if not query.has_npc_handler("shop") or query.get_world_actor(InkMonWorldGrid.PLAYER_ID) == null:
-		return "IWorldQuery should forward has_npc_handler / get_world_actor"
+	if int(query.get_player_hud_summary().get("gold", -1)) != gi.player_actor.gold:
+		return "IWorldQuery hud summary should carry player gold"
+	if query.get_roster_snapshot().size() != gi.roster.size():
+		return "IWorldQuery roster snapshot should cover the roster"
+	if not query.has_npc_handler("shop") or query.get_player_actor_id() == "":
+		return "IWorldQuery should forward has_npc_handler / expose player actor id"
+	# snapshot 是值拷贝: 改快照不得写穿逻辑层 (写隔离升到结构级, Wave 3)。
+	var hud_summary := query.get_player_hud_summary()
+	hud_summary["gold"] = 999999
+	(hud_summary.get("progression", {}) as Dictionary)["trainer_rank"] = 99
+	if gi.player_actor.gold == 999999 or int(gi.player_actor.progression.get("trainer_rank", 1)) == 99:
+		return "mutating a snapshot must not write through to the logic layer"
+	var npc_snapshot := query.get_npc_defs_snapshot()
+	(npc_snapshot.get("shop", {}) as Dictionary)["coord"] = Vector2i(9, 9)
+	if (gi.npc_defs.get("shop", {}) as Dictionary).get("coord", Vector2i.ZERO) == Vector2i(9, 9):
+		return "npc_defs snapshot must be a deep copy"
 	# submit 经 facade 入队,tick drain 后等价于直接 submit(扣金币)。
 	var gold_before := gi.player_actor.gold
 	query.submit(InkMonBuyCommand.new(&"item_0002"))
 	gi.tick(FIXED_DT)
 	if gi.player_actor.gold != gold_before - MINOR_RUNE_PRICE:
 		return "IWorldQuery.submit should reach the command queue (gold spent on drain)"
-	# 隔离:facade 不暴露 concrete GI / flow / lifecycle(无 get_gi / 序列化 / 起战斗);表演只能经 read+submit。
-	if query.has_method("get_gi") or query.has_method("request_training_battle") or query.has_method("to_dict"):
-		return "IWorldQuery must NOT expose concrete GI / flow / lifecycle (isolation)"
+	# 隔离白名单(结构式断言, 替旧 has_method 黑名单): 公开 script 方法只许出现在此清单,
+	# 新加逃逸口默认 fail —— 想扩 facade 表面必须同时改这里 (有意的双钥匙)。
+	var allowed := {
+		"get_player_coord": true, "get_player_actor_id": true, "is_player_moving": true,
+		"get_player_hud_summary": true, "get_roster_snapshot": true, "get_bag_snapshot": true,
+		"get_npc_defs_snapshot": true, "get_npc_actions": true, "has_npc_handler": true,
+		"submit": true,
+	}
+	for method in (query.get_script() as GDScript).get_script_method_list():
+		var method_name := str(method.get("name", ""))
+		# "_" 私有 / "@" 引擎合成 (property getter/setter, 如 @near_npc_id_getter) 不算公开表面。
+		if method_name.begins_with("_") or method_name.begins_with("@") or method_name == "":
+			continue
+		if not allowed.has(method_name):
+			return "IWorldQuery exposes non-whitelisted public method: %s (isolation)" % method_name
 	GameWorld.destroy_all_instances()
 	return ""

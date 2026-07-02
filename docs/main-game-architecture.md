@@ -61,12 +61,12 @@
 - **三通道(运行时数据流)**:① **Query** = 表演经窄 `IWorldQuery` facade **同步读**(roster/gold/near-npc/npc actions);② **Command** = 表演 `submit(InkMonWorldCommand)` **异步入队**,Host tick drain 时 `cmd.apply(gi)` 生效;③ **Event** = Logic mutation signal **上行**,表演被动刷新。
 - **两轴别混**:数据流(运行时)= **双向**(command 下 / event 上 ⇒ "感觉平级");代码依赖 = **单向 DAG**(Presentation→Logic;Logic 谁都不依赖、永不引用 UI;Host→两者)。⇒ Logic 是地基,Presentation 长其上,Host 在两者之上;lifecycle 重建归 Host(它建了两孩子),**非**"表演层重建逻辑层"。
 - **Host 不在对等流上,但握命令生效时机**:Host 不发 Query、不收 Event(那是表演↔逻辑的事);它持**控制面**(lifecycle/flow/tick,单向 Host→Logic,非 CQRS),且 Command 的**生效时机 = Host 的 tick 泵 drain 那一刻**。
-- **GI 两张脸(facade seam)**:Host/内部直接持 concrete `InkMonWorldGI`(含写/控制面);Presentation 只持一个独立的 **`IWorldQuery` facade 对象**(`RefCounted`,私有包 gi,只转发只读 query + `submit(cmd)`)。`IWorldQuery` 结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 暴露受控表面),但**无 `get_gi()` 逃逸口** → 表演**物理上够不到** concrete GI / flow / lifecycle(GDScript 无 interface 关键字 + GI 单继承位被占,故用此 Facade 对象实现"持接口不持实现")。⇒ 对 Presentation 是**结构隔离**(非纯约定级);Host 因合法持 concrete GI,其穿透仍靠纪律。mutation signal 由 Host 连 `gi.signal → Presentation._on_*`(表演不持 gi,故 signal 也不经表演连)。
+- **GI 两张脸(facade seam)**:Host/内部直接持 concrete `InkMonWorldGI`(含写/控制面);Presentation 只持一个独立的 **`IWorldQuery` facade 对象**(`RefCounted`,私有包 gi,读通道只出 **snapshot/DTO 值拷贝** + `submit(cmd)`)。`IWorldQuery` 结构仿 LGF `BaseGeneratedAttributeSet`(持底层对象 + 暴露受控表面),但**无 `get_gi()` 逃逸口**,且(2026-07-02 Wave 3 起)**不外递活 actor / 内部 Dict 引用** → 表演**物理上够不到** concrete GI / flow / lifecycle,**也够不到可变域对象**——写隔离为**结构级**(smoke 白名单断言钉死 facade 公开表面,新逃逸口默认 fail)。Host 因合法持 concrete GI,其穿透仍靠纪律。mutation signal 由 Host 连 `gi.signal → Presentation._on_*`(表演不持 gi,故 signal 也不经表演连)。
 - **嵌套两 Host**:外 `InkMonMain`(切屏 + 选 session)/ 内 `InkMonWorldHost`(建 world+presentation + lifecycle)。
 
 ### 读写 = CQRS（三通道）
 
-- **Query(读)= 同步**:表演经 `IWorldQuery` facade 同步读 —— facade 直接转发 `player_actor` / `roster` / `near_npc_id` / `npc_defs` / `get_player_coord` / `get_world_actor` / `get_npc_actions` / `has_npc_handler`;gold / progression / medals 经 `player_actor` getter 读、roster 经 `roster` getter 读(均活 actor 字段)。
+- **Query(读)= 同步 snapshot**:表演经 `IWorldQuery` facade 同步读**值拷贝投影**(2026-07-02 Wave 3 起不再外递活 actor 引用)—— `get_player_hud_summary`(gold+progression) / `get_roster_snapshot` / `get_bag_snapshot`(含 item config 展示字段,UI 不直触 ItemSystem) / `get_npc_defs_snapshot` / `near_npc_id` / `get_player_coord` / `get_player_actor_id` / `is_player_moving` / `get_npc_actions` / `has_npc_handler`。
 - **Command(写)= 异步唯一入口**:表演改任何游戏/世界态 → `submit(cmd)` 入队 → Host tick drain 应用(`cmd.apply(gi)`)→ 结果经 event/signal 回流 → 表演被动刷(**不读返回值**)。
   - **Command = 对象,不是无类型 dict**:`InkMonWorldCommand` 基类 + `InkMonMoveCommand`/`InkMonBuyCommand`/`InkMonNpcActionCommand` 子类;`drain_commands` 多态派发 `cmd.apply(gi)`(替掉 `{"kind":...}` dict + `if kind==` 阶梯)。move/buy/npc-action **全收进队列**(方案 A:世界一切 mutation 只在 tick 一处发生 = 单一变更时间线)。
   - 纯 UI 状态(切 tab / 抽屉 / modal / 相机)**不算 command**,留表演本地(故 app_state 不独立存储 —— 战斗 MODE = Host 控制面的 `_active_instance_id`(战斗 flow 真相)推入 Presentation 的 `_battle_active` 后派生,面板态 = 表演的 `_drawer_mode`;Presentation 据二者派生 `app_state`)。
@@ -222,7 +222,7 @@
 - 身份 = `species_id`(= 活 actor 的 `species`,全局唯一不可变 `mon_NNNN`,住 canon);`name_en` 降级为可改显示名。进化 = `InkMonSpeciesCatalog.evolve_actor(actor)` **原地变身**活 actor:改写 `actor.species`(及 display_name/stage)成所选下一形态,actor 实例不换(同一只,无 entry_id)。
 - 拓扑 = 解耦的 **edge-list 森林**:每条边 `(parent_species_id, child_species_id, trigger{level, condition?})`,住 canon、经 editor import 写入本地静态 content `res://data/inkmon_content.json`,由 `InkMonSpeciesCatalog` 读取。一个低阶可多子分支;孤儿 = 无边物种。权威是 **per-species**:某物种在边表中→用边表;不在→降级用 stub `_build_table` 的 `evolves_to` 单边 fallback(故加载部分 content 不会让 stub/领养物种丢失自己的进化链)。
 - **阈值 `trigger.level` = 设计数据,住 canon**(lab adr/0010 修订 lab adr/0007);godot 只持有单位**运行时 current level**(`actor.level`)。进化触发 = `actor.level >= trigger.level`。
-- **分支确定性选边住 godot**:在 level 达标的边里 —— 有 `condition` 且评估通过者优先 → 否则取无 condition 的默认枝(canon 语义盲)。`condition {type, params}` 按 `type` 分派评估(`element`/`stat` 真评估,stat 用 species_base × 等级缩放;`item` 待 item 域迁 server,先 stub false)。
+- **分支确定性选边住 godot**:在 level 达标的边里 —— 有 `condition` 且评估通过者优先 → 否则取无 condition 的默认枝(canon 语义盲)。`condition {type, params}` 按 `type` 分派评估,三型均真实现:`element`(主元素匹配)/`stat`(**纯成长口径,2026-07-02 拍板**:species_base × `InkMonUnitActor.growth_scale(level)` 单一真相,**刻意不含装备加成** —— 装备是外物不得凑进化门槛,`smoke_battle_math` 锚定)/`item`(玩家 bag + 单位装备容器持有判定,adr/0003)。
 - 每形态 = 一条独立 species 数据(独立立绘/名/属性档/技能池/槽数)。属性派生 key = `species_id`,即 `f(species_id, level)`。
 - 升级/进化后 `gi.refresh_unit_stats(actor)` 按新 species+level 重算派生六维(carryover HP 保留)。
 

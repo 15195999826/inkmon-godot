@@ -47,6 +47,21 @@ func _run() -> String:
 	if no_species_errors.is_empty():
 		return "validator should reject a unit without species"
 
+	# 类型门 (Wave 2): 字符串 price 不得被吞成数字通过校验 (曾 int("free")==0 → 商店 0 金币可买)。
+	var bad_price := export_data.duplicate(true)
+	bad_price["items"] = [{
+		"id": "item_0001", "display_name": "Free Thing", "icon_key": "icon",
+		"item_tags": [], "stat_mods": {}, "price": "free", "max_stack": 1,
+		"item_type": "material", "granted_abilities": [],
+	}]
+	var bad_price_errors := InkMonL2ContentContract.validate_export(bad_price)
+	var price_flagged := false
+	for error_value in bad_price_errors:
+		if str(error_value).contains("price"):
+			price_flagged = true
+	if not price_flagged:
+		return "validator must reject a string price (int type gate), errors=%s" % JSON.stringify(bad_price_errors)
+
 	var creature_base_status := _assert_creature_base_v2()
 	if creature_base_status != "":
 		return creature_base_status

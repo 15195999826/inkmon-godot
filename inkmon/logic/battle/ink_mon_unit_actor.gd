@@ -9,6 +9,12 @@ const ATB_FULL := 100.0
 const LEVEL_GROWTH := 0.05
 
 
+## 等级缩放纯函数 (docs §9 线性成长单一真相): 战斗派生六维 (apply_derived_stats) 与进化 stat-gate
+## (SpeciesCatalog._eval_condition_stat) 共用 —— 缩放模型变更 (如改 f(species,level)) 只改此处, 两口径同步。
+static func growth_scale(level_value: int) -> float:
+	return 1.0 + float(level_value - 1) * LEVEL_GROWTH
+
+
 var unit_key: String
 ## adr/0001 前的投影回写映射键; live-actor 模型下 roster actor 即真相, 仅 battle 临时敌人/旧路径用, 默认 -1。
 var source_entry_id := -1
@@ -306,7 +312,7 @@ func add_exp(amount: int) -> void:
 ## 不动当前 HP (carryover 由 set_current_hp 单独管)。species_base 由编排方 (持 SpeciesCatalog 的 GI) 传入,
 ## 保 battle 层不上引 main 层 SpeciesCatalog。可重复调 (equip/level-up 后重算, 幂等)。
 func apply_derived_stats(species_base: Dictionary) -> void:
-	var scale := 1.0 + float(level - 1) * LEVEL_GROWTH
+	var scale := growth_scale(level)
 	attribute_set.set_max_hp_base(float(species_base.get("max_hp", 0.0)) * scale)
 	attribute_set.set_ad_base(float(species_base.get("ad", 0.0)) * scale)
 	attribute_set.set_ap_base(float(species_base.get("ap", 0.0)) * scale)

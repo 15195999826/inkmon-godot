@@ -9,6 +9,7 @@ extends RefCounted
 ## ⚠ 此 Command ≠ battle 层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
 
 
-## tick drain 时由 drain_commands 调用;子类覆写做实际世界态变更。基类空实现(no-op)。
+## tick drain 时由 drain_commands 调用;子类必须覆写做实际世界态变更。
+## fail-fast: 到达基类 = 子类漏覆写 (原基类 no-op 会静默吞掉整条 command)。
 func apply(_gi: InkMonWorldGI) -> void:
-	pass
+	Log.assert_crash(false, "InkMonWorldCommand", "apply() must be overridden by the concrete command")

@@ -59,12 +59,18 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	if _active_instance_id != "":
-		_tick_active_instance(delta)
-		_complete_battle_if_ready()
+		_advance_active_battle(delta)
 		return
 	if _replay_active:
 		return  # 回放观看期:主世界 tick 冻结,玩家确认离开(battle_view_left)才恢复
 	_pump_world_ticks(delta)
+
+
+## battle 推进单一微序列 (tick 一步 + 结算检查)。异步 _process 与同步 run_to_completion 都走此,
+## 防两路各自手排产生行为分叉; dt 来源由调用方显式给 (真实帧 delta / 固定 tick interval)。
+func _advance_active_battle(dt: float) -> void:
+	_tick_active_instance(dt)
+	_complete_battle_if_ready()
 
 
 ## 主世界 30Hz 定步泵(§1 tick/移动模型):累加真实 delta,每满 FIXED_DT 泵一次 GameWorld.tick_all
@@ -110,8 +116,7 @@ func run_training_battle_to_completion(max_ticks: int = 8) -> Dictionary:
 	for _i in range(safe_ticks):
 		if _active_instance_id == "":
 			break
-		_tick_active_instance(BattleProcedure.DEFAULT_TICK_INTERVAL)
-		_complete_battle_if_ready()
+		_advance_active_battle(BattleProcedure.DEFAULT_TICK_INTERVAL)
 
 	if _active_instance_id != "":
 		return _scene_result(false, "training battle did not complete within %d ticks" % safe_ticks)
@@ -305,18 +310,19 @@ func get_roster() -> Array[InkMonUnitActor]:
 
 
 # === 公开 API facade:输入/UI 操作转发给 Presentation(CQRS 写/读在 Presentation ↔ Logic)===
-# 转发结果补 data = get_dev_agent_state()(保持 dev-agent op / smoke 的结果形状)。
+# Wave 3: 返回值不再寄生 dev-agent 全量快照 (introspection 走显式 get_dev_agent_state / "state" op),
+# 转发原样透传 Presentation 结果 —— 消掉"每次调用全量序列化调试态"的税。
 
 func move_player(delta_coord: Vector2i) -> Dictionary:
-	return _with_state(_presentation.move_player(delta_coord))
+	return _presentation.move_player(delta_coord)
 
 
 func goto_tile(target_coord: Vector2i) -> Dictionary:
-	return _with_state(_presentation.goto_tile(target_coord))
+	return _presentation.goto_tile(target_coord)
 
 
 func right_click_at(screen_position: Vector2) -> Dictionary:
-	return _with_state(_presentation.right_click_at(screen_position))
+	return _presentation.right_click_at(screen_position)
 
 
 func get_tile_screen_position(coord: Vector2i) -> Dictionary:
@@ -324,43 +330,43 @@ func get_tile_screen_position(coord: Vector2i) -> Dictionary:
 
 
 func open_near_npc_menu() -> Dictionary:
-	return _with_state(_presentation.open_near_npc_menu())
+	return _presentation.open_near_npc_menu()
 
 
 func open_npc_menu(npc_id: String) -> Dictionary:
-	return _with_state(_presentation.open_npc_menu(npc_id))
+	return _presentation.open_npc_menu(npc_id)
 
 
 func close_npc_menu() -> Dictionary:
-	return _with_state(_presentation.close_npc_menu())
+	return _presentation.close_npc_menu()
 
 
 func open_player_panel(panel_id: String) -> Dictionary:
-	return _with_state(_presentation.open_player_panel(panel_id))
+	return _presentation.open_player_panel(panel_id)
 
 
 func close_drawer() -> Dictionary:
-	return _with_state(_presentation.close_drawer())
+	return _presentation.close_drawer()
 
 
 func open_save_load_menu() -> Dictionary:
-	return _with_state(_presentation.open_save_load_menu())
+	return _presentation.open_save_load_menu()
 
 
 func close_save_load_menu() -> Dictionary:
-	return _with_state(_presentation.close_save_load_menu())
+	return _presentation.close_save_load_menu()
 
 
 func buy_shop_item(config_id: StringName) -> Dictionary:
-	return _with_state(_presentation.buy_shop_item(config_id))
+	return _presentation.buy_shop_item(config_id)
 
 
 func run_active_npc_action(action_id: String) -> Dictionary:
-	return _with_state(_presentation.run_active_npc_action(action_id))
+	return _presentation.run_active_npc_action(action_id)
 
 
 func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
-	return _with_state(_presentation.run_npc_action_for(npc_id, action_id))
+	return _presentation.run_npc_action_for(npc_id, action_id)
 
 
 # === 接线 / 工具 ===
@@ -390,15 +396,9 @@ func _print_dev_agent_paths() -> void:
 	print("[InkMonMain] session_dir: %s" % str(info.get("session_dir_global", "")))
 
 
-## 转发结果补 data = 完整 dev-agent state(dev-agent op / smoke 读返回值 data 的契约)。
-func _with_state(result: Dictionary) -> Dictionary:
-	result["data"] = get_dev_agent_state()
-	return result
-
-
+## 控制面结果 = 纯 {ok, message} (Wave 3: 不再塞 dev-agent 快照, introspection 走显式读口)。
 func _scene_result(ok: bool, message: String) -> Dictionary:
 	return {
 		"ok": ok,
 		"message": message,
-		"data": get_dev_agent_state(),
 	}

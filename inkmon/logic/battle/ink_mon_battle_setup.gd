@@ -111,6 +111,23 @@ static func find_reservations_by(gi: InkMonWorldGI, actor_id: String) -> Array[H
 	return result
 
 
+## 清一个 battle actor 在 grid 上的外部状态 (occupant + reservation), 不动 registry (P021)。
+## 三个调用点唯一共用实现: 死亡即清 (damage_utils) / 战斗 teardown / remove_actor ——
+## reservation 存储语义变更只改此处, 不再有第二份手写扫描可漏改。
+static func clear_actor_footprint(gi: InkMonWorldGI, battle_actor: InkMonBattleActor) -> void:
+	if gi.grid == null or battle_actor == null:
+		return
+	if battle_actor.hex_position != null and battle_actor.hex_position.is_valid():
+		var occupant: Variant = gi.grid.get_occupant(battle_actor.hex_position)
+		# 守卫 occupant is InkMonBattleActor: 主世界 grid 的 occupant 是 string id, 直接 == Object 会报
+		# Invalid operands; 且 reset-on-start 时 grid 已切回 overworld + actor 仍持上场 battle 坐标,
+		# 故对 overworld grid 此处天然 no-op (battle grid 每场 reconfigure 重置占用)。
+		if occupant is InkMonBattleActor and occupant == battle_actor:
+			gi.grid.remove_occupant(battle_actor.hex_position)
+	for coord in find_reservations_by(gi, battle_actor.get_id()):
+		gi.grid.cancel_reservation(coord)
+
+
 # === battle grid 配置 ===
 
 ## 战斗 grid 配置 (config.map_config 或默认)。configure_grid 是 LGF battle-host 钩子, 留 GI、此处委派回去。

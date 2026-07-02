@@ -195,6 +195,17 @@ static func get_skill_evolution(skill_id: String) -> String:
 	return str(SKILL_EVOLUTIONS.get(skill_id, ""))
 
 
+## 可领养物种池 = stub 表全部 baby 阶段物种 (领养语义 = 野外常见 baby)。
+## stub 表插入序稳定 → 池序确定, roll_seed % size 选择可复现。
+static func list_adoptable_species() -> Array[String]:
+	var result: Array[String] = []
+	var table := _species_table()
+	for species_id in table:
+		if str((table[species_id] as Dictionary).get("stage", "")) == STAGE_BABY:
+			result.append(str(species_id))
+	return result
+
+
 ## 确定性: 给定 (species, slot_index, seed) 总是 roll 出同一 skill_id。
 static func roll_skill_for_slot(species: String, slot_index: int, roll_seed: int) -> String:
 	var pool := get_slot_pool(species, slot_index)
@@ -317,11 +328,13 @@ static func _eval_condition_stat(params: Dictionary, actor: InkMonUnitActor) -> 
 	if stat == "" or comparator == "" or not params.has("value"):
 		return false
 	var key := "max_hp" if stat == "hp" else stat
-	# 派生六维 = species base × 等级缩放 (无装备), 与旧 RosterEntry.derive_battle_stats 同语义。
+	# 纯成长口径 (2026-07-02 拍板钉死): gate 只看 species base × 等级缩放, **刻意不含装备加成** ——
+	# 装备是外物不得凑进化门槛; 与战斗实战值 (attribute_set 含装备) 口径不同是 by design, 勿"修"。
+	# 缩放公式与战斗派生共用 InkMonUnitActor.growth_scale 单一真相 (smoke_battle_math 锚定)。
 	var base := get_base_stats(actor.species)
 	if not base.has(key):
 		return false
-	var scale := 1.0 + float(actor.level - 1) * InkMonUnitActor.LEVEL_GROWTH
+	var scale := InkMonUnitActor.growth_scale(actor.level)
 	var lhs := float(base.get(key, 0.0)) * scale
 	var rhs := float(params.get("value", 0.0))
 	match comparator:

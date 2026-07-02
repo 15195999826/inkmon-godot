@@ -41,9 +41,7 @@ func _run() -> String:
 	if losing_alive != 0:
 		return "losing side still has %d alive units" % losing_alive
 
-	if not battle.damage_mod_seen:
-		return "no damage calculation had final damage differ from base damage"
-
+	# 数值层精确断言在 smoke_battle_math (原 damage_mod_seen 生产探针已删)。
 	return ""
 
 

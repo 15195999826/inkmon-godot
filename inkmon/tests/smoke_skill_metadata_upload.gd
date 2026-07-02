@@ -29,6 +29,10 @@ func _run() -> String:
 		if ids.has(skill_id):
 			return "duplicate skill id: %s" % skill_id
 		ids[skill_id] = true
+		# 导出清单 ↔ runtime 单一清单一致性 (Wave 1): 每个导出 id 必须能 resolve 到技能 config,
+		# 防第三份手抄清单 (metadata export) 相对 _build_manifest 静默漂移。
+		if not InkMonAllSkills.has_skill_config(skill_id):
+			return "skills[%d] id %s must resolve via InkMonAllSkills (export/manifest drift)" % [i, skill_id]
 		if not str(skill.get("element", "")) in InkMonElementChart.all_elements():
 			return "skills[%d].element invalid: %s" % [i, str(skill.get("element", ""))]
 		if not str(skill.get("channel", "")) in InkMonL2ContentContract.VALID_SKILL_CHANNELS:

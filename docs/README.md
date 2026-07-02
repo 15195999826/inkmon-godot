@@ -22,6 +22,8 @@
 - **3.2 [玩法系统路线图](gameplay-systems-roadmap.md)** — 从愿景循环推导的系统分解 + 难度 + 前置决策 + 建议实施顺序。
 - **3.3 [待实现 / 占位功能](future/deferred-features.md)** — 刻印 per-skill scoping / 技能进化 X→X2 / lab 内容导入契约:当前是什么、为何延后、将来怎么补。
 - **3.4 [架构优化方案 backlog](future/architecture-optimization-plan.md)** — 对 `inkmon/` 的架构深度调研产出:战略主题 + 带 file:line 的战术清单 + 三波落地顺序。**仅记录,暂不执行**(2026-06-13)。
+- **3.5 [待启动任务队列](future/task-queue.md)** — 跨主项目 + 框架的已决大任务(sim-nav-map core review/examples 重做 / dota2 重做 / inkmon 架构优化 grill / 大地图·战斗地图生成 / LGF hex-atb 优化):目标 + 现状 + 启动时谁去动。**仅登记,启动时才 review/给建议**(fable 驱动;2026-07-01)。
+- **3.6 [AI Runtime Control Service](future/ai-runtime-control-service.md)** — 让外部 AI 像玩家一样操作主游戏(PlayerActionPort + AI observation projection + WebSocket/JSON + 薄 MCP adapter):未来能力,**等主游戏基础循环稳定后再落地**(队列项 2d)。
 
 ## 4. 框架与示例文档(在 submodule,不在本目录)
 

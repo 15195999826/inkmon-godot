@@ -144,9 +144,10 @@ static func _normalize_items(value: Variant) -> Dictionary:
 			"item_type": item_type,
 			"item_tags": _normalize_string_array(item.get("item_tags", [])),
 			"stat_mods": _normalize_stat_mods(item.get("stat_mods", {})),
-			"price": int(item.get("price", 0)),
+			# 类型门防御 (contract 校验为主闸, 此处兜底): 非整数值不静默转 0, 回退默认并保持可审计。
+			"price": _int_or_default(item.get("price", 0), 0),
 			"equipable": item_type == "equipment",
-			"max_stack": int(item.get("max_stack", 1)),
+			"max_stack": _int_or_default(item.get("max_stack", 1), 1),
 			"icon_key": str(item.get("icon_key", "")),
 			"granted_abilities": _normalize_granted_abilities(item.get("granted_abilities", [])),
 		}
@@ -159,6 +160,16 @@ static func _normalize_string_array(value: Variant) -> Array:
 		for entry in (value as Array):
 			result.append(str(entry))
 	return result
+
+
+## 数值字段兜底 (contract 校验为主闸): 非整数值不静默 int() 成 0, 回默认值 + 警告可审计。
+static func _int_or_default(value: Variant, default_value: int) -> int:
+	var strict: Variant = InkMonL2ContentContract.as_int_strict(value)
+	if strict == null:
+		Log.warning("InkMonContentLoader",
+			"non-integer numeric field, falling back to %d (got: %s)" % [default_value, str(value)])
+		return default_value
+	return int(strict)
 
 
 static func _normalize_stat_mods(value: Variant) -> Dictionary:

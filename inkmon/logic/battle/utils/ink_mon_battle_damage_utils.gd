@@ -40,7 +40,8 @@ static func apply_damage(
 		result.target_killed = true
 		if alive_actor_ids.size() > 0:
 			GameWorld.event_processor.process_post_event(death_dict, alive_actor_ids, battle)
-		_clear_grid_footprint(battle, target_actor)
+		if battle != null:
+			InkMonBattleSetup.clear_actor_footprint(battle, target_actor)
 
 	return result
 
@@ -52,14 +53,3 @@ static func broadcast_post_damage(
 ) -> void:
 	if alive_actor_ids.size() > 0:
 		GameWorld.event_processor.process_post_event(damage_event_dict, alive_actor_ids, battle)
-
-
-static func _clear_grid_footprint(battle: InkMonWorldGI, dead_actor: InkMonBattleActor) -> void:
-	if battle == null or battle.grid == null or dead_actor == null:
-		return
-	var pos := dead_actor.hex_position
-	if pos != null and pos.is_valid():
-		battle.grid.remove_occupant(pos)
-	for coord in battle.grid.get_all_coords():
-		if battle.grid.get_reservation(coord) == dead_actor.get_id():
-			battle.grid.cancel_reservation(coord)

@@ -184,7 +184,7 @@ func _assert_system_npc_flows(root: InkMonWorldHost) -> String:
 		return "guild NPC should increment task marker"
 
 	var roster_before := root.get_roster().size()
-	root.run_npc_action_for("release_adopt", InkMonReleaseAdoptNpcHandler.ACTION_ADOPT_STUB)
+	root.run_npc_action_for("release_adopt", InkMonReleaseAdoptNpcHandler.ACTION_ADOPT)
 	if not await _wait_until(func() -> bool:
 		return root.get_roster().size() == roster_before + 1):
 		return "adopt should add a roster entry (async command)"

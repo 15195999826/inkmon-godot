@@ -1,0 +1,28 @@
+First-person warp sandbox validation
+
+Scene:
+- res://inkmon/tools/first_person_warp_sandbox/first_person_warp_sandbox.tscn
+
+Smoke:
+- godot_console --headless --path D:/GodotProjects/inkmon/inkmon-godot res://inkmon/tools/first_person_warp_sandbox/first_person_warp_sandbox.tscn -- --smoke
+- Result: PASS - scene loaded, shader texture bound, loop params valid
+
+Capture:
+- Godot captured 300 frames at 30 fps.
+- Output video: output/first_person_warp_loop_10s.mp4
+
+Video metadata:
+- width=1280
+- height=720
+- r_frame_rate=30/1
+- duration=10.000000
+
+Loop boundary:
+- Compared captured frame_0000 against frame at capture-start-frame=300.
+- size=1280x720 max_diff=0 mean_diff=0.000000
+
+Asset source:
+- road_strip_ai.png: built-in image_gen, copied from CODEX_HOME generated_images.
+- horizon_plate_ai.png: built-in image_gen, copied from CODEX_HOME generated_images.
+- hand_overlay_ai.png: built-in image_gen chroma-key source, local alpha extraction.
+- roadside_tree_ai.png: built-in image_gen chroma-key source, local alpha extraction.

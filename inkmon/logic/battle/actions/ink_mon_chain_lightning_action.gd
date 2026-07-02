@@ -54,24 +54,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			all_events.append_array(result.event_dicts)
 
 		current_damage *= _falloff
-		current_id = _nearest_unvisited_enemy(caster.get_team_id(), current_actor.hex_position, visited, battle)
+		var next := InkMonBattleTargeting.nearest_enemy(
+			battle, caster.get_team_id(), current_actor.hex_position, visited)
+		current_id = next.get_id() if next != null else ""
 
 	return ActionResult.create_success_result(all_events)
-
-
-func _nearest_unvisited_enemy(
-	team_id: int,
-	from_pos: HexCoord,
-	visited: Array[String],
-	battle: InkMonWorldGI
-) -> String:
-	var best := ""
-	var best_distance := 1 << 30
-	for actor in battle.get_alive_actors():
-		if actor.get_team_id() == team_id or actor.get_id() in visited:
-			continue
-		var distance := from_pos.distance_to(actor.hex_position)
-		if distance < best_distance:
-			best_distance = distance
-			best = actor.get_id()
-	return best

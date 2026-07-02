@@ -46,8 +46,9 @@ func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
 func get_player_coord() -> Vector2i:
 	var found: Variant = model.find_occupant_position(PLAYER_ID)
 	var coord := found as HexCoord
-	if coord == null:
-		return Vector2i.ZERO
+	# fail-fast: player occupant 是 grid 不变量 (sync_occupants 起手放置)。缺失即 invariant 破 ——
+	# 静默返 (0,0) 会被 to_dict 回写存档把玩家钳到原点 (静默污染), 故响亮崩。
+	Log.assert_crash(coord != null, "InkMonWorldGrid", "player occupant missing from overworld grid")
 	return coord.to_axial()
 
 

@@ -76,36 +76,21 @@ var _shop_buy_buttons: Dictionary = {}
 var _trainer_button: Button
 var _drawer_mode := ""
 var _modal_layer: CanvasLayer
-var _modal_overlay: ColorRect
-var _save_load_modal: PanelContainer
-var _save_slot_buttons: Dictionary = {}
-var _load_slot_buttons: Dictionary = {}
-var _modal_close_button: Button
+## save/load modal 子场景控制器 (§6 已下放: 行为/动画/布局全在 InkMonSaveLoadModal, root 只接线)。
+var _save_load_modal_view: InkMonSaveLoadModal
 var _drawer_transition_tween: Tween
-var _modal_transition_tween: Tween
 var _drawer_transition_active := false
-var _modal_transition_active := false
-var _modal_open_requested := false
 ## NPC 视觉节点据 npc_defs(常量 stub)建一次即可;set_npcs 会 queue_free+重建,故不放进每帧 _refresh_ui。
 var _npcs_initialized := false
 
 
-## 玩家 avatar (gold/progression/medals/bag) 经 query 只读读(单一所有权在 Logic; adr/0001 活 actor)。
-var player_actor: InkMonPlayerActor:
-	get:
-		return _world_query.player_actor if _world_query != null else null
-## 出战 InkMon 活 actor 列表 (只读委托)。
-var roster: Array[InkMonUnitActor]:
-	get:
-		return _world_query.roster if _world_query != null else []
 ## near-npc 真相在 Logic;表演只读委托。
 var _near_npc_id: String:
 	get:
 		return _world_query.near_npc_id if _world_query != null else ""
-## npc 表真相在 Logic;表演只读委托(presentation query)。
-var _npc_defs: Dictionary:
-	get:
-		return _world_query.npc_defs if _world_query != null else {}
+## npc 表快照 (bind_world 取一次; NPC 是常量 stub, 跨 world 重建不变)。Wave 3: 读通道全 snapshot,
+## 表演不再持任何活 actor / 逻辑层 Dict 引用 (玩家/roster/bag 数据均按需经 query 取投影)。
+var _npc_defs: Dictionary = {}
 ## app_state 派生:战斗 > NPC 菜单 > 主世界。
 var app_state: AppState:
 	get:
@@ -131,6 +116,7 @@ func _process(_delta: float) -> void:
 ## 到本节点的 _on_* handler(Host 持 concrete GI 做接线;表演不持 GI,故 signal 也不经表演连)。
 func bind_world(query: IWorldQuery) -> void:
 	_world_query = query
+	_npc_defs = query.get_npc_defs_snapshot()
 	# NPC 视觉节点建一次(npc_defs 是常量 stub,跨 world 重建不变);避免每帧 refresh 重建。
 	if _world_layer != null and not _npcs_initialized:
 		_world_layer.set_npcs(_npc_defs)
@@ -351,22 +337,20 @@ func close_drawer() -> Dictionary:
 
 
 func open_save_load_menu() -> Dictionary:
-	if _save_load_modal == null:
+	if _save_load_modal_view == null:
 		return _result(false, "save/load modal is not ready")
 	_drawer_mode = ""
 	_active_npc_id = ""
-	_modal_open_requested = true
 	_refresh_panel()
-	_animate_modal_open()
+	_save_load_modal_view.open()
 	_last_ui_message = "save/load opened"
 	add_event(_last_ui_message)
 	return _result(true, _last_ui_message)
 
 
 func close_save_load_menu() -> Dictionary:
-	_modal_open_requested = false
-	if _save_load_modal != null:
-		_animate_modal_close()
+	if _save_load_modal_view != null:
+		_save_load_modal_view.close()
 	_last_ui_message = "save/load closed"
 	return _result(true, _last_ui_message)
 
@@ -403,8 +387,7 @@ func run_npc_action_for(npc_id: String, action_id: String) -> Dictionary:
 func _on_world_actor_position_changed(actor_id: String, old_coord: HexCoord, new_coord: HexCoord) -> void:
 	if _world_layer == null or _world_query == null:
 		return
-	var player := _world_query.get_world_actor(InkMonWorldGrid.PLAYER_ID)
-	if player != null and actor_id == player.get_id():
+	if actor_id != "" and actor_id == _world_query.get_player_actor_id():
 		_world_layer.step_player(old_coord.to_axial(), new_coord.to_axial())
 
 
@@ -534,44 +517,22 @@ func _register_tab_button(panel_id: String) -> void:
 	_tab_buttons[panel_id] = button
 
 
+## §6 下放后 root 只接线: instantiate 子场景 + connect 上抛信号; 行为/动画/布局归 InkMonSaveLoadModal。
 func _build_save_load_modal() -> void:
-	var modal_root := SaveLoadModalScene.instantiate() as Control
-	modal_root.name = "ModalRoot"
-	_modal_layer.add_child(modal_root)
-
-	_modal_overlay = modal_root.get_node("ModalOverlay") as ColorRect
-	_modal_overlay.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton:
-			var mouse_event := event as InputEventMouseButton
-			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
-				close_save_load_menu()
-	)
-
-	_save_load_modal = modal_root.get_node("SaveLoadModal") as PanelContainer
-	_save_slot_buttons.clear()
-	_load_slot_buttons.clear()
-	for slot in range(1, SAVE_SLOT_COUNT + 1):
-		_register_save_slot(modal_root, slot)
-	_modal_close_button = modal_root.get_node("SaveLoadModal/SaveLoadBox/ModalCloseButton") as Button
-	_modal_close_button.pressed.connect(func() -> void:
-		close_save_load_menu()
-	)
-
-
-func _register_save_slot(modal_root: Node, slot: int) -> void:
-	# 存读档 = Host 控制面 lifecycle,非表演:点槽位 → 上抛信号给 Host 执行(表演只管 UI)。
-	var save_button := modal_root.get_node("SaveLoadModal/SaveLoadBox/Slot%dRow/SaveSlot%d" % [slot, slot]) as Button
-	save_button.pressed.connect(func() -> void:
+	_save_load_modal_view = SaveLoadModalScene.instantiate() as InkMonSaveLoadModal
+	_save_load_modal_view.name = "ModalRoot"
+	_modal_layer.add_child(_save_load_modal_view)
+	# 存读档 = Host 控制面 lifecycle: 槽位点击 → root 转发既有上抛信号给 Host 执行。
+	_save_load_modal_view.save_slot_requested.connect(func(slot: int) -> void:
 		save_slot_requested.emit(slot)
 		_refresh_ui()
 	)
-	_save_slot_buttons[slot] = save_button
-	var load_button := modal_root.get_node("SaveLoadModal/SaveLoadBox/Slot%dRow/LoadSlot%d" % [slot, slot]) as Button
-	load_button.pressed.connect(func() -> void:
+	_save_load_modal_view.load_slot_requested.connect(func(slot: int) -> void:
 		load_slot_requested.emit(slot)
-		close_save_load_menu()
 	)
-	_load_slot_buttons[slot] = load_button
+	_save_load_modal_view.closed.connect(func() -> void:
+		_last_ui_message = "save/load closed"
+	)
 
 
 # === 刷新 / 布局 / 动画 ===
@@ -580,11 +541,12 @@ func _refresh_ui() -> void:
 	if _world_layer != null:
 		_world_layer.set_player_coord(_get_player_coord())
 		_world_layer.set_near_npc_id(_near_npc_id)
-	if player_actor != null:
+	if _world_query != null:
+		var hud_summary := _world_query.get_player_hud_summary()
 		if _gold_label != null:
-			_gold_label.text = "● %d" % player_actor.gold
+			_gold_label.text = "● %d" % int(hud_summary.get("gold", -1))
 		if _rank_label != null:
-			_rank_label.text = "R%d" % int(player_actor.progression.get("trainer_rank", 1))
+			_rank_label.text = "R%d" % int((hud_summary.get("progression", {}) as Dictionary).get("trainer_rank", 1))
 	_refresh_roster_chips()
 	_refresh_prompt()
 	_refresh_panel()
@@ -604,12 +566,6 @@ func _layout_ui() -> void:
 		var panel_width := maxf(420.0, panel_size.x * 0.40)
 		_npc_panel.position = Vector2(panel_size.x - panel_width - 24.0, 104.0)
 		_npc_panel.size = Vector2(panel_width, panel_size.y - 148.0)
-	if _save_load_modal != null:
-		var viewport_size := get_viewport().get_visible_rect().size
-		var modal_size := Vector2(380.0, 270.0)
-		_save_load_modal.position = (viewport_size - modal_size) * 0.5
-		_save_load_modal.size = modal_size
-		_save_load_modal.pivot_offset = modal_size * 0.5
 
 
 func _animate_drawer_open() -> void:
@@ -648,59 +604,16 @@ func _animate_drawer_close() -> void:
 	)
 
 
-func _animate_modal_open() -> void:
-	if _save_load_modal == null:
-		return
-	_kill_modal_tween()
-	_layout_ui()
-	_save_load_modal.visible = true
-	if _modal_overlay != null:
-		_modal_overlay.visible = true
-	_save_load_modal.scale = Vector2(0.92, 0.92)
-	_modal_transition_active = true
-	_modal_transition_tween = create_tween()
-	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_modal_transition_tween.finished.connect(func() -> void:
-		_modal_transition_active = false
-	)
-
-
-func _animate_modal_close() -> void:
-	if _save_load_modal == null or not _save_load_modal.visible:
-		return
-	_kill_modal_tween()
-	_modal_transition_active = true
-	_modal_transition_tween = create_tween()
-	_modal_transition_tween.tween_property(_save_load_modal, "scale", Vector2(0.94, 0.94), 0.12).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_modal_transition_tween.finished.connect(func() -> void:
-		_modal_transition_active = false
-		# A re-open may have happened during the close tween; keep the full-rect
-		# MOUSE_FILTER_STOP overlay in sync with intent to avoid an input blackhole.
-		if _modal_open_requested:
-			return
-		_save_load_modal.visible = false
-		_save_load_modal.scale = Vector2.ONE
-		if _modal_overlay != null:
-			_modal_overlay.visible = false
-	)
-
-
 func _kill_drawer_tween() -> void:
 	if _drawer_transition_tween != null and _drawer_transition_tween.is_valid():
 		_drawer_transition_tween.kill()
 	_drawer_transition_tween = null
 
 
-func _kill_modal_tween() -> void:
-	if _modal_transition_tween != null and _modal_transition_tween.is_valid():
-		_modal_transition_tween.kill()
-	_modal_transition_tween = null
-
-
 func _refresh_roster_chips() -> void:
 	if _roster_box == null or _world_query == null:
 		return
-	_panel_view.build_roster_chips(_roster_box, roster)
+	_panel_view.build_roster_chips(_roster_box, _world_query.get_roster_snapshot())
 
 
 func _refresh_prompt() -> void:
@@ -767,15 +680,15 @@ func _rebuild_panel_body() -> void:
 
 
 func _build_party_panel() -> void:
-	_panel_view.build_party_panel(_panel_body, roster)
+	_panel_view.build_party_panel(_panel_body, _world_query.get_roster_snapshot())
 
 
 func _build_bag_panel() -> void:
-	_panel_view.build_bag_panel(_panel_body, _get_bag_snapshot())
+	_panel_view.build_bag_panel(_panel_body, _world_query.get_bag_snapshot())
 
 
 func _build_journal_panel() -> void:
-	var progression := player_actor.progression if player_actor != null else {}
+	var progression: Dictionary = _world_query.get_player_hud_summary().get("progression", {}) if _world_query != null else {}
 	_panel_view.build_journal_panel(
 		_panel_body, progression, _last_battle_result, open_save_load_menu)
 
@@ -807,10 +720,12 @@ func _add_action_row(action: Dictionary) -> void:
 
 ## UI debug 状态(Host 聚合时补 active_instance_id / game_world)。
 func get_debug_state() -> Dictionary:
+	var hud_summary := _world_query.get_player_hud_summary() if _world_query != null else {"gold": -1, "progression": {}}
+	var roster_snapshot := _world_query.get_roster_snapshot() if _world_query != null else [] as Array[Dictionary]
 	return {
 		"state": _state_name(app_state),
-		"gold": player_actor.gold if player_actor != null else -1,
-		"roster_size": roster.size(),
+		"gold": int(hud_summary.get("gold", -1)),
+		"roster_size": roster_snapshot.size(),
 		"player_coord": _get_player_coord_dict(),
 		"player_moving": _is_player_moving(),
 		"near_npc_id": _near_npc_id,
@@ -820,18 +735,18 @@ func get_debug_state() -> Dictionary:
 		"drawer_mode": _drawer_mode,
 		"modal_open": _is_modal_open(),
 		"ui_message": _last_ui_message,
-		"progression": player_actor.progression.duplicate(true) if player_actor != null else {},
-		"roster": _get_roster_snapshot(),
-		"bag": _get_bag_snapshot(),
+		"progression": hud_summary.get("progression", {}),
+		"roster": roster_snapshot,
+		"bag": _world_query.get_bag_snapshot() if _world_query != null else [] as Array[Dictionary],
 		"overworld_iso": _world_layer.get_debug_state() if _world_layer != null else {},
 		"replaying": _replaying,
 		"battle_2d": _battle_2d_view.get_debug_state() if _battle_2d_view != null else {},
 		"ui_animation": {
 			"drawer_transition_active": _drawer_transition_active,
-			"modal_transition_active": _modal_transition_active,
+			"modal_transition_active": _save_load_modal_view != null and _save_load_modal_view.is_transition_active(),
 			"drawer_visible": _npc_panel != null and _npc_panel.visible,
 			"dim_visible": _dim_overlay != null and _dim_overlay.visible,
-			"modal_visible": _save_load_modal != null and _save_load_modal.visible,
+			"modal_visible": _is_modal_open(),
 		},
 		"last_move_result": _last_move_result.duplicate(true),
 		"last_battle_result": _last_battle_result.duplicate(true),
@@ -867,11 +782,17 @@ func get_layout_state() -> Dictionary:
 		"trainer_button": _control_rect_dict(_trainer_button),
 		"tool_buttons": tool_buttons,
 		"tab_buttons": tab_buttons,
-		"save_load_modal": _control_rect_dict(_save_load_modal),
-		"save_slot_buttons": _slot_button_rects(_save_slot_buttons),
-		"load_slot_buttons": _slot_button_rects(_load_slot_buttons),
-		"modal_close_button": _control_rect_dict(_modal_close_button),
+		"save_load_modal": _control_rect_dict(_modal_controls.get("panel", null) as Control),
+		"save_slot_buttons": _slot_button_rects(_modal_controls.get("save_buttons", {}) as Dictionary),
+		"load_slot_buttons": _slot_button_rects(_modal_controls.get("load_buttons", {}) as Dictionary),
+		"modal_close_button": _control_rect_dict(_modal_controls.get("close_button", null) as Control),
 	}
+
+
+## modal 子场景的 debug 控件表 (仅 layout/debug 组装读 rect 用, 行为不经此)。
+var _modal_controls: Dictionary:
+	get:
+		return _save_load_modal_view.get_debug_controls() if _save_load_modal_view != null else {}
 
 
 func _slot_button_rects(slot_buttons: Dictionary) -> Dictionary:
@@ -889,10 +810,7 @@ func _get_player_coord() -> Vector2i:
 
 
 func _is_player_moving() -> bool:
-	if _world_query == null:
-		return false
-	var player := _world_query.get_world_actor(InkMonWorldGrid.PLAYER_ID)
-	return player != null and player.is_moving()
+	return _world_query != null and _world_query.is_player_moving()
 
 
 func _get_player_coord_dict() -> Dictionary:
@@ -900,38 +818,8 @@ func _get_player_coord_dict() -> Dictionary:
 	return {"q": coord.x, "r": coord.y}
 
 
-func _get_bag_snapshot() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if player_actor == null or player_actor.bag_container_id <= 0:
-		return result
-	for item_id in ItemSystem.get_items_in_container(player_actor.bag_container_id):
-		var snapshot := ItemSystem.get_item_snapshot(item_id)
-		result.append({
-			"config_id": str(snapshot.get("config_id", "")),
-			"count": int(snapshot.get("count", 1)),
-			"slot_index": int(snapshot.get("slot_index", -1)),
-		})
-	return result
-
-
-## roster debug 快照: 从活 actor 取身份/等级/经验 + 当前/最大 HP (carryover 可见)。
-func _get_roster_snapshot() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for actor in roster:
-		result.append({
-			"actor_id": actor.get_id(),
-			"species_id": actor.species,
-			"name_en": actor.get_display_name(),
-			"level": actor.level,
-			"exp": actor.exp,
-			"hp": actor.attribute_set.hp,
-			"max_hp": actor.attribute_set.max_hp,
-		})
-	return result
-
-
 func _is_modal_open() -> bool:
-	return _save_load_modal != null and _save_load_modal.visible
+	return _save_load_modal_view != null and _save_load_modal_view.is_open()
 
 
 func _is_field_input_blocked() -> bool:

@@ -11,7 +11,7 @@ func choose_skill_target(actor: InkMonUnitActor, skill: Ability, battle: InkMonW
 	for candidate in battle.get_alive_actors():
 		if candidate.get_team_id() != actor.get_team_id():
 			continue
-		if not battle.can_use_skill_on(actor, skill, candidate):
+		if not InkMonBattleTargeting.can_use_skill_on(actor, skill, candidate):
 			continue
 		var ratio := candidate.attribute_set.hp / candidate.attribute_set.max_hp
 		if ratio < best_ratio:
