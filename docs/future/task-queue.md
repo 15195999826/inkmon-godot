@@ -17,13 +17,15 @@
 - **0ad 源码位置**（已找到）：`addons/sim-nav-map/docs/references/0ad-source/` —— 真实 git 稀疏/浅 clone，寻路源码已 checkout。重点：`source/simulation2/helpers/`（`HierarchicalPathfinder`/`LongPathfinder`/`VertexPathfinder`/`Pathfinding`/`PathGoal`/`Grid.h`/`Spatial.h`/`Rasterize`/`PriorityQueue`）+ `source/simulation2/components/`（`CCmpPathfinder*`/`CCmpObstructionManager`/`CCmpUnitMotion*`）。
 - **相关**：`addons/sim-nav-map/examples/0ad-rts-pathfinding-lab/docs/steady-state-frame-performance-plan.md`
 
-### 1b. sim-nav-map **examples** — 删了重做 or 重构，fable 自行决定
+### 1b. sim-nav-map **examples** — 删了重做 or 重构，fable 自行决定【🗳️ 提案待拍板 2026-07-02】
+- **提案**：[`simnav-examples-disposition-proposal.md`](simnav-examples-disposition-proposal.md) —— 0ad lab 保留+定向修（core P0 + 5Hz 节拍分离）；dota2 lab 保骨架重做手感契约（与 1c 联动）；sc2 lab 建议删除。待用户答：两 lab 手感主诉 + sc2 删否 + dota2 lab 方向。
 - **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**。
 - **启动时 fable 做什么**：了解后**自行决定** —— 删除示例源码、按各 example 目标从头重做，**还是**在当前 example 上重构。
 - **约束**：删除/重写是破坏性操作，**方向自决、动手前仍给用户过目**。手感是体验性的，fable 判断不了的部分需向用户要**具体手感问题**，不臆造结论。
 - **相关**：各 example 的 `docs/development-plan.md`、`docs/design-notes/layer-2-ai-control-plan.md`（含 example 目标）。约束记忆：lab 只做移动+编队、不抽 UnitAI 中间层；测试分 smoke/repro/stress 三类。
 
-### 1c. dota2-auto-battle 示例 — 从头重做（fable）
+### 1c. dota2-auto-battle 示例 — 从头重做（fable）【🗳️ 方案待批准 2026-07-02】
+- **方案**：[`dota2-auto-battle-rebuild-plan.md`](dota2-auto-battle-rebuild-plan.md) —— 诊断（sim-nav 栈选型错误/无胜负目标/debug-only 前端）+ 保形清单 + M1'-M5' + 3 决策点（移动底座 steering vs sim-nav / 胜负条件进 M1' / 旧代码定义类复用）。批准后动代码。
 - **现状**：用户评价"更垃圾"。定位（主仓 CLAUDE.md）：实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter / 当前 M1 垂直切片。
 - **启动时 fable 做什么**：**基于项目目标从头重新做**（已定调重做，非修补）。
 - **约束**：先出**重建方案**给用户过目，再落实现代码（别抢跑写一堆代码）。守 enforcing-lgf / GDScript 规范，不过度设计。
