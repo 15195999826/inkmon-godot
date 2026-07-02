@@ -32,12 +32,20 @@
 - **约束**：先出**重建方案**给用户过目，再落实现代码（别抢跑写一堆代码）。守 enforcing-lgf / GDScript 规范，不过度设计。
 - **相关**：`addons/logic-game-framework/example/dota2-auto-battle/README.md`（M1 目标 + M2–M5 里程碑 + Open Design Questions）
 
-### 1d. sim-nav 能力信封 + 底座硬化清单【🚧 信封已拍板 2026-07-02，硬化刀①完成】
-**真相文件：[`addons/sim-nav-map/docs/capability-envelope.md`](../../addons/sim-nav-map/docs/capability-envelope.md)**（9 条能力拍板 + 性能承诺 + 硬化清单）。模式 = 用户拍板："先冻结底座支持什么 → 设计在信封内 → 真撞墙才谈改底座"；1c 降级为探索件不再当基建验收方。
-- 性能现状：跨图规划 0.8ms/条（每 tick ≤1 条恒定）；建表预热进 rebuild；8 单位移动稳态 tick ~0.78ms、静止 ~0.04ms。
-- **硬化刀① ✅（2026-07-02）**：路牌表增量修复——脏格只重建 ±1 行/列带，与全量重建逐字节等价（`smoke_sim_nav_jump_table_repair` 焊死）；沟壑级修复 ~0.7ms（原全量 ~9ms）；facade flush 与查询侧双路接入。
-- **硬化刀⓪ ⏳（造墙落地前必修，本次实测发现）**：造墙 flush 端到端 ~30ms，大头 = hierarchical 分区连通性单 chunk 重算 ~29ms（既有成本，与表无关）。
-- 其余刀（②视线查表化 30+ 单位触发、③分离求解空间哈希 50+ 触发、④budget smoke、⑤GDExtension 铸模含 Web/WASM 构建链 + 真后台线程收益）见信封文档硬化清单；GDExtension 用户战略原话也记在信封条目（触发 = 信封冻结 + ⓪-④ 完成）。
+### 1d. sim-nav 能力信封 + 底座硬化清单【🚧 信封已拍板 2026-07-02】
+**契约文件：[`addons/sim-nav-map/docs/capability-envelope.md`](../../addons/sim-nav-map/docs/capability-envelope.md)**（9 条能力拍板 + 性能承诺）。模式 = 用户拍板："先冻结底座支持什么 → 设计在信封内 → 真撞墙才谈改底座"；1c 降级为探索件不再当基建验收方。**执行状态以本条为准**（envelope 内清单只留粗状态，完成一把刀两处各改一行）。每把刀 = 独立会话可启动，开新会话直接说"做 1d-X"。
+
+**已完成（2026-07-02，全部已 commit + codex review）**
+- ✅ JPS+ 射线表：跨图规划 5-6ms → 0.8ms，A/B 零结果变化（submodule 6038975）
+- ✅ 建表预热进 rebuild：首查 12ms → 0.9ms（f99951f）
+- ✅ 刀①路牌表增量修复：沟壑级 ~0.7ms（原全量 ~9ms），"增量==全量"逐字节焊死 `smoke_sim_nav_jump_table_repair`；facade flush + 查询侧双路（564bc52 + codex 修正 4d37dcc）
+
+**待触发（按触发条件开工，不提前）**
+- **⓪ hierarchical 分区连通性增量化**｜触发 = 造墙技能要进战斗循环（1c 技能系统落地）｜现状：造墙 flush ~30ms，大头是 `SimNavHierarchicalPathfinder.recompute_dirty` 单 chunk ~29ms（实测 2026-07-02，与射线表无关的既有成本）｜启动时：先剖析 29ms 去哪了（单 chunk 内 region 重算 vs 全局 region 图重连），再决定增量策略；验收 = 造墙 flush 端到端 < 5ms + 既有 hierarchical smoke 绿
+- **② `is_line_walkable` 查表化**｜触发 = 单位规模 30+｜⚠️ 语义雷区已勘探：`_validate_line` = 栅格走线（0 A.D. 逃逸规则：可从不可通行格走出）+ 精确几何形状段，不是机械换 `segment_clear`；需带逃逸规则的 baked 孪生 + 保留形状段 + 独立 A/B｜验收 = 结果零变化 + 8 移动单位稳态 tick 0.78 → ~0.4ms
+- **③ 分离求解空间哈希**｜触发 = 单位规模 50+｜O(N²)→近线性（9 单位 36 对无感；外推 100 单位 ~12-25ms/tick 不可接受）｜入口 `Dota2LabMotionEngine._resolve_overlaps`；验收 = 100 单位移动 tick < 5ms + 手感 smoke 全绿
+- **④ budget smoke 套件**｜触发 = ②③ 完成后｜把 envelope 性能承诺焊进测试（参照 0ad lab `smoke_zero_ad_rts_lab_0ad_budget` 模式），跌破即红
+- **⑤ GDExtension 铸模**｜触发 = 信封冻结 + ⓪-④ 完成｜范围含 long-path core + 分离求解；Web/WASM 需另编 wasm（构建链成本）；解锁真后台线程规划（GDScript 线程两次验尸判死）。用户战略原话见 envelope 条目
 
 ---
 
