@@ -78,16 +78,16 @@
 
 规模预估：M1' 约 1500-2000 行（与旧 M1 相当，砍 lab 栈依赖换手感可控 + 胜负闭环）。
 
-## 五、决策点（用户拍板后动工）
+## 五、决策点（2026-07-02 用户已拍板）
 
-1. **移动底座**：
-   - **A（推荐）**：example 内 lane steering（直线 seek + 分离滑动），无寻路依赖；
-   - B：继续接 sim-nav dota2 lab，等 1b 把 lab 手感契约重做完再接——1c 被 1b 阻塞。
-2. **M1' 是否含胜负条件（lane core）**：推荐含——这是「像个游戏」的最小要素；不含则
-   回到旧 M1 的无限对戳。
-3. **旧代码处置**：推荐**定义类复用、执行类全重写**——events / attributes 定义 /
-   unit type config / intent DTO 词汇保留（形状已验证），procedure / controllers /
-   movement adapter 内部 / systems / frontend 全部重写。备选：全删从零。
+1. **移动底座：B —— 继续接 sim-nav dota2 lab 栈**（用户选定，未采纳 steering 推荐）。
+   推论：**1b 的 dota2 lab 手感契约重做成为本案前置**；「三、扔什么」第 1 条作废——
+   `Dota2MovementAdapter` 继续对接 lab 栈，手感由 lab 契约重做解决；lab 与 auto-battle
+   共享一套移动实现。执行顺序：core P0 → lab 契约重做 → 1c。
+2. **M1' 含胜负条件（lane core）**：✅ 含。
+3. **旧代码处置**：按推荐执行——**定义类复用、执行类全重写**（events / attributes 定义 /
+   unit type config / intent DTO 词汇保留；procedure / controllers / systems / frontend
+   重写；movement adapter 视 lab 契约重做后的新 API 重写内部、保对上接口）。
 
 ## 六、约束自查
 
