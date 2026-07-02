@@ -19,7 +19,7 @@
 
 ### 1b. sim-nav-map **examples** — 删了重做 or 重构【🚧 已拍板执行中 2026-07-02】
 - **提案与拍板**：[`simnav-examples-disposition-proposal.md`](simnav-examples-disposition-proposal.md) —— 用户拍板：sc2 删（✅ 已删）；0ad lab 保留+定向修；dota2 lab 保骨架重做手感契约；1c 继续接 sim-nav lab 栈（**1b 成 1c 前置**）。
-- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**待用户 F6 验手感**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**剩余**：0ad lab 5Hz 节拍分离 + cell 8 重锚（1b 收尾项）。
+- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**待用户 F6 验手感**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**寻路性能已根治 ✅（2026-07-02）**：归因=架构问题×语言单价（旧 per-(start,dir) 射线缓存真实命中率≈0，每查全额逐格扫）；JPS+ 射线表预计算 + LOS refine 走 baked 网格后跨图单查 5-6ms → **~0.8ms**，A/B 探针（1.1 万射线穷举 + 44 全查询 + 500 segment）零结果/零诊断变化，51 smoke 全绿。**剩余**：0ad lab 5Hz 节拍分离 + cell 8 重锚（1b 收尾项）。
 - **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**。
 - **启动时 fable 做什么**：了解后**自行决定** —— 删除示例源码、按各 example 目标从头重做，**还是**在当前 example 上重构。
 - **约束**：删除/重写是破坏性操作，**方向自决、动手前仍给用户过目**。手感是体验性的，fable 判断不了的部分需向用户要**具体手感问题**，不臆造结论。
