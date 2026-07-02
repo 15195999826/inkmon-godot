@@ -39,7 +39,17 @@
   3. 对用户具体主诉复测（绕大弯 / 到达后互挤 / 卡墙僵死），剩余问题再定点修——「到达后互
      挤」的候选根：unit-unit −½ clearance 放宽缺失（1a Q2）+ 无 formation slot。
 
-### dota2-rts-pathfinding-lab —— 骨架保留、手感契约重做（推荐），与 1c 联动
+### dota2-rts-pathfinding-lab —— 骨架保留、手感契约重做 ✅ 已完成（2026-07-02）
+
+- **movement-feel-policy v2 已落地**（submodule e8f0c68）：M1 切向滑动（对实时单位位置 +
+  精确 static 几何校验，绕过栅格 DDA 抢走的窄缝侧移空间，滑进栅格带靠 core 逃逸规则走出）、
+  M2 unit-unit −½ cell clearance 放宽（0ad 同款）、M3 拥挤到达（预算耗尽后二环半径，群移
+  同点收敛成同心圆环）、M4 HOLDING 态（永不因单位阻挡终态放弃，`max_retry_exceeded` 已消灭；
+  FAILED 仅剩静态不可达）。
+- **实测行为翻转**：群移 8 单位 IDLE 8/FAILED 0（旧 3/5）；窄缝对穿 222 tick 双双滑过到达
+  （旧双 FAILED）；围死单位 HOLDING 有界重试、移开阻挡自行恢复（新 A9 锚）。
+  dota2lab/smoke 6/6，全量 50 场景绿。
+- **待用户 F6 亲手验**：`frontend/dota2_pathfinding_lab.tscn`（手感最终验收人是用户）。
 
 - 现状：工程质量好（五态 FSM、controller-owned ticket 生命周期、6 smoke 全绿、文档纪律好），
   **问题在契约不在实现**——movement-feel-policy 把「群移大半 FAILED / 窄缝互堵放弃」接受成
