@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon/tests/shot_battle_baked.gd" id="1_shotbb"]
+
+[node name="ShotBattleBaked" type="Node"]
+script = ExtResource("1_shotbb")

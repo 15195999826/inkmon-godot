@@ -16,7 +16,7 @@ signal frame_changed(current_frame: int, total_frames: int)
 const DEFAULT_TICK_MS := 100.0
 
 # ---- 场景节点（setup 注入）----
-var _grid: InkMonRender2DIsoHexGrid = null
+var _grid: InkMonRender2DBakedHexMap = null
 var _units_root: Node2D = null
 var _fx_root: Node2D = null
 
@@ -40,7 +40,7 @@ var _registry: InkMonRender2DVisualizerRegistry = null
 var _unit_views: Dictionary = {}           # actor_id:String -> InkMonRender2DAvatar
 
 
-func setup(grid: InkMonRender2DIsoHexGrid, units_root: Node2D, fx_root: Node2D) -> void:
+func setup(grid: InkMonRender2DBakedHexMap, units_root: Node2D, fx_root: Node2D) -> void:
 	_grid = grid
 	_units_root = units_root
 	_fx_root = fx_root

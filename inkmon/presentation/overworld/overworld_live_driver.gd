@@ -15,7 +15,7 @@ const OVERWORLD_MOVE_DURATION := 220.0
 
 signal avatar_spawned(actor_id: String, avatar: InkMonRender2DAvatar)
 
-var _grid: InkMonRender2DIsoHexGrid = null
+var _grid: InkMonRender2DBakedHexMap = null
 var _units_root: Node2D = null
 var _fx_root: Node2D = null
 
@@ -29,7 +29,7 @@ var _pending: Array[Dictionary] = []
 var _live := false              # _process 是否 pump（测试走 step()，不开 live）
 
 
-func setup(grid: InkMonRender2DIsoHexGrid, units_root: Node2D, fx_root: Node2D) -> void:
+func setup(grid: InkMonRender2DBakedHexMap, units_root: Node2D, fx_root: Node2D) -> void:
 	_grid = grid
 	_units_root = units_root
 	_fx_root = fx_root

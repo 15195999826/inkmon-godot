@@ -9,10 +9,13 @@ signal playback_ended()
 ## 玩家在结果界面点 Leave —— 回放观看期结束的唯一出口(game-vision §2 体验流"确认离开")。
 signal leave_requested()
 
-const BATTLE_GRID_RADIUS := 5
+## 战斗地图 = content/maps/battle_main.map.json + 发布 tile set（T2 契约）。
+const BATTLE_MAP_ID := "battle_main"
+## 视图显示密度（px/边），与旧 48px pointy 网格的画面尺度对齐。
+const DISPLAY_EDGE_PX := 56.0
 
 var _stage: Node2D
-var _grid: InkMonRender2DIsoHexGrid
+var _grid: InkMonRender2DBakedHexMap
 var _units_root: Node2D
 var _fx_root: Node2D
 var _animator: InkMonBattle2DAnimator
@@ -48,12 +51,12 @@ func _build() -> void:
 	_stage.name = "Stage"
 	add_child(_stage)
 
-	_grid = InkMonRender2DIsoHexGrid.new()
-	_grid.name = "BattleGrid"
+	_grid = InkMonRender2DBakedHexMap.new()
+	_grid.name = "BattleMap"
 	_stage.add_child(_grid)
-	_grid.setup(BATTLE_GRID_RADIUS, 48.0)
-	_grid.paint_tiles(_grid.get_all_coords(), Color(0.16, 0.18, 0.24, 1.0))
-	_grid.render()
+	var bundle := InkMonMapLoader.load_bundle(BATTLE_MAP_ID)
+	if bundle.is_empty() or not _grid.setup_from_bundle(bundle, DISPLAY_EDGE_PX):
+		push_error("battle 2d view: battle map failed to load (%s)" % BATTLE_MAP_ID)
 
 	_units_root = Node2D.new()
 	_units_root.name = "UnitsRoot"

@@ -1,5 +1,13 @@
 # InkMon 美术探索
 
+> ⚠️ **本目录已冻结（2026-07-02，T2 定案）**：不再新增内容。生产口径已移交 Lab 仓
+> `inkmon-lab/docs/architecture/godot-contract.md`（Art Asset Contract 章）。
+> 清理分级：🟢 长期保留 = `美术资产管线决策.md`、各线 `assets/baked|concept-baked/` + `shots/`
+> （golden 对照组，Lab 差分/集成测试引用）、`concept素材-v1/raw/ + uv/ + tools/`（测试输入源）；
+> 🟡 冻结待清（世界/战斗两张地图替换完成后执行）= 各线中间实验产物（trace / fit_overlay /
+> model_preview / texture-gen 候选历史 / beveled_uv*）与 `docs\美术素材制作探索\` 的截图瘦身。
+> 完整决策记录：`inkmon-lab/docs/plan/current/FABLE_TASKS.md` T2 节。
+
 这个目录放 Godot 内可直接打开的地图美术探索场景。
 
 当前旧基线是 `fable-圆角-v1`：Blender bake 出整块 tile PNG，再在 Godot 里按 manifest 拼装。

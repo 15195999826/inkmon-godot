@@ -1,5 +1,12 @@
 # 0007: 统一主世界 + 战斗 2D 表演 —— overworld 接上共享 render_world 管线（live 事件源）
 
+> **退役标注（2026-07-02，T2 G2 迁移）**：本 ADR 的共享视图件 `InkMonRender2DIsoHexGrid`
+> （pointy-top 线框网格 + ISO_SQUISH 0.55 压扁）已随主世界/战斗两场景迁移到
+> **flat-top baked tile 地图层** `InkMonRender2DBakedHexMap`（静态地图 JSON `content/maps/`
+> + Lab 发布的 tile set，契约见 inkmon-lab `docs/architecture/godot-contract.md` Art Asset 章
+> + ADR-0003）而**退役删除**。本 ADR 的其余决策（统一 render_world 管线 / live driver /
+> view-local 边界 / MoveAction 移动统一）继续有效——换掉的只是网格视图件与其 pointy 几何。
+
 [adr/0006](0006-battle-presentation-framework-port.md) 把 hex frontend 表演框架拷进 `battle_2d/`，事件源是冻结的 `ReplayData` 时间线。主世界 `InkMonOverworldView` 当时是另一套命令式 live 反应视图（presentation 在 WorldGI 信号上直接调 `step_player` + 自管 tween）。
 
 本 ADR 决定：**让主世界与战斗走同一套 `事件→visualizer→render_world→2D 视图` 管线,只换事件源**。共享框架从 `battle_2d/` 提到 `render2d/`,battle 与 overworld 各自的 driver 喂同一套 render_world 核心。

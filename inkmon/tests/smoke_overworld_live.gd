@@ -15,9 +15,12 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	var grid := InkMonRender2DIsoHexGrid.new()
+	# 坐标层 = baked 地图层（T2 契约）：world_main 静态地图 + 发布 tile set。
+	var grid := InkMonRender2DBakedHexMap.new()
 	add_child(grid)
-	grid.setup(4, 56.0)
+	var bundle := InkMonMapLoader.load_bundle("world_main")
+	if bundle.is_empty() or not grid.setup_from_bundle(bundle, 56.0):
+		return "world_main bundle failed to load for the baked map layer"
 	var units_root := Node2D.new()
 	add_child(units_root)
 	var fx_root := Node2D.new()

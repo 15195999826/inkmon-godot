@@ -1,0 +1,26 @@
+{
+ "grass": {
+  "display_name": "草地",
+  "passable": true,
+  "move_cost": 1.0,
+  "asset_family": "grass"
+ },
+ "dirt": {
+  "display_name": "土路",
+  "passable": true,
+  "move_cost": 1.0,
+  "asset_family": "dirt"
+ },
+ "stone": {
+  "display_name": "石地",
+  "passable": true,
+  "move_cost": 1.25,
+  "asset_family": "stone"
+ },
+ "water": {
+  "display_name": "水面",
+  "passable": false,
+  "move_cost": 1.0,
+  "asset_family": "water"
+ }
+}

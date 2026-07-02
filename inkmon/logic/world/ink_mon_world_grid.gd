@@ -3,30 +3,28 @@ extends RefCounted
 
 
 const PLAYER_ID := "player"
-const MAP_RADIUS := 4
+## 主世界地图 = 静态手写 JSON（T2 契约，content/maps/）；不再程序化生成。
+const WORLD_MAP_ID := "world_main"
+## 逻辑几何尺寸沿用历史值（相邻格世界距离 = size·√3 = 2.0）。
+const LOGIC_HEX_SIZE := 2.0 / sqrt(3.0)
 
 
 var model: GridMapModel
 
 
-func setup(radius: int = MAP_RADIUS) -> void:
-	var cfg := GridMapConfig.new()
-	cfg.grid_type = GridMapConfig.GridType.HEX
-	cfg.orientation = GridMapConfig.Orientation.POINTY
-	cfg.draw_mode = GridMapConfig.DrawMode.RADIUS
-	cfg.radius = radius
-	cfg.size = 2.0 / sqrt(3.0)
-
-	model = GridMapModel.new()
-	model.initialize(cfg)
+func setup(map_id: String = WORLD_MAP_ID) -> void:
+	var bundle := InkMonMapLoader.load_bundle(map_id, LOGIC_HEX_SIZE)
+	Log.assert_crash(not bundle.is_empty(), "InkMonWorldGrid", "world map bundle failed to load: %s" % map_id)
+	model = bundle["model"] as GridMapModel
 
 
 func sync_occupants(player_coord: Vector2i, npc_defs: Dictionary) -> void:
 	Log.assert_crash(model != null, "InkMonWorldGrid", "grid model is not initialized")
+	# 只重置运行时态（occupant / reservation）；is_blocking 是地形静态性质
+	# （terrains.json → 加载器写入），不能在 sync 时清掉。
 	for coord in model.get_all_coords():
 		model.remove_occupant(coord)
 		model.cancel_reservation(coord)
-		model.set_tile_blocking(coord, false)
 
 	for npc_id_value in npc_defs.keys():
 		var npc_id := str(npc_id_value)

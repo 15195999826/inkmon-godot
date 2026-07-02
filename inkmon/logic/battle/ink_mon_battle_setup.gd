@@ -130,23 +130,26 @@ static func clear_actor_footprint(gi: InkMonWorldGI, battle_actor: InkMonBattleA
 
 # === battle grid 配置 ===
 
-## 战斗 grid 配置 (config.map_config 或默认)。configure_grid 是 LGF battle-host 钩子, 留 GI、此处委派回去。
+## 战斗地图 = 静态手写 JSON（T2 契约，content/maps/）；不再程序化生成。
+const BATTLE_MAP_ID := "battle_main"
+## 逻辑几何尺寸沿用历史值（旧 build_default_grid_config 的 size=10.0）。
+const BATTLE_LOGIC_HEX_SIZE := 10.0
+
+## 战斗 grid 配置 (config.map_config 显式覆盖，否则加载 battle_main 地图)。
+## configure_grid(_model) 是 LGF battle-host 钩子, 留 GI、此处委派回去。
 static func configure_battle_grid(gi: InkMonWorldGI, config: Dictionary) -> void:
 	gi._ensure_started()
 	var grid_config := config.get("map_config", null) as GridMapConfig
-	if grid_config == null:
-		grid_config = build_default_grid_config()
-	gi.configure_grid(grid_config)
+	if grid_config != null:
+		gi.configure_grid(grid_config)
+		return
+	gi.configure_grid_model(build_default_grid_model())
 
 
-static func build_default_grid_config() -> GridMapConfig:
-	var config := GridMapConfig.new()
-	config.grid_type = GridMapConfig.GridType.HEX
-	config.draw_mode = GridMapConfig.DrawMode.RADIUS
-	config.radius = 5
-	config.size = 10.0
-	config.orientation = GridMapConfig.Orientation.FLAT
-	return config
+static func build_default_grid_model() -> GridMapModel:
+	var bundle := InkMonMapLoader.load_bundle(BATTLE_MAP_ID, BATTLE_LOGIC_HEX_SIZE)
+	Log.assert_crash(not bundle.is_empty(), "InkMonBattleSetup", "battle map bundle failed to load: %s" % BATTLE_MAP_ID)
+	return bundle["model"] as GridMapModel
 
 
 # === 发奖 ===

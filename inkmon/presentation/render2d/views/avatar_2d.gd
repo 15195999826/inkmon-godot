@@ -87,7 +87,9 @@ func initialize(p_actor_id: String, display_name: String, p_max_hp: float, style
 	_idle_phase = float(absi(p_actor_id.hash()) % 100) / 100.0 * TAU
 
 	if style.has_shadow:
-		var shadow := _make_disc("Shadow", style.radius * 0.95, Color(0.0, 0.0, 0.0, 0.26), InkMonRender2DIsoHexGrid.ISO_SQUISH)
+		# 贴地椭圆压扁系数 = 冻结相机 pitch 35.26° 的 sin(pitch)（与 baked 地图层同投影；
+		# 旧 InkMonRender2DIsoHexGrid.ISO_SQUISH=0.55 随该件退役）。
+		var shadow := _make_disc("Shadow", style.radius * 0.95, Color(0.0, 0.0, 0.0, 0.26), InkMonRender2DIsoProjection.squish_of(35.26))
 		add_child(shadow)
 
 	_visual_root = Node2D.new()

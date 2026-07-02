@@ -4,14 +4,16 @@ extends Node2D
 ## 主世界 overworld 表演层 —— 真 2D 等轴渲染（adr/0005），统一到共享 render2d 表演框架（adr/0007）。
 ##
 ## actor-state（玩家 / NPC 的位置 + 移动）走 InkMonOverworldLiveDriver（持共享 RenderWorld +
-## scheduler + overworld_registry，live 事件源），投影到共享 InkMonRender2DAvatar；网格用共享
-## InkMonRender2DIsoHexGrid。**view-local**（不进 render_world）：相机跟随 / 点击脉冲 / 目标 marker /
-## 屏幕拾取 / 坐标几何 / NPC 高亮缩放（依赖 viewport/canvas transform 或纯装饰）。
+## scheduler + overworld_registry，live 事件源），投影到共享 InkMonRender2DAvatar；地图用
+## flat-top baked tile 层 InkMonRender2DBakedHexMap（T2 契约：content/maps/world_main.map.json
+## + 发布的 tile set；adr/0007 的 pointy 线框网格用法就此退役）。**view-local**（不进
+## render_world）：相机跟随 / 点击脉冲 / 目标 marker / 屏幕拾取 / 坐标几何 / NPC 高亮缩放。
 ##
 ## 对外契约（presentation 调用 + dev-agent debug 面）保持不变:coord_to_world 仍返 Vector3(x,0,z)。
 
-const MAP_RADIUS := 4
-const GRID_PIXEL_SIZE := 56.0
+const WORLD_MAP_ID := "world_main"
+## 视图显示密度（px/边）：素材原生 ~213px/边按此缩放，保住既有 avatar/marker/相机的像素尺度。
+const DISPLAY_EDGE_PX := 64.0
 const CAMERA_FOLLOW_SPEED := 5.0
 const CLICK_PULSE_DURATION := 0.34
 const INVALID_COORD := Vector2i(-999999, -999999)
@@ -22,7 +24,7 @@ var player_coord := Vector2i.ZERO
 var near_npc_id := ""
 var npc_defs: Dictionary = {}
 
-var _grid: InkMonRender2DIsoHexGrid
+var _grid: InkMonRender2DBakedHexMap
 var _driver: InkMonOverworldLiveDriver
 var _camera: Camera2D
 var _units_root: Node2D
@@ -206,19 +208,22 @@ func get_debug_state() -> Dictionary:
 		"click_pulse_count": _click_pulse_nodes.size(),
 		"idle_animation": true,
 		"camera_follow": _camera != null,
-		"iso_squish": InkMonRender2DIsoHexGrid.ISO_SQUISH,
+		# 键集逐字保留（dev-agent 契约）；值改为 baked 层的有效压扁系数 sin(pitch)。
+		"iso_squish": _grid.effective_squish() if _grid != null else 0.0,
 	}
 
 
 # ========== 构建 ==========
 
 func _build_scene() -> void:
-	_grid = InkMonRender2DIsoHexGrid.new()
-	_grid.name = "Grid"
+	_grid = InkMonRender2DBakedHexMap.new()
+	_grid.name = "BakedMap"
 	add_child(_grid)
-	_grid.setup(MAP_RADIUS, GRID_PIXEL_SIZE, Color(0.06, 0.05, 0.04, 0.42), 2.0)
-	_paint_ground()
-	_grid.render()
+	var bundle := InkMonMapLoader.load_bundle(WORLD_MAP_ID)
+	if bundle.is_empty() or not _grid.setup_from_bundle(bundle, DISPLAY_EDGE_PX):
+		push_error("overworld view: world map failed to load (%s)" % WORLD_MAP_ID)
+		return
+	_ground_tile_count = _grid.tile_count()
 
 	_build_camera()
 
@@ -235,20 +240,6 @@ func _build_scene() -> void:
 	add_child(_driver)
 	_driver.setup(_grid, _units_root, _feedback_root)
 	_driver.start_live()
-
-
-## 占位地面:grass 铺满 + road 沿三轴覆盖。
-func _paint_ground() -> void:
-	var coords := _grid.get_all_coords()
-	_grid.paint_tiles(coords, Color(0.28, 0.56, 0.24))
-	var road: Array[HexCoord] = []
-	for coord in coords:
-		var axial := coord.to_axial()
-		if axial.x == 0 or axial.y == 0 or axial.x + axial.y == 0:
-			road.append(coord)
-	if not road.is_empty():
-		_grid.paint_tiles(road, Color(0.56, 0.46, 0.31))
-	_ground_tile_count = coords.size()
 
 
 func _build_camera() -> void:
@@ -281,13 +272,13 @@ func _track_move_finished() -> void:
 func _show_target_marker(coord: Vector2i) -> void:
 	if _target_marker != null and is_instance_valid(_target_marker):
 		_target_marker.queue_free()
-	_target_marker = _make_disc("TargetHighlight", GRID_PIXEL_SIZE * 0.5, Color(1.0, 0.78, 0.18, 0.68), InkMonRender2DIsoHexGrid.ISO_SQUISH)
+	_target_marker = _make_disc("TargetHighlight", _grid.edge_px() * 0.5, Color(1.0, 0.78, 0.18, 0.68), _grid.effective_squish())
 	_feedback_root.add_child(_target_marker)
 	_target_marker.position = _coord_to_world2d(coord)
 
 
 func _spawn_click_pulse(coord: Vector2i) -> void:
-	var pulse := _make_disc("ClickPulse", GRID_PIXEL_SIZE * 0.34, Color(1.0, 0.95, 0.42, 0.42), InkMonRender2DIsoHexGrid.ISO_SQUISH)
+	var pulse := _make_disc("ClickPulse", _grid.edge_px() * 0.34, Color(1.0, 0.95, 0.42, 0.42), _grid.effective_squish())
 	_feedback_root.add_child(pulse)
 	pulse.position = _coord_to_world2d(coord)
 	_click_pulse_nodes.append(pulse)

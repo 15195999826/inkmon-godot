@@ -175,7 +175,7 @@ func _setup_overworld_runtime() -> void:
 	npc_defs = InkMonNpcRegistry.build_npc_defs()
 	_npc_handlers = InkMonNpcRegistry.build_npc_handlers()
 	overworld_grid = InkMonWorldGrid.new()
-	overworld_grid.setup(InkMonWorldGrid.MAP_RADIUS)
+	overworld_grid.setup()
 	# 用 player_actor 持久坐标 (存档真相) 灌 grid occupant —— 不能用 get_player_coord() (此刻 grid 刚建、
 	# 占用未放, 会读回 (0,0) 丢掉存档坐标)。player_actor 随后在 _spawn_world_actors 进 registry。
 	overworld_grid.sync_occupants(_player_actor_coord(), npc_defs)
@@ -427,6 +427,14 @@ func configure_grid(config: GridMapConfig) -> void:
 	UGridMap.configure(config)
 	grid = UGridMap.model
 	grid_configured.emit(config)
+
+
+## 数据驱动版（T2 契约）：地图文件 → GridMapModel（initialize_from_tiles 产物）灌进
+## UGridMap 单例（一次一图，battle 进场重灌）。
+func configure_grid_model(model: GridMapModel) -> void:
+	UGridMap.configure_model(model)
+	grid = UGridMap.model
+	grid_configured.emit(model.get_config())
 
 
 func remove_actor(actor_id: String) -> bool:
