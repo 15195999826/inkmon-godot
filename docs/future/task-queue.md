@@ -40,8 +40,8 @@
 - ✅ 建表预热进 rebuild：首查 12ms → 0.9ms（f99951f）
 - ✅ 刀①路牌表增量修复：沟壑级 ~0.7ms（原全量 ~9ms），"增量==全量"逐字节焊死 `smoke_sim_nav_jump_table_repair`；facade flush + 查询侧双路（564bc52 + codex 修正 4d37dcc）
 
-**待触发（按触发条件开工，不提前）**
-- **⓪ hierarchical 分区连通性增量化**｜触发 = **地形动态改变**进战斗循环（技能造墙/砍树/塔亡让位任一落地；底座视角是同一个抽象：运行时通行性变更，一条链路）｜现状：地形变更 flush ~30ms，大头是 `SimNavHierarchicalPathfinder.recompute_dirty` 单 chunk ~29ms（实测 2026-07-02，与射线表无关的既有成本）｜启动时：先剖析 29ms 去哪了（单 chunk 内 region 重算 vs 全局 region 图重连），再决定增量策略；验收 = 地形变更 flush 端到端 < 5ms + 既有 hierarchical smoke 绿
+**顺序推进模式（用户 2026-07-02 拍板：⓪→②→③→④ 挨个做完，⑤ 留专门会话）**
+- ✅ **⓪ hierarchical 窗口化 chunk 重算**（2026-07-02）：29ms 真凶 = 单 chunk（96²=9216 格）洪泛逐格跨对象调用，非全局步骤；windowed snapshot + 本地整型 BFS（顺序逐位一致）+ 边界 packed 直读。地形变更 flush 30 → **3.5ms**、全量 rebuild 138 → 72ms；`smoke_sim_nav_hierarchical_incremental` 焊死（增量==全量，含双 mask、两条全量回退分支、区域分裂/重连/跨 chunk 边界/图边）。codex review：High 0 / Medium 0，两条 Low 已修（mask 0 入口拒绝 + smoke 补覆盖）。
 - **② `is_line_walkable` 查表化**｜触发 = 单位规模 30+｜⚠️ 语义雷区已勘探：`_validate_line` = 栅格走线（0 A.D. 逃逸规则：可从不可通行格走出）+ 精确几何形状段，不是机械换 `segment_clear`；需带逃逸规则的 baked 孪生 + 保留形状段 + 独立 A/B｜验收 = 结果零变化 + 8 移动单位稳态 tick 0.78 → ~0.4ms
 - **③ 分离求解空间哈希**｜触发 = 单位规模 50+｜O(N²)→近线性（9 单位 36 对无感；外推 100 单位 ~12-25ms/tick 不可接受）｜入口 `Dota2LabMotionEngine._resolve_overlaps`；验收 = 100 单位移动 tick < 5ms + 手感 smoke 全绿
 - **④ budget smoke 套件**｜触发 = ②③ 完成后｜把 envelope 性能承诺焊进测试（参照 0ad lab `smoke_zero_ad_rts_lab_0ad_budget` 模式），跌破即红
