@@ -257,6 +257,7 @@ MCP server 不做：
 等主游戏基础架构更稳定后再做，建议顺序：
 
 1. 新增 `PlayerActionPort`，先包现有玩家可执行行为，不引入网络。
+   - **（2026-07-02 记）做这一步时顺带收编 Presentation root 的输入路由**：root（`ink_mon_world_presentation.gd`）里的人类输入处理（`_input` 热键 / 右键移动 / prompt 点击 / tool 按钮）与 AI 指令应路由到**同一个** PlayerActionPort——人类键鼠和 AI 都是"玩家动作"的两个来源。这样输入路由重构只做一遍（单独先拆再为 AI 拆是两遍税），也是 §6 下放的最后一块（modal/drawer 已于同日下放完毕）。
 2. 新增 `InkMonAiObservationProjector`，输出 `state + screen + available_actions`。
 3. 新增 `InkMonAiRuntimeServer.gd`，实现 WebSocket + FIFO + single active request。
 4. 新增薄 MCP server，把 tool call 透传到 Godot runtime protocol。

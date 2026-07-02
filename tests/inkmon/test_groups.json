@@ -5,7 +5,8 @@
     "m1": {
       "scenes": [
         "../../inkmon/tests/smoke_m1_battle.tscn",
-        "../../inkmon/tests/smoke_battle_math.tscn"
+        "../../inkmon/tests/smoke_battle_math.tscn",
+        "../../inkmon/tests/smoke_battle_golden.tscn"
       ]
     },
     "actor": {
