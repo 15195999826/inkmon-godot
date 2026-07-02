@@ -44,7 +44,7 @@
 - ✅ **⓪ hierarchical 窗口化 chunk 重算**（2026-07-02）：29ms 真凶 = 单 chunk（96²=9216 格）洪泛逐格跨对象调用，非全局步骤；windowed snapshot + 本地整型 BFS（顺序逐位一致）+ 边界 packed 直读。地形变更 flush 30 → **3.5ms**、全量 rebuild 138 → 72ms；`smoke_sim_nav_hierarchical_incremental` 焊死（增量==全量，含双 mask、两条全量回退分支、区域分裂/重连/跨 chunk 边界/图边）。codex review：High 0 / Medium 0，两条 Low 已修（mask 0 入口拒绝 + smoke 补覆盖）。
 - ✅ **② `is_line_walkable` 查表化**（2026-07-02）：`movement_line_clear` 布尔快路径（baked 逃逸规则孪生 + 保留精确形状段，无 DTO/clone），wrapper 切换；8 单位移动稳态 tick 0.78 → **0.17ms**。等价性常驻焊死 `smoke_sim_nav_movement_line_fast_path`（468 段：OOB/逃逸/格线 tie/mask 0/三种 filter/修复后/无 long 回退）。codex review：Medium（A/B 落库）+ Low（脏版本号防重复 repair，`dirty_navcell_revision`）已修。0ad lab 用自家带 unit 复合签名接口、消费完整 result，不在本刀范围。
 - **② `is_line_walkable` 查表化**｜触发 = 单位规模 30+｜⚠️ 语义雷区已勘探：`_validate_line` = 栅格走线（0 A.D. 逃逸规则：可从不可通行格走出）+ 精确几何形状段，不是机械换 `segment_clear`；需带逃逸规则的 baked 孪生 + 保留形状段 + 独立 A/B｜验收 = 结果零变化 + 8 移动单位稳态 tick 0.78 → ~0.4ms
-- **③ 分离求解空间哈希**｜触发 = 单位规模 50+｜O(N²)→近线性（9 单位 36 对无感；外推 100 单位 ~12-25ms/tick 不可接受）｜入口 `Dota2LabMotionEngine._resolve_overlaps`；验收 = 100 单位移动 tick < 5ms + 手感 smoke 全绿
+- ✅ **③ 移动管线 O(N²) 网格化**（2026-07-02）：实际挖出**三处** O(N²)——分离配对循环、接触转向逐单位全体扫描（Phase A 隐藏项）、`max_overlap_depth` 诊断统计（每 tick 全对）；全部换扁平网格链表（PackedInt32Array heads/next，倒序插入保升序 → 与暴力逐位同序），另加静态投影 AABB 预筛 + clamp 内联 + 平方距离预拒。100 单位：分散行军 **3.8ms**、死球最坏 **5.2ms**（原 ~20ms，3.9×）；9 单位默认走原暴力路径（173µs，手感零风险）。`smoke_dota2_lab_separation_hash` 焊死：41 单位现实群 240 tick 逐位一致（含中途换令）+ 致密堆硬不变量与复跑确定性。
 - **④ budget smoke 套件**｜触发 = ②③ 完成后｜把 envelope 性能承诺焊进测试（参照 0ad lab `smoke_zero_ad_rts_lab_0ad_budget` 模式），跌破即红
 - **⑤ GDExtension 铸模**｜触发 = 信封冻结 + ⓪-④ 完成｜范围含 long-path core + 分离求解；Web/WASM 需另编 wasm（构建链成本）；解锁真后台线程规划（GDScript 线程两次验尸判死）。用户战略原话见 envelope 条目
 
