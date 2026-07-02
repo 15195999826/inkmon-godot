@@ -39,16 +39,34 @@
   3. 对用户具体主诉复测（绕大弯 / 到达后互挤 / 卡墙僵死），剩余问题再定点修——「到达后互
      挤」的候选根：unit-unit −½ clearance 放宽缺失（1a Q2）+ 无 formation slot。
 
-### dota2-rts-pathfinding-lab —— 骨架保留、手感契约重做 ✅ 已完成（2026-07-02）
+### dota2-rts-pathfinding-lab —— 骨架保留、手感契约重做（v2/v2.1，已被推翻）
 
-- **movement-feel-policy v2 已落地**（submodule e8f0c68）：M1 切向滑动（对实时单位位置 +
-  精确 static 几何校验，绕过栅格 DDA 抢走的窄缝侧移空间，滑进栅格带靠 core 逃逸规则走出）、
-  M2 unit-unit −½ cell clearance 放宽（0ad 同款）、M3 拥挤到达（预算耗尽后二环半径，群移
-  同点收敛成同心圆环）、M4 HOLDING 态（永不因单位阻挡终态放弃，`max_retry_exceeded` 已消灭；
-  FAILED 仅剩静态不可达）。
-- **实测行为翻转**：群移 8 单位 IDLE 8/FAILED 0（旧 3/5）；窄缝对穿 222 tick 双双滑过到达
-  （旧双 FAILED）；围死单位 HOLDING 有界重试、移开阻挡自行恢复（新 A9 锚）。
-  dota2lab/smoke 6/6，全量 50 场景绿。
+- movement-feel-policy v2 落地（submodule e8f0c68）+ v2.1 detour 版（7dbcd15）：滑动/放宽/
+  拥挤到达/HOLDING/detour waypoint，smoke 全绿。
+- **用户实测判决（2026-07-02）：手感仍差，v2 甚至不如 v1；v2.1 仍有「单位重叠」与
+  「永远无法寻路到目标」两个 bug。** smoke 绿 ≠ 手感好，修补路线宣告失败。
+
+### dota2-rts-pathfinding-lab —— Fable 版从零重做 ✅ 已落地（2026-07-02）
+
+- **用户拍板方向变更**：放弃修补、放弃全部历史包袱（v1/v2 契约、五态 FSM、0ad parity
+  执念、既有 smoke 锚），fable 自主从零设计实现，用户手感验收。
+- **Fable 版核心立场：单位间避让不是寻路问题，是接触问题。**
+  - 长径只认静态世界（单位永不进 nav map）——detour waypoint / unit-aware line check /
+    tick 内 staleness 三类 bug 从结构上消灭；
+  - 每 tick commit-then-resolve：意图步进（统一转身+沿朝向步进管线，连续 alignment
+    速度斜坡，无二值门）→ 位置分离求解（pushability 加权 + 对心侧偏破锁 + 静态精确几何
+    投影）→ 到达/看门狗；重叠不可能跨 tick 残留；
+  - 两态 FSM（IDLE/MOVING）+ 同步规划（无 queue/ticket/等待态）；订单必有界终止：
+    arrived / arrived_partial（canonical）/ arrived_crowded（人堆边缘停）/ 一次 replan
+    后 stalled fail——「永远无法寻路到目标」语义上不存在了。
+- **实现**：`Dota2LabMotionEngine` 替代 Dota2LabMotionController（motion_controller/
+  motion_update/旧三 smoke/旧契约文档全删）；wrapper 精简为静态世界 only；
+  dota2-auto-battle 的 `Dota2MovementAdapter` 同步切换。设计文档：
+  `examples/dota2-rts-pathfinding-lab/docs/design-notes/fable-motion-design.md`。
+- **验证**：新 smoke 集 7/7（move_basics/separation 不变量/crowd_blockers/stall_watchdog/
+  fanout/ai_command_source/ui_ops）+ dota2autobattle 2/2 + Required 9/9 + simnav 36/36；
+  对穿 220 tick 近零损耗擦肩、8 单位群移收敛残留重叠 0.00、封死走廊有界 fail。
+  开窗截图自验渲染正常（step avg 0.07ms）。
 - **待用户 F6 亲手验**：`frontend/dota2_pathfinding_lab.tscn`（手感最终验收人是用户）。
 
 - 现状：工程质量好（五态 FSM、controller-owned ticket 生命周期、6 smoke 全绿、文档纪律好），
