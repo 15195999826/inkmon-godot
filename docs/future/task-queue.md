@@ -9,7 +9,8 @@
 
 ## 线 1 — sim-nav-map（导航/寻路 addon）+ dota2-auto-battle（LGF 示例）
 
-### 1a. sim-nav-map **core** — 对照 0ad 源码 review（fable）
+### 1a. sim-nav-map **core** — 对照 0ad 源码 review（fable）【✅ 完成 2026-07-02】
+- **产出**：`addons/sim-nav-map/docs/reviews/2026-07-02-core-vs-0ad-review.md`（6 模块并行对照 + 主会话抽查复核）。结论：架构站得住、满意部分经得起对照；5 确认缺陷（重点 C1 clearance extension 缺失 / C2 impassable 逃逸缺失——均与「单位卡住」手感直接相关且有 repro 实证）、22 疑似、差异裁决与 P0-P2 行动清单见报告。
 - **现状**：地图数据结构方案 + 基础寻路方案是**用户唯一相对满意**的部分，要保住。
 - **启动时 fable 做什么**：根据参考项目 **0ad 源码**做一次 review —— 有无缺陷、架构是否合理。
 - **约束**：**只 review 验证，不重写**（这是满意的部分）。
