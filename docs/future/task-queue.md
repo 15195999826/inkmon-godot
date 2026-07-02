@@ -32,11 +32,11 @@
 
 ## 线 2 — inkmon 主项目
 
-### 2a.（第一要务，🔄 进行中 2026-07-02）review `architecture-optimization-plan` —— 用户 + fable 讨论
+### 2a.（第一要务，✅ 已完成 2026-07-02）review `architecture-optimization-plan` —— 用户 + fable 讨论
 - **做什么**：review [`docs/future/architecture-optimization-plan.md`](architecture-optimization-plan.md)，用 `/grill-with-docs` **跟用户讨论**有无建设性意见，**讨论并落地**。
 - **谁做**：**用户 + fable 讨论**（grill）；Claude/Opus 不代跑。
 - **相关**：`docs/future/architecture-optimization-plan.md`（P0/P1/P2 backlog，仅记录暂不执行 2026-06-13）。
-- **进度（2026-07-02）**：① fable 复核 plan 有效性（2 处修订回写）；② R3 独立验证（fable 逐条读码 + 2 agent 核查，覆盖 44/47）：1 条证伪、数条修正与净增发现，回写 plan 头部 🗳️ 记录；③ 用户拍板：进化 stat gate = 纯成长不含装备；执行策略 = 三波全推；④ **三波已落地**（`inkmon/all` 21 smoke 全绿，明细见 plan 头部 ✅ 记录）。**唯一遗留**：Presentation modal/drawer 增量下放（UI 结构重组，需编辑器人肉验证配合，另轮做完即可关闭 2a）。注：`/grill-with-docs` 已不存在，讨论在会话内按 grill 纪律进行。
+- **进度（2026-07-02）**：① fable 复核 plan 有效性（2 处修订回写）；② R3 独立验证（fable 逐条读码 + 2 agent 核查，覆盖 44/47）：1 条证伪、数条修正与净增发现，回写 plan 头部 🗳️ 记录；③ 用户拍板：进化 stat gate = 纯成长不含装备；执行策略 = 三波全推；④ **三波已落地**（`inkmon/all` 21 smoke 全绿，明细见 plan 头部 ✅ 记录）；⑤ modal + drawer 下放亦完成（子场景控制器 ×2，root 972→776 行，开窗截图 harness 自验）——**2a 关闭**。核心文档（main-game-architecture / glossary）已同步 snapshot facade 措辞。注：`/grill-with-docs` 已不存在，讨论在会话内按 grill 纪律进行。
 
 ### 2b.（其次）大地图 vs 战斗地图的生成策略
 - **大地图**：判断是**自己拼**、还是**做地图生成算法**（保证每局不同体验）。
@@ -84,4 +84,4 @@
 
 ---
 
-> **状态**：**2a 进行中**（2026-07-02 fable 接手），其余未启动。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
+> **状态**：**2a 已完成**（2026-07-02 fable），其余未启动。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。

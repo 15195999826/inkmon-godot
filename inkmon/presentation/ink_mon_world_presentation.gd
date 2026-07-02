@@ -64,13 +64,10 @@ var _tool_buttons: Dictionary = {}
 var _prompt_layer: CanvasLayer
 var _prompt_button: Button
 var _panel_layer: CanvasLayer
-var _dim_overlay: ColorRect
-var _npc_panel: PanelContainer
-var _tab_bar: HBoxContainer
-var _tab_buttons: Dictionary = {}
-var _panel_title: Label
+## right drawer 子场景控制器 (§6 已下放: 骨架/动画/停靠布局在 InkMonRightDrawer, root 只填内容+接线)。
+var _drawer_view: InkMonRightDrawer
+## drawer 内容容器缓存 (= _drawer_view.get_body(); 数据驱动填充仍归 root)。
 var _panel_body: VBoxContainer
-var _close_button: Button
 var _action_buttons: Dictionary = {}
 var _shop_buy_buttons: Dictionary = {}
 var _trainer_button: Button
@@ -78,8 +75,6 @@ var _drawer_mode := ""
 var _modal_layer: CanvasLayer
 ## save/load modal 子场景控制器 (§6 已下放: 行为/动画/布局全在 InkMonSaveLoadModal, root 只接线)。
 var _save_load_modal_view: InkMonSaveLoadModal
-var _drawer_transition_tween: Tween
-var _drawer_transition_active := false
 ## NPC 视觉节点据 npc_defs(常量 stub)建一次即可;set_npcs 会 queue_free+重建,故不放进每帧 _refresh_ui。
 var _npcs_initialized := false
 
@@ -483,38 +478,19 @@ func _register_tool_button(parent: Control, panel_id: String) -> void:
 	_tool_buttons[panel_id] = button
 
 
+## §6 下放后 root 只接线: instantiate 子场景 + connect 上抛信号 + 缓存内容容器;
+## 骨架/动画/停靠/关闭与 tab 交互归 InkMonRightDrawer。
 func _build_panel() -> void:
-	var panel_root := RightDrawerScene.instantiate() as Control
-	panel_root.name = "PanelRoot"
-	_panel_layer.add_child(panel_root)
-
-	_dim_overlay = panel_root.get_node("DimOverlay") as ColorRect
-	_dim_overlay.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton:
-			var mouse_event := event as InputEventMouseButton
-			if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
-				close_drawer()
-	)
-
-	_npc_panel = panel_root.get_node("RightDrawer") as PanelContainer
-	_panel_title = panel_root.get_node("RightDrawer/PanelBox/PanelHeader/PanelTitle") as Label
-	_close_button = panel_root.get_node("RightDrawer/PanelBox/PanelHeader/PanelCloseButton") as Button
-	_close_button.pressed.connect(func() -> void:
+	_drawer_view = RightDrawerScene.instantiate() as InkMonRightDrawer
+	_drawer_view.name = "PanelRoot"
+	_panel_layer.add_child(_drawer_view)
+	_panel_body = _drawer_view.get_body()
+	_drawer_view.close_requested.connect(func() -> void:
 		close_drawer()
 	)
-	_tab_bar = panel_root.get_node("RightDrawer/PanelBox/PanelTabs") as HBoxContainer
-	_panel_body = panel_root.get_node("RightDrawer/PanelBox/PanelBody") as VBoxContainer
-	_register_tab_button("party")
-	_register_tab_button("bag")
-	_register_tab_button("journal")
-
-
-func _register_tab_button(panel_id: String) -> void:
-	var button := _tab_bar.get_node("Tab_%s" % panel_id.capitalize()) as Button
-	button.pressed.connect(func() -> void:
+	_drawer_view.tab_selected.connect(func(panel_id: String) -> void:
 		open_player_panel(panel_id)
 	)
-	_tab_buttons[panel_id] = button
 
 
 ## §6 下放后 root 只接线: instantiate 子场景 + connect 上抛信号; 行为/动画/布局归 InkMonSaveLoadModal。
@@ -561,55 +537,6 @@ func _layout_ui() -> void:
 		_prompt_button.text = "[E] Talk"
 		_prompt_button.position = _world_layer.coord_to_screen(coord) + Vector2(-54, -82)
 
-	if _npc_panel != null:
-		var panel_size := get_viewport().get_visible_rect().size
-		var panel_width := maxf(420.0, panel_size.x * 0.40)
-		_npc_panel.position = Vector2(panel_size.x - panel_width - 24.0, 104.0)
-		_npc_panel.size = Vector2(panel_width, panel_size.y - 148.0)
-
-
-func _animate_drawer_open() -> void:
-	if _npc_panel == null or _drawer_transition_active:
-		return
-	var target_position := _npc_panel.position
-	var start_position := target_position + Vector2(_npc_panel.size.x + 32.0, 0.0)
-	_npc_panel.position = start_position
-	_drawer_transition_active = true
-	_kill_drawer_tween()
-	_drawer_transition_tween = create_tween()
-	_drawer_transition_tween.tween_property(_npc_panel, "position", target_position, 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_drawer_transition_tween.finished.connect(func() -> void:
-		_drawer_transition_active = false
-	)
-
-
-func _animate_drawer_close() -> void:
-	if _npc_panel == null or not _npc_panel.visible:
-		return
-	# Kill any in-flight open/close tween and run the close from the current position,
-	# so a close requested mid-open cannot leave a ghost drawer + click-blocking dim.
-	_kill_drawer_tween()
-	_drawer_transition_active = true
-	var target_position := _npc_panel.position + Vector2(_npc_panel.size.x + 32.0, 0.0)
-	_drawer_transition_tween = create_tween()
-	_drawer_transition_tween.tween_property(_npc_panel, "position", target_position, 0.14).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	_drawer_transition_tween.finished.connect(func() -> void:
-		_drawer_transition_active = false
-		# A re-open may have happened during the close tween; do not hide what is now open.
-		if _drawer_mode != "":
-			return
-		_npc_panel.visible = false
-		if _dim_overlay != null:
-			_dim_overlay.visible = false
-	)
-
-
-func _kill_drawer_tween() -> void:
-	if _drawer_transition_tween != null and _drawer_transition_tween.is_valid():
-		_drawer_transition_tween.kill()
-	_drawer_transition_tween = null
-
-
 func _refresh_roster_chips() -> void:
 	if _roster_box == null or _world_query == null:
 		return
@@ -624,31 +551,18 @@ func _refresh_prompt() -> void:
 
 
 func _refresh_panel() -> void:
-	if _dim_overlay == null or _npc_panel == null:
+	if _drawer_view == null:
 		return
-	var is_open := _drawer_mode != ""
-	if not is_open:
-		_animate_drawer_close()
+	if _drawer_mode == "":
+		_drawer_view.hide_drawer()
 		return
-	# Re-opening: cancel any in-flight close tween so its finished callback cannot hide
-	# the drawer we are about to show, and play a fresh slide-in.
-	var interrupted_transition := _drawer_transition_active
-	_kill_drawer_tween()
-	_drawer_transition_active = false
-	var animate_open := interrupted_transition or not _npc_panel.visible
-	_dim_overlay.visible = true
-	_npc_panel.visible = true
-	if _tab_bar != null:
-		_tab_bar.visible = _drawer_mode != "npc"
+	# 滑入动画开始前内容就绪: 先填 body 再 show (开/关 tween 竞态在 InkMonRightDrawer 内处理)。
+	_rebuild_panel_body()
+	var title_text := _drawer_mode.capitalize()
 	if _drawer_mode == "npc":
 		var npc_def := _npc_defs[_active_npc_id] as Dictionary
-		_panel_title.text = str(npc_def.get("display_name", _active_npc_id))
-	else:
-		_panel_title.text = _drawer_mode.capitalize()
-	_rebuild_panel_body()
-	_layout_ui()
-	if animate_open:
-		_animate_drawer_open()
+		title_text = str(npc_def.get("display_name", _active_npc_id))
+	_drawer_view.show_drawer(title_text, _drawer_mode != "npc")
 
 
 func _rebuild_panel_body() -> void:
@@ -742,10 +656,10 @@ func get_debug_state() -> Dictionary:
 		"replaying": _replaying,
 		"battle_2d": _battle_2d_view.get_debug_state() if _battle_2d_view != null else {},
 		"ui_animation": {
-			"drawer_transition_active": _drawer_transition_active,
+			"drawer_transition_active": _drawer_view != null and _drawer_view.is_transition_active(),
 			"modal_transition_active": _save_load_modal_view != null and _save_load_modal_view.is_transition_active(),
-			"drawer_visible": _npc_panel != null and _npc_panel.visible,
-			"dim_visible": _dim_overlay != null and _dim_overlay.visible,
+			"drawer_visible": _drawer_view != null and _drawer_view.is_drawer_visible(),
+			"dim_visible": _drawer_view != null and _drawer_view.is_dim_visible(),
 			"modal_visible": _is_modal_open(),
 		},
 		"last_move_result": _last_move_result.duplicate(true),
@@ -768,20 +682,16 @@ func get_layout_state() -> Dictionary:
 	for key in _tool_buttons.keys():
 		var tool_button := _tool_buttons[key] as Button
 		tool_buttons[str(key)] = _control_rect_dict(tool_button)
-	var tab_buttons := {}
-	for key in _tab_buttons.keys():
-		var tab_button := _tab_buttons[key] as Button
-		tab_buttons[str(key)] = _control_rect_dict(tab_button)
 	return {
 		"viewport": _rect_dict(get_viewport().get_visible_rect()),
 		"prompt_button": _control_rect_dict(_prompt_button),
-		"npc_panel": _control_rect_dict(_npc_panel),
-		"close_button": _control_rect_dict(_close_button),
+		"npc_panel": _control_rect_dict(_drawer_controls.get("panel", null) as Control),
+		"close_button": _control_rect_dict(_drawer_controls.get("close_button", null) as Control),
 		"npc_action_buttons": action_buttons,
 		"shop_buy_buttons": buy_buttons,
 		"trainer_button": _control_rect_dict(_trainer_button),
 		"tool_buttons": tool_buttons,
-		"tab_buttons": tab_buttons,
+		"tab_buttons": _slot_button_rects(_drawer_controls.get("tab_buttons", {}) as Dictionary),
 		"save_load_modal": _control_rect_dict(_modal_controls.get("panel", null) as Control),
 		"save_slot_buttons": _slot_button_rects(_modal_controls.get("save_buttons", {}) as Dictionary),
 		"load_slot_buttons": _slot_button_rects(_modal_controls.get("load_buttons", {}) as Dictionary),
@@ -793,6 +703,12 @@ func get_layout_state() -> Dictionary:
 var _modal_controls: Dictionary:
 	get:
 		return _save_load_modal_view.get_debug_controls() if _save_load_modal_view != null else {}
+
+
+## drawer 子场景的 debug 控件表 (仅 layout/debug 组装读 rect 用, 行为不经此)。
+var _drawer_controls: Dictionary:
+	get:
+		return _drawer_view.get_debug_controls() if _drawer_view != null else {}
 
 
 func _slot_button_rects(slot_buttons: Dictionary) -> Dictionary:

@@ -1,4 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inkmon/presentation/ui/right_drawer.gd" id="1_drawer"]
 
 [sub_resource type="StyleBoxFlat" id="drawer_style"]
 bg_color = Color(0.08, 0.075, 0.065, 0.96)
@@ -17,6 +19,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+script = ExtResource("1_drawer")
 
 [node name="DimOverlay" type="ColorRect" parent="."]
 visible = false

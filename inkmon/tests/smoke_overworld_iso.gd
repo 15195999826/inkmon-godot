@@ -319,12 +319,16 @@ func _assert_overlay_layering_and_dismiss(root: InkMonWorldHost) -> String:
 		return "drawer should be open before the dim-dismiss click"
 	# Click a point inside the dim overlay but clear of the right-side drawer panel,
 	# computed from the actual headless layout (hardcoded coords are viewport-size fragile).
-	var dim_rect := (root._presentation._dim_overlay as Control).get_global_rect()
-	var panel_rect := (root._presentation._npc_panel as Control).get_global_rect()
-	var click_x := (dim_rect.position.x + panel_rect.position.x) * 0.5
-	if click_x >= panel_rect.position.x:
-		click_x = dim_rect.position.x + 4.0
-	var click_pos := Vector2(click_x, dim_rect.get_center().y)
+	# Wave 3: drawer 下放后 smoke 不再穿透私有节点, 改走 public layout_state (dim = 全屏 = viewport rect)。
+	var layout := root.get_dev_agent_layout_state()
+	var viewport_rect := layout.get("viewport", {}) as Dictionary
+	var panel_rect := layout.get("npc_panel", {}) as Dictionary
+	var viewport_x := float(viewport_rect.get("x", 0.0))
+	var panel_x := float(panel_rect.get("x", 0.0))
+	var click_x := (viewport_x + panel_x) * 0.5
+	if click_x >= panel_x:
+		click_x = viewport_x + 4.0
+	var click_pos := Vector2(click_x, float(viewport_rect.get("cy", 360.0)))
 	_click_at(click_pos)
 	var dismiss_wait := await _wait_for_ui_transition(root, "drawer_transition_active")
 	if dismiss_wait != "":
