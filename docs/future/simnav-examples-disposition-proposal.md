@@ -27,10 +27,17 @@
 - 理由：core 的主要回归资产（40 motion smoke + repro_020 + stress harness + 密集 repro 护栏
   网）；1a 结论 core 是要保住的，example 测试是资产的一部分。
 - 顺序：
-  1. 修 core C1/C2（1a P0，两条都有 repro 实证）；
+  1. ✅ **已完成（2026-07-02）** 修 core C1/C2（+1 raster extension + impassable 逃逸），四组
+     smoke 50/50 全绿；default 走廊 42→74px（有效通道与旧世界一致）。**执行中发现并记录**：
+     ① lab 栅格 cell 8 实验回滚——logged-* 回放锚全是 16px 时代 export，重锚成本归入本步
+     契约重做（届时与 5Hz 一并做，量化误差减半值得要）；② `static_vertex_extra_outset`
+     在 +1 带下不再清带（顶点可能落带内，靠逃逸规则出、进边可能被拒），同批重配平；
+     ③ dota2 lab 已切 cell 8 + outset 配平（它无历史锚包袱）。
   2. sim/render 节拍分离（core-021 medium：5Hz 固定 tick accumulator + 渲染插值，issue 里已
-     有 sketch）——预期顺带简化/删除若干 lab-only 手感补丁（issue 内有逐条评估表）；
-  3. 对用户具体主诉复测，剩余问题再定点修。
+     有 sketch）——预期顺带简化/删除若干 lab-only 手感补丁（issue 内有逐条评估表）；同批：
+     cell 16→8 重锚 + outset 重配平 + logged-* 锚全面重放。
+  3. 对用户具体主诉复测（绕大弯 / 到达后互挤 / 卡墙僵死），剩余问题再定点修——「到达后互
+     挤」的候选根：unit-unit −½ clearance 放宽缺失（1a Q2）+ 无 formation slot。
 
 ### dota2-rts-pathfinding-lab —— 骨架保留、手感契约重做（推荐），与 1c 联动
 
@@ -50,9 +57,22 @@
 - git 历史可考，未来真做 RTS 玩法再捡。
 - **删除是破坏性操作，等用户确认后执行。**
 
-## 待用户回答（已用 AskUserQuestion 发出，用户暂离，回来补答）
+## 用户拍板（2026-07-02）
 
-1. 0ad lab 手感主诉具体现象（卡墙僵死 / 一卡一卡 / 到达后互挤 / 绕大弯 / 其他）
-2. dota2 lab 手感主诉具体现象（群移 FAILED 站桩 / 窄缝互堵 / 转身起步僵硬 / 轨迹僵硬 / 其他）
-3. sc2 lab：删 or 留
-4. dota2 lab：保骨架重做契约 / 冻结等 1c / 删了重建
+1. **sc2 lab：删掉** ✅（已执行）
+2. **dota2 lab：保骨架重做手感契约** ✅
+3. **1c 移动底座：继续 sim-nav lab 栈** —— 由此 **1b 的 dota2 lab 契约重做成为 1c 的前置**；
+   执行顺序：core P0 修复 → dota2 lab 手感契约重做 → 1c 重建。
+4. **core P0（C1/C2）：现在就修** ✅
+
+## 用户手感主诉（验收锚，修复对准这些）
+
+**0ad lab**：绕明显大弯 + 到达后堆叠互挤不停 + 单位卡墙/僵死；且历史上「让 AI 反复修、
+问题反复出现，特别是边界情况」——用户心智：底层思路有问题。
+**1a 的解释**：底层架构站得住，但 0ad 靠它保边界正确性的两个保守机制没带过来（C1
+clearance 扩展 / C2 逃逸规则），历次修复都在上层 motion/example 打补丁——修错了层，
+边界 case 自然反复复发。本轮从 core 根上修。
+
+**dota2 lab**：无具体单点主诉，总目标就是「还原 dota2 手感」且当年没做到。新手感契约
+要从 dota2 真实机制正向定义（移动单位间滑动绕行、停驻单位是实体障碍、转身速率、指令
+即响应），而不是从现有 lab 缺陷倒推。
