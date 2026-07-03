@@ -112,10 +112,10 @@ Single field modification operation.
 Event type constants and inner class factories.
 
 **Constants:**
-`ABILITY_ACTIVATE_EVENT`, `ACTOR_SPAWNED_EVENT`, `ACTOR_DESTROYED_EVENT`, `ATTRIBUTE_CHANGED_EVENT`, `ABILITY_GRANTED_EVENT`, `ABILITY_REMOVED_EVENT`, `ABILITY_ACTIVATED_EVENT`, `ABILITY_TRIGGERED_EVENT`, `EXECUTION_ACTIVATED_EVENT`, `TAG_CHANGED_EVENT`, `STAGE_CUE_EVENT`
+`ABILITY_ACTIVATE_EVENT`, `ACTOR_SPAWNED_EVENT`, `ACTOR_DESTROYED_EVENT`, `ATTRIBUTE_CHANGED_EVENT`, `ABILITY_GRANTED_EVENT`, `ABILITY_REMOVED_EVENT`, `ABILITY_TRIGGERED_EVENT`, `EXECUTION_ACTIVATED_EVENT`, `TAG_CHANGED_EVENT`, `STAGE_CUE_EVENT`, `PROJECTILE_HIT_EVENT`
 
 **Inner Classes** (each has `create()`, `to_dict()`, `from_dict()`, `is_match()`):
-`ActorSpawned`, `ActorDestroyed`, `AttributeChanged`, `AbilityGranted`, `AbilityRemoved`, `AbilityActivated`, `AbilityTriggered`, `ExecutionActivated`, `TagChanged`, `StageCue`, `ProjectileHit`, `AbilityActivate`
+`ActorSpawned`, `ActorDestroyed`, `AttributeChanged`, `AbilityGranted`, `AbilityRemoved`, `AbilityTriggered`, `ExecutionActivated`, `TagChanged`, `StageCue`, `ProjectileHit`, `AbilityActivate` (self-activation request; carries `logic_time` / `target_actor_id` / `target_coord`)
 
 ---
 

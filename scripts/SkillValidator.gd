@@ -9,11 +9,13 @@ var result: Dictionary
 const ADVISORY_MAX_COOLDOWN_MS := 60000.0
 ## cant_act (眩晕/硬控) 门控豁免: 仅 move (走 ActivateInstanceConfig, 无标准门控)。
 ## strike 不在此列 —— basic attack 也该被眩晕阻断, 它确实带 cant_act。
-const ADVISORY_CANT_ACT_EXEMPT := ["skill_move"]
+## 注意: move 的实际 CONFIG_ID 是 "action_move"(见 move.gd), 不是 "skill_move" ——
+## 此前名单写错字符串, 因 move 无 active_use 组件而恰好无症状(线 3 轮 B 修正)。
+const ADVISORY_CANT_ACT_EXEMPT := ["action_move"]
 ## silence (沉默) 门控豁免: strike (basic attack 不受沉默, ARPG/MOBA 惯例) + move。
 ## 把 strike 的 silence 豁免从"沉默的省略"固化成"具名 opt-out", 让其它技能漏写 silence
 ## 时能与有意豁免区分 (原 P1-2 关切: condition 门控靠逐文件手抄, 漂移不可检测)。
-const ADVISORY_SILENCE_EXEMPT := ["skill_strike", "skill_move"]
+const ADVISORY_SILENCE_EXEMPT := ["skill_strike", "action_move"]
 ## determinism 风险 token: 技能逻辑出现这些 = 可能破坏 bit-identical replay (RTS 契约)
 const ADVISORY_NONDETERMINISTIC_TOKENS := [
 	"randf", "randi", "randomize", "RandomNumberGenerator",
