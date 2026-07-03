@@ -19,13 +19,14 @@
 
 ### 1b. sim-nav-map **examples** — 删了重做 or 重构【🚧 已拍板执行中 2026-07-02】
 - **提案与拍板**：[`simnav-examples-disposition-proposal.md`](simnav-examples-disposition-proposal.md) —— 用户拍板：sc2 删（✅ 已删）；0ad lab 保留+定向修；dota2 lab 保骨架重做手感契约；1c 继续接 sim-nav lab 栈（**1b 成 1c 前置**）。
-- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**待用户 F6 验手感**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**寻路性能已根治 ✅（2026-07-02）**：归因=架构问题×语言单价（旧 per-(start,dir) 射线缓存真实命中率≈0，每查全额逐格扫）；JPS+ 射线表预计算 + LOS refine 走 baked 网格后跨图单查 5-6ms → **~0.8ms**，A/B 探针（1.1 万射线穷举 + 44 全查询 + 500 segment）零结果/零诊断变化，51 smoke 全绿。**剩余**：0ad lab 5Hz 节拍分离 + cell 8 重锚（1b 收尾项）。
+- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**✅ 用户已 F6 验收（2026-07-03：手感完美）**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**寻路性能已根治 ✅（2026-07-02）**：归因=架构问题×语言单价（旧 per-(start,dir) 射线缓存真实命中率≈0，每查全额逐格扫）；JPS+ 射线表预计算 + LOS refine 走 baked 网格后跨图单查 5-6ms → **~0.8ms**，A/B 探针（1.1 万射线穷举 + 44 全查询 + 500 segment）零结果/零诊断变化，51 smoke 全绿。**剩余**：0ad lab 5Hz 节拍分离 + cell 8 重锚（1b 收尾项）。
 - **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**。
 - **启动时 fable 做什么**：了解后**自行决定** —— 删除示例源码、按各 example 目标从头重做，**还是**在当前 example 上重构。
 - **约束**：删除/重写是破坏性操作，**方向自决、动手前仍给用户过目**。手感是体验性的，fable 判断不了的部分需向用户要**具体手感问题**，不臆造结论。
 - **相关**：各 example 的 `docs/development-plan.md`、`docs/design-notes/layer-2-ai-control-plan.md`（含 example 目标）。约束记忆：lab 只做移动+编队、不抽 UnitAI 中间层；测试分 smoke/repro/stress 三类。
 
-### 1c. dota2-auto-battle 示例 — 从头重做（fable）【🗳️ 方案待批准 2026-07-02】
+### 1c. dota2-auto-battle 示例 — 从头重做（fable）【⏸️ 短期搁置 2026-07-03】
+- **搁置记录（2026-07-03 用户拍板）**：短期内不做——核心寻路已在 lab 侧示例项目验证，游戏逻辑不再是卡点、随时能做。重建方案保留待用，重启时直接批准/修订即可。
 - **方案**：[`dota2-auto-battle-rebuild-plan.md`](dota2-auto-battle-rebuild-plan.md) —— 诊断（sim-nav 栈选型错误/无胜负目标/debug-only 前端）+ 保形清单 + M1'-M5' + 3 决策点（移动底座 steering vs sim-nav / 胜负条件进 M1' / 旧代码定义类复用）。批准后动代码。
 - **现状**：用户评价"更垃圾"。定位（主仓 CLAUDE.md）：实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter / 当前 M1 垂直切片。
 - **启动时 fable 做什么**：**基于项目目标从头重新做**（已定调重做，非修补）。
@@ -58,7 +59,7 @@
 - **相关**：`docs/future/architecture-optimization-plan.md`（P0/P1/P2 backlog，仅记录暂不执行 2026-06-13）。
 - **进度（2026-07-02）**：① fable 复核 plan 有效性（2 处修订回写）；② R3 独立验证（fable 逐条读码 + 2 agent 核查，覆盖 44/47）：1 条证伪、数条修正与净增发现，回写 plan 头部 🗳️ 记录；③ 用户拍板：进化 stat gate = 纯成长不含装备；执行策略 = 三波全推；④ **三波已落地**（`inkmon/all` 21 smoke 全绿，明细见 plan 头部 ✅ 记录）；⑤ modal + drawer 下放亦完成（子场景控制器 ×2，root 972→776 行，开窗截图 harness 自验）——**2a 关闭**。核心文档（main-game-architecture / glossary）已同步 snapshot facade 措辞。注：`/grill-with-docs` 已不存在，讨论在会话内按 grill 纪律进行。
 
-### 2b.（其次）大地图 vs 战斗地图的生成策略
+### 2b.（其次）大地图 vs 战斗地图的生成策略【⏸️ 暂不做 2026-07-03 用户拍板】
 - **大地图**：判断是**自己拼**、还是**做地图生成算法**（保证每局不同体验）。
 - **战斗地图**：进战斗后**一定是生成的**；看是**基于模板**还是别的做法；**战场不会大**。
 - **谁做**：**用户 + fable 讨论**；设计决策，排在 2a 之后。
@@ -82,7 +83,14 @@
 - **提案与执行记录**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md)（头部含 6 轮 commit 锚点与偏差记录）。
 - **结果**：6 条债务全部了断（D1 recorder 家族迁 core/playback + REFRESH 组件钩子；D2 投射物迁 stdlib/projectile——原「反向依赖 ProjectileSystem」描述经查证不实；D3 裁决落地 = dict 总线转正 + 端点强类型化（AbilityActivate 补齐消灭全仓 6 处手写、删死类、visualizer 常量化/from_dict）；D4 最小 rename ReplayData→PlaybackData/load_replay→load_playback（web 桥协议零波及）；D5 门控 29 技能迁 bundle helper + SkillValidator 豁免字符串潜伏 bug 修正；D6 维持不修——触发条款未满足）。hex 架构优化：H1 hex core/ 双向依赖归位（core/ 只剩共享事件）；H2 skill_preview 6607→5083 行（Inventory/Timeline 双子控制器最小档，完整档与 item_preview 合并留观察）；H3 一致性清理（actor-kind/kind 常量化、双日志合一、亡灵注释）。
 - **过程纪律**：每轮 = 实现 → 全量测试 → V1 一致性 review（agent 对照计划核对 diff）→ codex review（修 findings）→ commit；六轮累计 codex 2 findings / V1 3 处遗漏全部修复归零。
-- **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（留 1c）、录像 v3 格式、skill 文档结构性同步（/update-lgf-skill）。
+- **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（原留 1c；1c 已搁置，继续挂账）、skill 文档结构性同步（/update-lgf-skill）。录像 v3 已升级为正式条目 3b（见下）。
+
+### 3b. 录像格式 v3 — split world_snapshot + event_timeline（fable）【📋 已登记 2026-07-03，用户点名关心】
+- **动机**：「世界 owns 战斗」的录像侧收尾——世界常驻持有 actor 后，战斗录像原则上只该记事件流；v2 的 initialActors/mapConfig 快照与 WorldGI 职责重叠。可搭车裁决录像大小优化 3 方案（`battle_recorder.gd` 头注释：事件白名单过滤 / 高频事件节流 / 二进制格式）。
+- **现状（2026-07-03 核实）**：core 钩子已铺——`BattleRecorder.start_recording_events_only()` 已实现且是 `BattleProcedure._start_recorder()` 的默认；但**零生产使用者**，三个 procedure 全 override 回旧版全快照路径：hex（`hex_battle_procedure.gd:69`，注释明言等 v3 落地再切）、skill-preview（`skill_preview_procedure.gd:65`）、**inkmon 主游戏（`ink_mon_battle_procedure.gd:34`，adr/0005 显式决策：全量录像让 2D 回放 animator 能从录像独立重建开战阵容）**。`PROTOCOL_VERSION` 停 "2.0"，web/JS 桥消费 v2 顶层 key。
+- **启动时 fable 做什么**：先出格式提案过目——① world_snapshot 的定义与归属（录像同文件字段 / 分离产物 / 播放时复用现有 world）；② 播放侧改造：A 层 Playback 与 inkmon 2D animator 的 initialActors 依赖怎么迁，**须与 adr/0005「从录像独立重建阵容」的意志对表**（v3 对 inkmon 的正确答案可能是 world_snapshot 承载阵容，而非放弃快照）；③ web/JS 桥协议兼容（PROTOCOL_VERSION 升 "3.0" 或双格式并存）；④ 大小优化 3 方案是否搭车。批准后再切三个 procedure。
+- **约束**：「录像顺序 = 调用栈真实顺序」「Playback 不重建逻辑层」两条铁律不动；web 桥外部消费方（JS/cloud）兼容优先；先提案后代码。
+- **相关**：`addons/logic-game-framework/core/playback/battle_recorder.gd`（头注释 + events_only 实现）、LGF `docs/README.md` §World owns Battle (c)、主仓 `docs/adr/0005-presentation-true-2d-isometric-hex.md`。
 
 ---
 
@@ -103,4 +111,4 @@
 
 ---
 
-> **状态**：**2a 已完成**（2026-07-02 fable），其余未启动。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
+> **状态**（2026-07-03 刷新）：✅ 完成 = 1a · 1d · 2a · 线 3；🚧 = 1b（手感已验收，剩 0ad lab 5Hz 节拍分离 + cell 8 重锚收尾）；⏸️ 搁置 = 1c · 2b（2026-07-03 用户拍板）；📋 待启动 = 3b（用户点名关心）· 2c · 2d。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
