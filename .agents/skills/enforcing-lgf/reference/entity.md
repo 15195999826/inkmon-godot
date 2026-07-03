@@ -162,7 +162,7 @@ World-owns-Battle architecture: the long-lived world instance that owns the acto
 - `has_active_battle() -> bool` / `get_active_battle() -> BattleProcedure`
 
 **Replay Snapshot (world side produces, recorder only receives):**
-- `capture_world_snapshot() -> PlaybackData.WorldSnapshot` — Opening-state snapshot: recordable registry actors + `grid.to_config_dict()` + `_get_position_formats()`. Required for playback (the world is in its *final* state once a blocking battle ends; playback starts from the *opening* state, which exists only here)
+- `capture_world_snapshot() -> PlaybackData.WorldSnapshot` — The opening state playback starts from: recordable registry actors + `grid.to_config_dict()` + `_get_position_formats()`
 - `get_recordable_actors() -> Array[Actor]` — Registry actors filtered by `should_record_actor()`; same set feeds snapshot and change subscriptions
 - `should_record_actor(actor: Actor) -> bool` — Recording-scope hook, default `true`. Persistent-world subclasses override to exclude non-battle registry residents (e.g. inkmon excludes overworld player/NPC actors, otherwise the 2D replay would build battle avatars for them)
 - `_get_position_formats() -> Dictionary` — Coordinate-format declaration hook for replay consumers (e.g. hex returns `{KIND_CHARACTER: "hex", KIND_ENVIRONMENT: "hex"}`); base returns `{}`
@@ -186,7 +186,7 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 
 **Lifecycle:**
 - `start() -> void` — Tags participants `in_combat`; when `_recording_enabled` (base-class field, subclasses set it from opts in `_init`), constructs a `BattleRecorder` and calls `_start_recorder()`
-- `_start_recorder() -> void` — Base implementation is the standard path (subclass overrides are no longer needed): asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (disconnected in `finish()` — procedures are short-lived while worlds persist)
+- `_start_recorder() -> void` — Base implementation is the standard path: asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (disconnected in `finish()` — procedures are short-lived while worlds persist)
 - `tick_once() -> void` — Virtual; base only advances `_current_tick` and calls `record_current_frame_events()`. Subclasses override for ATB/timeline advancement, typically calling `super.tick_once()` or `record_current_frame_events()` themselves
 - `should_end() -> bool` — Virtual; base returns `_finished`. Subclasses override with win/loss conditions
 - `finish(result: String = "battle_complete") -> Dictionary` — Disconnects the `actor_added` hookup, un-tags `in_combat`, stops the recorder, returns the timeline

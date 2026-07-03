@@ -13,8 +13,7 @@ extends Node
 ## 本 smoke 必须是进程内第一个建 actor 的场景 (IdGenerator 计数进事件流, 独立 scene 天然满足)。
 
 
-## 金样基线 (2026-07-03 重烤: 录像 v3 格式 world_snapshot 入锁, ticks/frames/result
-## 与 2026-07-02 旧基线逐项一致 = 逻辑行为零漂移, 仅指纹载体变化)。
+## 金样基线 (2026-07-03 录制; 行为有意变更时按 GOLDEN_ACTUAL 日志回填)。
 const GOLDEN_HASH := 2165021305
 const GOLDEN_RESULT := "left_win"
 const GOLDEN_TICKS := 159
@@ -51,8 +50,6 @@ func _run() -> String:
 		return "no replay data recorded"
 
 	# 只取行为面: world_snapshot + timeline (meta 含墙钟时间戳, 排除)。
-	# 注: v2 时代此处 key 拼错("initial_actors" vs 实际 "initialActors")导致快照从未进过
-	# hash —— v3 起 world_snapshot 真正入锁, 基线已重烤。
 	var behavior := {
 		"world_snapshot": replay.get("world_snapshot", {}),
 		"timeline": replay.get("timeline", []),

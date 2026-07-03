@@ -109,7 +109,7 @@ Records battle events for replay.
 **Properties:** `is_recording: bool` / `current_frame: int`
 
 **Methods:**
-- `start_recording(world_snapshot: PlaybackData.WorldSnapshot, actors: Array[Actor]) -> void` — The single recording path. `world_snapshot` is **required** (a replayable battle must have its opening-state snapshot — the world is already in its final state when playback starts) and is produced by the world side (`WorldGameplayInstance.capture_world_snapshot()`), never by the recorder itself. `actors` = the actors to subscribe change callbacks on (normally `world.get_recordable_actors()`); the subscriptions are what generate `attributeChanged` etc. into the event stream, so they cannot be skipped
+- `start_recording(world_snapshot: PlaybackData.WorldSnapshot, actors: Array[Actor]) -> void` — The single recording path. `world_snapshot` (the opening state playback starts from) is produced by the world side (`WorldGameplayInstance.capture_world_snapshot()`) and injected — the recorder never captures it itself. `actors` = the actors to subscribe change callbacks on (normally `world.get_recordable_actors()`); subscriptions turn attribute/tag/ability changes into events for replay consumers
 - `record_frame(frame: int, events: Array[Dictionary]) -> void`
 - `stop_recording(result = "") -> Dictionary`
 - `export_json(result = "", pretty = true) -> String`
@@ -125,7 +125,7 @@ Data structures with serialization. Record shape: `{meta, world_snapshot, timeli
 - `WorldSnapshot` — `actors: Array[ActorInitData]`, `map_config`, `position_formats`; the world-side opening state, produced by `WorldGameplayInstance.capture_world_snapshot()`
 - `BattleMeta` — `battle_id`, `recorded_at`, `tick_interval`, `total_frames`, `result`
 - `FrameData` — `frame`, `events`
-- `ActorInitData` — `id`, `type`, `config_id`, `display_name`, `team`, `position`, `attributes` (7 fields only; `abilities`/`tags` were removed — playback never rebuilds the logic layer, so visual-avatar fields are all a replay consumer reads)
+- `ActorInitData` — `id`, `type`, `config_id`, `display_name`, `team`, `position`, `attributes` (playback never rebuilds the logic layer, so only visual-avatar fields are carried)
 
 Each has `to_dict()` and `static from_dict()`.
 
