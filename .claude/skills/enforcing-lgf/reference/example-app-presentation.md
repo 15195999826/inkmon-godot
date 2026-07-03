@@ -244,7 +244,7 @@ Orchestrates replay playback. Forwards all RenderWorld signals.
 **Signals:** `playback_state_changed`, `frame_changed`, `playback_ended`, `actor_state_changed`, `floating_text_created`, `actor_died`, `attack_vfx_created/updated/removed`, `projectile_created/updated/removed`
 
 **Methods:**
-- `load_replay(record: ReplayData.BattleRecord) → void`
+- `load_playback(record: PlaybackData.BattleRecord) → void`
 - `play()` / `pause()` / `toggle()` / `reset()`
 - `set_speed(speed: float)` / `get_speed() → float`
 - `get_current_frame() → int` / `get_total_frames() → int`

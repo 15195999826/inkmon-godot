@@ -125,8 +125,8 @@ class XEvent extends GameEvent.Base:
      │  → deduct HP                    │                                │
      │  → broadcast post_damage        │                                │
      │                                 │                                │
-     │ BattleRecorder.record() ──────→ │ ── ReplayData ──────────────→ │
-     │                                 │                                │ Director.load_replay()
+     │ BattleRecorder.record() ──────→ │ ── PlaybackData ──────────────→ │
+     │                                 │                                │ Director.load_playback()
      │                                 │                                │ DamageVisualizer.translate()
      │                                 │                                │  → FloatingText + HitFlash + UpdateHP
      │                                 │                                │ Scheduler.tick()
@@ -139,7 +139,7 @@ class XEvent extends GameEvent.Base:
 | Integration | Mechanism | Notes |
 |-------------|-----------|-------|
 | Logic → Recording | `BattleRecorder` + `EventCollector` | Events serialized via `to_dict()` |
-| Recording → Presentation | `ReplayData.BattleRecord` | Passed to `Director.load_replay()` |
+| Recording → Presentation | `PlaybackData.BattleRecord` | Passed to `Director.load_playback()` |
 | Event → Visual | `Visualizer.translate()` | Maps event kind to VisualAction[] |
 | Visual → 3D | `RenderWorld` signals → Scene | One-directional, Scene is replaceable |
 

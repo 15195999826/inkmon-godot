@@ -3,7 +3,7 @@
 ## Contents
 - [Components](#components) (StatModifier, TimeDuration, Stack, DynamicStatModifier)
 - [Systems](#systems) (ProjectileSystem, CollisionDetector)
-- [Replay](#replay) (BattleRecorder, ReplayData, RecordingUtils)
+- [Replay](#replay) (BattleRecorder, PlaybackData, RecordingUtils)
 - [Timeline](#timeline) (Timeline Autoload, TimelineData)
 - [Interfaces](#interfaces) (IAbilitySetOwner, IGameStateProvider)
 - [Utils](#utils) (Log, IdGenerator, StateCheck)
@@ -110,7 +110,7 @@ Records battle events for replay.
 - `export_json(result = "", pretty = true) -> String`
 - `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void`
 
-### ReplayData
+### PlaybackData
 
 Data structures with serialization.
 

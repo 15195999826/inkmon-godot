@@ -36,7 +36,7 @@ func _run() -> String:
 		ended[0] = true
 	)
 
-	var record := ReplayData.BattleRecord.from_dict(_fake_record())
+	var record := PlaybackData.BattleRecord.from_dict(_fake_record())
 	animator.load_record(record)
 
 	# 初始 spawn：render_world 应有 2 actor，快照读自 render-state

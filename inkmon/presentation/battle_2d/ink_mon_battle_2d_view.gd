@@ -113,7 +113,7 @@ func play_replay(record_dict: Dictionary, result: Dictionary = {}) -> void:
 		_leave_button.visible = false
 	if _result_label != null:
 		_result_label.text = "Battle: %s" % str(result.get("result", ""))
-	var record := ReplayData.BattleRecord.from_dict(record_dict)
+	var record := PlaybackData.BattleRecord.from_dict(record_dict)
 	_animator.load_record(record)
 	_animator.play()
 

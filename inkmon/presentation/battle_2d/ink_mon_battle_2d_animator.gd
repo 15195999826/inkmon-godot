@@ -8,7 +8,7 @@ extends Node
 ## 调度、应用到 render-state，再把 state 投影到 2D 占位节点（InkMonRender2DAvatar 哑投影）。
 ##
 ## 坐标边界：RenderWorld 全用逻辑 axial，本类是唯一 hex→像素转换点（_axial_to_pixel → grid）。
-## 只吃 ReplayData/Dictionary，不引用 InkMon*Actor / GI。
+## 只吃 PlaybackData/Dictionary，不引用 InkMon*Actor / GI。
 
 signal playback_ended()
 signal frame_changed(current_frame: int, total_frames: int)
@@ -21,8 +21,8 @@ var _units_root: Node2D = null
 var _fx_root: Node2D = null
 
 # ---- 回放数据 / 播放状态 ----
-var _record: ReplayData.BattleRecord = null
-var _frame_map: Dictionary = {}            # frame:int -> ReplayData.FrameData
+var _record: PlaybackData.BattleRecord = null
+var _frame_map: Dictionary = {}            # frame:int -> PlaybackData.FrameData
 var _total_frames := 0
 var _tick_ms := DEFAULT_TICK_MS
 var _current_frame := 0
@@ -46,7 +46,7 @@ func setup(grid: InkMonRender2DBakedHexMap, units_root: Node2D, fx_root: Node2D)
 	_fx_root = fx_root
 
 
-func load_record(record: ReplayData.BattleRecord) -> void:
+func load_record(record: PlaybackData.BattleRecord) -> void:
 	Log.assert_crash(_grid != null and _units_root != null, "InkMonBattle2DAnimator", "setup() must run before load_record()")
 	_record = record
 	var meta := record.meta if record != null else null
@@ -161,7 +161,7 @@ func _tick(delta_ms: float) -> void:
 			break
 		_current_frame = next_frame
 		if _frame_map.has(next_frame):
-			var fd := _frame_map[next_frame] as ReplayData.FrameData
+			var fd := _frame_map[next_frame] as PlaybackData.FrameData
 			for ev in fd.events:
 				var e := ev as Dictionary
 				_render_world.apply_event_side_effects(e)
