@@ -78,12 +78,11 @@
 
 ## 线 3 — LGF 框架（`addons/logic-game-framework/`）
 
-### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）【🗳️ 提案待批准 2026-07-03】
-- **提案**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md) —— 5 路并行代码级普查 + KB 原则比对后的逐项方案（D1-D6 债务 + H1-H3 架构）与 6 轮执行切分。要点：D1 recorder 家族迁 core/playback（录像是 core 一等公民，纯 git mv 零行为）；D2 投射物迁 stdlib/projectile（「反向依赖 ProjectileSystem」经查证不实，债务描述过时）；D3 转正 dict 总线+收敛端点纪律（管线不切、不删 class，core 只动 game_event.gd）；D4 最小 rename 18 文件（web 桥协议零波及已核实）；D5 门控 29 文件机械迁 + 顺修 SkillValidator 豁免字符串错位潜伏 bug；D6 维持不修；H1 hex core/ 双向依赖归位；H2 skill_preview.gd 6607 行拆分（两档待拍板）；H3 一致性小清理。批准后按轮 A→F 动代码。
-- **意图**：**所有遗留问题都要改**。硬约束：**尽量少改 core 层**；**首要目标 = 优化 hex-atb-battle 架构**。
-- **已知遗留问题**（`addons/logic-game-framework/docs/README.md` 已知债务）：core→stdlib 反向依赖 / ProjectileActor 位置 / 强类型事件最后落回 Dictionary / Replay·Playback 命名混用 / ~28 个 hex 技能门控待迁移到 helper / WorldGameplayInstance 是否需抽象 hex 概念。
-- **约束**：少动 core；改动前出**提案**过目（✅ 已出）；守 enforcing-lgf。
-- **相关**：`addons/logic-game-framework/docs/README.md`、`addons/logic-game-framework/example/hex-atb-battle/README.md`（装备 V1 + 未来规划）。
+### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）【✅ 完成 2026-07-03】
+- **提案与执行记录**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md)（头部含 6 轮 commit 锚点与偏差记录）。
+- **结果**：6 条债务全部了断（D1 recorder 家族迁 core/playback + REFRESH 组件钩子；D2 投射物迁 stdlib/projectile——原「反向依赖 ProjectileSystem」描述经查证不实；D3 裁决落地 = dict 总线转正 + 端点强类型化（AbilityActivate 补齐消灭全仓 6 处手写、删死类、visualizer 常量化/from_dict）；D4 最小 rename ReplayData→PlaybackData/load_replay→load_playback（web 桥协议零波及）；D5 门控 29 技能迁 bundle helper + SkillValidator 豁免字符串潜伏 bug 修正；D6 维持不修——触发条款未满足）。hex 架构优化：H1 hex core/ 双向依赖归位（core/ 只剩共享事件）；H2 skill_preview 6607→5083 行（Inventory/Timeline 双子控制器最小档，完整档与 item_preview 合并留观察）；H3 一致性清理（actor-kind/kind 常量化、双日志合一、亡灵注释）。
+- **过程纪律**：每轮 = 实现 → 全量测试 → V1 一致性 review（agent 对照计划核对 diff）→ codex review（修 findings）→ commit；六轮累计 codex 2 findings / V1 3 处遗漏全部修复归零。
+- **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（留 1c）、录像 v3 格式、skill 文档结构性同步（/update-lgf-skill）。
 
 ---
 
