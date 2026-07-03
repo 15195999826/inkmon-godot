@@ -23,7 +23,7 @@ Core attribute storage with modifier system and 4-layer calculation formula.
 **Read:**
 - `get_base(attr_name: String) -> float`
 - `get_body_value(attr_name: String) -> float` — (base + addBase) * mulBase
-- `get_current_value(attr_name: String) -> float` — Final value after all modifiers
+- `get_current_value(attr_name: String) -> float` — Value after all modifiers, then static min/max clamp, then cross-attribute clamp (raw_attribute_set.gd:192-200)
 - `get_breakdown(attr_name: String) -> AttributeBreakdown` — Full calculation breakdown
 - `get_add_base_sum(attr_name: String) -> float` / `get_mul_base_product(attr_name: String) -> float`
 - `get_add_final_sum(attr_name: String) -> float` / `get_mul_final_product(attr_name: String) -> float`
@@ -47,7 +47,12 @@ Core attribute storage with modifier system and 4-layer calculation formula.
 - `add_change_listener(listener: Callable) -> void` / `remove_change_listener(listener: Callable) -> void`
 - `remove_all_change_listeners() -> void`
 - `on_attribute_changed(attr_name: String, callback: Callable) -> Callable` — Returns unsubscribe
-- `set_pre_change(callback: Callable) -> void` / `clear_pre_change() -> void` — Cross-attribute constraints
+
+**Cross-Attribute Clamp:**
+- `register_cross_attr_clamp(target: String, bound: String, source: String) -> void` — `target`'s current-value `bound` (`"max"`/`"min"`) dynamically tracks `source`'s current value (e.g. `hp` ≤ `max_hp`); applied in `get_breakdown()` after the static min/max clamp (raw_attribute_set.gd:366)
+- `clear_cross_attr_clamps() -> void` (raw_attribute_set.gd:388)
+
+> Declare via the attribute config's `maxRef`/`minRef` — the generator emits the `register_cross_attr_clamp` call. **`set_pre_change(callback: Callable)` / `clear_pre_change()` were removed and are forbidden**: an owner-capturing lambda constraint forms an unGC'able reference cycle under GDScript `RefCounted` (no cycle collector) — see design rule in `docs/README.md:656`.
 
 **Serialization:**
 - `serialize() -> Dictionary` / `static deserialize(data: Dictionary) -> RawAttributeSet`
@@ -88,10 +93,10 @@ Calculation result with all intermediate values.
 **Properties:**
 - `base: float` — Original base value
 - `add_base_sum: float` — Sum of ADD_BASE modifiers
-- `mul_base_product: float` — Product of MUL_BASE modifiers (default 1.0)
+- `mul_base_product: float` — `1.0 + sum(MUL_BASE modifier values)` (each MUL_BASE value is an additive percentage delta, not a per-modifier multiplier — despite the name it's not a running product; default 1.0 when none; attribute_calculator.gd:24)
 - `body_value: float` — (base + add_base_sum) * mul_base_product
 - `add_final_sum: float` — Sum of ADD_FINAL modifiers
-- `mul_final_product: float` — Product of MUL_FINAL modifiers (default 1.0)
+- `mul_final_product: float` — `1.0 + sum(MUL_FINAL modifier values)`, same additive-percentage semantics as `mul_base_product` (attribute_calculator.gd:25)
 - `current_value: float` — (body_value + add_final_sum) * mul_final_product
 
 **Factory:**
@@ -111,7 +116,7 @@ Base class for code-generated typed attribute sets. Subclasses provide typed pro
 **Methods:**
 - `add_change_listener(listener: Callable) -> Callable` — Returns unsubscribe
 - `get_raw() -> RawAttributeSet`
-- `set_pre_change(callback: Callable) -> void`
+- `register_cross_attr_clamp(target: String, bound: String, source: String) -> void` — Forwards to `_raw.register_cross_attr_clamp()`; normally emitted by the AttributeSet generator from config `maxRef`/`minRef`, not hand-called (base_generated_attribute_set.gd:48-51)
 
 ---
 

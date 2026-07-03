@@ -1,5 +1,5 @@
 {
-  "last_commit": "6a3197a34b84065266da9dc51cc8c4f7be859a4e",
-  "last_update": "2026-02-13",
-  "note": "No LGF addon changes detected - docs already up to date"
+  "last_commit": "8d5dd95e4a708c68294192bd825f771beb6de796",
+  "last_update": "2026-07-03",
+  "note": "Full recalibration after 5-month drift (old baseline unreachable: addons repos consolidated into godot-addons.git on 2026-03-15). 12 docs, +807/-328 via 2 audit agents + 3 fix agents. Removed hallucinated APIs (get_game_state, set_pre_change, skill.get_meta); synced line-3 restructure (core/playback, stdlib/projectile, PlaybackData, gating helpers, kind constants); added World-owns-Battle (WorldGameplayInstance/BattleProcedure), ActorId, stacks-as-first-class, Break mechanism, Action 4-layer contract, cross-attr clamp, new GameEvents; rewrote example docs to current builder API."
 }

@@ -112,10 +112,10 @@ Single field modification operation.
 Event type constants and inner class factories.
 
 **Constants:**
-`ABILITY_ACTIVATE_EVENT`, `ACTOR_SPAWNED_EVENT`, `ACTOR_DESTROYED_EVENT`, `ATTRIBUTE_CHANGED_EVENT`, `ABILITY_GRANTED_EVENT`, `ABILITY_REMOVED_EVENT`, `ABILITY_TRIGGERED_EVENT`, `EXECUTION_ACTIVATED_EVENT`, `TAG_CHANGED_EVENT`, `STAGE_CUE_EVENT`, `PROJECTILE_HIT_EVENT`
+`ABILITY_ACTIVATE_EVENT`, `ABILITY_ACTIVATE_FAILED_EVENT`, `ACTOR_SPAWNED_EVENT`, `ACTOR_DESTROYED_EVENT`, `ATTRIBUTE_CHANGED_EVENT`, `ABILITY_GRANTED_EVENT`, `ABILITY_REMOVED_EVENT`, `ABILITY_TRIGGERED_EVENT`, `ABILITY_STACKS_CHANGED_EVENT`, `EXECUTION_ACTIVATED_EVENT`, `TAG_CHANGED_EVENT`, `STAGE_CUE_EVENT`, `PROJECTILE_HIT_EVENT`
 
 **Inner Classes** (each has `create()`, `to_dict()`, `from_dict()`, `is_match()`):
-`ActorSpawned`, `ActorDestroyed`, `AttributeChanged`, `AbilityGranted`, `AbilityRemoved`, `AbilityTriggered`, `ExecutionActivated`, `TagChanged`, `StageCue`, `ProjectileHit`, `AbilityActivate` (self-activation request; carries `logic_time` / `target_actor_id` / `target_coord`)
+`ActorSpawned`, `ActorDestroyed`, `AttributeChanged`, `AbilityGranted`, `AbilityRemoved`, `AbilityTriggered`, `AbilityStacksChanged` (`actor_id`/`ability_instance_id`/`ability_config_id`/`old_stacks`/`new_stacks`; business code emits explicitly — core does not couple this into `add_stacks`/`remove_stacks`), `ExecutionActivated`, `TagChanged`, `StageCue`, `ProjectileHit`, `AbilityActivate` (self-activation request; carries `logic_time` / `target_actor_id` / `target_coord`), `AbilityActivateFailed` (`reason` / `failed_component_type`; pushed when `ActiveUseComponent` condition/cost checks reject an already-matched trigger — a trigger that never matched is a silent skip, not a failure)
 
 ---
 
@@ -152,6 +152,11 @@ Registration data for pre-event handlers.
 - `handler: Callable` — `func(MutableEvent, HandlerContext) -> Intent`
 - `filter: Callable` — `func(Dictionary) -> bool`
 - `handler_name: String`
+
+**Dispatch:**
+- `get_display_name() -> String` — `handler_name` if set, else `config_id`, else `id`
+- `passes_filter(event_dict: Dictionary) -> bool` — `true` if `filter` unset, else `filter.call(event_dict)`
+- `call_handler(mutable: MutableEvent, ctx: HandlerContext) -> Intent` — Calls `handler`; falls back to `Intent.pass_through()` if `handler` is invalid or doesn't return an `Intent`
 
 ### HandlerContext (extends RefCounted)
 

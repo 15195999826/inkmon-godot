@@ -83,7 +83,7 @@
 - **提案与执行记录**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md)（头部含 6 轮 commit 锚点与偏差记录）。
 - **结果**：6 条债务全部了断（D1 recorder 家族迁 core/playback + REFRESH 组件钩子；D2 投射物迁 stdlib/projectile——原「反向依赖 ProjectileSystem」描述经查证不实；D3 裁决落地 = dict 总线转正 + 端点强类型化（AbilityActivate 补齐消灭全仓 6 处手写、删死类、visualizer 常量化/from_dict）；D4 最小 rename ReplayData→PlaybackData/load_replay→load_playback（web 桥协议零波及）；D5 门控 29 技能迁 bundle helper + SkillValidator 豁免字符串潜伏 bug 修正；D6 维持不修——触发条款未满足）。hex 架构优化：H1 hex core/ 双向依赖归位（core/ 只剩共享事件）；H2 skill_preview 6607→5083 行（Inventory/Timeline 双子控制器最小档，完整档与 item_preview 合并留观察）；H3 一致性清理（actor-kind/kind 常量化、双日志合一、亡灵注释）。
 - **过程纪律**：每轮 = 实现 → 全量测试 → V1 一致性 review（agent 对照计划核对 diff）→ codex review（修 findings）→ commit；六轮累计 codex 2 findings / V1 3 处遗漏全部修复归零。
-- **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（原留 1c；1c 已搁置，继续挂账）、skill 文档结构性同步（/update-lgf-skill）。录像 v3 已升级为正式条目 3b（见下）。
+- **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（原留 1c；1c 已搁置，继续挂账）。录像 v3 已升级为正式条目 3b（见下）；skill 文档结构性同步 ✅ 已完成（2026-07-03，enforcing-lgf 12 文档全量校准 +807/-328，update.json 基线重锚——旧基线因 addons 仓合并断链）。
 
 ### 3b. 录像格式 v3 — split world_snapshot + event_timeline（fable）【📋 已登记 2026-07-03，用户点名关心】
 - **动机**：「世界 owns 战斗」的录像侧收尾——世界常驻持有 actor 后，战斗录像原则上只该记事件流；v2 的 initialActors/mapConfig 快照与 WorldGI 职责重叠。可搭车裁决录像大小优化 3 方案（`battle_recorder.gd` 头注释：事件白名单过滤 / 高频事件节流 / 二进制格式）。

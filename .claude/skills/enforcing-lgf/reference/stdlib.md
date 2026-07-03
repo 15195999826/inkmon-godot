@@ -1,7 +1,9 @@
 # Stdlib API
 
+Only [Components](#components) and [Systems](#systems) genuinely live under `stdlib/`. [Replay](#replay), [Timeline](#timeline), [Interfaces](#interfaces), and [Utils](#utils) are `core/` classes kept in this doc for lookup convenience — each section below has a `Location:` note with the real path.
+
 ## Contents
-- [Components](#components) (StatModifier, TimeDuration, Stack, DynamicStatModifier)
+- [Components](#components) (StatModifier, TimeDuration, DynamicStatModifier)
 - [Systems](#systems) (ProjectileSystem, CollisionDetector)
 - [Replay](#replay) (BattleRecorder, PlaybackData, RecordingUtils)
 - [Timeline](#timeline) (Timeline Autoload, TimelineData)
@@ -9,6 +11,8 @@
 - [Utils](#utils) (Log, IdGenerator, StateCheck)
 
 ## Components
+
+*Location: `stdlib/components/`.*
 
 ### StatModifierComponent (extends AbilityComponent)
 
@@ -18,14 +22,18 @@ Applies static attribute modifiers when ability is granted, removes on revoke.
 - `configs: Array[StatModifierConfig.ModifierEntry]`
 - `applied_modifiers: Array[AttributeModifier]`
 - `current_scale: float`
+- `scales_by_stacks: bool` — When true, modifier value = `config.value * ability.stacks`, kept in sync via `on_stacks_changed`
 
 **Methods:**
 - `on_apply(context: AbilityLifecycleContext) -> void` / `on_remove(context: AbilityLifecycleContext) -> void`
 - `get_modifiers() -> Array[AttributeModifier]` / `get_modifier_ids() -> Array[String]`
-- `set_scale(scale: float) -> void` — Scale all modifier values
-- `scale_by_stacks(stacks: int) -> void` — Scale = stacks count
+- `set_scale(scale: float) -> void` — Sets `current_scale` only (`current_scale = scale`); does not retroactively update modifiers already applied to `RawAttributeSet` — those pick up the new scale next time modifiers are rebuilt (e.g. `on_passive_enabled`), not immediately
+- `scale_by_stacks(stacks: int) -> void` — Convenience wrapper: `set_scale(float(stacks))`
+- `on_stacks_changed(context: AbilityLifecycleContext, old_stacks: int, new_stacks: int) -> void` — No-op unless `scales_by_stacks`; otherwise recomputes `current_scale` from `new_stacks` and atomically updates every applied modifier via `RawAttributeSet.update_modifier` (not remove+add, avoids breakdown flicker)
+- `on_passive_disabled(context: AbilityLifecycleContext) -> void` — Break hook (see abilities.md): removes all modifiers by source, keeps `configs`/`current_scale` so `on_passive_enabled` can rebuild
+- `on_passive_enabled(context: AbilityLifecycleContext) -> void` — Break hook: rebuilds modifiers; if `scales_by_stacks`, re-reads `context.ability.get_stacks()` first since stacks may have changed while disabled
 
-**Config:** `StatModifierConfig.builder()` with `ModifierEntry` inner class.
+**Config:** `StatModifierConfig.builder()` with `ModifierEntry` inner class; `.scale_by_stacks()` enables the stacks-scaled mode (`stdlib/components/stat_modifier_config.gd`).
 
 ### TimeDurationComponent (extends AbilityComponent)
 
@@ -43,19 +51,9 @@ Time-based ability expiration.
 
 **Config:** `TimeDurationConfig.new(duration_ms)`
 
-### StackComponent (extends AbilityComponent)
+### ~~StackComponent~~ — removed
 
-Stack count management with overflow policies.
-
-**Enum:** `StackOverflowPolicy { CAP, REFRESH, REJECT }`
-
-**Properties:** `stacks: int` / `max_stacks: int` / `overflow_policy: StackOverflowPolicy`
-
-**Methods:**
-- `get_stacks() -> int` / `get_max_stacks() -> int` / `is_full() -> bool`
-- `add_stacks(count: int) -> int` — Returns actual added
-- `remove_stacks(count: int) -> int` — Returns actual removed
-- `set_stacks(count: int) -> void` / `reset() -> void`
+`StackComponent` no longer exists (no file under `stdlib/components/` defines it). Stacking is now a first-class field group directly on `Ability` itself — `stacks` / `max_stacks` / `overflow_policy`, with `OVERFLOW_CAP` / `OVERFLOW_REFRESH` / `OVERFLOW_REJECT` policies — not a component. See the "Stacks" and "Stack Overflow Policies" sections in [`abilities.md`](abilities.md).
 
 ### DynamicStatModifierComponent (extends AbilityComponent)
 
@@ -67,6 +65,8 @@ Modifier that dynamically tracks another attribute value.
 
 ## Systems
 
+*Location: `stdlib/projectile/`.*
+
 ### ProjectileSystem (extends System)
 
 Projectile simulation with pluggable collision detection.
@@ -74,11 +74,14 @@ Projectile simulation with pluggable collision detection.
 **Properties:**
 - `collision_detector: CollisionDetector`
 - `event_collector: EventCollector`
+- `pending_removal: Dictionary` — Projectile ids marked for removal this tick; flushed (actors removed from the instance) at the end of `tick()` when `auto_remove` is true
 - `auto_remove: bool`
 
 **Methods:**
+- `set_event_collector(collector: EventCollector) -> void`
 - `tick(actors: Array[Actor], dt: float) -> void`
 - `get_active_projectiles(actors: Array[Actor]) -> Array[ProjectileActor]`
+- `get_pending_removal_ids() -> Dictionary` — Duplicate of `pending_removal`
 - `force_hit(projectile: ProjectileActor, target_actor_id: String, hit_position: Vector3) -> void`
 - `force_miss(projectile: ProjectileActor, reason: String = "forced") -> void`
 
@@ -97,6 +100,8 @@ Base class for collision strategies.
 
 ## Replay
 
+*Location: `core/playback/` (not `stdlib/`).*
+
 ### BattleRecorder (extends RefCounted)
 
 Records battle events for replay.
@@ -104,10 +109,12 @@ Records battle events for replay.
 **Properties:** `is_recording: bool` / `current_frame: int`
 
 **Methods:**
-- `start_recording(actors: Array, configs_value: Dictionary = {}, map_config_value: Dictionary = {}) -> void`
+- `start_recording(actors: Array, configs_value: Dictionary = {}, map_config_value: Dictionary = {}) -> void` — Full snapshot recording: writes `initial_actors` + `map_config` and subscribes to actor property changes
+- `start_recording_events_only() -> void` — Lighter default path (`BattleProcedure._start_recorder()`'s base implementation calls this): no `initial_actors` snapshot, no `map_config`, no actor-property subscriptions. For "world owns battle" architectures where `WorldGameplayInstance` already holds actors/grid persistently, so only the event timeline needs recording
 - `record_frame(frame: int, events: Array[Dictionary]) -> void`
 - `stop_recording(result = "") -> Dictionary`
 - `export_json(result = "", pretty = true) -> String`
+- `get_timeline() -> Array[Dictionary]` — Returns frames recorded so far (`FrameData.to_dict()` each), without stopping the recording
 - `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void`
 
 ### PlaybackData
@@ -133,6 +140,8 @@ Each has `to_dict()` and `static from_dict()`.
 
 ## Timeline
 
+*Location: `core/timeline/` (not `stdlib/`).*
+
 ### Timeline (extends Node) — Autoload registry
 
 - `register(timeline: TimelineData) -> void` / `register_all(timelines: Array[TimelineData]) -> void`
@@ -153,6 +162,8 @@ Each has `to_dict()` and `static from_dict()`.
 
 ## Interfaces
 
+*Location: `core/interfaces/` (not `stdlib/`).*
+
 ### IAbilitySetOwner (static utility)
 
 - `static get_ability_set(owner: Object) -> AbilitySet`
@@ -167,6 +178,8 @@ Each has `to_dict()` and `static from_dict()`.
 
 ## Utils
 
+*Location: `core/utils/` (Log, IdGenerator) and `core/` (StateCheck) — not `stdlib/`.*
+
 ### Log (extends Node) — Autoload
 
 **Levels:** `DEBUG`, `INFO`, `WARNING`, `ERROR`, `NONE`
@@ -176,8 +189,10 @@ Each has `to_dict()` and `static from_dict()`.
 
 ### IdGenerator (extends Node)
 
-- `static generate_id(prefix: String) -> String`
-- `static generate(prefix = "") -> String`
+- `static generate_id(prefix: String) -> String` — Formats `"<prefix>_<counter>"` off a shared static counter, then increments it
+- `static generate(prefix = "") -> String` — Alias for `generate_id(prefix)`
+- `static reset_id_counter() -> void` — Resets the shared static counter to 0 (test isolation)
+- `_init(prefix: String = "") -> void` / `generate_with_prefix() -> String` — Instance form: bind a prefix once via `_init`, then call `generate_with_prefix()` repeatedly instead of passing `prefix` to the static method each time
 
 ### StateCheck (static utility)
 
