@@ -59,6 +59,9 @@ func greet(name_arg: String) -> String:
 	return JSON.stringify({"message": "Hello, " + name_arg + "!", "from": "Godot"})
 
 
+## 已知欠账（2026-07-03 拍板延后）: 返回的录像 JSON 已是 v3 形状
+## （meta + world_snapshot{actors,mapConfig,positionFormats} + timeline, 无 version 字段）,
+## web 端 JS 解析器（外部仓）尚未同步 —— 启用 web 发布时须一并升级。
 func run_battle() -> String:
 	print("\n[Godot] Starting battle simulation...")
 	

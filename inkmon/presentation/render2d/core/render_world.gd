@@ -48,7 +48,9 @@ func initialize_from_replay(record: PlaybackData.BattleRecord) -> void:
 	_procedural_effects.clear()
 	_screen_shake = InkMonRender2DRenderData.ScreenShake.new()
 
-	for actor_init: PlaybackData.ActorInitData in record.initial_actors:
+	Log.assert_crash(record.world_snapshot != null, "InkMonRender2DRenderWorld",
+		"录像缺 world_snapshot —— 无法重建开战阵容 (adr/0005)")
+	for actor_init: PlaybackData.ActorInitData in record.world_snapshot.actors:
 		_initialize_actor_from_init_data(actor_init)
 
 	for actor_id in _actors.keys():

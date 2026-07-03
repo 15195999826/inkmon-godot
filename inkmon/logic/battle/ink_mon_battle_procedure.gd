@@ -9,7 +9,6 @@ var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
 
 var _world_instance: InkMonWorldGI = null
-var _recording_enabled := true
 var _result := ""
 
 
@@ -29,13 +28,6 @@ func _init(
 	left_team = left
 	right_team = right
 	_recording_enabled = opts.get("recording", true)
-
-
-func _start_recorder() -> void:
-	if not _recording_enabled or _recorder == null:
-		return
-	# adr/0005:全量录像(带 initial_actors 快照),让 2D 回放 animator 能从录像独立重建开战阵容。
-	_recorder.start_recording(get_all_units(), {}, {})
 
 
 func tick_once() -> void:

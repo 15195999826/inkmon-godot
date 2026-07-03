@@ -26,12 +26,13 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 ## Reference
 
 - **Conventions (detailed)**: See [reference/conventions-detail.md](reference/conventions-detail.md) — Full examples, reference chain diagrams, architecture
+- **Cast eligibility vs Condition**: See [reference/cast-eligibility-vs-condition.md](reference/cast-eligibility-vs-condition.md) — Where to put "can this skill be cast" config (metadata, NOT Condition). Read before adding any new cast-time filter (range / target kinds / faction / LOS).
 - **Entity & World**: See [reference/entity.md](reference/entity.md) — Actor, System, GameWorld, GameplayInstance
 - **Abilities**: See [reference/abilities.md](reference/abilities.md) — Ability, AbilitySet, AbilityConfig, Components, Builder API
 - **Actions**: See [reference/actions.md](reference/actions.md) — Action, ExecutionContext, TargetSelector, Resolvers
 - **Events**: See [reference/events.md](reference/events.md) — EventProcessor, MutableEvent, Intent, Modification
 - **Attributes**: See [reference/attributes.md](reference/attributes.md) — RawAttributeSet, AttributeModifier, Calculator, TagContainer
-- **Stdlib**: See [reference/stdlib.md](reference/stdlib.md) — StatModifier, TimeDuration, Stack, Projectile, Replay, Timeline
+- **Stdlib**: See [reference/stdlib.md](reference/stdlib.md) — Components (StatModifier, DynamicStatModifier, TimeDuration), Projectile
 - **Example App**:
   - [reference/example-app-overview.md](reference/example-app-overview.md) — Three-layer architecture, Core Events, cross-layer data flow
   - [reference/example-app-game-logic.md](reference/example-app-game-logic.md) — Actor/Ability/Action patterns, AI strategy, config organization
@@ -127,7 +128,7 @@ Debug: `logic_game_framework/debug/action_state_check = true` in Project Setting
 
 ### 4. GameStateProvider
 
-`IGameStateProvider.get_game_state()` intentionally returns `Variant` — the ONLY acceptable Variant return in the framework.
+`IGameStateProvider` (`core/interfaces/i_game_state_provider.gd`) is a static duck-typing helper, not a class actors implement. `get_logic_time(provider: Variant) -> float` and `is_implemented(provider: Variant) -> bool` intentionally type the incoming `provider` as `Variant` — the framework only requires it to respond to `get_logic_time()` and never couples to a concrete provider class. This is intentional duck typing — do not "fix" it into a typed parameter.
 
 ---
 
@@ -207,4 +208,4 @@ Before considering implementation complete, verify:
 - [ ] PreEventConfig handlers: EVERY code path returns an `Intent` (pass/modify/cancel)
 - [ ] Resolvers: dynamic values use `Resolvers.float_fn()` etc., not instance fields
 - [ ] No attempts to decouple `GameWorld` Autoload dependency
-- [ ] `IGameStateProvider.get_game_state()` returning `Variant` is intentional — do not "fix"
+- [ ] `IGameStateProvider.get_logic_time(provider: Variant)` taking `Variant` for `provider` is intentional duck typing — do not "fix"

@@ -58,8 +58,9 @@ func load_record(record: PlaybackData.BattleRecord) -> void:
 
 	_clear_units()
 
-	# 框架三件套：每次 load 全新构建（无向后兼容/无 fallback）
-	var anim_cfg := InkMonRender2DAnimationConfig.from_dict(record.configs.get("animation", {}))
+	# 框架三件套：每次 load 全新构建（无向后兼容/无 fallback）。
+	# 动画节奏是表现层自己的配置, 不从录像读（录像只含逻辑数据）。
+	var anim_cfg := InkMonRender2DAnimationConfig.create_default()
 	_render_world = InkMonRender2DRenderWorld.new(anim_cfg)
 	_scheduler = InkMonRender2DActionScheduler.new()
 	_registry = InkMonBattle2DDefaultRegistry.create()

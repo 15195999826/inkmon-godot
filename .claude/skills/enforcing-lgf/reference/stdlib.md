@@ -109,23 +109,23 @@ Records battle events for replay.
 **Properties:** `is_recording: bool` / `current_frame: int`
 
 **Methods:**
-- `start_recording(actors: Array, configs_value: Dictionary = {}, map_config_value: Dictionary = {}) -> void` — Full snapshot recording: writes `initial_actors` + `map_config` and subscribes to actor property changes
-- `start_recording_events_only() -> void` — Lighter default path (`BattleProcedure._start_recorder()`'s base implementation calls this): no `initial_actors` snapshot, no `map_config`, no actor-property subscriptions. For "world owns battle" architectures where `WorldGameplayInstance` already holds actors/grid persistently, so only the event timeline needs recording
+- `start_recording(world_snapshot: PlaybackData.WorldSnapshot, actors: Array[Actor]) -> void` — The single recording path. `world_snapshot` is **required** (a replayable battle must have its opening-state snapshot — the world is already in its final state when playback starts) and is produced by the world side (`WorldGameplayInstance.capture_world_snapshot()`), never by the recorder itself. `actors` = the actors to subscribe change callbacks on (normally `world.get_recordable_actors()`); the subscriptions are what generate `attributeChanged` etc. into the event stream, so they cannot be skipped
 - `record_frame(frame: int, events: Array[Dictionary]) -> void`
 - `stop_recording(result = "") -> Dictionary`
 - `export_json(result = "", pretty = true) -> String`
 - `get_timeline() -> Array[Dictionary]` — Returns frames recorded so far (`FrameData.to_dict()` each), without stopping the recording
-- `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void`
+- `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void` — Mid-battle spawns/despawns; pushes `ActorSpawned`/`ActorDestroyed` events and (de)subscribes
 
 ### PlaybackData
 
-Data structures with serialization.
+Data structures with serialization. Record shape: `{meta, world_snapshot, timeline}` — **no `version` field** (single architecture, replays are short-lived data; guard rails are required-key asserts in `BattleRecord.from_dict`, which crashes on a dict missing `world_snapshot`/`timeline`).
 
 **Inner Classes:**
-- `BattleRecord` — `version`, `meta`, `configs`, `map_config`, `initial_actors`, `timeline`
+- `BattleRecord` — `meta`, `world_snapshot`, `timeline`
+- `WorldSnapshot` — `actors: Array[ActorInitData]`, `map_config`, `position_formats`; the world-side opening state, produced by `WorldGameplayInstance.capture_world_snapshot()`
 - `BattleMeta` — `battle_id`, `recorded_at`, `tick_interval`, `total_frames`, `result`
 - `FrameData` — `frame`, `events`
-- `ActorInitData` — `id`, `type`, `config_id`, `display_name`, `team`, `position`, `attributes`, `abilities`, `tags`
+- `ActorInitData` — `id`, `type`, `config_id`, `display_name`, `team`, `position`, `attributes` (7 fields only; `abilities`/`tags` were removed — playback never rebuilds the logic layer, so visual-avatar fields are all a replay consumer reads)
 
 Each has `to_dict()` and `static from_dict()`.
 

@@ -37,13 +37,12 @@ func _fake_record() -> Dictionary:
 	var move_events: Array[Dictionary] = [
 		{"kind": "inkmon_move_start", "actor_id": "u_r", "from_hex": {"q": 3, "r": 0}, "to_hex": {"q": 2, "r": 0}},
 	]
-	var no_abilities: Array[Dictionary] = []
 	return {
 		"meta": {"tickInterval": 100, "totalFrames": 30},
-		"initialActors": [
-			{"id": "u_l", "team": 0, "displayName": "L", "position": [-3, 0, 0], "attributes": {"hp": 30, "max_hp": 30}, "abilities": no_abilities, "tags": {}},
-			{"id": "u_r", "team": 1, "displayName": "R", "position": [3, 0, 0], "attributes": {"hp": 20, "max_hp": 20}, "abilities": no_abilities, "tags": {}},
-		],
+		"world_snapshot": {"actors": [
+			{"id": "u_l", "team": 0, "displayName": "L", "position": [-3, 0, 0], "attributes": {"hp": 30, "max_hp": 30}},
+			{"id": "u_r", "team": 1, "displayName": "R", "position": [3, 0, 0], "attributes": {"hp": 20, "max_hp": 20}},
+		]},
 		"timeline": [
 			{"frame": 1, "events": move_events},
 		],

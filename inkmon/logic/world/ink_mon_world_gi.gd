@@ -371,6 +371,12 @@ func get_world_actor(key: String) -> InkMonWorldActor:
 	return world_actors.get(key, null) as InkMonWorldActor
 
 
+## 战斗录像范围 = 战斗单位。常驻 registry 里的 overworld 实体（InkMonPlayerActor /
+## InkMonWorldActor）不进 world_snapshot, 否则 2D 回放会为它们建战斗替身。
+func should_record_actor(actor: Actor) -> bool:
+	return actor is InkMonUnitActor
+
+
 ## 在本 world GI 内起一场战斗 (procedure 模式)。可重复调用 (reset-on-start 清上一场)。
 ## 此路径建**临时**队伍 (从 config / 默认 roster key); 玩家 roster 出战走 request_training_battle。
 func start_battle_procedure(config: Dictionary = {}) -> void:
@@ -385,7 +391,7 @@ func start_battle_procedure(config: Dictionary = {}) -> void:
 ## 右队 = 临时训练假人。Host 只说"打 training"。
 func request_training_battle() -> void:
 	_reset_battle_state()
-	# adr/0005:打开全量录像 → 录 initial_actors 快照,供 2D 回放 animator 拿到开战阵容。
+	# adr/0005:打开录像 → world_snapshot 供 2D 回放 animator 独立重建开战阵容。
 	_recording_enabled = true
 	InkMonBattleSetup.configure_battle_grid(self, {})
 	left_team = InkMonBattleSetup.battle_roster_slice(self)

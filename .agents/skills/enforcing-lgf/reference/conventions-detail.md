@@ -174,9 +174,12 @@ ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", tru
 
 ## 4. GameStateProvider 的 Variant 设计
 
-`IGameStateProvider.get_game_state()` **故意返回 `Variant` 类型**。框架层不限定游戏状态的具体类型（可能是 Dictionary、RefCounted、Node）。
+`IGameStateProvider`（`core/interfaces/i_game_state_provider.gd`）是静态鸭子类型检测工具类，不是 actor 要实现的具体接口，只提供两个方法：
 
-**这是框架中唯一合理的 Variant 返回。** 其他函数使用 Variant 通常是设计失误。
+- `get_logic_time(provider: Variant) -> float` — 安全获取逻辑时间；`provider` 未实现协议时降级返回系统时间（`Time.get_ticks_msec()`）
+- `is_implemented(provider: Variant) -> bool` — 检查 `provider` 是否实现了 `get_logic_time()` 方法
+
+两者的入参 `provider` **故意类型化为 `Variant`**：框架层不限定 game state provider 的具体类型（可能是 Dictionary、RefCounted、Node），只要求其"鸭子式"实现 `get_logic_time()`。这是有意的鸭子接口设计，不要"修复"成具体类型。
 
 ---
 
@@ -279,17 +282,18 @@ graph TB
         Actions[Action System<br/>BaseAction]
         Timeline[Timeline System<br/>TimelineRegistry]
         Tags[Tag System<br/>TagContainer]
+        Playback[Playback System<br/>BattleRecorder]
     end
 
     subgraph "Stdlib"
         Components[Components<br/>StatModifier/Duration]
-        Systems[Systems<br/>ProjectileSystem]
-        Replay[Replay System<br/>BattleRecorder]
+        Projectile[Projectile<br/>ProjectileSystem/Detectors]
     end
 
     subgraph "Example"
-        HexBattle[HexBattle<br/>ATB Battle]
-        Frontend[Frontend<br/>Presentation Layer]
+        Core[hex-atb-battle/core<br/>Shared Events + WorldGI base]
+        HexDemo[hex-atb-battle/logic<br/>Demo Game Logic + HexDemoWorldGI]
+        Frontend[hex-atb-battle/frontend<br/>Presentation Layer]
     end
 
     World --> Entity
@@ -301,11 +305,13 @@ graph TB
     Abilities --> Timeline
     Actions --> Events
     Components --> Abilities
-    Systems --> Entity
-    Replay --> Events
-    HexBattle --> World
-    HexBattle --> Replay
-    Frontend --> Replay
+    Projectile --> Entity
+    Playback --> Events
+    HexDemo --> World
+    HexDemo --> Core
+    HexDemo --> Playback
+    Frontend --> Core
+    Frontend --> Playback
 ```
 
 ### 关键数据流
