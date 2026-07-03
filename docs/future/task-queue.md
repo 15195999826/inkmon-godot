@@ -78,11 +78,11 @@
 
 ## 线 3 — LGF 框架（`addons/logic-game-framework/`）
 
-### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）
+### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）【🗳️ 提案待批准 2026-07-03】
+- **提案**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md) —— 5 路并行代码级普查 + KB 原则比对后的逐项方案（D1-D6 债务 + H1-H3 架构）与 6 轮执行切分。要点：D1 recorder 家族迁 core/playback（录像是 core 一等公民，纯 git mv 零行为）；D2 投射物迁 stdlib/projectile（「反向依赖 ProjectileSystem」经查证不实，债务描述过时）；D3 转正 dict 总线+收敛端点纪律（管线不切、不删 class，core 只动 game_event.gd）；D4 最小 rename 18 文件（web 桥协议零波及已核实）；D5 门控 29 文件机械迁 + 顺修 SkillValidator 豁免字符串错位潜伏 bug；D6 维持不修；H1 hex core/ 双向依赖归位；H2 skill_preview.gd 6607 行拆分（两档待拍板）；H3 一致性小清理。批准后按轮 A→F 动代码。
 - **意图**：**所有遗留问题都要改**。硬约束：**尽量少改 core 层**；**首要目标 = 优化 hex-atb-battle 架构**。
-- **启动时 fable 做什么**：除已知遗留问题外，**了解当前情况、提建设性意见**。
 - **已知遗留问题**（`addons/logic-game-framework/docs/README.md` 已知债务）：core→stdlib 反向依赖 / ProjectileActor 位置 / 强类型事件最后落回 Dictionary / Replay·Playback 命名混用 / ~28 个 hex 技能门控待迁移到 helper / WorldGameplayInstance 是否需抽象 hex 概念。
-- **约束**：少动 core；改动前出**提案**过目；守 enforcing-lgf。
+- **约束**：少动 core；改动前出**提案**过目（✅ 已出）；守 enforcing-lgf。
 - **相关**：`addons/logic-game-framework/docs/README.md`、`addons/logic-game-framework/example/hex-atb-battle/README.md`（装备 V1 + 未来规划）。
 
 ---
