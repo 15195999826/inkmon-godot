@@ -14,6 +14,11 @@ const LAYER_COUNT := 6
 const MIN_LAYER_WIDTH := 2
 const MAX_LAYER_WIDTH := 3
 const EXTRA_EDGE_CHANCE := 0.4
+## 中间层节点 roll 成野群战斗节点的概率 (起点/目标层恒非战; ~10 中间节点 → 一趟撞 ~2 战)。
+const BATTLE_NODE_CHANCE := 0.4
+## 野群只数域 (Q2.4 用户拍板: 1-4 只; v1 池 = 全可用物种随机)。
+const WILD_COUNT_MIN := 1
+const WILD_COUNT_MAX := 4
 
 
 static func generate(seed_value: int, entry_coord: Vector2i, target_coord: Vector2i, bounds: Rect2i) -> InkMonMissionMapData:
@@ -35,12 +40,17 @@ static func generate(seed_value: int, entry_coord: Vector2i, target_coord: Vecto
 				kind = InkMonMissionMapData.NODE_START
 			elif layer_index == LAYER_COUNT - 1:
 				kind = InkMonMissionMapData.NODE_TARGET
-			map.nodes.append({
+			elif rng.randf() < BATTLE_NODE_CHANCE:
+				kind = InkMonMissionMapData.NODE_BATTLE
+			var node := {
 				"id": node_id,
 				"layer": layer_index,
 				"coord": _node_coord(entry_coord, target_coord, layer_index, slot, width, bounds),
 				"kind": kind,
-			})
+			}
+			if kind == InkMonMissionMapData.NODE_BATTLE:
+				node["wild"] = _roll_wild_pack(rng)
+			map.nodes.append(node)
 			layer_ids.append(node_id)
 		layers.append(layer_ids)
 	map.entry_node_id = int((layers[0] as Array)[0])
@@ -84,6 +94,22 @@ static func _node_coord(entry_coord: Vector2i, target_coord: Vector2i, layer_ind
 	offset.x = clampi(offset.x, bounds.position.x, bounds.position.x + bounds.size.x - 1)
 	offset.y = clampi(offset.y, bounds.position.y, bounds.position.y + bounds.size.y - 1)
 	return InkMonWorldMapData.offset_to_axial(offset.x, offset.y)
+
+
+## 野群 payload roll (M2.1): v1 池 = 领养池 (全部 baby 物种, "野外常见 baby"同源语义, 插入序稳定
+## → seed 确定); 区域生态权重表 = Phase 2 后续/lab 侧。roll_seed 供捕获后 adopt 出生 roll 复用。
+static func _roll_wild_pack(rng: RandomNumberGenerator) -> Array[Dictionary]:
+	var pool := InkMonSpeciesCatalog.list_adoptable_species()
+	var pack: Array[Dictionary] = []
+	if pool.is_empty():
+		return pack
+	var count := rng.randi_range(WILD_COUNT_MIN, WILD_COUNT_MAX)
+	for _i in range(count):
+		pack.append({
+			"species_id": pool[rng.randi_range(0, pool.size() - 1)],
+			"roll_seed": rng.randi(),
+		})
+	return pack
 
 
 static func _add_edge(map: InkMonMissionMapData, from_id: int, to_id: int) -> void:

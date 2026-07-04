@@ -34,6 +34,8 @@ const COLOR_NODE_VISITED := Color(0.45, 0.45, 0.43)
 const COLOR_NODE_NEXT := Color(1.0, 0.95, 0.6)
 const COLOR_NODE_START := Color(0.55, 0.8, 0.55)
 const COLOR_NODE_TARGET := Color(1.0, 0.78, 0.25)
+## 野群战斗节点 (M2.1): 未访红, 走过退灰; 可达性由亮金走廊边表达, 不占节点色。
+const COLOR_NODE_BATTLE := Color(0.85, 0.42, 0.36)
 const COLOR_NODE_RIM := Color(0.08, 0.09, 0.10, 0.9)
 const COLOR_PIECE := Color(0.3, 0.65, 0.95)
 const COLOR_SITE_MARK := Color(1.0, 0.65, 0.15)
@@ -251,6 +253,8 @@ func _node_color(node: Dictionary, node_id: int, next_ids: Array[int]) -> Color:
 			return COLOR_NODE_START
 		InkMonMissionMapData.NODE_TARGET:
 			return COLOR_NODE_TARGET
+		InkMonMissionMapData.NODE_BATTLE:
+			return COLOR_NODE_VISITED if bool(node.get("visited", false)) else COLOR_NODE_BATTLE
 	if next_ids.has(node_id):
 		return COLOR_NODE_NEXT
 	if bool(node.get("visited", false)):

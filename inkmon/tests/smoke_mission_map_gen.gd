@@ -28,6 +28,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
+	var battle_total := 0
 	for route_value in ROUTES:
 		var route := route_value as Array
 		var entry := route[0] as Vector2i
@@ -38,6 +39,12 @@ func _run() -> String:
 			var check := _check_map(map, seed_value)
 			if check != "":
 				return "route %s->%s: %s" % [str(entry), str(target), check]
+			for node in map.nodes:
+				if str(node.get("kind", "")) == InkMonMissionMapData.NODE_BATTLE:
+					battle_total += 1
+	# M2.1 野群节点: 80 图扫描必然出若干战斗节点 (0.4 概率 × ~10 中间节点/图)。
+	if battle_total == 0:
+		return "battle nodes never rolled across %d maps (chance wiring broken?)" % (SEED_COUNT * ROUTES.size())
 	var first_route := ROUTES[0] as Array
 	var d1 := InkMonMissionMapGen.generate(4242, first_route[0] as Vector2i, first_route[1] as Vector2i, BOUNDS).to_debug_dict()
 	var d2 := InkMonMissionMapGen.generate(4242, first_route[0] as Vector2i, first_route[1] as Vector2i, BOUNDS).to_debug_dict()
@@ -65,6 +72,22 @@ func _check_map(map: InkMonMissionMapData, seed_value: int) -> String:
 		var coord := node.get("coord", Vector2i(-1, -1)) as Vector2i
 		if not BOUNDS.has_point(InkMonWorldMapData.axial_to_offset(coord)):
 			return "seed %d: node %d coord %s out of offset bounds" % [seed_value, node_id, str(coord)]
+		# M2.1 野群节点契约: battle 只出现在中间层; payload 只数 1-4、物种全在 catalog。
+		var kind := str(node.get("kind", ""))
+		var layer := int(node.get("layer", -1))
+		if kind == InkMonMissionMapData.NODE_BATTLE:
+			if layer <= 0 or layer >= InkMonMissionMapGen.LAYER_COUNT - 1:
+				return "seed %d: battle node %d on start/target layer %d" % [seed_value, node_id, layer]
+			var wild := node.get("wild", []) as Array
+			if wild == null or wild.size() < InkMonMissionMapGen.WILD_COUNT_MIN \
+					or wild.size() > InkMonMissionMapGen.WILD_COUNT_MAX:
+				return "seed %d: battle node %d wild pack size out of range" % [seed_value, node_id]
+			for wild_value in wild:
+				var entry_data := wild_value as Dictionary
+				if entry_data == null or not InkMonSpeciesCatalog.has_species(str(entry_data.get("species_id", ""))):
+					return "seed %d: battle node %d wild species unknown" % [seed_value, node_id]
+		elif node.has("wild"):
+			return "seed %d: non-battle node %d must not carry wild payload" % [seed_value, node_id]
 	var forward := _reachable_from(map, map.entry_node_id, false)
 	if forward.size() != map.node_count():
 		return "seed %d: only %d/%d nodes reachable from entry" % [seed_value, forward.size(), map.node_count()]

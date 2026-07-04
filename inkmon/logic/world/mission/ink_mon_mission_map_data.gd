@@ -11,9 +11,12 @@ extends RefCounted
 const NODE_START := "start"
 const NODE_EMPTY := "empty"
 const NODE_TARGET := "target"
+const NODE_BATTLE := "battle"
 
 
-## 节点: {id: int, layer: int, coord: Vector2i(hex 锚格), kind: String}。
+## 节点: {id: int, layer: int, coord: Vector2i(hex 锚格), kind: String,
+##        wild?: Array[Dictionary]} —— battle 节点携野群 payload [{species_id, roll_seed}...]
+##        (M2.1: 生成时 seed 确定 roll; 等级开战时按队伍均值算, 不进 payload)。
 var nodes: Array[Dictionary] = []
 ## 有向出边: from_id(int) -> Array[int]。
 var edges: Dictionary = {}
