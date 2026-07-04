@@ -22,6 +22,9 @@ var supplies := 0
 var captured_pending: Array[Dictionary] = []
 ## 趟内足迹: node_id -> true (趟内视野/回访判定的底料)。
 var visited_node_ids: Dictionary = {}
+## 趟内所见节点快照 (Phase 4 迷雾 Q4.5, war3 灰态): node_id -> kind (进入视野时的类型快照)。
+## transient (丢趟同丢); 离开视野后据此显示"最后所见", 从未入圆的节点全黑不显示 (Q4.4)。
+var seen_node_kinds: Dictionary = {}
 ## 待打的野群节点 (M2.2): 踩上 battle 节点即置 (节点即内容, 必战不可绕), 期间选路移动一律拒。
 ## 胜后延续到捕捉阶段 (M2.3), resolve_wild_battle_encounter 收尾清 -1 解锁;
 ## 败 = 全灭不清 —— 世界被 Host load 出发档整体重建, 本对象随之销毁。

@@ -9,12 +9,17 @@ extends InkMonWorldActor
 
 
 const DEFAULT_GOLD := 100
+## 大地图视野半径 (Phase 4 迷雾拍板"玩家视野范围字段"; hex 半径圆)。
+## v1 默认值; 未来 = 本字段 + 队伍个体侦察特性加成 (Q4.3 入口)。
+const DEFAULT_SIGHT_RANGE := 3
 
 
 var gold := 0
 var progression: Dictionary = {}
 ## 勋章 = 玩家级 (非单只, 影响所有 InkMon, 对标 TFT 海克斯)。
 var medals: Array[String] = []
+## 大地图视野半径 (进存档; 玩家成长数据)。
+var sight_range := DEFAULT_SIGHT_RANGE
 ## bag 容器 id (ItemSystem 注册, runtime; 不进存档)。-1 = 未注册。
 var bag_container_id := -1
 
@@ -44,6 +49,7 @@ static func from_dict(data: Dictionary) -> InkMonPlayerActor:
 	var prog := data.get("progression", {}) as Dictionary
 	player.progression = prog.duplicate(true) if prog != null else {}
 	player.medals = _string_array(data.get("medals", []))
+	player.sight_range = maxi(1, int(data.get("sight_range", DEFAULT_SIGHT_RANGE)))
 	var coord := data.get("coord", {}) as Dictionary
 	if coord != null and not coord.is_empty():
 		player.hex_position = HexCoord.from_dict(coord)
@@ -55,6 +61,7 @@ func to_dict() -> Dictionary:
 		"gold": gold,
 		"progression": progression.duplicate(true),
 		"medals": medals.duplicate(),
+		"sight_range": sight_range,
 		# 无效位置存 {} (镜像 InkMonBattleActor.serialize), round-trip 保"未放置", 不被钳成 (0,0)。
 		"coord": hex_position.to_dict() if hex_position.is_valid() else {},
 		# bag 容器内物品快照 (write 侧; restore 由 GI 编排注册容器后还原, 同 UnitActor 装备)。

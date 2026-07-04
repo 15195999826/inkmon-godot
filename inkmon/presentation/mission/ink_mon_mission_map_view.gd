@@ -41,6 +41,12 @@ const COLOR_PIECE := Color(0.3, 0.65, 0.95)
 const COLOR_SITE_MARK := Color(1.0, 0.65, 0.15)
 ## 非本趟目标的地标旗 (画出全部地标 = 世界上还有别的方向可去)。
 const COLOR_SITE_IDLE := Color(0.72, 0.58, 0.36, 0.85)
+## 迷雾三态 (Phase 4, war3 拍板): 黑 = 从未点亮 (近全遮), 灰 = 持久 revealed (半透), 亮 = 视野圆。
+const COLOR_FOG_DARK := Color(0.03, 0.035, 0.045, 0.97)
+const COLOR_FOG_GRAY := Color(0.04, 0.045, 0.055, 0.55)
+## seen 灰态节点 (Q4.5 最后所见快照) 的暗化系数与 "?" 节点色。
+const SEEN_NODE_DIM := 0.55
+const COLOR_NODE_UNKNOWN := Color(0.62, 0.6, 0.55)
 
 
 var _mission: Dictionary = {}
@@ -56,6 +62,11 @@ var _piece_placed := false
 var _terrain_texture: ImageTexture = null
 var _terrain_rect := Rect2()
 var _terrain_bake_hash := 0
+## 迷雾遮罩 (Phase 4): 视野每步变 → 每次 refresh 重烘 (低分辨率, 毫秒级, 与地形同法)。
+var _fog_texture: ImageTexture = null
+var _revealed_lookup: Dictionary = {}
+var _sight_range := 0
+var _sight_center := Vector2i.ZERO
 
 
 func _init() -> void:
@@ -86,10 +97,21 @@ func refresh(mission_snapshot: Dictionary, world_map_snapshot: Dictionary) -> vo
 					"kind": str(landmark.get("kind", "")),
 				})
 	_target_site = _mission.get("target_site_coord", Vector2i.ZERO) as Vector2i
+	# 迷雾数据 (Phase 4): 持久点亮集 + 当前视野圆; 视野每步变 → 雾罩每次重烘。
+	_revealed_lookup.clear()
+	var revealed_source := world_map_snapshot.get("revealed", []) as Array
+	if revealed_source != null:
+		for revealed_value in revealed_source:
+			var revealed := revealed_value as Dictionary
+			if revealed != null:
+				_revealed_lookup[Vector2i(int(revealed.get("q", 0)), int(revealed.get("r", 0)))] = true
+	_sight_range = int(_mission.get("sight_range", 0))
+	_sight_center = _mission.get("current_coord", Vector2i.ZERO) as Vector2i
 	var bake_hash := hash([_map_width, _map_height, _terrain_lookup])
 	if bake_hash != _terrain_bake_hash or _terrain_texture == null:
 		_terrain_bake_hash = bake_hash
 		_bake_terrain_texture()
+	_bake_fog_texture()
 	_fit_to_viewport()
 	var current_pos := _node_plane_pos(int(_mission.get("current_node_id", 0)))
 	if _piece_placed:
@@ -135,6 +157,9 @@ func _draw() -> void:
 	if _mission.is_empty():
 		return
 	_draw_terrain()
+	# 迷雾层 (Phase 4): 盖在地形+格线之上 (黑区连格线一起吞, war3 纯黑); 图元层画在雾上。
+	if _fog_texture != null:
+		draw_texture_rect(_fog_texture, _terrain_rect, false)
 	_draw_landmarks()
 	_draw_corridors()
 	_draw_nodes()
@@ -184,6 +209,51 @@ func _bake_terrain_texture() -> void:
 	_terrain_rect = bounds
 
 
+## 某世界格的迷雾态 (Phase 4 三态): lit(视野圆) / revealed(持久点亮=灰) / dark(黑)。
+func _cell_fog_state(cell: Vector2i) -> String:
+	if _axial_distance(cell, _sight_center) <= _sight_range:
+		return "lit"
+	if _revealed_lookup.has(cell):
+		return "revealed"
+	return "dark"
+
+
+static func _axial_distance(a: Vector2i, b: Vector2i) -> int:
+	var dq := a.x - b.x
+	var dr := a.y - b.y
+	# 三项 abs 之和恒为偶数 (axial 距离公式), 整除无损。
+	@warning_ignore("integer_division")
+	return (absi(dq) + absi(dr) + absi(dq + dr)) / 2
+
+
+## 迷雾遮罩烘焙 (对齐地形烘焙: 同 bounds/scale, LINEAR 放大融成柔和雾缘)。
+## 视野每步变 → 每次 refresh 重烘 (~40k 像素毫秒级)。
+func _bake_fog_texture() -> void:
+	var bounds := _world_plane_bounds()
+	if bounds.size.x <= 0.0 or bounds.size.y <= 0.0:
+		_fog_texture = null
+		return
+	var image_width := maxi(8, int(ceil(bounds.size.x * TERRAIN_BAKE_SCALE)))
+	var image_height := maxi(8, int(ceil(bounds.size.y * TERRAIN_BAKE_SCALE)))
+	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	for py in range(image_height):
+		for px in range(image_width):
+			var plane := bounds.position + Vector2(
+				(float(px) + 0.5) / TERRAIN_BAKE_SCALE, (float(py) + 0.5) / TERRAIN_BAKE_SCALE)
+			var offset := InkMonWorldMapData.axial_to_offset(_plane_to_axial_approx(plane))
+			offset.x = clampi(offset.x, 0, _map_width - 1)
+			offset.y = clampi(offset.y, 0, _map_height - 1)
+			var cell := InkMonWorldMapData.offset_to_axial(offset.x, offset.y)
+			match _cell_fog_state(cell):
+				"lit":
+					image.set_pixel(px, py, Color(0, 0, 0, 0))
+				"revealed":
+					image.set_pixel(px, py, COLOR_FOG_GRAY)
+				_:
+					image.set_pixel(px, py, COLOR_FOG_DARK)
+	_fog_texture = ImageTexture.create_from_image(image)
+
+
 ## view 平面 (含 HEX_SIZE 缩放 + iso squish) → 近似最近 axial cell (round 误差半格内, 插值糊化吃掉)。
 func _plane_to_axial_approx(plane: Vector2) -> Vector2i:
 	var r := plane.y / (HEX_SIZE * 1.5 * ISO_SQUISH)
@@ -191,12 +261,15 @@ func _plane_to_axial_approx(plane: Vector2) -> Vector2i:
 	return Vector2i(int(round(q)), int(round(r)))
 
 
-## 全部地标画旗 (本趟目标金色高亮 + 光晕; 其余暗金 = 世界上还有别的方向)。
+## 地标旗: 本趟目标金色高亮**永显** (Q4.4 拍板: 委托自带情报, 带粮距离目测的锚);
+## 其余旗随所在格迷雾态 (黑区不显)。
 func _draw_landmarks() -> void:
 	for landmark in _landmarks:
 		var coord := landmark.get("coord", Vector2i.ZERO) as Vector2i
 		var pos := _axial_to_plane(coord)
 		var is_current := coord == _target_site
+		if not is_current and _cell_fog_state(coord) == "dark":
+			continue
 		if is_current:
 			draw_circle(pos, NODE_RADIUS * 1.9, Color(COLOR_SITE_MARK.r, COLOR_SITE_MARK.g, COLOR_SITE_MARK.b, 0.18))
 			draw_circle(pos, NODE_RADIUS * 1.3, Color(COLOR_SITE_MARK.r, COLOR_SITE_MARK.g, COLOR_SITE_MARK.b, 0.25))
@@ -209,19 +282,35 @@ func _draw_landmarks() -> void:
 		draw_circle(pos, 3.0, flag_color.darkened(0.4))
 
 
+## 节点是否可绘 (Q4.4 黑区不露骨架): lit/seen 可绘; hidden 只有作为下一跳时以 "?" 浮出。
+func _node_drawable(node: Dictionary, next_ids: Array[int]) -> bool:
+	if str(node.get("visibility", "lit")) != "hidden":
+		return true
+	return next_ids.has(int(node.get("id", -1)))
+
+
 ## 走廊 (v1 直线): 深色宽线打底 + 面线; 当前可选边亮金加粗。
+## 迷雾 (Q4.4): 两端都可绘 (lit/seen/下一跳?) 才画 —— 黑区走廊全不显示。
 func _draw_corridors() -> void:
 	var current_id := int(_mission.get("current_node_id", 0))
 	var next_ids := _next_ids()
+	var drawable_ids: Dictionary = {}
+	for node in _nodes():
+		if _node_drawable(node, next_ids):
+			drawable_ids[int(node.get("id", -1))] = true
 	var edges := _mission.get("edges", {}) as Dictionary
 	for from_key in edges:
 		var from_id := int(from_key)
+		if not drawable_ids.has(from_id):
+			continue
 		var from_pos := _node_plane_pos(from_id)
 		var to_list := edges[from_key] as Array
 		if to_list == null:
 			continue
 		for to_value in to_list:
 			var to_id := int(to_value)
+			if not drawable_ids.has(to_id):
+				continue
 			var to_pos := _node_plane_pos(to_id)
 			var is_next := from_id == current_id and next_ids.has(to_id)
 			draw_line(from_pos, to_pos, COLOR_EDGE_UNDER, 6.0 if is_next else 4.5)
@@ -233,10 +322,25 @@ func _draw_nodes() -> void:
 	var current_id := int(_mission.get("current_node_id", 0))
 	var next_ids := _next_ids()
 	for node in _nodes():
+		if not _node_drawable(node, next_ids):
+			continue
 		var node_id := int(node.get("id", -1))
 		var pos := _node_plane_pos(node_id)
+		var visibility := str(node.get("visibility", "lit"))
 		draw_circle(pos, NODE_RADIUS + 2.0, COLOR_NODE_RIM)
-		draw_circle(pos, NODE_RADIUS, _node_color(node, node_id, next_ids))
+		if visibility == "hidden":
+			# 下一跳圆外节点 = "?" (Q4.2: 可点不可知)。
+			draw_circle(pos, NODE_RADIUS, COLOR_NODE_UNKNOWN)
+			var font := ThemeDB.fallback_font
+			draw_string(font, pos + Vector2(-4.0, 5.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 14, Color(0.12, 0.12, 0.14))
+			continue
+		var node_color := _node_color(node, node_id, next_ids)
+		if visibility == "seen":
+			# 灰态 = 最后所见快照 (Q4.5): 按快照 kind 上色再统一暗化。
+			var seen_node: Dictionary = node.duplicate()
+			seen_node["kind"] = str(node.get("seen_kind", node.get("kind", "")))
+			node_color = _node_color(seen_node, node_id, next_ids).darkened(SEEN_NODE_DIM)
+		draw_circle(pos, NODE_RADIUS, node_color)
 		if node_id == current_id:
 			draw_arc(pos, NODE_RADIUS + 5.0, 0.0, TAU, 24, COLOR_PIECE, 2.5)
 

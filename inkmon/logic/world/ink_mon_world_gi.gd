@@ -334,8 +334,8 @@ func start_mission(config: Dictionary = {}) -> Dictionary:
 	if has_active_mission():
 		return {"ok": false, "message": "mission already active"}
 	mission_state = InkMonMissionSetup.build_state(self, config)
-	# 持久点亮(P2 迷雾两层的持久层):出发即点亮入口格。
-	world_map.reveal_cell(world_map.entry_coord)
+	# 迷雾 (Phase 4): 出发即点亮入口视野圆 (持久层) + 记圆内节点快照 (趟内 seen)。
+	_update_mission_sight()
 	mission_started.emit()
 	return {"ok": true, "message": "mission started"}
 
@@ -363,8 +363,8 @@ func apply_mission_move(node_id: int) -> void:
 		# 全灭: 不再 emit progressed / 不判抵达 —— 世界即将被 Host load 出发档整体重建。
 		mission_wiped.emit()
 		return
-	var node_coord := mission_state.map.get_node_info(node_id).get("coord", Vector2i.ZERO) as Vector2i
-	world_map.reveal_cell(node_coord)
+	# 迷雾 (Phase 4): 每步点亮当前视野圆 (持久) + 记圆内节点快照 (趟内 seen)。
+	_update_mission_sight()
 	mission_progressed.emit(node_id)
 	# M2.2 踩野群节点必战 (Q2.3): 置必战锁 + 上行交 Host 起战斗 flow。判据 = 带野群 payload
 	# (中间层 battle 节点 / 讨伐型主委托的把守 target 节点, Phase 3), 与抵达结算互斥 ——
@@ -377,6 +377,26 @@ func apply_mission_move(node_id: int) -> void:
 	if mission_state.is_at_target():
 		# 抵达目标节点 = 主委托完成 (reach 型) → 自动结算回城。
 		end_mission("complete")
+
+
+## 迷雾维护 (Phase 4, 出发/每步调): ①视野圆内世界格进持久点亮 (revealed_cells, 黑→灰的永久层)
+## ②视野圆内节点记类型快照进趟内 seen (Q4.5 灰态"最后所见")。
+## 当前视野圆 = 以当前节点锚格为圆心、玩家 sight_range 为半径的 hex 圆 (拍板 Q4.2)。
+func _update_mission_sight() -> void:
+	if not has_active_mission() or world_map == null:
+		return
+	var center := mission_state.map.get_node_info(mission_state.current_node_id).get("coord", Vector2i.ZERO) as Vector2i
+	var sight := player_actor.sight_range if player_actor != null else InkMonPlayerActor.DEFAULT_SIGHT_RANGE
+	var center_hex := HexCoord.new(center.x, center.y)
+	for row in range(world_map.height):
+		for col in range(world_map.width):
+			var cell := InkMonWorldMapData.offset_to_axial(col, row)
+			if center_hex.distance_to(HexCoord.new(cell.x, cell.y)) <= sight:
+				world_map.reveal_cell(cell)
+	for node in mission_state.map.nodes:
+		var node_coord := node.get("coord", Vector2i.ZERO) as Vector2i
+		if center_hex.distance_to(HexCoord.new(node_coord.x, node_coord.y)) <= sight:
+			mission_state.seen_node_kinds[int(node.get("id", -1))] = str(node.get("kind", ""))
 
 
 ## 出征结束 —— 两出口(P1)之一"主委托完成"走此;"丢这趟"**不经此**(Host load 出发档重建世界,

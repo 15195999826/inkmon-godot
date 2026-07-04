@@ -114,15 +114,27 @@ func get_mission_snapshot() -> Dictionary:
 	if _gi == null or not _gi.has_active_mission():
 		return {}
 	var state := _gi.mission_state
+	# 迷雾三态 (Phase 4, 逻辑真相在此投影): lit = 当前视野圆内 / seen = 趟内快照 (灰) / hidden = 黑。
+	var sight := _gi.player_actor.sight_range if _gi.player_actor != null else InkMonPlayerActor.DEFAULT_SIGHT_RANGE
+	var center := state.map.get_node_info(state.current_node_id).get("coord", Vector2i.ZERO) as Vector2i
+	var center_hex := HexCoord.new(center.x, center.y)
 	var nodes: Array[Dictionary] = []
 	for node in state.map.nodes:
 		var node_id := int(node.get("id", -1))
+		var node_coord := node.get("coord", Vector2i.ZERO) as Vector2i
+		var visibility := "hidden"
+		if center_hex.distance_to(HexCoord.new(node_coord.x, node_coord.y)) <= sight:
+			visibility = "lit"
+		elif state.seen_node_kinds.has(node_id):
+			visibility = "seen"
 		nodes.append({
 			"id": node_id,
 			"layer": int(node.get("layer", 0)),
 			"coord": node.get("coord", Vector2i.ZERO),
 			"kind": str(node.get("kind", "")),
 			"visited": state.visited_node_ids.has(node_id),
+			"visibility": visibility,
+			"seen_kind": str(state.seen_node_kinds.get(node_id, "")),
 		})
 	var quests: Array[Dictionary] = []
 	for quest_entry in state.quests:
@@ -146,6 +158,8 @@ func get_mission_snapshot() -> Dictionary:
 		"supplies": state.supplies,
 		"target_site_coord": state.target_site_coord,
 		"quests": quests,
+		"sight_range": sight,
+		"current_coord": center,
 	}
 
 
