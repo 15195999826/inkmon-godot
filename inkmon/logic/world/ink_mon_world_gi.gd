@@ -26,13 +26,23 @@ signal near_npc_changed(near_npc_id: String)
 ## (start_battle 等)。"写不走同步返回值"靠此 —— 写路径只 submit,结果异步回流。
 signal command_applied(result: Dictionary)
 
+## 上行信号(mission flow, glossary §4.8):出征开始 / 步进 / 结束。
+## ended payload = 结算摘要({outcome, gold_reward, adopted, supplies_left});"丢这趟"出口不 emit
+## (Host load 出发档重建世界, 本 GI 连同 mission_state 整体销毁)。
+signal mission_started()
+signal mission_progressed(node_id: int)
+signal mission_ended(result: Dictionary)
+## 全灭上行(粮尽行军掉血致全 roster HP≤0):"丢这趟"由 Host 走 load 出发档, GI 只报告不自灭
+## (lifecycle 归 Host; 且 signal 从 tick drain 内 emit, mid-tick 不能销毁世界)。
+signal mission_wiped()
+
 
 ## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 overworld view 的单步补间时长
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
 const STEP_DURATION := 0.22
 
-## 存档版本 (adr/0001 统一 live-actor 模型, 旧 session 模型档不兼容 → 不符即丢弃重开)。
-const SAVE_VERSION := 2
+## 存档版本 (adr/0001 统一 live-actor 模型; v3 起含 world_map 世界地理, P2 拍板)。不符即丢弃重开。
+const SAVE_VERSION := 3
 ## 新游戏默认出战上限 (左队取 roster 前 N)。
 const MAX_BATTLE_UNITS := 4
 ## NPC 邻近判定半径 (axial 距离 ≤ 此值 = 相邻, 可交互)。
@@ -64,8 +74,13 @@ var roster: Array[InkMonUnitActor] = []
 var npc_defs: Dictionary = {}
 ## 主世界 hex 网格 wrapper(占用 / 寻路 / 重定向)。Logic 层持有(grid 无 UI 依赖)。
 var overworld_grid: InkMonWorldGrid = null
+## 世界大地图地理 (P2, glossary §4.9): 开档一次生成、永久固定、进据点档 (序列化根之一)。
+## 不进 grid 机器 —— 出征大地图逻辑真相 = 趟内节点图 (MissionState), 本数据只是固定地理底。
+var world_map: InkMonWorldMapData = null
 ## 与玩家相邻(axial 距离 ≤1)的 NPC id;玩家移动后重算,"" = 无邻近。
 var near_npc_id: String = ""
+## 出征运行态 (P1: transient 不进存档, adr/0002 三叉; P2: 趟内节点图住此)。null = 不在出征中。
+var mission_state: InkMonMissionState = null
 ## 主世界 command 队列(CQRS 写侧):UI/Host submit(InkMonWorldCommand) → tick 的 CommandDrain System
 ## 抽干, drain_commands 多态 cmd.apply(self)。持对象化命令(非无类型 dict)。
 var _command_queue: Array[InkMonWorldCommand] = []
@@ -95,6 +110,8 @@ func new_game() -> void:
 	roster.clear()
 	for unit_key in InkMonUnitConfig.get_default_roster(0):
 		InkMonRosterSetup.add_from_config(self, str(unit_key))
+	# 世界地理: 开档一次生成、此后永久固定 (P2; 真随机 seed —— 每个存档一个独特世界)。
+	world_map = InkMonWorldMapData.generate(randi())
 	_setup_overworld_runtime()
 
 
@@ -122,6 +139,12 @@ func from_dict(data: Dictionary) -> bool:
 			var unit_data := unit_value as Dictionary
 			if unit_data != null:
 				InkMonRosterSetup.add_from_save(self, unit_data)
+	var map_data := data.get("world_map", {}) as Dictionary
+	if map_data != null and not map_data.is_empty():
+		world_map = InkMonWorldMapData.from_dict(map_data)
+	else:
+		# v3 档理应携带; 字段缺失/损坏时重生成一张兜底 (地理换新, 好过弃档)。
+		world_map = InkMonWorldMapData.generate(randi())
 	_setup_overworld_runtime()
 	return true
 
@@ -139,6 +162,7 @@ func to_dict() -> Dictionary:
 		"version": SAVE_VERSION,
 		"player": player_actor.to_dict() if player_actor != null else {},
 		"roster": roster_data,
+		"world_map": world_map.to_dict() if world_map != null else {},
 	}
 
 
@@ -217,6 +241,62 @@ func drain_commands() -> void:
 ## command_applied 单一 emit 入口:buy/npc-action command apply 后把结果(含 message / flow intent)回流。
 func emit_command_applied(result: Dictionary) -> void:
 	command_applied.emit(result)
+
+
+# === mission:出征 flow(P1/P2 拍板, 术语 glossary §4.8)===
+
+## 出征开始(Host flow 调, 且必须在写出发档**之后**):建出征态(选目标地标 + 蔓延生成趟内节点图)。
+## Host 控制面同步调用(非 command 通道), 返回 {ok, message}。
+func start_mission(config: Dictionary = {}) -> Dictionary:
+	if has_active_battle():
+		return {"ok": false, "message": "cannot start mission during battle"}
+	if has_active_mission():
+		return {"ok": false, "message": "mission already active"}
+	mission_state = InkMonMissionSetup.build_state(self, config)
+	# 持久点亮(P2 迷雾两层的持久层):出发即点亮入口格。
+	world_map.reveal_cell(world_map.entry_coord)
+	mission_started.emit()
+	return {"ok": true, "message": "mission started"}
+
+
+func has_active_mission() -> bool:
+	return mission_state != null
+
+
+## tick drain 时由 InkMonMissionMoveCommand.apply 调:沿趟内节点图走一跳。
+## 非法移动(无边 / 不在出征中)静默拒(对称 apply_move_player 的宽容风格)。
+func apply_mission_move(node_id: int) -> void:
+	if not has_active_mission():
+		return
+	if not mission_state.map.has_edge(mission_state.current_node_id, node_id):
+		return
+	mission_state.current_node_id = node_id
+	mission_state.visited_node_ids[node_id] = true
+	# 补给钟(M1.4): 有粮扣粮; 粮尽行军 = 全队掉真 HP(carryover), 全灭 → "丢这趟"出口。
+	if mission_state.supplies > 0:
+		mission_state.supplies -= 1
+	elif InkMonMissionSetup.apply_starvation(self):
+		# 全灭: 不再 emit progressed / 不判抵达 —— 世界即将被 Host load 出发档整体重建。
+		mission_wiped.emit()
+		return
+	var node_coord := mission_state.map.get_node_info(node_id).get("coord", Vector2i.ZERO) as Vector2i
+	world_map.reveal_cell(node_coord)
+	mission_progressed.emit(node_id)
+	if mission_state.is_at_target():
+		# 抵达目标节点 = 占位主委托完成(v1 抵达型, quest 数据化 = Phase 3)→ 自动结算回城。
+		end_mission("complete")
+
+
+## 出征结束 —— 两出口(P1)之一"主委托完成"走此;"丢这趟"**不经此**(Host load 出发档重建世界,
+## 本 GI 连同 mission_state 整体销毁, 天然回滚)。
+func end_mission(outcome: String) -> void:
+	if not has_active_mission():
+		return
+	var result := {"outcome": outcome}
+	if outcome == "complete":
+		result = InkMonMissionSetup.settle_complete(self)
+	mission_state = null
+	mission_ended.emit(result)
 
 
 ## latest-wins(方案 A):新目标 → 走完正在进入的当前格(occupant 自然 flip 到 moving_to),

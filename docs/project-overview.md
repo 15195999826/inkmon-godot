@@ -38,7 +38,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架 + 在其上自建的养成主游戏
 
 ## 4. 入口
 
-- `project.godot` `run/main_scene` = 主游戏入口 `InkMonMain.tscn`(标题 → 菜单 → 进游戏;v1 直进,结构留好)。
+- `project.godot` `run/main_scene` = 主游戏入口 `InkMonMain.tscn`(主菜单:New Game / Continue / 出发档恢复;`--dev-agent` 跳菜单直进)。
 - `Simulation.tscn` + `scripts/SimulationManager.gd` = 纯 web 桥,只在 `OS.has_feature("web")` 下注册 `window.godot_*` 回调(`godot_greet` / `godot_run_battle` / `godot_validate_skill` / `godot_preview_skill` 等);本地跑进 headless 测试分支。
 
 ## 5. Autoload 单例(见 `project.godot` `[autoload]`)

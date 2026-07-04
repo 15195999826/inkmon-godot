@@ -108,6 +108,41 @@ func has_npc_handler(npc_id: String) -> bool:
 	return _gi != null and _gi.has_npc_handler(npc_id)
 
 
+## 出征快照(出征中大地图 view 的唯一数据源; 全值拷贝, 不外递 MissionState/MapData 引用)。
+## 不在出征中返回 {}。
+func get_mission_snapshot() -> Dictionary:
+	if _gi == null or not _gi.has_active_mission():
+		return {}
+	var state := _gi.mission_state
+	var nodes: Array[Dictionary] = []
+	for node in state.map.nodes:
+		var node_id := int(node.get("id", -1))
+		nodes.append({
+			"id": node_id,
+			"layer": int(node.get("layer", 0)),
+			"coord": node.get("coord", Vector2i.ZERO),
+			"kind": str(node.get("kind", "")),
+			"visited": state.visited_node_ids.has(node_id),
+		})
+	return {
+		"nodes": nodes,
+		"edges": state.map.edges.duplicate(true),
+		"entry_node_id": state.map.entry_node_id,
+		"target_node_id": state.map.target_node_id,
+		"current_node_id": state.current_node_id,
+		"next_node_ids": state.map.next_node_ids(state.current_node_id),
+		"supplies": state.supplies,
+		"target_site_coord": state.target_site_coord,
+	}
+
+
+## 世界地理快照(大地图底图数据; 复用 to_dict 序列化投影, 天然值拷贝)。
+func get_world_map_snapshot() -> Dictionary:
+	if _gi == null or _gi.world_map == null:
+		return {}
+	return _gi.world_map.to_dict()
+
+
 # === ② Command(写,唯一入口)===
 
 ## 入队对象化命令(异步;tick drain 时 cmd.apply(gi) 生效)。表演侧唯一的写路径。

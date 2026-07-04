@@ -13,6 +13,8 @@ const InkMonMainAgentOpsScript := preload("res://inkmon/host/ink_mon_main_agent_
 const DEFAULT_SAVE_PATH := "user://inkmon_l2_save.json"
 # 手动存档点 + 可多槽 (§8b); 战斗结果不自动落盘, 玩家开 save 菜单存某槽。
 const SAVE_SLOT_COUNT := 3
+## 出发档(P1):出征起点快照, 独立预留路径(不占手动多槽)。"丢这趟"= load 此档精确回到出发时刻。
+const DEPARTURE_SAVE_PATH := "user://inkmon_l2_mission_departure.json"
 ## 主世界逻辑固定步频(§1 tick/移动模型):Host 每帧按累加器泵 GameWorld.tick_all(FIXED_DT)。
 const FIXED_DT := 1.0 / 30.0
 const MAX_TICKS_PER_FRAME := 8
@@ -22,6 +24,8 @@ var _active_instance_id := ""
 ## 训练战 flow 去重锁:从收到 start_battle intent 到 _begin_training_battle_flow 跑完之间为 true,
 ## 挡掉同帧双击/重复 intent 起多场战斗(方案 A 异步去掉了旧同步路径的隐式单飞保护)。
 var _battle_flow_pending := false
+## mission flow 去重位(对称 _battle_flow_pending, 独立互不挡)。
+var _mission_flow_pending := false
 ## 回放观看期标志:battle sim 已结束但玩家还在看回放/结果。世界泵冻结,直到表演上抛 battle_view_left
 ## 解冻(game-vision §2 体验流:进战斗→冻结→观看→确认离开→恢复)。
 var _replay_active := false
@@ -126,16 +130,22 @@ func run_training_battle_to_completion(max_ticks: int = 8) -> Dictionary:
 ## Presentation 上抛 flow intent(training 的 start_battle)→ Host 起 flow。
 ## call_deferred 脱离 tick_all(intent 经 command_applied 在 drain 内浮现),避免 mid-tick flip grid 的 re-entrancy。
 func _on_flow_intent_raised(intent: Dictionary) -> void:
-	if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) != InkMonTrainingNpcHandler.INTENT_START_BATTLE:
-		return
-	# 去重:方案 A 下同帧双击会 enqueue 两条 start_battle command,同 tick drain → 两次 intent。
-	# 旧同步路径靠"第一场跑完即切回主世界态"自然挡掉第二次;async 下两次 deferred 会起两场(双倍奖励)。
-	# 故只认第一次 intent,_begin 跑完才解锁。
-	if _battle_flow_pending:
-		return
-	_battle_flow_pending = true
-	# 带提交时的世界代际:deferred 跑前若 reset/load 重建世界,代际不匹配 → 作废旧 intent。
-	call_deferred("_begin_training_battle_flow", _world_generation)
+	match str(intent.get(InkMonNpcHandler.INTENT_KIND, "")):
+		InkMonTrainingNpcHandler.INTENT_START_BATTLE:
+			# 去重:方案 A 下同帧双击会 enqueue 两条 command,同 tick drain → 两次 intent。
+			# 旧同步路径靠"第一场跑完即切回主世界态"自然挡掉第二次;async 下两次 deferred 会起两场(双倍奖励)。
+			# 故只认第一次 intent,_begin 跑完才解锁。带提交时的世界代际:deferred 跑前若 reset/load
+			# 重建世界,代际不匹配 → 作废旧 intent。
+			if _battle_flow_pending:
+				return
+			_battle_flow_pending = true
+			call_deferred("_begin_training_battle_flow", _world_generation)
+		InkMonGuildNpcHandler.INTENT_START_MISSION:
+			# 同款去重 + 代际 guard(独立 pending 位:battle 与 mission flow 互不挡)。
+			if _mission_flow_pending:
+				return
+			_mission_flow_pending = true
+			call_deferred("_begin_mission_flow", _world_generation)
 
 
 ## 训练战 flow(Host 控制面):由 flow_intent_raised 经 call_deferred 触发。
@@ -179,11 +189,81 @@ func _on_battle_view_left() -> void:
 	_replay_active = false
 
 
+# === flow:mission 出征 起/收(Host 控制面; P1/P2 拍板, 术语 glossary §4.8)===
+
+## 出征 flow:guild intent 经 call_deferred 触发。
+## P1 顺序契约(钉死, 防呆):①(将来)带粮等据点资源扣除 → ②写出发档 → ③gi.start_mission。
+## 扣任何据点资源必须在写档**之前** —— 否则"丢这趟"回档会把已消耗资源退回来(出征零成本)。
+func _begin_mission_flow(generation: int) -> void:
+	_mission_flow_pending = false
+	if generation != _world_generation:
+		return
+	if _world_gi == null or _active_instance_id != "" or _replay_active:
+		return
+	if _world_gi.has_active_mission():
+		return
+	# ② 出发档 = "丢这趟"的锚点(P1):全灭/退出/崩溃都精确回到此刻。
+	var save_result := save_game(DEPARTURE_SAVE_PATH)
+	if not bool(save_result.get("ok", false)):
+		_presentation.add_event("mission aborted: departure save failed")
+		return
+	# ③ 起出征(选目标地标 + 蔓延生成趟内节点图)。
+	var start_result := _world_gi.start_mission()
+	if bool(start_result.get("ok", false)):
+		_presentation.set_mission_active(true)
+		_presentation.add_event("mission started (departure saved)")
+	else:
+		_presentation.add_event("mission start failed: %s" % str(start_result.get("message", "")))
+
+
+## GI 出征结束(主委托完成出口)→ 收 flow:退出出征态 + 交表演展示结算。
+func _on_mission_ended(result: Dictionary) -> void:
+	_clear_departure_save()
+	_presentation.set_mission_active(false)
+	_presentation.on_mission_completed(result)
+	_presentation.add_event("mission ended: %s" % str(result.get("outcome", "")))
+
+
+## 全灭上行: signal 从 tick drain 内 emit, mid-tick 销毁世界会炸正在 tick 的 GI —— deferred 到帧尾
+## 再走"丢这趟"(对称 flow intent 的 deferred 理由), 带代际 guard 防 reset/load 竞态。
+func _on_mission_wiped() -> void:
+	_presentation.add_event("party wiped: mission lost")
+	call_deferred("_finish_mission_wipe", _world_generation)
+
+
+func _finish_mission_wipe(generation: int) -> void:
+	if generation != _world_generation:
+		return
+	if _world_gi == null or not _world_gi.has_active_mission():
+		return
+	abandon_mission()
+
+
+## "丢这趟"出口(P1 两出口之二):玩家放弃 / 全灭(M1.4)统一走此 —— load 出发档, 精确回到出发时刻。
+## 与手动 load 同一条代码路径(load_game 重建世界, transient 出征态随旧 GI 整体销毁 = 天然回滚)。
+func abandon_mission() -> Dictionary:
+	if _world_gi == null or not _world_gi.has_active_mission():
+		return _scene_result(false, "no active mission")
+	var load_result := load_game(DEPARTURE_SAVE_PATH)
+	_clear_departure_save()
+	_presentation.set_mission_active(false)
+	_presentation.add_event("mission abandoned: returned to departure save")
+	return load_result
+
+
+## 出发档生命周期 = 出征期间(出发写 → 两出口收尾删)。
+## ⇒ 启动时档存在 ⇔ 上次出征未正常收尾(崩溃/强退), 外层 session 菜单据此给"回到出发时刻"入口(尾项③)。
+func _clear_departure_save() -> void:
+	if FileAccess.file_exists(DEPARTURE_SAVE_PATH):
+		DirAccess.remove_absolute(DEPARTURE_SAVE_PATH)
+
+
 # === lifecycle:save/load/new-game/reset = 重建孩子(Host 控制面,非 command 队列)===
 
 func reset_session() -> Dictionary:
 	_set_active_instance("")
 	_battle_flow_pending = false
+	_mission_flow_pending = false
 	_replay_active = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
@@ -210,21 +290,22 @@ func save_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 
 ## 多槽存档便捷封装 (§8b); 底层仍复用 path-based save_game/load_game。
 func save_to_slot(slot: int) -> Dictionary:
-	return save_game(_slot_path(slot))
+	return save_game(slot_save_path(slot))
 
 
 func load_from_slot(slot: int) -> Dictionary:
-	return load_game(_slot_path(slot))
+	return load_game(slot_save_path(slot))
 
 
 func list_save_slots() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for slot in range(1, SAVE_SLOT_COUNT + 1):
-		result.append({"slot": slot, "exists": FileAccess.file_exists(_slot_path(slot))})
+		result.append({"slot": slot, "exists": FileAccess.file_exists(slot_save_path(slot))})
 	return result
 
 
-func _slot_path(slot: int) -> String:
+## static 公开: 外层 session 菜单(InkMonMain "Continue" 找最近档)也要按槽位扫文件。
+static func slot_save_path(slot: int) -> String:
 	return "user://inkmon_l2_save_slot%d.json" % slot
 
 
@@ -237,6 +318,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 
 	_set_active_instance("")
 	_battle_flow_pending = false
+	_mission_flow_pending = false
 	_replay_active = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
@@ -272,16 +354,29 @@ func _bind_world_to_presentation() -> void:
 	_world_gi.actor_position_changed.connect(_presentation._on_world_actor_position_changed)
 	_world_gi.near_npc_changed.connect(_presentation._on_near_npc_changed)
 	_world_gi.command_applied.connect(_presentation._on_command_applied)
+	# mission_ended 是 flow 事件 → Host 收(退出出征态), 再转推表演展示。
+	_world_gi.mission_ended.connect(_on_mission_ended)
+	# mission_progressed 是 mutation signal → 直连表演刷大地图 view(对称 actor_position_changed)。
+	_world_gi.mission_progressed.connect(_presentation._on_mission_progressed)
+	_world_gi.mission_wiped.connect(_on_mission_wiped)
 	_presentation.bind_world(IWorldQuery.new(_world_gi))
 
 
 # === 存读档槽:Presentation 上抛(UI 在表演,lifecycle 操作在 Host)===
 
 func _on_save_slot_requested(slot: int) -> void:
+	# P1:出征中禁手动存档(防 scum + 防"半态存档" —— 出征 transient 态不进档, 半存出精神分裂档)。
+	if _world_gi != null and _world_gi.has_active_mission():
+		_presentation.add_event("save disabled during mission")
+		return
 	save_to_slot(slot)
 
 
 func _on_load_slot_requested(slot: int) -> void:
+	# P1:出征中禁手动读档(丢这趟只走 abandon_mission → 出发档, 不给任意档口子)。
+	if _world_gi != null and _world_gi.has_active_mission():
+		_presentation.add_event("load disabled during mission")
+		return
 	load_from_slot(slot)
 
 
@@ -291,6 +386,7 @@ func get_dev_agent_state() -> Dictionary:
 	var state := _presentation.get_debug_state() if _presentation != null else {}
 	state["active_instance_id"] = _active_instance_id
 	state["replay_active"] = _replay_active
+	state["mission_active"] = _world_gi != null and _world_gi.has_active_mission()
 	state["game_world"] = GameWorld.get_debug_info()
 	return state
 

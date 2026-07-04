@@ -183,6 +183,7 @@ func _test_iworldquery_facade() -> String:
 		"get_player_coord": true, "get_player_actor_id": true, "is_player_moving": true,
 		"get_player_hud_summary": true, "get_roster_snapshot": true, "get_bag_snapshot": true,
 		"get_npc_defs_snapshot": true, "get_npc_actions": true, "has_npc_handler": true,
+		"get_mission_snapshot": true, "get_world_map_snapshot": true,
 		"submit": true,
 	}
 	for method in (query.get_script() as GDScript).get_script_method_list():

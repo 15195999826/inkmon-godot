@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon/tests/smoke_mission_map_gen.gd" id="1_missionmapgen"]
+
+[node name="SmokeMissionMapGen" type="Node"]
+script = ExtResource("1_missionmapgen")

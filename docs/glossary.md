@@ -55,6 +55,10 @@
 
 **4.7 装备数值生效 = grant ability，不焊进 base**（adr/0004）— 装备 item 的数值**不**直接写进基础属性，而是穿戴时给 actor **grant 一个通用 ability**（携 `StatModifierComponent`→`AttributeModifier`→进**加成层**），脱下按 ability instance id 精确 revoke。v1 纯数值：通用 ability 穿戴瞬间拿 ItemConfig 的 `stat_mods` **现场拼** modifier（数字来自 lab item 数据，不写死 godot 配置）。地基 = hex `HexActorEquipmentContainer`（Phase G）+ LGF StatModifier 机制；**取代** inkmon 现 `_equipment_mods()` 焊 base 法（待重构）。
 
+**4.8 mission（出征）vs quest（委托）**（2026-07-04 grill 拍板）— **quest（委托）** = 公会委托板上的一张委托单，**一种数据形状**（目标/地点/奖励），运行时分**主/副角色**：主委托定这趟出征的目的地与回城条件（主委托完成 → 出征结束可回城）；副委托纯 bonus 奖励，不影响 flow。**mission（出征）** = 带队实际跑的那一趟 = **transient 运行态**（`InkMonMissionState`：本趟节点图（趟内蔓延生成，见 §4.9）/ 当前节点 / 剩余补给 / 途中捕获 / 趟内视野迷雾 / 携带委托列表 1 主 + N 副），**不进存档**（P1：出征中禁手动 save/load；出发时自动写一次据点档 = "丢这趟"的锚点；**v1 两出口**：主委托完成结算入库 / 丢这趟——全灭·退出·崩溃同路径回出发档，不做主动撤退）。**每次出征必有主委托**（Phase 2 切片 = 硬编码占位主委托"抵达标记格"；Phase 3 quest 系统只是把委托板数据化，出征 flow 不改）。⚠️ **「远征」= 玩法叙述词**（据点+远征结构、远征大地图），不进系统术语、不绑代码概念；旧文档中指单次周期的 "run" 一律读作 mission。
+
+**4.9 世界大地图两层**（P2 拍板，2026-07-04）— **世界地理** = 开档 `new_game` 一次生成、永久固定的持久 data shape（进据点档，如 `InkMonWorldMapData`：hex 地形/区域/地标 + 持久点亮迷雾；每个存档一个独一无二的世界）。**趟内节点图** = 每趟出征接委托后在固定地理上蔓延生成的选路 DAG（住 `InkMonMissionState`，transient，丢趟同丢）。**大地图逻辑真相 = 节点图，hex 只是渲染皮肤**——不进 `WorldGameplayInstance` 的 grid/astar/Movement 机器；据点/战斗双 grid 现状不动（main-game-architecture §9 双 grid 终态触发条件未命中）。
+
 ## 5. 设计取向
 
 **5.1 InkMon(养成深度)** — 长期目标 = **深度英雄(Dota 向)**:每只多技能槽 + 装备 + 刻印 + 勋章 + 进化 stage。**不是** TFT 浅棋子(无羁绊/费用/reroll)。真实形态 = "hex 棋盘上一队 Dota 深度英雄的 ATB 自走战"。存档数据模型按这一档设计(浅用法只是少填字段)。

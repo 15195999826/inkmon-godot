@@ -26,7 +26,7 @@ const SAVE_SLOT_COUNT := 3
 
 ## app_state 派生:BATTLE 由 Host 推入的 _battle_active(_active_instance_id 真相在 Host),
 ## NPC_MENU 由 _drawer_mode == "npc",否则 OVERWORLD。单一真相,无独立状态机。
-enum AppState { OVERWORLD, BATTLE, NPC_MENU }
+enum AppState { OVERWORLD, BATTLE, NPC_MENU, MISSION }
 
 ## 表演需要 Host 做 flow/lifecycle 时上抛(单向 DAG:表演不引用 Host,Host connect 这些信号)。
 signal flow_intent_raised(intent: Dictionary)
@@ -39,10 +39,17 @@ signal battle_view_left()
 var _world_query: IWorldQuery = null
 ## 战斗 flow 状态由 Host 推入(set_battle_active);表演据此派生 app_state,不自持 _active_instance_id。
 var _battle_active := false
+## 出征 flow 状态(真相在 GI 的 mission_state, Host 起/收时推入; P1:出征中禁手动 save/load 的 UI gate)。
+var _mission_active := false
 ## 最近一场战斗结果由 Host 经 on_battle_completed 推入,用于 journal 面板 + debug 表面。
 var _last_battle_result: Dictionary = {}
 ## adr/0005:战斗 2D 回放视图(占位,懒建)+ 回放中标志 + 待收尾结果。回放期 _replaying 接管 BATTLE 态。
 var _battle_2d_view: InkMonBattle2DView = null
+## 出征大地图 view (lazy 建; 只画+报点击, root 在此接线 submit)。
+var _mission_view: InkMonMissionMapView = null
+## mission view 的独立画布层: 脱离 overworld Camera2D 的 canvas transform(battle_2d_view 同款手法),
+## layer=0 低于 HUD 各层。
+var _mission_layer: CanvasLayer = null
 var _replaying := false
 var _pending_battle_result: Dictionary = {}
 
@@ -86,11 +93,13 @@ var _near_npc_id: String:
 ## npc 表快照 (bind_world 取一次; NPC 是常量 stub, 跨 world 重建不变)。Wave 3: 读通道全 snapshot,
 ## 表演不再持任何活 actor / 逻辑层 Dict 引用 (玩家/roster/bag 数据均按需经 query 取投影)。
 var _npc_defs: Dictionary = {}
-## app_state 派生:战斗 > NPC 菜单 > 主世界。
+## app_state 派生:战斗 > 出征 > NPC 菜单 > 主世界(battle 嵌在出征内跑野群战, 故 battle 优先)。
 var app_state: AppState:
 	get:
 		if _battle_active or _replaying:
 			return AppState.BATTLE
+		if _mission_active:
+			return AppState.MISSION
 		if _drawer_mode == "npc":
 			return AppState.NPC_MENU
 		return AppState.OVERWORLD
@@ -122,6 +131,63 @@ func bind_world(query: IWorldQuery) -> void:
 ## Host 推入战斗 flow 状态(_active_instance_id 真相在 Host;表演据此派生 app_state)。
 func set_battle_active(active: bool) -> void:
 	_battle_active = active
+
+
+## Host 推入出征 flow 状态(起 mission / 收 mission / abandon 时调; 真相在 GI)。
+## 出征中: 据点 overworld view 隐藏、大地图 view 顶上(P2: 据点/大地图两语境切屏, 不共 grid)。
+func set_mission_active(active: bool) -> void:
+	_mission_active = active
+	if active:
+		_ensure_mission_view()
+		_refresh_mission_view()
+	if _mission_view != null:
+		_mission_view.visible = active
+	if _world_layer != null:
+		_world_layer.visible = not active and not _replaying
+	_refresh_prompt()
+
+
+func _ensure_mission_view() -> void:
+	if _mission_view != null:
+		return
+	_mission_layer = CanvasLayer.new()
+	_mission_layer.name = "MissionMapLayer"
+	_mission_layer.layer = 0
+	add_child(_mission_layer)
+	_mission_view = InkMonMissionMapView.new()
+	_mission_view.name = "MissionMapView"
+	_mission_layer.add_child(_mission_view)
+	_mission_view.node_clicked.connect(_on_mission_node_clicked)
+
+
+## view 报点击(只报可达节点)→ root 接线走 CQRS 写通道(方案 A)。
+func _on_mission_node_clicked(node_id: int) -> void:
+	if _world_query == null:
+		return
+	_world_query.submit(InkMonMissionMoveCommand.new(node_id))
+
+
+## GI mission_progressed 上行(Host 接线)→ 拉新快照刷大地图 + 补给钟 HUD 一行(v1 用 message 位)。
+func _on_mission_progressed(_node_id: int) -> void:
+	_refresh_mission_view()
+	if _world_query != null:
+		var snapshot := _world_query.get_mission_snapshot()
+		if not snapshot.is_empty():
+			_last_ui_message = "supplies: %d" % int(snapshot.get("supplies", 0))
+			_refresh_ui()
+
+
+func _refresh_mission_view() -> void:
+	if _mission_view == null or _world_query == null:
+		return
+	_mission_view.refresh(_world_query.get_mission_snapshot(), _world_query.get_world_map_snapshot())
+
+
+## Host 在出征结束(主委托完成)后调:展示结算摘要 + 刷新。
+func on_mission_completed(result: Dictionary) -> void:
+	_last_ui_message = "mission complete: +%d gold" % int(result.get("gold_reward", 0))
+	_refresh_ui()
+	add_event("mission completed: %s" % str(result.get("outcome", "")))
 
 
 ## Host 在战斗结束后调:回到主世界态 + 展示结果 + 刷新。
@@ -175,6 +241,10 @@ func reset_ui_state(full: bool = true) -> void:
 	# reset/load 可能发生在回放观看期:拆回放态,否则战斗视图滞留、overworld 永久隐藏。
 	_replaying = false
 	_pending_battle_result = {}
+	# reset/load 也可能发生在出征中(abandon_mission 走 load 路径):拆出征态, 解开 save/load gate。
+	_mission_active = false
+	if _mission_view != null:
+		_mission_view.visible = false
 	if _battle_2d_view != null:
 		_battle_2d_view.visible = false
 	if _world_layer != null:
@@ -332,6 +402,11 @@ func close_drawer() -> Dictionary:
 
 
 func open_save_load_menu() -> Dictionary:
+	# P1:出征中禁手动 save/load(防 scum + 防"半态存档");Host 槽位 handler 另有一层 guard(双保险)。
+	if _mission_active:
+		_last_ui_message = "save/load disabled during mission"
+		add_event(_last_ui_message)
+		return _result(false, _last_ui_message)
 	if _save_load_modal_view == null:
 		return _result(false, "save/load modal is not ready")
 	_drawer_mode = ""
@@ -400,9 +475,11 @@ func _on_near_npc_changed(_npc_id: String) -> void:
 ## 上抛 flow_intent_raised 给 Host(flow 归 Host,不归表演/command/handler)。
 func _on_command_applied(result: Dictionary) -> void:
 	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
-	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonTrainingNpcHandler.INTENT_START_BATTLE:
-		# 进战斗即关 NPC 抽屉:清 _active_npc_id + _drawer_mode 并刷新,避免 _drawer_mode=="npc" 与
-		# _active_npc_id=="" 的不一致态残留(否则 _refresh_panel 的 _npc_defs[_active_npc_id] 会索引 "" 崩溃)。
+	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) != "":
+		# 任何带 kind 的 flow intent(start_battle / start_mission / 后续新增)统一上抛, Host match 分发
+		# (flow 归 Host, 表演不解释语义)。进 flow 即关 NPC 抽屉:清 _active_npc_id + _drawer_mode 并刷新,
+		# 避免 _drawer_mode=="npc" 与 _active_npc_id=="" 的不一致态残留
+		# (否则 _refresh_panel 的 _npc_defs[_active_npc_id] 会索引 "" 崩溃)。
 		_active_npc_id = ""
 		_drawer_mode = ""
 		_refresh_ui()
@@ -751,6 +828,8 @@ func _state_name(state_value: AppState) -> String:
 			return "BATTLE"
 		AppState.NPC_MENU:
 			return "NPC_MENU"
+		AppState.MISSION:
+			return "MISSION"
 		_:
 			return "UNKNOWN"
 
