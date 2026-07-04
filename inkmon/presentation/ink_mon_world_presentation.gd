@@ -200,9 +200,10 @@ func on_battle_completed(result: Dictionary) -> void:
 	add_event("battle completed: %s" % str(result.get("result", "")))
 
 
-## Host 在战斗结束(有录像)时调:隐藏 overworld,起 2D 回放;_replaying 接管 BATTLE 态,
+## Host 在战斗结束(有录像)时调:隐藏 overworld/大地图,起 2D 回放;_replaying 接管 BATTLE 态,
 ## 直到玩家在结果界面确认离开(leave_requested),非播完即回(game-vision §2 体验流)。
-func play_battle_replay(replay_data: Dictionary, result: Dictionary) -> void:
+## map_doc = 本场战斗生成图 (M2.2 野群模板图; {} = 静态默认图 battle_main)。
+func play_battle_replay(replay_data: Dictionary, result: Dictionary, map_doc: Dictionary = {}) -> void:
 	_pending_battle_result = result
 	if _battle_2d_view == null:
 		_battle_2d_view = InkMonBattle2DView.new()
@@ -212,19 +213,27 @@ func play_battle_replay(replay_data: Dictionary, result: Dictionary) -> void:
 	_replaying = true
 	if _world_layer != null:
 		_world_layer.visible = false
+	if _mission_view != null:
+		_mission_view.visible = false
 	_battle_2d_view.visible = true
-	_battle_2d_view.play_replay(replay_data, result)
+	_battle_2d_view.play_replay(replay_data, result, map_doc)
 	_refresh_prompt()
 
 
-## 玩家确认离开战斗观看:恢复 overworld,清 _replaying,复用 on_battle_completed 收尾(刷 UI / journal),
-## 并上抛 battle_view_left 让 Host 解冻世界泵(单向 DAG:表演不引用 Host)。
+## 玩家确认离开战斗观看:按语境恢复(出征中回大地图, 否则回 overworld),清 _replaying,
+## 复用 on_battle_completed 收尾(刷 UI / journal),并上抛 battle_view_left 让 Host 解冻世界泵
+## (单向 DAG:表演不引用 Host)。野群战败时 Host 在 battle_view_left 里走"丢这趟",
+## 随后的 load 会经 reset_ui_state 再统一拆出征态 —— 此处恢复只管"非败"停留语境。
 func _on_battle_leave_requested() -> void:
 	_replaying = false
 	if _battle_2d_view != null:
 		_battle_2d_view.visible = false
 	if _world_layer != null:
-		_world_layer.visible = true
+		_world_layer.visible = not _mission_active
+	if _mission_view != null:
+		_mission_view.visible = _mission_active
+	if _mission_active:
+		_refresh_mission_view()
 	var pending := _pending_battle_result
 	_pending_battle_result = {}
 	on_battle_completed(pending)

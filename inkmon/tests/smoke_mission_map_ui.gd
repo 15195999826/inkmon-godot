@@ -29,10 +29,29 @@ func _run() -> String:
 	if presentation == null:
 		return "presentation not found"
 
-	presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
-	await get_tree().create_timer(0.5).timeout
-	if not bool(_host.get_dev_agent_state().get("mission_active", false)):
-		return "mission should be active after guild intent"
+	# M2.2 后踩野群节点必战 (会切进战斗回放) —— 本 smoke 只验选路交互, 点击目标选**非战斗**
+	# 下一节点; 出征地图随机 (guild 路径无 seed), 首层全是战斗节点时放弃重开 (期望 ~1.1 次)。
+	var gi: InkMonWorldGI = null
+	var safe_next_id := -1
+	for _attempt in range(10):
+		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+		await get_tree().create_timer(0.5).timeout
+		if not bool(_host.get_dev_agent_state().get("mission_active", false)):
+			return "mission should be active after guild intent"
+		gi = _host._world_gi
+		var candidate_ids := gi.mission_state.map.next_node_ids(gi.mission_state.current_node_id)
+		if candidate_ids.is_empty():
+			return "entry node should have reachable next nodes"
+		for next_id in candidate_ids:
+			if str(gi.mission_state.map.get_node_info(next_id).get("kind", "")) != InkMonMissionMapData.NODE_BATTLE:
+				safe_next_id = next_id
+				break
+		if safe_next_id >= 0:
+			break
+		_host.abandon_mission()
+		await get_tree().process_frame
+	if safe_next_id < 0:
+		return "no non-battle first step across 10 mission rolls (gen constants drifted?)"
 	var mission_view := presentation.get_node_or_null("MissionMapLayer/MissionMapView") as InkMonMissionMapView
 	if mission_view == null or not mission_view.visible:
 		return "mission map view should be visible during mission"
@@ -41,18 +60,13 @@ func _run() -> String:
 		return "overworld view should be hidden during mission"
 
 	# smoke 是 harness, 直读逻辑真相(GI)拿节点/坐标; 玩家路径仍走真鼠标 → view → command。
-	var gi: InkMonWorldGI = _host._world_gi
-	var before_node := gi.mission_state.current_node_id
 	var before_supplies := gi.mission_state.supplies
-	var next_ids := gi.mission_state.map.next_node_ids(before_node)
-	if next_ids.is_empty():
-		return "entry node should have reachable next nodes"
 
-	_click_at(mission_view.node_screen_position(next_ids[0]))
+	_click_at(mission_view.node_screen_position(safe_next_id))
 	await get_tree().create_timer(0.4).timeout
 	if gi.mission_state == null:
 		return "mission should still be active after one step"
-	if gi.mission_state.current_node_id != next_ids[0]:
+	if gi.mission_state.current_node_id != safe_next_id:
 		return "click on reachable node should advance current node"
 	if gi.mission_state.supplies != before_supplies - 1:
 		return "one step should cost exactly 1 supply"

@@ -101,7 +101,12 @@ static func build_grid_model(map_doc: Dictionary, terrains: Dictionary, elevatio
 ## 返回 {} 表示任一环节失败（已 push_error）。version 漂移只警告不拦（map 钉的是
 ## 发布时点；重发布后地图未跟着改版号是常态，摆放契约由 projection 块保证）。
 static func load_bundle(map_id: String, size: float = 1.0) -> Dictionary:
-	var map_doc := load_map(map_id)
+	return build_bundle_from_doc(load_map(map_id), size)
+
+
+## doc 直入版 (M2.2 野群战斗模板生成图走此): map doc 不来自 content/maps 文件而是
+## 生成器产物 (InkMonWildBattleMapGen), terrains/tile_set manifest 装配同 load_bundle。
+static func build_bundle_from_doc(map_doc: Dictionary, size: float = 1.0) -> Dictionary:
 	if map_doc.is_empty():
 		return {}
 	var terrains := load_terrains()
@@ -114,7 +119,7 @@ static func load_bundle(map_id: String, size: float = 1.0) -> Dictionary:
 		return {}
 	var pinned_version := str(tile_set_ref.get("version", ""))
 	if pinned_version != "" and pinned_version != str(manifest.get("version", "")):
-		push_warning("[InkMonMapLoader] %s pins tile_set %s v%s but published manifest is v%s" % [map_id, set_id, pinned_version, str(manifest.get("version"))])
+		push_warning("[InkMonMapLoader] %s pins tile_set %s v%s but published manifest is v%s" % [str(map_doc.get("map_id", "")), set_id, pinned_version, str(manifest.get("version"))])
 	var projection := manifest.get("projection", {}) as Dictionary
 	if projection == null or projection.is_empty():
 		push_error("[InkMonMapLoader] tile set %s manifest has no projection block" % set_id)

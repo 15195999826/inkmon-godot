@@ -35,6 +35,9 @@ signal mission_ended(result: Dictionary)
 ## 全灭上行(粮尽行军掉血致全 roster HP≤0):"丢这趟"由 Host 走 load 出发档, GI 只报告不自灭
 ## (lifecycle 归 Host; 且 signal 从 tick drain 内 emit, mid-tick 不能销毁世界)。
 signal mission_wiped()
+## 踩上野群节点上行(M2.2, Q2.3"节点即内容"必战): 起战斗是 Host flow(冻结世界/回放语义),
+## GI 只报告; signal 从 tick drain 内 emit, Host 须 deferred 起 flow(对称 mission_wiped)。
+signal mission_battle_triggered(node_id: int)
 
 
 ## 单格步进时长(秒):tick 内 move_progress += dt/STEP_DURATION;与 overworld view 的单步补间时长
@@ -92,6 +95,12 @@ var _result := ""
 var _final_replay_data: Dictionary = {}
 var _inkmon_procedure: InkMonBattleProcedure = null
 var _recording_enabled := true
+## 当前战斗的生成图 doc (M2.2 野群模板图); {} = 静态默认图 (battle_main)。
+## 回放侧凭此重建同一张棋盘 (Host 经 play_battle_replay 透传给 battle 2d view)。
+var _battle_map_doc: Dictionary = {}
+## 当前/最近一场战斗是否野群战 (M2.2): 野群战独有的收尾语义 (胜清必战锁 / 败走丢趟) 只认本标志
+## —— 训练战 (dev-agent 路径无 mission guard) 在出征中打输绝不能误触全灭回档。
+var _wild_battle := false
 
 
 func _init(id_value: String = "") -> void:
@@ -309,9 +318,12 @@ func has_active_mission() -> bool:
 
 
 ## tick drain 时由 InkMonMissionMoveCommand.apply 调:沿趟内节点图走一跳。
-## 非法移动(无边 / 不在出征中)静默拒(对称 apply_move_player 的宽容风格)。
+## 非法移动(无边 / 不在出征中 / 野群战斗未打)静默拒(对称 apply_move_player 的宽容风格)。
 func apply_mission_move(node_id: int) -> void:
 	if not has_active_mission():
+		return
+	# M2.2 必战锁: 踩上野群节点后战斗未收尾前, 选路一律拒 (节点即内容, 不可绕/不可跑)。
+	if mission_state.has_pending_battle():
 		return
 	if not mission_state.map.has_edge(mission_state.current_node_id, node_id):
 		return
@@ -327,6 +339,12 @@ func apply_mission_move(node_id: int) -> void:
 	var node_coord := mission_state.map.get_node_info(node_id).get("coord", Vector2i.ZERO) as Vector2i
 	world_map.reveal_cell(node_coord)
 	mission_progressed.emit(node_id)
+	# M2.2 踩野群节点必战 (Q2.3): 置必战锁 + 上行交 Host 起战斗 flow。battle 节点恒非目标层
+	# (M2.1 gen 契约), 与抵达结算互斥。
+	if str(mission_state.map.get_node_info(node_id).get("kind", "")) == InkMonMissionMapData.NODE_BATTLE:
+		mission_state.pending_battle_node_id = node_id
+		mission_battle_triggered.emit(node_id)
+		return
 	if mission_state.is_at_target():
 		# 抵达目标节点 = 占位主委托完成(v1 抵达型, quest 数据化 = Phase 3)→ 自动结算回城。
 		end_mission("complete")
@@ -524,6 +542,39 @@ func request_training_battle() -> void:
 	_begin_battle_with_current_teams()
 
 
+## M2.2 野群战斗 (Host wild battle flow 调, 前置 = apply_mission_move 已置必战锁):
+## 战斗地图 = 模板生成 (seed 从 mission_seed+节点 id 派生 → 复跑同图; 皮肤 = 节点所在世界格地形),
+## 左队 = 活 roster, 右队 = 节点 wild payload 建临时野生 actor (训练假人同款生命周期)。
+func request_wild_battle() -> void:
+	Log.assert_crash(has_active_mission() and mission_state.has_pending_battle(),
+		"InkMonWorldGI", "wild battle requested without a pending battle node")
+	var node_id := mission_state.pending_battle_node_id
+	var node_info := mission_state.map.get_node_info(node_id)
+	var wild_pack := node_info.get("wild", []) as Array
+	Log.assert_crash(wild_pack != null and not wild_pack.is_empty(),
+		"InkMonWorldGI", "battle node %d missing wild payload" % node_id)
+	_reset_battle_state()
+	_wild_battle = true
+	_recording_enabled = true
+	var node_coord := node_info.get("coord", Vector2i.ZERO) as Vector2i
+	var map_seed := mission_state.mission_seed * 1000003 + node_id
+	_battle_map_doc = InkMonWildBattleMapGen.generate_doc(map_seed, world_map.terrain_at(node_coord))
+	InkMonBattleSetup.configure_battle_grid(self, {"map_doc": _battle_map_doc})
+	left_team = InkMonBattleSetup.battle_roster_slice(self)
+	right_team = InkMonBattleSetup.build_wild_pack(self, wild_pack, InkMonBattleSetup.party_battle_level(self))
+	_begin_battle_with_current_teams()
+
+
+## 当前战斗生成图 doc ({} = 静态默认图)。Host 收战斗时透传回放侧重建同一张棋盘。
+func get_battle_map_doc() -> Dictionary:
+	return _battle_map_doc
+
+
+## 当前/最近一场战斗是否野群战 (下一场战斗 reset 时翻回 false)。Host 收战斗时据此分派野群败局出口。
+func is_wild_battle() -> bool:
+	return _wild_battle
+
+
 ## 用当前 left_team/right_team 起战斗: 每只备战 (全新 ability_set + 装技能 + 归零 ATB) → 布阵 → 注册 timeline → 开打。
 func _begin_battle_with_current_teams() -> void:
 	for actor in get_all_units():
@@ -686,6 +737,11 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		_result = _inkmon_procedure.get_result()
 		tick_count = _inkmon_procedure.get_current_tick()
 	print("[InkMonWorldGI] battle finished result=%s ticks=%d" % [_result, tick_count])
+	# M2.2 野群战斗收尾: 非败(胜/超时)清必战锁解锁选路; 败(right_win)= 全灭不清 ——
+	# Host 据 result 走"丢这趟"出口, 世界连同 mission_state 整体重建。
+	# 只认野群战: 出征中混入的训练战 (dev-agent 路径) 胜负都不碰必战锁。
+	if _wild_battle and has_active_mission() and mission_state.has_pending_battle() and _result != "right_win":
+		mission_state.pending_battle_node_id = -1
 	# 持久 world: 不 end() (那会单向销毁世界)。切回主世界 grid (若已 bind)。
 	_inkmon_procedure = null
 	if overworld_grid_model != null:
@@ -709,6 +765,8 @@ func _reset_battle_state() -> void:
 	_ended = false
 	_result = ""
 	_final_replay_data = {}
+	_battle_map_doc = {}
+	_wild_battle = false
 	tick_count = 0
 
 

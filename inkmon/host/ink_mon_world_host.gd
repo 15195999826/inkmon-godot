@@ -29,6 +29,9 @@ var _mission_flow_pending := false
 ## 回放观看期标志:battle sim 已结束但玩家还在看回放/结果。世界泵冻结,直到表演上抛 battle_view_left
 ## 解冻(game-vision §2 体验流:进战斗→冻结→观看→确认离开→恢复)。
 var _replay_active := false
+## M2.2 野群战斗失利标志(出征中战败 = 全灭): 回放看完确认离开(battle_view_left)才走"丢这趟"出口
+## —— 先让玩家看清怎么输的, 再回档。
+var _mission_battle_lost := false
 ## 世界代际:每次(重)建 world GI 自增。deferred 的训练战 flow 带提交时的代际,若 deferred 期间
 ## reset/load 重建了世界(代际变),旧 intent 作废 —— 不在新 session 上结算旧训练战(Codex P2)。
 var _world_generation := 0
@@ -172,21 +175,35 @@ func _complete_battle_if_ready() -> void:
 	# adr/0001:GI 战斗结束直接把奖励落活 actor (gold→player_actor, exp→roster);Host 拿摘要交 Presentation 展示。
 	var replay := _world_gi.get_replay_data()
 	var result := _world_gi.finalize_battle_rewards()
+	# M2.2: 野群战败(right_win = 己方全倒)= 全灭 → 丢这趟; 先看回放再回档(见 _on_battle_view_left)。
+	# 只认野群战 (is_wild_battle): 出征中混入的训练战失利 (dev-agent 路径无 mission guard) 不触丢趟。
+	_mission_battle_lost = _world_gi.is_wild_battle() and _world_gi.has_active_mission() \
+		and str(result.get("result", "")) == "right_win"
 	# 持久 world GI: 不销毁 (战斗结束已切回主世界 grid); 只清 active 标记回到主世界态。
 	# adr/0005:有录像 → 先交 Presentation 播 2D 回放(_replaying 接管 BATTLE 态),播完再收尾;无录像直接收尾(降级)。
 	if replay.is_empty():
 		_set_active_instance("")
 		_presentation.on_battle_completed(result)
+		if _mission_battle_lost:
+			# 无录像降级路径: 没有回放可看, 直接走丢趟(deferred: 本方法可能在 tick 推进链内)。
+			_mission_battle_lost = false
+			_presentation.add_event("party defeated in wild battle: mission lost")
+			call_deferred("_finish_mission_wipe", _world_generation)
 	else:
 		# 回放观看期开始:battle 实例已收,但世界保持冻结(_replay_active),玩家确认离开才解冻。
 		_replay_active = true
-		_presentation.play_battle_replay(replay, result)
+		_presentation.play_battle_replay(replay, result, _world_gi.get_battle_map_doc())
 		_set_active_instance("")
 
 
 ## 表演上抛:玩家在战斗结果界面确认离开 → 解冻世界泵,回主世界节奏。
+## M2.2: 出征野群战败时, 观看期结束即走"丢这趟"(load 出发档, 与全灭/放弃同一条路)。
 func _on_battle_view_left() -> void:
 	_replay_active = false
+	if _mission_battle_lost:
+		_mission_battle_lost = false
+		_presentation.add_event("party defeated in wild battle: mission lost")
+		_finish_mission_wipe(_world_generation)
 
 
 # === flow:mission 出征 起/收(Host 控制面; P1/P2 拍板, 术语 glossary §4.8)===
@@ -222,6 +239,34 @@ func _on_mission_ended(result: Dictionary) -> void:
 	_presentation.set_mission_active(false)
 	_presentation.on_mission_completed(result)
 	_presentation.add_event("mission ended: %s" % str(result.get("outcome", "")))
+
+
+## 踩上野群节点上行(M2.2): signal 从 tick drain 内 emit → deferred 起 wild battle flow
+## (对称 mission_wiped 的 deferred 理由), 复用训练战的去重锁 + 代际 guard。
+func _on_mission_battle_triggered(_node_id: int) -> void:
+	if _battle_flow_pending:
+		return
+	_battle_flow_pending = true
+	call_deferred("_begin_wild_battle_flow", _world_generation)
+
+
+## 野群战斗 flow(M2.2, 对称 _begin_training_battle_flow): 同步跑完(record-then-playback),
+## 结果经 _complete_battle_if_ready 收 —— 胜负出口都在那里分派(回放观看 → 离开时按胜负收尾)。
+func _begin_wild_battle_flow(generation: int) -> void:
+	_battle_flow_pending = false
+	if generation != _world_generation:
+		return
+	if _world_gi == null or _active_instance_id != "" or _replay_active:
+		return
+	if not _world_gi.has_active_mission() or not _world_gi.mission_state.has_pending_battle():
+		return
+	_set_active_instance(_world_gi.id)
+	_world_gi.request_wild_battle()
+	_presentation.add_event("wild battle started")
+	for _i in range(8):
+		if _active_instance_id == "":
+			break
+		_advance_active_battle(BattleProcedure.DEFAULT_TICK_INTERVAL)
 
 
 ## 全灭上行: signal 从 tick drain 内 emit, mid-tick 销毁世界会炸正在 tick 的 GI —— deferred 到帧尾
@@ -265,6 +310,7 @@ func reset_session() -> Dictionary:
 	_battle_flow_pending = false
 	_mission_flow_pending = false
 	_replay_active = false
+	_mission_battle_lost = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_create_world_gi()
@@ -320,6 +366,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_battle_flow_pending = false
 	_mission_flow_pending = false
 	_replay_active = false
+	_mission_battle_lost = false
 	GameWorld.destroy_all_instances()
 	TimelineRegistry.reset()
 	_create_world_gi()
@@ -359,6 +406,8 @@ func _bind_world_to_presentation() -> void:
 	# mission_progressed 是 mutation signal → 直连表演刷大地图 view(对称 actor_position_changed)。
 	_world_gi.mission_progressed.connect(_presentation._on_mission_progressed)
 	_world_gi.mission_wiped.connect(_on_mission_wiped)
+	# 踩野群节点 → Host 起 wild battle flow(M2.2; flow 事件归 Host, 对称 mission_ended)。
+	_world_gi.mission_battle_triggered.connect(_on_mission_battle_triggered)
 	_presentation.bind_world(IWorldQuery.new(_world_gi))
 
 

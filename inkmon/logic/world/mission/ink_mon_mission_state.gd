@@ -19,6 +19,13 @@ var supplies := 0
 var captured_pending: Array[Dictionary] = []
 ## 趟内足迹: node_id -> true (趟内视野/回访判定的底料)。
 var visited_node_ids: Dictionary = {}
+## 待打的野群节点 (M2.2): 踩上 battle 节点即置 (节点即内容, 必战不可绕), 期间选路移动一律拒;
+## 战斗非败收尾清回 -1 解锁。败 = 全灭不清 —— 世界被 Host load 出发档整体重建, 本对象随之销毁。
+var pending_battle_node_id := -1
+
+
+func has_pending_battle() -> bool:
+	return pending_battle_node_id >= 0
 
 
 func is_at_target() -> bool:

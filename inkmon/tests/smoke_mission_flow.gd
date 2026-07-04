@@ -47,6 +47,7 @@ func _run() -> String:
 		return _fail("illegal (non-adjacent) move must be rejected")
 
 	# 沿图走到目标: 每步走第一条出边, 抵达目标自动结算。
+	# M2.2 后踩上野群节点 = 必战锁住选路 —— 走图 harness 遇战即打 (秒杀野群) 再继续。
 	var gold_before := gi.player_actor.gold
 	var supplies_before := state.supplies
 	var steps := 0
@@ -57,6 +58,10 @@ func _run() -> String:
 		gi.submit(InkMonMissionMoveCommand.new(nexts[0]))
 		_drain(gi)
 		steps += 1
+		if gi.has_active_mission() and gi.mission_state.has_pending_battle():
+			var battle_status := _resolve_wild_battle(gi)
+			if battle_status != "":
+				return _fail(battle_status)
 	if gi.has_active_mission():
 		return _fail("mission should auto-complete within 32 steps")
 	if _ended_results.size() != 1:
@@ -82,6 +87,24 @@ func _run() -> String:
 
 func _drain(gi: InkMonWorldGI) -> void:
 	gi.tick(FIXED_DT)
+
+
+## 遇战即打 (走图 harness): 起野群战斗 → 秒杀右队 → tick 至收尾。胜后必战锁解除, 走图继续。
+func _resolve_wild_battle(gi: InkMonWorldGI) -> String:
+	gi.request_wild_battle()
+	if not gi.has_active_battle():
+		return "wild battle should start on a pending battle node"
+	for wild_actor in gi.right_team:
+		wild_actor.set_current_hp(0.0)
+	var guard := 0
+	while gi.has_active_battle() and guard < 20:
+		gi.tick(FIXED_DT)
+		guard += 1
+	if gi.has_active_battle():
+		return "wild battle should finish after right team is downed"
+	if gi.has_active_mission() and gi.mission_state.has_pending_battle():
+		return "pending battle lock should clear after a won wild battle"
+	return ""
 
 
 func _on_mission_ended(result: Dictionary) -> void:

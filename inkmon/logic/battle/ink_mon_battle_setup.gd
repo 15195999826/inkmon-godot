@@ -34,6 +34,51 @@ static func battle_roster_slice(gi: InkMonWorldGI) -> Array[InkMonUnitActor]:
 	return result
 
 
+## 野群敌队 (M2.2): 从 battle 节点 wild payload [{species_id, roll_seed}...] 建临时对战单位
+## (训练假人同款生命周期: 非 roster, battle 结束随 _reset_battle_state 整只移除)。
+## 技能 = roll_birth_skill_slots(species, roll_seed) —— 与捕获后 adopt 出生 roll 同源同 seed,
+## 场上见到什么技能, 捕来就是什么技能 (M2.1 拍板 roll_seed 复用语义)。
+## level = 出战队均值 (拍板"等级开战时按队伍均值算, 不进 payload"), 六维 = species base × 等级缩放。
+static func build_wild_pack(gi: InkMonWorldGI, wild_pack: Array, level: int) -> Array[InkMonUnitActor]:
+	var result: Array[InkMonUnitActor] = []
+	for entry_value in wild_pack:
+		var entry := entry_value as Dictionary
+		if entry == null:
+			continue
+		var species := str(entry.get("species_id", ""))
+		var roll_seed := int(entry.get("roll_seed", 0))
+		var base := InkMonSpeciesCatalog.get_base_stats(species)
+		var scale := InkMonUnitActor.growth_scale(level)
+		var stats := {}
+		for stat_key in InkMonUnitConfig.BASE_STAT_KEYS:
+			stats[stat_key] = float(base.get(stat_key, 0.0)) * scale
+		var actor := InkMonUnitActor.create_combat_unit({
+			"species": species,
+			"display_name": InkMonSpeciesCatalog.get_display_name(species),
+			"personality": InkMonUnitConfig.get_personality_for_species(species),
+			"stage": InkMonSpeciesCatalog.get_stage(species),
+			"elements": InkMonSpeciesCatalog.get_elements(species),
+			"skill_slots": InkMonSpeciesCatalog.roll_birth_skill_slots(species, roll_seed),
+			"battle_stats": stats,
+		})
+		actor.level = maxi(1, level)
+		actor.set_team_id(1)
+		gi.add_actor(actor)
+		result.append(actor)
+	return result
+
+
+## 出战队均值等级 (roster 前 MAX_BATTLE_UNITS 只, 四舍五入, 下限 1) —— 野群个体开战等级的基准。
+static func party_battle_level(gi: InkMonWorldGI) -> int:
+	var count := mini(gi.MAX_BATTLE_UNITS, gi.roster.size())
+	if count <= 0:
+		return 1
+	var total := 0
+	for i in range(count):
+		total += gi.roster[i].level
+	return maxi(1, roundi(float(total) / float(count)))
+
+
 ## 训练假人队 (临时对战单位, stub 弱数值保训练可胜)。非 roster, battle 结束随 _reset_battle_state 移除。
 static func build_training_dummies(gi: InkMonWorldGI) -> Array[InkMonUnitActor]:
 	var result: Array[InkMonUnitActor] = []
@@ -135,13 +180,21 @@ const BATTLE_MAP_ID := "battle_main"
 ## 逻辑几何尺寸沿用历史值（旧 build_default_grid_config 的 size=10.0）。
 const BATTLE_LOGIC_HEX_SIZE := 10.0
 
-## 战斗 grid 配置 (config.map_config 显式覆盖，否则加载 battle_main 地图)。
+## 战斗 grid 配置 (config.map_config 显式覆盖 > config.map_doc 生成图 > 默认 battle_main)。
 ## configure_grid(_model) 是 LGF battle-host 钩子, 留 GI、此处委派回去。
 static func configure_battle_grid(gi: InkMonWorldGI, config: Dictionary) -> void:
 	gi._ensure_started()
 	var grid_config := config.get("map_config", null) as GridMapConfig
 	if grid_config != null:
 		gi.configure_grid(grid_config)
+		return
+	var map_doc := config.get("map_doc", {}) as Dictionary
+	if map_doc != null and not map_doc.is_empty():
+		# 生成图 (M2.2 野群模板): 同一 doc 逻辑侧进 model, 回放侧进 baked hex map。
+		var bundle := InkMonMapLoader.build_bundle_from_doc(map_doc, BATTLE_LOGIC_HEX_SIZE)
+		Log.assert_crash(not bundle.is_empty(), "InkMonBattleSetup",
+			"generated battle map doc failed to build: %s" % str(map_doc.get("map_id", "")))
+		gi.configure_grid_model(bundle["model"] as GridMapModel)
 		return
 	gi.configure_grid_model(build_default_grid_model())
 

@@ -24,6 +24,8 @@ var _result_label: Label
 var _skip_button: Button
 var _leave_button: Button
 var _built := false
+## 当前棋盘对应的 map_id (默认 battle_main; M2.2 野群生成图逐场换)。换图才重建, 同图复用烘焙。
+var _loaded_map_id := ""
 
 
 func _ready() -> void:
@@ -54,9 +56,7 @@ func _build() -> void:
 	_grid = InkMonRender2DBakedHexMap.new()
 	_grid.name = "BattleMap"
 	_stage.add_child(_grid)
-	var bundle := InkMonMapLoader.load_bundle(BATTLE_MAP_ID)
-	if bundle.is_empty() or not _grid.setup_from_bundle(bundle, DISPLAY_EDGE_PX):
-		push_error("battle 2d view: battle map failed to load (%s)" % BATTLE_MAP_ID)
+	_apply_map_doc({})
 
 	_units_root = Node2D.new()
 	_units_root.name = "UnitsRoot"
@@ -105,9 +105,24 @@ func _layout() -> void:
 		_leave_button.position = Vector2(view_size.x * 0.5 - 60.0, view_size.y - 64.0)
 
 
-func play_replay(record_dict: Dictionary, result: Dictionary = {}) -> void:
+## 换装本场棋盘: map_doc 非空 = 生成图 (M2.2 野群模板, 逻辑侧同一 doc); 空 = 默认 battle_main。
+## 按 map_id 判同, 同图不重烘。
+func _apply_map_doc(map_doc: Dictionary) -> void:
+	var target_id := str(map_doc.get("map_id", "")) if not map_doc.is_empty() else BATTLE_MAP_ID
+	if target_id == _loaded_map_id:
+		return
+	var bundle := InkMonMapLoader.build_bundle_from_doc(map_doc) if not map_doc.is_empty() \
+		else InkMonMapLoader.load_bundle(BATTLE_MAP_ID)
+	if bundle.is_empty() or not _grid.setup_from_bundle(bundle, DISPLAY_EDGE_PX):
+		push_error("battle 2d view: battle map failed to load (%s)" % target_id)
+		return
+	_loaded_map_id = target_id
+
+
+func play_replay(record_dict: Dictionary, result: Dictionary = {}, map_doc: Dictionary = {}) -> void:
 	if not _built:
 		_build()
+	_apply_map_doc(map_doc)
 	visible = true
 	if _leave_button != null:
 		_leave_button.visible = false

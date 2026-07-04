@@ -71,12 +71,14 @@
       ]
     },
     "mission": {
+      "default_timeout_ms": 45000,
       "scenes": [
         "../../inkmon/tests/smoke_world_map_data.tscn",
         "../../inkmon/tests/smoke_mission_map_gen.tscn",
         "../../inkmon/tests/smoke_mission_flow.tscn",
         "../../inkmon/tests/smoke_mission_departure.tscn",
-        "../../inkmon/tests/smoke_mission_map_ui.tscn"
+        "../../inkmon/tests/smoke_mission_map_ui.tscn",
+        "../../inkmon/tests/smoke_wild_battle.tscn"
       ]
     }
   }
