@@ -124,6 +124,12 @@ func from_dict(data: Dictionary) -> bool:
 			% [str(data.get("version", "<missing>")), SAVE_VERSION])
 		new_game()
 		return false
+	# 物品预检: 存档引用的 item config 必须全部被当前 catalog 识别 (adr/0003: content 文件是唯一
+	# 来源, 无 stub 兜底)。有缺 = 存档与内容数据世代不符 → 同 version 不符待遇, 丢弃重开;
+	# 绝不带着未知物品进装配 (restore 的 assert_crash 会炸进程 —— 那个 assert 留给真程序 bug)。
+	if not _save_item_configs_known(data):
+		new_game()
+		return false
 	_ensure_started()
 	_reset_item_runtime()
 	var player_data := data.get("player", {}) as Dictionary
@@ -164,6 +170,45 @@ func to_dict() -> Dictionary:
 		"roster": roster_data,
 		"world_map": world_map.to_dict() if world_map != null else {},
 	}
+
+
+## 物品预检 (from_dict 丢弃判定): 扫存档全部物品引用 (player.bag + roster[].equipment) 的
+## config_id, 任一不被当前 catalog 识别 → false (调用方按不兼容档丢弃重开)。
+func _save_item_configs_known(data: Dictionary) -> bool:
+	var catalog := InkMonItemCatalog.new()
+	for config_id in _collect_save_item_config_ids(data):
+		if not catalog.has_config(StringName(config_id)):
+			Log.warning("InkMonWorldGI",
+				"save references unknown item config '%s' (content data generation mismatch) — discarding save, starting new game"
+				% config_id)
+			return false
+	return true
+
+
+static func _collect_save_item_config_ids(data: Dictionary) -> Array[String]:
+	var result: Array[String] = []
+	var item_lists: Array = []
+	var player_data := data.get("player", {}) as Dictionary
+	if player_data != null:
+		item_lists.append(player_data.get("bag", []))
+	var roster_data := data.get("roster", []) as Array
+	if roster_data != null:
+		for unit_value in roster_data:
+			var unit_data := unit_value as Dictionary
+			if unit_data != null:
+				item_lists.append(unit_data.get("equipment", []))
+	for list_value in item_lists:
+		var item_list := list_value as Array
+		if item_list == null:
+			continue
+		for item_value in item_list:
+			var item := item_value as Dictionary
+			if item == null:
+				continue
+			var config_id := str(item.get("config_id", ""))
+			if config_id != "" and not result.has(config_id):
+				result.append(config_id)
+	return result
 
 
 # === 物品 / 容器 / roster 装配 (adr/0001) ===

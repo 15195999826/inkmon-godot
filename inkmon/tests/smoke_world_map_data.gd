@@ -91,6 +91,19 @@ func _run() -> String:
 	if gi3.world_map == null:
 		GameWorld.shutdown()
 		return "discard path (new_game fallback) must still generate world_map"
+	# 物品预检丢弃: 存档引用当前 catalog 不识别的 item config = 内容数据世代不符 →
+	# 同 version 不符待遇 (丢弃重开, 不 crash) —— Continue 载旧世代档闪退的回归守卫。
+	GameWorld.destroy_all_instances()
+	var bad_item_save := save.duplicate(true)
+	var bad_player := bad_item_save.get("player", {}) as Dictionary
+	bad_player["bag"] = [{"config_id": "item_9999", "count": 1, "slot_index": -1}]
+	var gi4 := _new_gi()
+	if gi4.from_dict(bad_item_save):
+		GameWorld.shutdown()
+		return "save with unknown item config must be discarded (from_dict returns false)"
+	if gi4.world_map == null:
+		GameWorld.shutdown()
+		return "unknown-item discard path must still start a new game"
 	GameWorld.shutdown()
 	return ""
 
