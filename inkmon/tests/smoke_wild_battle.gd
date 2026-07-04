@@ -187,6 +187,10 @@ func _run() -> String:
 			return _fail("adopted %d species must match the captured wild" % i)
 		if JSON.stringify(adopted.skill_slots) != JSON.stringify(captured_slot.get("skill_slots", [])):
 			return _fail("adopted %d skills must equal the wild individual seen in battle (roll_seed reuse)" % i)
+	# Q2.6: 回据点自动回满 —— 出征战斗掉过血, 完成结算后全队 HP == max。
+	for actor in gi.roster:
+		if actor.attribute_set.hp != actor.attribute_set.max_hp:
+			return _fail("settle must fully heal the roster (Q2.6 return-home heal)")
 
 	# === 败 (right_win): 必战锁保留 + 无捕捉池, GI 不自灭 (丢趟出口归 Host) ===
 	_triggered_node_ids.clear()

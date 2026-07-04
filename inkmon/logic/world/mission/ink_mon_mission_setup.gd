@@ -60,7 +60,9 @@ static func apply_starvation(world: InkMonWorldGI) -> bool:
 	return true
 
 
-## 主委托完成结算: 途中捕获 adopt 入 roster + 占位奖励落 player_actor。返回结果摘要 (mission_ended payload)。
+## 主委托完成结算: 途中捕获 adopt 入 roster + 占位奖励落 player_actor + 回城全队回满
+## (Q2.6 拍板: 回据点自动回满, v1 最简 —— 压力全在出征内, 据点不再加惩罚)。
+## 返回结果摘要 (mission_ended payload)。
 static func settle_complete(world: InkMonWorldGI) -> Dictionary:
 	var adopted := 0
 	for captured in world.mission_state.captured_pending:
@@ -68,6 +70,8 @@ static func settle_complete(world: InkMonWorldGI) -> Dictionary:
 		if species != "":
 			world.adopt_unit(species, int(captured.get("roll_seed", 0)))
 			adopted += 1
+	for actor in world.roster:
+		actor.set_current_hp(-1.0)
 	if world.player_actor != null:
 		world.player_actor.gold += MISSION_COMPLETE_GOLD
 	return {
