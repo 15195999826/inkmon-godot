@@ -11,6 +11,17 @@ const DEFAULT_SUPPLIES := 10
 const MISSION_COMPLETE_GOLD := 50
 ## 粮尽行军每步掉血比例 (v1 占位: max_hp 的 15%, 至少 1 点)。
 const STARVATION_HP_RATIO := 0.15
+## 带粮单价 (M2.4 拍板 B: gold 直接换粮, 无粮 item; 占位 2g/粮) 与可带上限 (UI 步进域)。
+const SUPPLY_UNIT_COST := 2
+const MAX_SUPPLIES := 99
+
+
+## 出发付粮款 (M2.4, Host 顺序契约第①步): 按 supplies × 单价扣 gold。
+## 必须在写出发档**之前**调 —— 档里记扣后余额, 丢趟回档粮款沉没 (防出征零成本)。
+static func try_pay_departure(world: InkMonWorldGI, supplies_count: int) -> bool:
+	if world.player_actor == null or supplies_count < 0:
+		return false
+	return world.player_actor.try_spend_gold(supplies_count * SUPPLY_UNIT_COST)
 
 
 ## 建出征态。config 可选键: "seed"(int, smoke 确定性用) / "supplies"(int)。

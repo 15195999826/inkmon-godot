@@ -56,6 +56,7 @@ func _ready() -> void:
 	_presentation.load_slot_requested.connect(_on_load_slot_requested)
 	_presentation.battle_view_left.connect(_on_battle_view_left)
 	_presentation.capture_requested.connect(_on_capture_requested)
+	_presentation.mission_abandon_requested.connect(_on_mission_abandon_requested)
 	_bind_world_to_presentation()
 	_presentation.add_event("InkMonMain ready")
 	_install_dev_agent()
@@ -146,10 +147,12 @@ func _on_flow_intent_raised(intent: Dictionary) -> void:
 			call_deferred("_begin_training_battle_flow", _world_generation)
 		InkMonGuildNpcHandler.INTENT_START_MISSION:
 			# 同款去重 + 代际 guard(独立 pending 位:battle 与 mission flow 互不挡)。
+			# M2.4: intent 带 supplies (出发确认 modal 拍下的带粮数; 缺省走默认值)。
 			if _mission_flow_pending:
 				return
 			_mission_flow_pending = true
-			call_deferred("_begin_mission_flow", _world_generation)
+			call_deferred("_begin_mission_flow", _world_generation,
+				int(intent.get("supplies", InkMonMissionSetup.DEFAULT_SUPPLIES)))
 
 
 ## 训练战 flow(Host 控制面):由 flow_intent_raised 经 call_deferred 触发。
@@ -226,10 +229,11 @@ func _on_capture_requested(slot_index: int) -> void:
 
 # === flow:mission 出征 起/收(Host 控制面; P1/P2 拍板, 术语 glossary §4.8)===
 
-## 出征 flow:guild intent 经 call_deferred 触发。
-## P1 顺序契约(钉死, 防呆):①(将来)带粮等据点资源扣除 → ②写出发档 → ③gi.start_mission。
-## 扣任何据点资源必须在写档**之前** —— 否则"丢这趟"回档会把已消耗资源退回来(出征零成本)。
-func _begin_mission_flow(generation: int) -> void:
+## 出征 flow:guild intent 经出发确认 modal(M2.4)再经 call_deferred 触发。
+## P1 顺序契约(钉死, 防呆):①带粮款扣除(gold 直换粮, 拍板 B)→ ②写出发档 → ③gi.start_mission。
+## 扣任何据点资源必须在写档**之前** —— 否则"丢这趟"回档会把已消耗资源退回来(出征零成本);
+## 现序下档里记扣后余额, 丢趟回档粮款沉没(带粮 = 沉没成本, game-vision 出发前构筑决策)。
+func _begin_mission_flow(generation: int, supplies: int) -> void:
 	_mission_flow_pending = false
 	if generation != _world_generation:
 		return
@@ -237,16 +241,22 @@ func _begin_mission_flow(generation: int) -> void:
 		return
 	if _world_gi.has_active_mission():
 		return
+	# ① 付粮款 (modal 已按余额 gate, 此处是权威二验; 失败 = 余额中途变动)。
+	if not InkMonMissionSetup.try_pay_departure(_world_gi, supplies):
+		_presentation.add_event("mission aborted: cannot afford supplies")
+		return
 	# ② 出发档 = "丢这趟"的锚点(P1):全灭/退出/崩溃都精确回到此刻。
+	# 写档失败 = 出征根本没开始 → 粮款回滚 (对称 shop buy 失败退款; "沉没"只对已出发的趟成立)。
 	var save_result := save_game(DEPARTURE_SAVE_PATH)
 	if not bool(save_result.get("ok", false)):
-		_presentation.add_event("mission aborted: departure save failed")
+		_world_gi.player_actor.gold += supplies * InkMonMissionSetup.SUPPLY_UNIT_COST
+		_presentation.add_event("mission aborted: departure save failed (supplies refunded)")
 		return
-	# ③ 起出征(选目标地标 + 蔓延生成趟内节点图)。
-	var start_result := _world_gi.start_mission()
+	# ③ 起出征(选目标地标 + 蔓延生成趟内节点图), 带上买好的粮。
+	var start_result := _world_gi.start_mission({"supplies": supplies})
 	if bool(start_result.get("ok", false)):
 		_presentation.set_mission_active(true)
-		_presentation.add_event("mission started (departure saved)")
+		_presentation.add_event("mission started (departure saved, %d supplies)" % supplies)
 	else:
 		_presentation.add_event("mission start failed: %s" % str(start_result.get("message", "")))
 
@@ -298,6 +308,14 @@ func _finish_mission_wipe(generation: int) -> void:
 	if generation != _world_generation:
 		return
 	if _world_gi == null or not _world_gi.has_active_mission():
+		return
+	abandon_mission()
+
+
+## 放弃出征上抛 (M2.4 尾项④: mission HUD 两击确认后到达)。战斗/回放期不放行
+## (出征野群战有自己的胜负出口; 回放观看期世界冻结, 离场收尾后才可弃)。
+func _on_mission_abandon_requested() -> void:
+	if _active_instance_id != "" or _replay_active:
 		return
 	abandon_mission()
 

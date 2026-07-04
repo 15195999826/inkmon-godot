@@ -40,14 +40,25 @@ func _run() -> String:
 	if presentation == null:
 		return "presentation node not found under host"
 	var gold_before: int = _host.get_player_actor().gold
+	var supply_cost := InkMonMissionSetup.DEFAULT_SUPPLIES * InkMonMissionSetup.SUPPLY_UNIT_COST
 
-	# 真实链路: 表演 submit NPC action → tick drain → intent 上抛 → deferred mission flow。
+	# 真实链路 (M2.4): 表演 submit NPC action → tick drain → intent → 出发确认 modal →
+	# 真鼠标 Confirm → 扣粮款 → 写出发档 → start (Host 顺序契约)。
 	presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+	var confirm_status: String = await _confirm_departure(presentation)
+	if confirm_status != "":
+		return confirm_status
 	await get_tree().create_timer(0.5).timeout
 	if not FileAccess.file_exists(InkMonWorldHost.DEPARTURE_SAVE_PATH):
 		return "departure save must be auto-written on mission start"
 	if not bool(_host.get_dev_agent_state().get("mission_active", false)):
-		return "mission should be active after guild intent"
+		return "mission should be active after departure confirm"
+	# M2.4 拍板 B: 粮款 = 默认粮数 × 单价, 从 gold 直扣; 带上的粮进 mission state。
+	if _host.get_player_actor().gold != gold_before - supply_cost:
+		return "supplies must cost gold at departure (%d != %d - %d)" % [
+			_host.get_player_actor().gold, gold_before, supply_cost]
+	if (_host._world_gi as InkMonWorldGI).mission_state.supplies != InkMonMissionSetup.DEFAULT_SUPPLIES:
+		return "confirmed supply count must land in mission state"
 
 	# P1: 出征中禁手动 save/load —— 表演菜单 gate。
 	if bool(presentation.open_save_load_menu().get("ok", false)):
@@ -61,13 +72,29 @@ func _run() -> String:
 	if FileAccess.file_exists(slot_path):
 		return "host slot save must be guarded during mission"
 
-	# "丢这趟"回滚: 污染内存 gold → abandon → 精确回到出发时刻。
+	# 出征 HUD (M2.4 尾项⑤): 出征中可见, 剩余粮实时显示。
+	var mission_hud := presentation.get_node_or_null("HUDLayer/MissionHudRoot") as InkMonMissionHud
+	if mission_hud == null or not mission_hud.visible:
+		return "mission HUD should be visible during mission"
+	var supplies_label := mission_hud.get_debug_controls().get("supplies_label", null) as Label
+	if supplies_label == null or supplies_label.text != "Supplies: %d" % InkMonMissionSetup.DEFAULT_SUPPLIES:
+		return "mission HUD should show the carried supplies"
+
+	# "丢这趟"回滚 (M2.4 尾项④: 走 HUD 放弃按钮全真实链路): 污染内存 gold → 两击确认 →
+	# 精确回到出发时刻 (= 扣粮款**之后**: 顺序契约扣款在写档前, 丢趟粮款沉没, 出征永不零成本)。
 	_host.get_player_actor().gold = gold_before + 999
-	var abandon_result := _host.abandon_mission()
-	if not bool(abandon_result.get("ok", false)):
-		return "abandon_mission should succeed: %s" % str(abandon_result.get("message", ""))
-	if _host.get_player_actor().gold != gold_before:
-		return "gold must roll back to the departure snapshot (%d != %d)" % [_host.get_player_actor().gold, gold_before]
+	var abandon_button := mission_hud.get_debug_controls().get("abandon_button", null) as Button
+	if abandon_button == null:
+		return "mission HUD should carry the abandon button"
+	_click_at((abandon_button.get_global_rect() as Rect2).get_center())
+	await get_tree().process_frame
+	if not bool(_host.get_dev_agent_state().get("mission_active", false)):
+		return "first abandon click must only arm the confirm (mission still active)"
+	_click_at((abandon_button.get_global_rect() as Rect2).get_center())
+	await get_tree().create_timer(0.3).timeout
+	if _host.get_player_actor().gold != gold_before - supply_cost:
+		return "gold must roll back to the post-payment snapshot (%d != %d - %d)" % [
+			_host.get_player_actor().gold, gold_before, supply_cost]
 	if FileAccess.file_exists(InkMonWorldHost.DEPARTURE_SAVE_PATH):
 		return "departure save must be deleted after abandon (lifecycle = mission duration)"
 	if bool(_host.get_dev_agent_state().get("mission_active", false)):
@@ -85,6 +112,9 @@ func _run() -> String:
 	var step1_id := -1
 	for _attempt in range(10):
 		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+		var confirm2: String = await _confirm_departure(presentation)
+		if confirm2 != "":
+			return confirm2
 		await get_tree().create_timer(0.5).timeout
 		gi2 = _host._world_gi
 		if gi2.mission_state == null:
@@ -137,6 +167,9 @@ func _run() -> String:
 	var battle_reached := false
 	for _attempt in range(6):
 		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+		var confirm3: String = await _confirm_departure(presentation)
+		if confirm3 != "":
+			return confirm3
 		await get_tree().create_timer(0.5).timeout
 		gi4 = _host._world_gi
 		if gi4.mission_state == null:
@@ -190,8 +223,10 @@ func _run() -> String:
 		return "world should be rebuilt (load departure) after wild battle defeat"
 	if gi5.has_active_mission():
 		return "mission should be inactive after wild-defeat rollback"
-	if _host.get_player_actor().gold != gold_wild:
-		return "gold must roll back after wild-defeat (%d != %d)" % [_host.get_player_actor().gold, gold_wild]
+	# 回档目标 = 出发档 = 扣完粮款那一刻 (M2.4: 丢趟粮款沉没)。
+	if _host.get_player_actor().gold != gold_wild - supply_cost:
+		return "gold must roll back to post-payment after wild-defeat (%d != %d - %d)" % [
+			_host.get_player_actor().gold, gold_wild, supply_cost]
 	for i in range(gi5.roster.size()):
 		if gi5.roster[i].attribute_set.hp != hp_wild[i]:
 			return "HP must roll back to departure snapshot after wild-defeat (roster[%d])" % i
@@ -223,6 +258,24 @@ func _run() -> String:
 	if FileAccess.file_exists(InkMonWorldHost.DEPARTURE_SAVE_PATH):
 		return "departure save must be consumed (deleted) after menu recovery"
 	main.free()
+	return ""
+
+
+## guild 出征经出发确认 modal (M2.4): 等 modal 打开 → 真鼠标点 Confirm (默认粮数)。返回 "" = 成功。
+func _confirm_departure(presentation: InkMonWorldPresentation) -> String:
+	var modal := presentation.get_node_or_null("ModalLayer/DepartureModalRoot") as InkMonDepartureModal
+	if modal == null:
+		return "departure modal node missing"
+	var wait_frames := 0
+	while not modal.is_open() and wait_frames < 120:
+		await get_tree().process_frame
+		wait_frames += 1
+	if not modal.is_open():
+		return "departure modal should open after guild intent"
+	var confirm_button := modal.get_debug_controls().get("confirm_button", null) as Button
+	if confirm_button == null or confirm_button.disabled:
+		return "departure confirm button should be enabled for the default supply cost"
+	_click_at((confirm_button.get_global_rect() as Rect2).get_center())
 	return ""
 
 

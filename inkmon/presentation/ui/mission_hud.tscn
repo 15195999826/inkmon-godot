@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inkmon/presentation/ui/mission_hud.gd" id="1_missionhud"]
+
+[sub_resource type="StyleBoxFlat" id="hud_style"]
+bg_color = Color(0.05, 0.045, 0.035, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.72)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="MissionHudRoot" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_missionhud")
+
+[node name="MissionPanel" type="PanelContainer" parent="."]
+offset_left = 24.0
+offset_top = 140.0
+offset_right = 260.0
+offset_bottom = 300.0
+theme_override_styles/panel = SubResource("hud_style")
+
+[node name="MissionBox" type="VBoxContainer" parent="MissionPanel"]
+theme_override_constants/separation = 8
+
+[node name="SuppliesLabel" type="Label" parent="MissionPanel/MissionBox"]
+text = "Supplies: 10"
+theme_override_font_sizes/font_size = 22
+
+[node name="PartyRows" type="VBoxContainer" parent="MissionPanel/MissionBox"]
+theme_override_constants/separation = 4
+
+[node name="AbandonButton" type="Button" parent="MissionPanel/MissionBox"]
+custom_minimum_size = Vector2(180, 34)
+text = "Abandon Mission"

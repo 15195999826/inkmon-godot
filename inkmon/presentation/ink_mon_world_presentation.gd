@@ -21,6 +21,8 @@ const PanelMessageScene := preload("res://inkmon/presentation/ui/components/pane
 const SaveLoadModalScene := preload("res://inkmon/presentation/ui/save_load_modal.tscn")
 const RightDrawerScene := preload("res://inkmon/presentation/ui/right_drawer.tscn")
 const HudContentScene := preload("res://inkmon/presentation/ui/hud_content.tscn")
+const DepartureModalScene := preload("res://inkmon/presentation/ui/departure_modal.tscn")
+const MissionHudScene := preload("res://inkmon/presentation/ui/mission_hud.tscn")
 
 const SAVE_SLOT_COUNT := 3
 
@@ -37,6 +39,8 @@ signal battle_view_left()
 ## 掷球捕捉请求 (M2.3): 战场点气绝野生个体 → 上抛 Host 控制面直调 GI
 ## (回放观看期世界泵冻结, command 不 drain —— 与 save/load 槽位同款路由)。
 signal capture_requested(slot_index: int)
+## 放弃出征请求 (M2.4 尾项④): mission HUD 两击确认后上抛; 执行 = Host.abandon_mission (lifecycle)。
+signal mission_abandon_requested()
 
 ## CQRS 读+写句柄 = IWorldQuery facade(私有持 gi,只暴露 read+submit)。表演物理上够不到 concrete GI / flow / lifecycle。
 var _world_query: IWorldQuery = null
@@ -85,6 +89,10 @@ var _drawer_mode := ""
 var _modal_layer: CanvasLayer
 ## save/load modal 子场景控制器 (§6 已下放: 行为/动画/布局全在 InkMonSaveLoadModal, root 只接线)。
 var _save_load_modal_view: InkMonSaveLoadModal
+## 出发确认 modal (M2.4 拍板 B): guild 的 start_mission intent 先落这里, Confirm 才真上抛 Host。
+var _departure_modal_view: InkMonDepartureModal
+## 出征 HUD (M2.4 尾项⑤): 剩余粮 / 队伍 HP / 放弃按钮; 出征中可见。
+var _mission_hud_view: InkMonMissionHud
 ## NPC 视觉节点据 npc_defs(常量 stub)建一次即可;set_npcs 会 queue_free+重建,故不放进每帧 _refresh_ui。
 var _npcs_initialized := false
 
@@ -137,7 +145,8 @@ func set_battle_active(active: bool) -> void:
 
 
 ## Host 推入出征 flow 状态(起 mission / 收 mission / abandon 时调; 真相在 GI)。
-## 出征中: 据点 overworld view 隐藏、大地图 view 顶上(P2: 据点/大地图两语境切屏, 不共 grid)。
+## 出征中: 据点 overworld view 隐藏、大地图 view 顶上(P2: 据点/大地图两语境切屏, 不共 grid);
+## 出征 HUD (M2.4) 同步开关。
 func set_mission_active(active: bool) -> void:
 	_mission_active = active
 	if active:
@@ -147,6 +156,10 @@ func set_mission_active(active: bool) -> void:
 		_mission_view.visible = active
 	if _world_layer != null:
 		_world_layer.visible = not active and not _replaying
+	if _mission_hud_view != null:
+		_mission_hud_view.visible = active
+		if active:
+			_refresh_mission_hud()
 	_refresh_prompt()
 
 
@@ -170,14 +183,20 @@ func _on_mission_node_clicked(node_id: int) -> void:
 	_world_query.submit(InkMonMissionMoveCommand.new(node_id))
 
 
-## GI mission_progressed 上行(Host 接线)→ 拉新快照刷大地图 + 补给钟 HUD 一行(v1 用 message 位)。
+## GI mission_progressed 上行(Host 接线)→ 拉新快照刷大地图 + 出征 HUD(粮/队伍 HP, M2.4)。
 func _on_mission_progressed(_node_id: int) -> void:
 	_refresh_mission_view()
-	if _world_query != null:
-		var snapshot := _world_query.get_mission_snapshot()
-		if not snapshot.is_empty():
-			_last_ui_message = "supplies: %d" % int(snapshot.get("supplies", 0))
-			_refresh_ui()
+	_refresh_mission_hud()
+
+
+## 出征 HUD 刷新 (M2.4): 剩余粮 + 队伍 HP 概览 (粮尽行军掉血也经此可见)。
+func _refresh_mission_hud() -> void:
+	if _mission_hud_view == null or _world_query == null:
+		return
+	var snapshot := _world_query.get_mission_snapshot()
+	if snapshot.is_empty():
+		return
+	_mission_hud_view.refresh(int(snapshot.get("supplies", 0)), _world_query.get_roster_snapshot())
 
 
 func _refresh_mission_view() -> void:
@@ -251,6 +270,7 @@ func _on_battle_leave_requested() -> void:
 		_mission_view.visible = _mission_active
 	if _mission_active:
 		_refresh_mission_view()
+		_refresh_mission_hud()  # 战斗后队伍 HP 变了 (M2.4 HUD)
 	var pending := _pending_battle_result
 	_pending_battle_result = {}
 	on_battle_completed(pending)
@@ -271,6 +291,10 @@ func reset_ui_state(full: bool = true) -> void:
 	_mission_active = false
 	if _mission_view != null:
 		_mission_view.visible = false
+	if _mission_hud_view != null:
+		_mission_hud_view.visible = false
+	if _departure_modal_view != null and _departure_modal_view.is_open():
+		_departure_modal_view.close()
 	if _battle_2d_view != null:
 		_battle_2d_view.visible = false
 	if _world_layer != null:
@@ -332,7 +356,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_J:
 				open_player_panel("journal")
 			KEY_ESCAPE:
-				if _is_modal_open():
+				if _departure_modal_view != null and _departure_modal_view.is_open():
+					_departure_modal_view.close()
+				elif _is_modal_open():
 					close_save_load_menu()
 				elif _drawer_mode != "":
 					close_drawer()
@@ -499,16 +525,20 @@ func _on_near_npc_changed(_npc_id: String) -> void:
 
 ## 方案 A 结果回流:buy/npc-action command drain 生效后据结果刷 UI message;若含 start_battle flow intent,
 ## 上抛 flow_intent_raised 给 Host(flow 归 Host,不归表演/command/handler)。
+## M2.4: start_mission intent 不直接上抛 —— 先开出发确认 modal(选带粮数), Confirm 才带 supplies 上抛。
 func _on_command_applied(result: Dictionary) -> void:
 	var intent := result.get(InkMonNpcHandler.RESULT_INTENT, {}) as Dictionary
 	if intent != null and str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) != "":
-		# 任何带 kind 的 flow intent(start_battle / start_mission / 后续新增)统一上抛, Host match 分发
+		# 任何带 kind 的 flow intent(start_battle / start_mission / 后续新增)统一处理, Host match 分发
 		# (flow 归 Host, 表演不解释语义)。进 flow 即关 NPC 抽屉:清 _active_npc_id + _drawer_mode 并刷新,
 		# 避免 _drawer_mode=="npc" 与 _active_npc_id=="" 的不一致态残留
 		# (否则 _refresh_panel 的 _npc_defs[_active_npc_id] 会索引 "" 崩溃)。
 		_active_npc_id = ""
 		_drawer_mode = ""
 		_refresh_ui()
+		if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonGuildNpcHandler.INTENT_START_MISSION:
+			_open_departure_modal()
+			return
 		flow_intent_raised.emit(intent)
 		return
 	var message := str(result.get("message", ""))
@@ -557,6 +587,8 @@ func _build_world_and_ui() -> void:
 	_modal_layer.layer = 3
 	add_child(_modal_layer)
 	_build_save_load_modal()
+	_build_departure_modal()
+	_build_mission_hud()
 
 
 func _build_hud() -> void:
@@ -612,6 +644,28 @@ func _build_save_load_modal() -> void:
 	_save_load_modal_view.closed.connect(func() -> void:
 		_last_ui_message = "save/load closed"
 	)
+
+
+## §6 root 只接线: 出发确认 modal (M2.4)。Confirm → 上抛带粮数的 start_mission intent 给 Host
+## (扣款/写档/start 的顺序契约在 Host, 表演不碰资源)。
+func _build_departure_modal() -> void:
+	_departure_modal_view = DepartureModalScene.instantiate() as InkMonDepartureModal
+	_departure_modal_view.name = "DepartureModalRoot"
+	_modal_layer.add_child(_departure_modal_view)
+	_departure_modal_view.confirmed.connect(func(supplies: int) -> void:
+		flow_intent_raised.emit({
+			InkMonNpcHandler.INTENT_KIND: InkMonGuildNpcHandler.INTENT_START_MISSION,
+			"supplies": supplies,
+		}))
+
+
+## §6 root 只接线: 出征 HUD (M2.4)。放弃 = Host lifecycle, 只转发信号。
+func _build_mission_hud() -> void:
+	_mission_hud_view = MissionHudScene.instantiate() as InkMonMissionHud
+	_mission_hud_view.name = "MissionHudRoot"
+	_hud_layer.add_child(_mission_hud_view)
+	_mission_hud_view.abandon_requested.connect(func() -> void:
+		mission_abandon_requested.emit())
 
 
 # === 刷新 / 布局 / 动画 ===
@@ -751,6 +805,8 @@ func get_debug_state() -> Dictionary:
 		"drawer_open": _drawer_mode != "",
 		"drawer_mode": _drawer_mode,
 		"modal_open": _is_modal_open(),
+		"departure_modal_open": _departure_modal_view != null and _departure_modal_view.is_open(),
+		"mission_hud_visible": _mission_hud_view != null and _mission_hud_view.visible,
 		"ui_message": _last_ui_message,
 		"progression": hud_summary.get("progression", {}),
 		"roster": roster_snapshot,
@@ -837,8 +893,18 @@ func _get_player_coord_dict() -> Dictionary:
 	return {"q": coord.x, "r": coord.y}
 
 
+## 打开出发确认 (M2.4 拍板 B): 带 gold 余额快照, 粮数/总价交互在 modal 内自管。
+func _open_departure_modal() -> void:
+	if _departure_modal_view == null or _world_query == null:
+		return
+	_departure_modal_view.open(int(_world_query.get_player_hud_summary().get("gold", 0)))
+	add_event("departure confirm opened")
+
+
 func _is_modal_open() -> bool:
-	return _save_load_modal_view != null and _save_load_modal_view.is_open()
+	if _save_load_modal_view != null and _save_load_modal_view.is_open():
+		return true
+	return _departure_modal_view != null and _departure_modal_view.is_open()
 
 
 func _is_field_input_blocked() -> bool:
