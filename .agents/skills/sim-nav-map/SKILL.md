@@ -1,6 +1,6 @@
 ---
 name: sim-nav-map
-description: "`addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，唯一示例 `0ad-rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`."
+description: "`addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS pathfinding addon，仍在开发阶段，唯一示例 `dota2-rts-pathfinding-lab`，要求先读 `docs/references/0ad-source/` 本地源码再写新功能。Use when working anywhere under `addons/sim-nav-map/`."
 ---
 
 # Sim Nav Map — 背景速记
@@ -13,8 +13,8 @@ description: "`addons/sim-nav-map` 插件背景速记：0 A.D.-inspired RTS path
 
 ## 2. 唯一示例
 
-- **`examples/0ad-rts-pathfinding-lab/`** = 现役示例项目，所有新功能 / smoke / perf 实验都走这里。
-- 旧 `examples/rts-pathfinding-lab/` 已删除（2026-05-10）。
+- **`examples/dota2-rts-pathfinding-lab/`** = 现役示例项目（Dota2/LoL 式 movement policy，接触式分离求解），所有新功能 / smoke / perf 实验都走这里。
+- 旧 `examples/rts-pathfinding-lab/` 已删除（2026-05-10）；`examples/0ad-rts-pathfinding-lab/`（RTS 群体寻路 sample）已删除（2026-07-03）——dota2 lab 手感与可扩展性均验证足够，不需要两个 example 并行维护。core 仍以 0 A.D. 为设计参照（见下），只是不再有专门的 0ad 风格 example 陪跑。
 
 ## 3. Issues 现状
 

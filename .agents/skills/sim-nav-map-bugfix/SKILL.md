@@ -1,11 +1,19 @@
 ---
 name: sim-nav-map-bugfix
-description: "`addons/sim-nav-map` 寻路细节 bug 修复流程：先用 0ad-rts-pathfinding-lab 的 export log 复现 → 以 0 A.D. 源码为准修复（不引入 lab 自创 magic number）→ 写带注释的回归测试锁定。Use when 用户提供 `ZERO_AD_RTS_LAB_EXPORT_LOG: …` 路径并描述视觉异常，或者明确说要修 sim-nav-map / 0ad lab 寻路 bug。"
+description: "`addons/sim-nav-map` 寻路细节 bug 修复流程（⚠️ 2026-07-03 起待重工，见下方状态说明）：核心心法（以 0 A.D. 源码为准修复、写带注释的回归测试锁定）仍适用，但 Step 1 的 probe 模板硬编码了已删除的 `0ad-rts-pathfinding-lab`/`ZeroAdRtsLabWorld`。Use when 用户提供 `DOTA2_RTS_LAB_EXPORT_LOG: …` 路径并描述视觉异常，或明确说要修 sim-nav-map / dota2 lab 寻路 bug——但先看下方状态说明，probe 部分需要按 dota2 lab 现状重写才能直接用。"
 ---
 
 # Sim Nav Map — 细节 Bug 修复流程
 
-适用场景：用户描述 0ad-rts-pathfinding-lab 视觉异常（卡墙角 / 撞静止 unit / 寻路绕远 / first wp 后退 / 卡死等），并附上 `ZERO_AD_RTS_LAB_EXPORT_LOG` 的 JSON 路径。
+> **⚠️ 状态（2026-07-03）**：本 skill 原为 `0ad-rts-pathfinding-lab` 编写，该 lab 已删除（task-queue.md
+> 1b：只保留 `dota2-rts-pathfinding-lab`）。dota2 lab 有对应的导出日志机制
+> （`DOTA2_RTS_LAB_EXPORT_LOG: <path>`，见 `frontend/dota2_pathfinding_lab.gd`），Step 2/3 的核心心法
+> （以 0 A.D. 源码为准、写带注释回归测试）依然适用；但 `probe_los.gd`/`probe_motion.gd` 硬编码了
+> `ZeroAdRtsLabWorld` 等已删除的类，**直接照抄会跑不起来**。用之前先对着 `dota2-rts-pathfinding-lab/logic/`
+> 现状（`Dota2LabWorld`/`Dota2LabMotionEngine`/`Dota2LabPathfinderWrapper`）重新核对/改写这两个模板，
+> 不要假设类名 1:1 平移。「已存案例」列出的 `repro_core_*` 是 core 级测试，本身不受影响。
+
+适用场景：用户描述 dota2-rts-pathfinding-lab 视觉异常（卡墙角 / 撞静止 unit / 寻路绕远 / first wp 后退 / 卡死等），并附上 `DOTA2_RTS_LAB_EXPORT_LOG` 的 JSON 路径。
 
 **核心心法**：每个 bug 都是 lab 偏离 0 A.D. 的具体一处。修复 = 让那一处回到 0 A.D.，不是发明新策略。
 
@@ -110,14 +118,14 @@ godot --headless --path . .Codex/tmp/probe_los.tscn 2>&1 | grep "LOS\|FACADE\|LA
 
 **追加**到 `addons/sim-nav-map/tests/test_groups.json` 的 `simnav/smoke` 列表。
 
-跑 `./tools/run_tests.ps1 simnav/smoke zeroadlab/smoke`，确保全过。
+跑 `./tools/run_tests.ps1 simnav/smoke dota2lab/smoke`，确保全过。
 
 如果旧 smoke 是 lock-in negative test（expect bug exist），**翻转**断言并加注释说明何时翻转、为何翻转。
 
 ## 反模式（别做）
 
 - 复现没成功就"先试着改"
-- 改完只跑了 zeroadlab/smoke，没跑 simnav/smoke
+- 改完只跑了 dota2lab/smoke，没跑 simnav/smoke
 - 修了 bug 没写 repro，下次回归发现不了
 - repro 文件没写"Bug reproduced here / 0 A.D. expected"注释，半年后忘了为啥这么测
 - 改 core 时没看 0 A.D. 等价层（容易引入 lab-only 自创策略）

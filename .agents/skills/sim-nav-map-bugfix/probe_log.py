@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-"""Slice a 0ad-rts-pathfinding-lab export log for bug-fix analysis.
+"""Slice a sim-nav-map example-lab export log for bug-fix analysis.
+
+Written against 0ad-rts-pathfinding-lab's export schema (deleted 2026-07-03,
+see .agents/skills/sim-nav-map-bugfix/SKILL.md status note). Field names below
+(units/path_decisions/motion_updates/recent_pair_contacts) reflect that lab's
+JSON shape and have not been verified against dota2-rts-pathfinding-lab's
+DOTA2_RTS_LAB_EXPORT_LOG output — check before relying on this against a
+dota2-lab log.
 
 Default usage:
     python probe_log.py <log.json>

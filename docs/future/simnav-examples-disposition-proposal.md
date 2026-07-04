@@ -93,6 +93,19 @@
    执行顺序：core P0 修复 → dota2 lab 手感契约重做 → 1c 重建。
 4. **core P0（C1/C2）：现在就修** ✅
 
+## 用户追加拍板（2026-07-03）—— 推翻第 2 条「0ad lab 保留+定向修」
+
+dota2 lab 手感契约重做已验收（用户 F6 亲测「完美」）。用户复核后判断：**examples 只保留
+dota2 lab 一个就够了**——手感足够好，未来可扩展性也足够好，不再需要 0ad-rts-pathfinding-lab
+陪跑。原第 2 条「0ad-rts-pathfinding-lab —— 保留+定向修（不删不重做）」作废，改为**整个删除**；
+上面「0ad lab 节拍错位（core-021）」一节记录的架构分析保留存档参考，但不再需要落地成 5Hz
+节拍分离 + cell 8 重锚这一实现工作。
+
+**执行前勘查**：0ad lab 独有 6 组 lab-only smoke + stress harness + core-020 known-limit
+repro 会随删除移除；`addons/sim-nav-map/tests/` 下的 core 回归套件（repro_core_001-018 +
+`smoke_sim_nav_*`）物理独立于 example，不受影响——本提案开篇「1a 结论 core 是要保住的」的
+回归资产依然安全。物理删除 + ~15 处交叉引用清理尚未执行，范围与时机见 task-queue.md 1b。
+
 ## 用户手感主诉（验收锚，修复对准这些）
 
 **0ad lab**：绕明显大弯 + 到达后堆叠互挤不停 + 单位卡墙/僵死；且历史上「让 AI 反复修、

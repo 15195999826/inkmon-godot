@@ -19,8 +19,12 @@
 
 ### 1b. sim-nav-map **examples** — 删了重做 or 重构【🚧 已拍板执行中 2026-07-02】
 - **提案与拍板**：[`simnav-examples-disposition-proposal.md`](simnav-examples-disposition-proposal.md) —— 用户拍板：sc2 删（✅ 已删）；0ad lab 保留+定向修；dota2 lab 保骨架重做手感契约；1c 继续接 sim-nav lab 栈（**1b 成 1c 前置**）。
-- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**✅ 用户已 F6 验收（2026-07-03：手感完美）**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**寻路性能已根治 ✅（2026-07-02）**：归因=架构问题×语言单价（旧 per-(start,dir) 射线缓存真实命中率≈0，每查全额逐格扫）；JPS+ 射线表预计算 + LOS refine 走 baked 网格后跨图单查 5-6ms → **~0.8ms**，A/B 探针（1.1 万射线穷举 + 44 全查询 + 500 segment）零结果/零诊断变化，51 smoke 全绿。**剩余**：0ad lab 5Hz 节拍分离 + cell 8 重锚（1b 收尾项）。
-- **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**。
+- **进度**：core P0（C1 clearance extension + C2 impassable 逃逸）✅ 已修；~~手感契约 v2/v2.1~~ 用户实测判死（重叠 + 永卡两 bug，v2 不如 v1）→ **用户拍板放弃修补，fable 从零重做 ✅ 已落地（2026-07-02）**：接触式分离求解（单位不进 nav map）+ 两态 FSM + 同步规划 + 有界终止语义，`Dota2LabMotionEngine` 替代旧 controller，新 smoke 7/7 + dota2autobattle 2/2 + 全量绿，**✅ 用户已 F6 验收（2026-07-03：手感完美）**（设计见 lab `docs/design-notes/fable-motion-design.md`）。**寻路性能已根治 ✅（2026-07-02）**：归因=架构问题×语言单价（旧 per-(start,dir) 射线缓存真实命中率≈0，每查全额逐格扫）；JPS+ 射线表预计算 + LOS refine 走 baked 网格后跨图单查 5-6ms → **~0.8ms**，A/B 探针（1.1 万射线穷举 + 44 全查询 + 500 segment）零结果/零诊断变化，51 smoke 全绿。
+- **2026-07-03 用户追加拍板（推翻原「0ad lab 保留+定向修」）**：examples **只保留 dota2 lab 一个**——手感已验收「完美」，未来可扩展性也评估足够；**0ad-rts-pathfinding-lab 不再保留**。原「0ad lab 5Hz 节拍分离 + cell 8 重锚」尾项作废，1b 剩余工作改为**删除 0ad-rts-pathfinding-lab example**。
+  - ⚠️ 执行前已勘查（供启动时参考）：0ad lab 承载 6 组 lab-only smoke（motion/scene_load/ui_ops/0ad_budget/failed_panel/edge_cases）+ stress harness + core-020 known-limit repro（`repro_core_020_motion_brushes_clearance_under_push_known_limit`，2026-05-11 起本就被排除出主 smoke 组）会随之移除；**不影响** `addons/sim-nav-map/tests/` 下的 core 回归套件（repro_core_001-018 + `smoke_sim_nav_*`，物理独立于 example，unaffected）——1a「地图数据结构+基础寻路方案要保住」的回归资产安全。
+  - 待清理交叉引用（~15 处，submodule 内）：`README.md`、`docs/public-api.md`、`docs/smoke-matrix.md`、`docs/mental-model.md`、`docs/references/0ad-source-map.md`、`docs/issues/core-019/020/021-*.md`、`docs/_workflows/ralph-fix-issue-batch.md`、`.claude|.agents/skills/sim-nav-map*/`；主仓侧 `AGENTS.md` 一处 skill 摘要提及。
+  - **尚未物理删除**，执行范围（是否本轮一并清交叉引用 / submodule commit + 主仓 pointer bump 时机）待启动时确认。
+- **现状**：用户对**各 example 的手感都不满意**；测试中遇到不少 bug，**改了很多次改不好**（历史记录；dota2 lab 已 2026-07-03 验收翻篇，0ad lab 因上述拍板不再需要修）。
 - **启动时 fable 做什么**：了解后**自行决定** —— 删除示例源码、按各 example 目标从头重做，**还是**在当前 example 上重构。
 - **约束**：删除/重写是破坏性操作，**方向自决、动手前仍给用户过目**。手感是体验性的，fable 判断不了的部分需向用户要**具体手感问题**，不臆造结论。
 - **相关**：各 example 的 `docs/development-plan.md`、`docs/design-notes/layer-2-ai-control-plan.md`（含 example 目标）。约束记忆：lab 只做移动+编队、不抽 UnitAI 中间层；测试分 smoke/repro/stress 三类。
@@ -112,4 +116,4 @@
 
 ---
 
-> **状态**（2026-07-03 刷新）：✅ 完成 = 1a · 1d · 2a · 线 3；🚧 = 1b（手感已验收，剩 0ad lab 5Hz 节拍分离 + cell 8 重锚收尾）；⏸️ 搁置 = 1c · 2b（2026-07-03 用户拍板）；📋 待启动 = 3b（用户点名关心）· 2c · 2d。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
+> **状态**（2026-07-03 刷新）：✅ 完成 = 1a · 1d · 2a · 线 3 · 3b；🚧 = 1b（examples 处置拍板已定——只保留 dota2 lab，手感验收「完美」；剩 0ad-rts-pathfinding-lab 物理删除 + 交叉引用清理待执行）；⏸️ 搁置 = 1c · 2b（2026-07-03 用户拍板）；📋 待启动 = 2c · 2d。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
