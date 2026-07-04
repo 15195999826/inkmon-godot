@@ -36,6 +36,14 @@ func _run() -> String:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var presentation := _host.get_node("Presentation") as InkMonWorldPresentation
+	# 板上注入一张讨伐单 (harness 直捣: 板 roll 真随机, hunt 覆盖不能靠运气;
+	# 接单/出征/把守 target 战/结算链仍全真实)。
+	var hunt_fixture := InkMonQuestDef.new()
+	hunt_fixture.quest_id = "acceptance_hunt"
+	hunt_fixture.type = InkMonQuestDef.TYPE_HUNT
+	hunt_fixture.target_site_id = str((_host._world_gi as InkMonWorldGI).world_map.landmarks[0].get("id", ""))
+	hunt_fixture.reward_gold = 70
+	(_host._world_gi as InkMonWorldGI).quest_board.append(hunt_fixture)
 
 	# 主委托完成一轮 (真实战斗, 败了丢趟重来)。
 	var completed := false
@@ -72,9 +80,22 @@ func _run() -> String:
 	return ""
 
 
-## 接出征: guild action → 出发确认 modal → 真鼠标 Confirm → mission active。
+## 接出征: 委托板接单 (Phase 3, 板上第一张; 空板兜底无单出征) → 出发确认 modal →
+## 真鼠标 Confirm → mission active。
 func _depart(presentation: InkMonWorldPresentation) -> String:
-	presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+	var gi: InkMonWorldGI = _host._world_gi
+	if not gi.quest_board.is_empty():
+		# 优先接讨伐单 (把守 target 链覆盖最强); 没有则第一张。
+		var quest := gi.quest_board[0]
+		for candidate in gi.quest_board:
+			if candidate.type == InkMonQuestDef.TYPE_HUNT:
+				quest = candidate
+				break
+		_journey.append("taking quest: %s (%s)" % [quest.title(), quest.reward_label()])
+		presentation.run_npc_action_for("guild",
+			InkMonGuildNpcHandler.ACTION_QUEST_PREFIX + quest.quest_id)
+	else:
+		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
 	var modal := presentation.get_node_or_null("ModalLayer/DepartureModalRoot") as InkMonDepartureModal
 	if modal == null:
 		return "departure modal missing"
@@ -105,12 +126,15 @@ func _play_mission_out(presentation: InkMonWorldPresentation) -> String:
 	if mission_view == null:
 		return "ERR:mission map view missing"
 	var steps := 0
-	while steps < 24:
+	while steps < 40:
 		steps += 1
 		if _host._world_gi != gi:
 			return "lost"  # 世界被重建 = 丢趟回档 (全灭/战败)
 		if not gi.has_active_mission():
 			return "complete"
+		print("  [loop-debug] step=%d node=%d pending=%s supplies=%d" % [
+			steps, gi.mission_state.current_node_id,
+			str(gi.mission_state.has_pending_battle()), gi.mission_state.supplies])
 		if gi.mission_state.has_pending_battle():
 			var battle_status: String = await _ride_out_battle(presentation)
 			if battle_status != "":
@@ -126,7 +150,7 @@ func _play_mission_out(presentation: InkMonWorldPresentation) -> String:
 				break
 		_click_at(mission_view.node_screen_position(pick))
 		await get_tree().create_timer(0.35).timeout
-	return "ERR:mission did not resolve within 24 steps"
+	return "ERR:mission did not resolve within 40 steps"
 
 
 ## 一场野群战: 等回放起 → Skip 快进 → 胜: 逐只掷球 (真实点击链) → Leave; 负: 等回档。

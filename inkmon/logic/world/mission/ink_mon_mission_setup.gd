@@ -24,7 +24,8 @@ static func try_pay_departure(world: InkMonWorldGI, supplies_count: int) -> bool
 	return world.player_actor.try_spend_gold(supplies_count * SUPPLY_UNIT_COST)
 
 
-## 建出征态。config 可选键: "seed"(int, smoke 确定性用) / "supplies"(int)。
+## 建出征态。config 可选键: "seed"(int, smoke 确定性用) / "supplies"(int) /
+## "quest_id"(String, Phase 3 接单出征: 主委托从 quest_board 摘单; 缺省 = 占位 reach 单, 不摘板)。
 static func build_state(world: InkMonWorldGI, config: Dictionary) -> InkMonMissionState:
 	Log.assert_crash(world.world_map != null, "InkMonMissionSetup", "world_map missing before mission build")
 	var state := InkMonMissionState.new()
@@ -32,15 +33,57 @@ static func build_state(world: InkMonWorldGI, config: Dictionary) -> InkMonMissi
 	state.supplies = int(config.get("supplies", DEFAULT_SUPPLIES))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = state.mission_seed
-	var candidates := world.world_map.get_target_candidates()
-	Log.assert_crash(not candidates.is_empty(), "InkMonMissionSetup", "world map has no target sites")
-	state.target_site_coord = candidates[rng.randi_range(0, candidates.size() - 1)]
+	# 主委托: 接单 (从板上摘, 丢趟回档自然恢复) 或占位 reach 单 (无单出征的兼容路径/smoke)。
+	var main_quest := _take_board_quest(world, str(config.get("quest_id", "")))
+	if main_quest == null:
+		main_quest = _placeholder_main_quest(world, rng)
+	state.quests.append({"def": main_quest, "role": "main", "progress": 0})
+	# 副委托 (Q3.2 ≤2, 纯 bonus): 与本趟 seed 同源派生。
+	for side_quest in InkMonQuestGen.roll_side_quests(state.mission_seed):
+		state.quests.append({"def": side_quest, "role": "side", "progress": 0})
+	state.target_site_coord = world.world_map.landmark_coord(main_quest.target_site_id)
 	var bounds := Rect2i(0, 0, world.world_map.width, world.world_map.height)
 	state.map = InkMonMissionMapGen.generate(
-		state.mission_seed, world.world_map.entry_coord, state.target_site_coord, bounds)
+		state.mission_seed, world.world_map.entry_coord, state.target_site_coord, bounds,
+		main_quest.type == InkMonQuestDef.TYPE_HUNT)
 	state.current_node_id = state.map.entry_node_id
 	state.visited_node_ids[state.map.entry_node_id] = true
 	return state
+
+
+## 从委托板摘单 (找到即移除); 未命中返回 null。
+static func _take_board_quest(world: InkMonWorldGI, quest_id: String) -> InkMonQuestDef:
+	if quest_id == "":
+		return null
+	for i in range(world.quest_board.size()):
+		if world.quest_board[i].quest_id == quest_id:
+			var def := world.quest_board[i]
+			world.quest_board.remove_at(i)
+			return def
+	return null
+
+
+## 占位主委托 (无单出征): 随机地标 reach 型, 奖励 = 旧占位值 (兼容 quest 前的 flow 语义)。
+static func _placeholder_main_quest(world: InkMonWorldGI, rng: RandomNumberGenerator) -> InkMonQuestDef:
+	var site_ids: Array[String] = []
+	for landmark in world.world_map.landmarks:
+		if str(landmark.get("kind", "")) == InkMonWorldMapData.LANDMARK_SITE:
+			site_ids.append(str(landmark.get("id", "")))
+	Log.assert_crash(not site_ids.is_empty(), "InkMonMissionSetup", "world map has no target sites")
+	var def := InkMonQuestDef.new()
+	def.quest_id = "placeholder"
+	def.type = InkMonQuestDef.TYPE_REACH
+	def.target_site_id = site_ids[rng.randi_range(0, site_ids.size() - 1)]
+	def.reward_gold = MISSION_COMPLETE_GOLD
+	return def
+
+
+## 趟内事件计数 (Phase 3 副委托): 野群战胜 / 捕获成功时 GI 调, 对应类型 progress+1。
+static func record_mission_event(state: InkMonMissionState, event_type: String) -> void:
+	for quest_entry in state.quests:
+		var def := quest_entry.get("def", null) as InkMonQuestDef
+		if def != null and def.type == event_type:
+			quest_entry["progress"] = int(quest_entry.get("progress", 0)) + 1
 
 
 ## 粮尽行军 (补给钟, game-vision 前进压力三重之②): 全队活 roster 掉真 HP (carryover, adr/0001),
@@ -60,8 +103,8 @@ static func apply_starvation(world: InkMonWorldGI) -> bool:
 	return true
 
 
-## 主委托完成结算: 途中捕获 adopt 入 roster + 占位奖励落 player_actor + 回城全队回满
-## (Q2.6 拍板: 回据点自动回满, v1 最简 —— 压力全在出征内, 据点不再加惩罚)。
+## 主委托完成结算: 途中捕获 adopt 入 roster + 委托奖励落账 (主必发, 副按 progress 达标发;
+## gold 进 player_actor, 奖励物品入 bag) + 回城全队回满 (Q2.6 拍板) + 委托板回城刷新 (Q3.3)。
 ## 返回结果摘要 (mission_ended payload)。
 static func settle_complete(world: InkMonWorldGI) -> Dictionary:
 	var adopted := 0
@@ -72,11 +115,34 @@ static func settle_complete(world: InkMonWorldGI) -> Dictionary:
 			adopted += 1
 	for actor in world.roster:
 		actor.set_current_hp(-1.0)
+	# 委托奖励 (Phase 3): 主委托 = 本趟完成条件, 必发; 副委托逐张判 progress ≥ goal。
+	var gold_reward := 0
+	var quest_results: Array[Dictionary] = []
+	for quest_entry in world.mission_state.quests:
+		var def := quest_entry.get("def", null) as InkMonQuestDef
+		if def == null:
+			continue
+		var fulfilled: bool = str(quest_entry.get("role", "")) == "main" \
+			or int(quest_entry.get("progress", 0)) >= def.goal_count
+		if fulfilled:
+			gold_reward += def.reward_gold
+			if def.reward_item_id != "":
+				world.create_bag_item(StringName(def.reward_item_id))
+		quest_results.append({
+			"quest_id": def.quest_id,
+			"title": def.title(),
+			"role": str(quest_entry.get("role", "")),
+			"fulfilled": fulfilled,
+			"reward_gold": def.reward_gold if fulfilled else 0,
+		})
 	if world.player_actor != null:
-		world.player_actor.gold += MISSION_COMPLETE_GOLD
+		world.player_actor.gold += gold_reward
+	# 回城刷新委托板 (Q3.3: 3-5 张; 真随机 —— 每次回城新一批)。
+	world.quest_board = InkMonQuestGen.roll_board(world.world_map, randi())
 	return {
 		"outcome": "complete",
-		"gold_reward": MISSION_COMPLETE_GOLD,
+		"gold_reward": gold_reward,
 		"adopted": adopted,
 		"supplies_left": world.mission_state.supplies,
+		"quests": quest_results,
 	}

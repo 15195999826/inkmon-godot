@@ -17,6 +17,7 @@ const COLOR_HP_LOW := Color(0.85, 0.42, 0.3)
 
 
 var _supplies_label: Label
+var _quest_rows: VBoxContainer
 var _party_rows: VBoxContainer
 var _abandon_button: Button
 var _abandon_armed := false
@@ -25,18 +26,42 @@ var _abandon_rearm_timer: SceneTreeTimer = null
 
 func _ready() -> void:
 	_supplies_label = get_node("MissionPanel/MissionBox/SuppliesLabel") as Label
+	_quest_rows = get_node("MissionPanel/MissionBox/QuestRows") as VBoxContainer
 	_party_rows = get_node("MissionPanel/MissionBox/PartyRows") as VBoxContainer
 	_abandon_button = get_node("MissionPanel/MissionBox/AbandonButton") as Button
 	_abandon_button.pressed.connect(_on_abandon_pressed)
 
 
 ## root 推入刷新 (出征开始 / 每步 progressed / 战斗离场回大地图)。
-func refresh(supplies: int, roster_snapshot: Array[Dictionary]) -> void:
+## quests (Phase 3): [{title, role, progress, goal_count}] —— 主委托一行 + 副委托进度行。
+func refresh(supplies: int, roster_snapshot: Array[Dictionary], quests: Array[Dictionary] = []) -> void:
 	if _supplies_label != null:
 		_supplies_label.text = "Supplies: %d" % supplies
 		_supplies_label.add_theme_color_override("font_color",
 			Color(0.9, 0.45, 0.35) if supplies <= 0 else Color(0.92, 0.9, 0.85))
+	_rebuild_quest_rows(quests)
 	_rebuild_party_rows(roster_snapshot)
+
+
+func _rebuild_quest_rows(quests: Array[Dictionary]) -> void:
+	if _quest_rows == null:
+		return
+	for child in _quest_rows.get_children():
+		child.queue_free()
+	for quest in quests:
+		var row := Label.new()
+		row.add_theme_font_size_override("font_size", 13)
+		var is_main := str(quest.get("role", "")) == "main"
+		var goal := int(quest.get("goal_count", 0))
+		if is_main:
+			row.text = "★ %s" % str(quest.get("title", ""))
+			row.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
+		else:
+			var progress := mini(int(quest.get("progress", 0)), goal)
+			row.text = "• %s (%d/%d)" % [str(quest.get("title", "")), progress, goal]
+			row.add_theme_color_override("font_color",
+				Color(0.55, 0.85, 0.6) if progress >= goal else Color(0.75, 0.73, 0.68))
+		_quest_rows.add_child(row)
 
 
 func _rebuild_party_rows(roster_snapshot: Array[Dictionary]) -> void:

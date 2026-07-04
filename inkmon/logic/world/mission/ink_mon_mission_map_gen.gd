@@ -21,7 +21,12 @@ const WILD_COUNT_MIN := 1
 const WILD_COUNT_MAX := 4
 
 
-static func generate(seed_value: int, entry_coord: Vector2i, target_coord: Vector2i, bounds: Rect2i) -> InkMonMissionMapData:
+## target_is_battle (Phase 3 讨伐型主委托): 目标节点生成为 battle 节点 (携野群 payload,
+## 抵达必战、胜即完成) —— 节点 kind 仍是 NODE_TARGET, 由 target_wild payload 存在与否表达
+## "目标有野群把守"; 沿用 battle 节点的必战/捕捉机器 (apply_mission_move 按 payload 判)。
+## 设计取舍: 不把 kind 改成 battle —— target 单节点身份 (is_at_target/皮肤金色) 不该被顶掉。
+static func generate(seed_value: int, entry_coord: Vector2i, target_coord: Vector2i, bounds: Rect2i,
+		target_is_battle: bool = false) -> InkMonMissionMapData:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var map := InkMonMissionMapData.new()
@@ -48,7 +53,8 @@ static func generate(seed_value: int, entry_coord: Vector2i, target_coord: Vecto
 				"coord": _node_coord(entry_coord, target_coord, layer_index, slot, width, bounds),
 				"kind": kind,
 			}
-			if kind == InkMonMissionMapData.NODE_BATTLE:
+			if kind == InkMonMissionMapData.NODE_BATTLE \
+					or (kind == InkMonMissionMapData.NODE_TARGET and target_is_battle):
 				node["wild"] = _roll_wild_pack(rng)
 			map.nodes.append(node)
 			layer_ids.append(node_id)

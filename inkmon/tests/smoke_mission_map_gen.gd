@@ -50,6 +50,17 @@ func _run() -> String:
 	var d2 := InkMonMissionMapGen.generate(4242, first_route[0] as Vector2i, first_route[1] as Vector2i, BOUNDS).to_debug_dict()
 	if JSON.stringify(d1) != JSON.stringify(d2):
 		return "same seed must generate identical mission map"
+	# Phase 3 讨伐型变体: target_is_battle=true 时目标节点带野群 payload (kind 仍是 target,
+	# 目标单节点身份不被顶掉), 其余不变量与默认路径共用上面的扫描。
+	var hunt_map := InkMonMissionMapGen.generate(4242, first_route[0] as Vector2i, first_route[1] as Vector2i, BOUNDS, true)
+	var hunt_target := hunt_map.get_node_info(hunt_map.target_node_id)
+	if str(hunt_target.get("kind", "")) != InkMonMissionMapData.NODE_TARGET:
+		return "hunt variant must keep the target node kind"
+	var hunt_wild := hunt_target.get("wild", []) as Array
+	if hunt_wild == null or hunt_wild.is_empty():
+		return "hunt variant target must carry a wild pack"
+	if hunt_wild.size() > InkMonMissionMapGen.WILD_COUNT_MAX:
+		return "hunt variant target wild pack out of range"
 	return ""
 
 

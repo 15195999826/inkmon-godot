@@ -91,6 +91,8 @@ var _modal_layer: CanvasLayer
 var _save_load_modal_view: InkMonSaveLoadModal
 ## 出发确认 modal (M2.4 拍板 B): guild 的 start_mission intent 先落这里, Confirm 才真上抛 Host。
 var _departure_modal_view: InkMonDepartureModal
+## modal 打开期间暂存的 start_mission intent (Phase 3 起携 quest_id); Confirm 合并 supplies 上抛。
+var _pending_departure_intent: Dictionary = {}
 ## 出征 HUD (M2.4 尾项⑤): 剩余粮 / 队伍 HP / 放弃按钮; 出征中可见。
 var _mission_hud_view: InkMonMissionHud
 ## NPC 视觉节点据 npc_defs(常量 stub)建一次即可;set_npcs 会 queue_free+重建,故不放进每帧 _refresh_ui。
@@ -189,14 +191,19 @@ func _on_mission_progressed(_node_id: int) -> void:
 	_refresh_mission_hud()
 
 
-## 出征 HUD 刷新 (M2.4): 剩余粮 + 队伍 HP 概览 (粮尽行军掉血也经此可见)。
+## 出征 HUD 刷新 (M2.4): 剩余粮 + 队伍 HP 概览 (粮尽行军掉血也经此可见) + 委托行 (Phase 3)。
 func _refresh_mission_hud() -> void:
 	if _mission_hud_view == null or _world_query == null:
 		return
 	var snapshot := _world_query.get_mission_snapshot()
 	if snapshot.is_empty():
 		return
-	_mission_hud_view.refresh(int(snapshot.get("supplies", 0)), _world_query.get_roster_snapshot())
+	var quests: Array[Dictionary] = []
+	for quest_value in (snapshot.get("quests", []) as Array):
+		var quest := quest_value as Dictionary
+		if quest != null:
+			quests.append(quest)
+	_mission_hud_view.refresh(int(snapshot.get("supplies", 0)), _world_query.get_roster_snapshot(), quests)
 
 
 func _refresh_mission_view() -> void:
@@ -537,6 +544,8 @@ func _on_command_applied(result: Dictionary) -> void:
 		_drawer_mode = ""
 		_refresh_ui()
 		if str(intent.get(InkMonNpcHandler.INTENT_KIND, "")) == InkMonGuildNpcHandler.INTENT_START_MISSION:
+			# 暂存原 intent (Phase 3 携 quest_id): Confirm 时合并粮数原样上抛。
+			_pending_departure_intent = intent.duplicate(true)
 			_open_departure_modal()
 			return
 		flow_intent_raised.emit(intent)
@@ -653,10 +662,12 @@ func _build_departure_modal() -> void:
 	_departure_modal_view.name = "DepartureModalRoot"
 	_modal_layer.add_child(_departure_modal_view)
 	_departure_modal_view.confirmed.connect(func(supplies: int) -> void:
-		flow_intent_raised.emit({
-			InkMonNpcHandler.INTENT_KIND: InkMonGuildNpcHandler.INTENT_START_MISSION,
-			"supplies": supplies,
-		}))
+		# 原 intent (可携 quest_id) + 粮数合并上抛; 无暂存 (直调路径) 用裸 intent。
+		var intent := _pending_departure_intent.duplicate(true)
+		_pending_departure_intent = {}
+		intent[InkMonNpcHandler.INTENT_KIND] = InkMonGuildNpcHandler.INTENT_START_MISSION
+		intent["supplies"] = supplies
+		flow_intent_raised.emit(intent))
 
 
 ## §6 root 只接线: 出征 HUD (M2.4)。放弃 = Host lifecycle, 只转发信号。

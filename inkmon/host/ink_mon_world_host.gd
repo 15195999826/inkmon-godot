@@ -148,11 +148,13 @@ func _on_flow_intent_raised(intent: Dictionary) -> void:
 		InkMonGuildNpcHandler.INTENT_START_MISSION:
 			# 同款去重 + 代际 guard(独立 pending 位:battle 与 mission flow 互不挡)。
 			# M2.4: intent 带 supplies (出发确认 modal 拍下的带粮数; 缺省走默认值)。
+			# Phase 3: intent 可携 quest_id (委托板接单; "" = 无单出征占位主委托)。
 			if _mission_flow_pending:
 				return
 			_mission_flow_pending = true
 			call_deferred("_begin_mission_flow", _world_generation,
-				int(intent.get("supplies", InkMonMissionSetup.DEFAULT_SUPPLIES)))
+				int(intent.get("supplies", InkMonMissionSetup.DEFAULT_SUPPLIES)),
+				str(intent.get("quest_id", "")))
 
 
 ## 训练战 flow(Host 控制面):由 flow_intent_raised 经 call_deferred 触发。
@@ -233,7 +235,7 @@ func _on_capture_requested(slot_index: int) -> void:
 ## P1 顺序契约(钉死, 防呆):①带粮款扣除(gold 直换粮, 拍板 B)→ ②写出发档 → ③gi.start_mission。
 ## 扣任何据点资源必须在写档**之前** —— 否则"丢这趟"回档会把已消耗资源退回来(出征零成本);
 ## 现序下档里记扣后余额, 丢趟回档粮款沉没(带粮 = 沉没成本, game-vision 出发前构筑决策)。
-func _begin_mission_flow(generation: int, supplies: int) -> void:
+func _begin_mission_flow(generation: int, supplies: int, quest_id: String = "") -> void:
 	_mission_flow_pending = false
 	if generation != _world_generation:
 		return
@@ -252,8 +254,8 @@ func _begin_mission_flow(generation: int, supplies: int) -> void:
 		_world_gi.player_actor.gold += supplies * InkMonMissionSetup.SUPPLY_UNIT_COST
 		_presentation.add_event("mission aborted: departure save failed (supplies refunded)")
 		return
-	# ③ 起出征(选目标地标 + 蔓延生成趟内节点图), 带上买好的粮。
-	var start_result := _world_gi.start_mission({"supplies": supplies})
+	# ③ 起出征(主委托定目标 + 蔓延生成趟内节点图), 带上买好的粮与接的单。
+	var start_result := _world_gi.start_mission({"supplies": supplies, "quest_id": quest_id})
 	if bool(start_result.get("ok", false)):
 		_presentation.set_mission_active(true)
 		_presentation.add_event("mission started (departure saved, %d supplies)" % supplies)

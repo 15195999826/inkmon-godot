@@ -203,6 +203,15 @@ func terrain_at(coord: Vector2i) -> String:
 
 
 ## 委托目标候选 = kind 为 site 的地标格。
+## 按地标 id 取坐标 (Phase 3 委托目标寻址)。未知 id = 程序 bug (委托单只指向真实地标) → 响亮失败。
+func landmark_coord(landmark_id: String) -> Vector2i:
+	for landmark in landmarks:
+		if str(landmark.get("id", "")) == landmark_id:
+			return landmark.get("coord", Vector2i.ZERO) as Vector2i
+	Log.assert_crash(false, "InkMonWorldMapData", "unknown landmark id: %s" % landmark_id)
+	return Vector2i.ZERO
+
+
 func get_target_candidates() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	for landmark in landmarks:

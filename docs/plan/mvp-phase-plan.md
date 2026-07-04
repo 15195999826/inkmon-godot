@@ -124,6 +124,17 @@ Q3.3 接受
 Q3.4 接受
 Q3.5 目前只考虑 godot, 暂时我还没想到为什么让它进lab
 
+### Phase 3 工程切分（M3.x，2026-07-05 fable 落档，对称 §2；用户授权全自主推进）
+
+工程展开细节（拍板内推导，验收时可改）：副委托 v1 类型 = 趟内事件计数型（`hunt_count` 本趟打赢 ≥N 场野群战 / `capture_count` 本趟捕获 ≥N 只）——趟内 DAG 单目标蔓延，reach 型副委托无"顺路第二地标"可判，计数型零新机制且真 bonus；奖励物品 roll 自 item catalog（price>0 池，当前仅 item_0001，池随 lab 内容自动扩）；委托板进据点档（回城刷新、看好的单存档后不消失），`SAVE_VERSION` 3→4 旧档丢弃重开（§5.2 无迁移）。
+
+- **M3.1 QuestDef 数据形状 + 委托板生成（logic）**：`InkMonQuestDef`（RefCounted 纯数据：quest_id / type(reach|hunt) / target_site_id / reward_gold / reward_item_id("" = 无) / 副委托 goal_count；to_dict/from_dict）+ `InkMonQuestGen`（static：回城刷新 roll 3-5 张主委托候选 + 副委托池，参数代码常量——Q3.5 不进 lab，v1 连 JSON 文件都不设，类型稳定后再议数据外置）；GI 持 `quest_board`（进档）+ 回城结算/放弃回城后刷新；世界地标 = 委托目标寻址域。
+- **M3.2 出征接委托 + 完成判定（logic+host）**：`MissionState.quests`（1 主 + ≤2 副，transient）；guild handler 委托板 action（`quest:<id>` 选主委托出征，副委托自动附带 ≤2）；`start_mission(config.quest_id)` → 主委托定 target_site；**hunt 型主委托 = 趟内图目标节点生成为 battle 节点**（`InkMonMissionMapGen.generate` 加 target_is_battle 参数；抵达必战、胜即完成结算、负 = 既有丢趟）；副委托计数挂趟内事件（野群战胜 +1 / 捕获成功 +1）；`settle_complete` 逐副委托判定发奖（gold + item 入 bag）。
+- **M3.3 委托板 UI + 出征 HUD 委托行（presentation）**：guild drawer 委托板卡列表（标题/类型/目标/奖励，点选即以该委托走出发确认 modal 链）；出征 HUD 加委托行（主委托标题 + 副委托进度 n/N）；hunt 型目标节点沿用 battle 红标 + 地标旗高亮现成。
+- **M3.4 Phase 3 验收**：smoke（quest roll 域与确定性 / 板子进档 roundtrip / 接单出征携带 / reach·hunt 完成判定 / 副委托计数与发奖 / 板子回城刷新）+ `acceptance_full_loop` 扩接单跑单全链 + codex review + `inkmon/all` 全绿 + 一致性检查。
+
+**M3.1-M3.4 ✅ 全部完成（2026-07-05，fable 自主推进）**：落地与切分一致；codex 两项修复（hunt 超时误完成——resolve 完成判定加 left_win 门，站把守 target 无出边只剩放弃出口属诚实败局；存档委托奖励物品 id 漂移——quest_board 纳入读档物品预检丢弃重开）；副委托双张同型去重（观感）；`SAVE_VERSION` 3→4。验收 = `acceptance_full_loop` 接单（注入 hunt 单保覆盖 + 板 roll 随机单）跑通「接单 → 出征 → 中层野群战 → 把守 target 清剿 → 捕捉 → 回城结算发奖 adopt → 再接单」多轮，`inkmon/all` 32 smoke 全绿。**偏差登记**：① Q3.3"按进度/段位过滤"——v1 委托无段位标、无段位差异内容可滤，挂 Phase 5 晋升 gate 一起展开；② Q2.5 药品节点间使用——依赖 lab canon 药 item（本地 stub 违反 adr/0003 单一来源），待 lab 侧发号后接（出征菜单用药回 HP 的 UI 位与 command 通道现成）。
+
 ## 4. Phase 4 选路体验 —— 纲要 + 待拍板（窗口远，仅登记）
 
 纲要：节点类型扩展（事件 / 资源 / 精英 / 营地…）+ 明牌/迷雾信息设计 + 侦察手段（含个体侦察特性钩子——个体独一无二接入探索）。

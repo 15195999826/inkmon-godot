@@ -69,8 +69,14 @@ func _run() -> String:
 	var result := _ended_results[0]
 	if str(result.get("outcome", "")) != "complete":
 		return _fail("outcome should be complete, got %s" % str(result.get("outcome", "")))
-	if gi.player_actor.gold != gold_before + InkMonMissionSetup.MISSION_COMPLETE_GOLD:
-		return _fail("complete reward must land on player_actor gold")
+	# Phase 3 后结算 = 主委托 (占位 = MISSION_COMPLETE_GOLD) + 达标副委托 bonus:
+	# 按结算摘要对账落金, 且主委托兜底额必达。
+	var reported_reward := int(result.get("gold_reward", -999))
+	if reported_reward < InkMonMissionSetup.MISSION_COMPLETE_GOLD:
+		return _fail("settle must pay at least the main quest reward (got %d)" % reported_reward)
+	if gi.player_actor.gold != gold_before + reported_reward:
+		return _fail("settled gold must match the reported reward (%d != %d + %d)" % [
+			gi.player_actor.gold, gold_before, reported_reward])
 	if int(result.get("supplies_left", -999)) != supplies_before - steps:
 		return _fail("supplies should decrease by exactly 1 per step (%d - %d != %d)"
 			% [supplies_before, steps, int(result.get("supplies_left", -999))])

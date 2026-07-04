@@ -5,6 +5,7 @@ extends Node
 
 const SHOT_PATH := "res://.claude/tmp/shot_mission_map.png"
 const SHOT_MODAL_PATH := "res://.claude/tmp/shot_departure_modal.png"
+const SHOT_BOARD_PATH := "res://.claude/tmp/shot_quest_board.png"
 
 
 func _ready() -> void:
@@ -18,7 +19,21 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var presentation := host.get_node("Presentation") as InkMonWorldPresentation
-	presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+	# Phase 3 委托板: guild 抽屉里的委托卡列表 (先截一张)。
+	presentation.open_npc_menu("guild")
+	await get_tree().create_timer(0.5).timeout
+	await RenderingServer.frame_post_draw
+	var board_image := get_viewport().get_texture().get_image()
+	var board_absolute := ProjectSettings.globalize_path(SHOT_BOARD_PATH)
+	board_image.save_png(board_absolute)
+	print("SHOT_SAVED: %s" % board_absolute)
+	# 接板上第一张单出征 (guild 全链)。
+	var gi_for_quest: InkMonWorldGI = host._world_gi
+	if gi_for_quest.quest_board.is_empty():
+		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
+	else:
+		presentation.run_npc_action_for("guild",
+			InkMonGuildNpcHandler.ACTION_QUEST_PREFIX + gi_for_quest.quest_board[0].quest_id)
 	await get_tree().create_timer(0.4).timeout
 	# M2.4: guild 出征先过出发确认 modal —— 截一张 modal, 再按 Confirm (默认粮数) 进大地图。
 	var modal := presentation.get_node_or_null("ModalLayer/DepartureModalRoot") as InkMonDepartureModal

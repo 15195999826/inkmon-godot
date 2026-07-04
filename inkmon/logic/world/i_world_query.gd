@@ -124,6 +124,18 @@ func get_mission_snapshot() -> Dictionary:
 			"kind": str(node.get("kind", "")),
 			"visited": state.visited_node_ids.has(node_id),
 		})
+	var quests: Array[Dictionary] = []
+	for quest_entry in state.quests:
+		var def := quest_entry.get("def", null) as InkMonQuestDef
+		if def == null:
+			continue
+		quests.append({
+			"title": def.title(),
+			"role": str(quest_entry.get("role", "")),
+			"progress": int(quest_entry.get("progress", 0)),
+			"goal_count": def.goal_count,
+			"reward_label": def.reward_label(),
+		})
 	return {
 		"nodes": nodes,
 		"edges": state.map.edges.duplicate(true),
@@ -133,6 +145,7 @@ func get_mission_snapshot() -> Dictionary:
 		"next_node_ids": state.map.next_node_ids(state.current_node_id),
 		"supplies": state.supplies,
 		"target_site_coord": state.target_site_coord,
+		"quests": quests,
 	}
 
 

@@ -44,8 +44,9 @@ signal mission_battle_triggered(node_id: int)
 ## 对齐 —— 逻辑每跨一格耗 STEP_DURATION 秒,view 补间同款时长 → 逻辑↔表演同步。
 const STEP_DURATION := 0.22
 
-## 存档版本 (adr/0001 统一 live-actor 模型; v3 起含 world_map 世界地理, P2 拍板)。不符即丢弃重开。
-const SAVE_VERSION := 3
+## 存档版本 (adr/0001 统一 live-actor 模型; v3 起含 world_map 世界地理; v4 起含 quest_board
+## 委托板, Phase 3)。不符即丢弃重开。
+const SAVE_VERSION := 4
 ## 新游戏默认出战上限 (左队取 roster 前 N)。
 const MAX_BATTLE_UNITS := 4
 ## NPC 邻近判定半径 (axial 距离 ≤ 此值 = 相邻, 可交互)。
@@ -80,6 +81,8 @@ var overworld_grid: InkMonWorldGrid = null
 ## 世界大地图地理 (P2, glossary §4.9): 开档一次生成、永久固定、进据点档 (序列化根之一)。
 ## 不进 grid 机器 —— 出征大地图逻辑真相 = 趟内节点图 (MissionState), 本数据只是固定地理底。
 var world_map: InkMonWorldMapData = null
+## 委托板 (Phase 3, Q3.3): 据点持久态 (进档, 回城结算刷新; 接单出征即摘单, 丢趟回档自然恢复)。
+var quest_board: Array[InkMonQuestDef] = []
 ## 与玩家相邻(axial 距离 ≤1)的 NPC id;玩家移动后重算,"" = 无邻近。
 var near_npc_id: String = ""
 ## 出征运行态 (P1: transient 不进存档, adr/0002 三叉; P2: 趟内节点图住此)。null = 不在出征中。
@@ -121,6 +124,8 @@ func new_game() -> void:
 		InkMonRosterSetup.add_from_config(self, str(unit_key))
 	# 世界地理: 开档一次生成、此后永久固定 (P2; 真随机 seed —— 每个存档一个独特世界)。
 	world_map = InkMonWorldMapData.generate(randi())
+	# 委托板 (Phase 3): 开档首刷; 之后回城结算刷新。
+	quest_board = InkMonQuestGen.roll_board(world_map, randi())
 	_setup_overworld_runtime()
 
 
@@ -160,6 +165,13 @@ func from_dict(data: Dictionary) -> bool:
 	else:
 		# v3 档理应携带; 字段缺失/损坏时重生成一张兜底 (地理换新, 好过弃档)。
 		world_map = InkMonWorldMapData.generate(randi())
+	quest_board.clear()
+	var board_data := data.get("quest_board", []) as Array
+	if board_data != null:
+		for quest_value in board_data:
+			var quest_data := quest_value as Dictionary
+			if quest_data != null:
+				quest_board.append(InkMonQuestDef.from_dict(quest_data))
 	_setup_overworld_runtime()
 	return true
 
@@ -173,11 +185,15 @@ func to_dict() -> Dictionary:
 	var roster_data: Array[Dictionary] = []
 	for actor in roster:
 		roster_data.append(actor.to_dict())
+	var board_data: Array[Dictionary] = []
+	for quest in quest_board:
+		board_data.append(quest.to_dict())
 	return {
 		"version": SAVE_VERSION,
 		"player": player_actor.to_dict() if player_actor != null else {},
 		"roster": roster_data,
 		"world_map": world_map.to_dict() if world_map != null else {},
+		"quest_board": board_data,
 	}
 
 
@@ -217,6 +233,17 @@ static func _collect_save_item_config_ids(data: Dictionary) -> Array[String]:
 			var config_id := str(item.get("config_id", ""))
 			if config_id != "" and not result.has(config_id):
 				result.append(config_id)
+	# Phase 3: 委托板奖励物品同样进预检面 —— 引用已删 item 的档按世代不符丢弃重开,
+	# 不让 settle 时 create_bag_item 静默失败吞掉奖励。
+	var board_data := data.get("quest_board", []) as Array
+	if board_data != null:
+		for quest_value in board_data:
+			var quest_data := quest_value as Dictionary
+			if quest_data == null:
+				continue
+			var reward_item := str(quest_data.get("reward_item_id", ""))
+			if reward_item != "" and not result.has(reward_item):
+				result.append(reward_item)
 	return result
 
 
@@ -339,14 +366,16 @@ func apply_mission_move(node_id: int) -> void:
 	var node_coord := mission_state.map.get_node_info(node_id).get("coord", Vector2i.ZERO) as Vector2i
 	world_map.reveal_cell(node_coord)
 	mission_progressed.emit(node_id)
-	# M2.2 踩野群节点必战 (Q2.3): 置必战锁 + 上行交 Host 起战斗 flow。battle 节点恒非目标层
-	# (M2.1 gen 契约), 与抵达结算互斥。
-	if str(mission_state.map.get_node_info(node_id).get("kind", "")) == InkMonMissionMapData.NODE_BATTLE:
+	# M2.2 踩野群节点必战 (Q2.3): 置必战锁 + 上行交 Host 起战斗 flow。判据 = 带野群 payload
+	# (中间层 battle 节点 / 讨伐型主委托的把守 target 节点, Phase 3), 与抵达结算互斥 ——
+	# 把守 target 的完成判定延到战胜离场 (resolve_wild_battle_encounter)。
+	var wild_pack := mission_state.map.get_node_info(node_id).get("wild", []) as Array
+	if wild_pack != null and not wild_pack.is_empty():
 		mission_state.pending_battle_node_id = node_id
 		mission_battle_triggered.emit(node_id)
 		return
 	if mission_state.is_at_target():
-		# 抵达目标节点 = 占位主委托完成(v1 抵达型, quest 数据化 = Phase 3)→ 自动结算回城。
+		# 抵达目标节点 = 主委托完成 (reach 型) → 自动结算回城。
 		end_mission("complete")
 
 
@@ -623,6 +652,8 @@ func attempt_wild_capture(slot_index: int) -> Dictionary:
 				"species_id": species,
 				"roll_seed": int(entry.get("roll_seed", 0)),
 			})
+			# 副委托计数 (Phase 3): 捕获成功 +1。
+			InkMonMissionSetup.record_mission_event(mission_state, InkMonQuestDef.TYPE_CAPTURE_COUNT)
 		return {
 			"ok": true,
 			"slot_index": slot_index,
@@ -638,11 +669,16 @@ func attempt_wild_capture(slot_index: int) -> Dictionary:
 ## 未尝试的捕捉机会 ("扔球窗口 = 留在战斗场景期间")。幂等; 败局不经此 (世界整体重建)。
 ## _wild_battle 门: Host 对任何战斗离场都会调此 —— pending 锁定期混入的训练战 (dev-agent 路径)
 ## 离场绝不能清掉还没打的野群锁, 只有"刚结束的战斗就是这场野群战"才收尾。
+## Phase 3 讨伐型: 把守 target 的野群清掉后离场即主委托完成 → 结算回城 (胜后捕捉窗口仍完整)。
 func resolve_wild_battle_encounter() -> void:
 	if not _wild_battle or not has_active_mission():
 		return
 	mission_state.pending_battle_node_id = -1
 	mission_state.capture_pool.clear()
+	# 讨伐完成必须是**打赢**离场 (_result 仍是这场结果): timeout 等非胜结局清锁但不算清剿 ——
+	# 站在把守 target 上无出边, 玩家只剩放弃出口 (诚实败局; 4v4 自动战 timeout 是万 tick 级极端)。
+	if _result == "left_win" and mission_state.is_at_target():
+		end_mission("complete")
 
 
 ## 捕捉池值拷贝快照 (Host 推给回放视图做点选交互; 不外递内部 Dict 引用)。
@@ -824,6 +860,8 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 	if _wild_battle and has_active_mission() and mission_state.has_pending_battle():
 		if _result == "left_win":
 			_build_capture_pool()
+			# 副委托计数 (Phase 3): 野群战胜 +1。
+			InkMonMissionSetup.record_mission_event(mission_state, InkMonQuestDef.TYPE_HUNT_COUNT)
 		elif _result != "right_win":
 			mission_state.pending_battle_node_id = -1
 	# 持久 world: 不 end() (那会单向销毁世界)。切回主世界 grid (若已 bind)。

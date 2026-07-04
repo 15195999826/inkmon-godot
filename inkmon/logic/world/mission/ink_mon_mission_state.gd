@@ -11,8 +11,11 @@ var mission_seed := 0
 ## 本趟节点图 (趟内蔓延生成, transient)。
 var map: InkMonMissionMapData = null
 var current_node_id := 0
-## 主委托目标对应的大地图地标格 (占位主委托 v1 = 抵达型; quest 数据化 = Phase 3)。
+## 主委托目标对应的大地图地标格。
 var target_site_coord := Vector2i.ZERO
+## 本趟携带委托 (Phase 3, Q3.2 主 1 + 副 ≤2): [{def: InkMonQuestDef, role: "main"|"side", progress: int}]。
+## transient; 副委托 progress 由趟内事件计数 (野群战胜 / 捕获成功), 回城结算判达标发奖。
+var quests: Array[Dictionary] = []
 ## 剩余补给 (每步节点跳扣 1; 粮尽掉血 = M1.4 补给钟)。
 var supplies := 0
 ## 途中捕获 (Phase 2 填充: {species_id, roll_seed}); 回城结算 adopt 入 roster ("落袋为安")。
