@@ -14,15 +14,18 @@ signal node_clicked(node_id: int)
 const HEX_SIZE := 20.0
 ## 2:1 等轴纵向压扁 (对齐 render2d 字典: squish 0.5 ↔ pitch 30°)。
 const ISO_SQUISH := 0.5
+## 地形烘焙分辨率 (px per view-plane px): 低分辨率图 + LINEAR 放大 → 色块边界融成连续地貌
+## ("完整地形图"拍板 2026-07-05: 地形是一张图, hex 只是叠加的网格边界)。
+const TERRAIN_BAKE_SCALE := 0.35
 const NODE_RADIUS := 10.0
 const FIT_MARGIN := 48.0
 const PIECE_SPEED := 420.0
 
 const COLOR_BACKDROP := Color(0.09, 0.10, 0.12)
-const COLOR_HEX_BORDER := Color(0.0, 0.0, 0.0, 0.16)
-const COLOR_PLAIN := Color(0.36, 0.42, 0.30)
-const COLOR_FOREST := Color(0.22, 0.36, 0.22)
-const COLOR_HILL := Color(0.42, 0.38, 0.28)
+const COLOR_HEX_BORDER := Color(0.0, 0.0, 0.0, 0.24)
+const COLOR_PLAIN := Color(0.40, 0.45, 0.31)
+const COLOR_FOREST := Color(0.20, 0.34, 0.20)
+const COLOR_HILL := Color(0.44, 0.38, 0.27)
 const COLOR_EDGE_UNDER := Color(0.05, 0.06, 0.07, 0.55)
 const COLOR_EDGE := Color(0.62, 0.59, 0.50, 0.75)
 const COLOR_EDGE_NEXT := Color(0.98, 0.92, 0.55, 0.95)
@@ -47,6 +50,15 @@ var _target_site := Vector2i.ZERO
 var _piece_pos := Vector2.ZERO
 var _piece_target := Vector2.ZERO
 var _piece_placed := false
+## 烘好的连续地形底图 (hash 缓存: 地理开档固定, 一趟只烘一次)。
+var _terrain_texture: ImageTexture = null
+var _terrain_rect := Rect2()
+var _terrain_bake_hash := 0
+
+
+func _init() -> void:
+	# 低分辨率地形图靠 LINEAR 放大融成连续地貌 (默认继承也常是 linear, 显式钉死不赌主题)。
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 ## root 推入两份快照 (出征开始 / 每步 progressed 后调)。
@@ -72,6 +84,10 @@ func refresh(mission_snapshot: Dictionary, world_map_snapshot: Dictionary) -> vo
 					"kind": str(landmark.get("kind", "")),
 				})
 	_target_site = _mission.get("target_site_coord", Vector2i.ZERO) as Vector2i
+	var bake_hash := hash([_map_width, _map_height, _terrain_lookup])
+	if bake_hash != _terrain_bake_hash or _terrain_texture == null:
+		_terrain_bake_hash = bake_hash
+		_bake_terrain_texture()
 	_fit_to_viewport()
 	var current_pos := _node_plane_pos(int(_mission.get("current_node_id", 0)))
 	if _piece_placed:
@@ -116,7 +132,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if _mission.is_empty():
 		return
-	_draw_backdrop()
 	_draw_terrain()
 	_draw_landmarks()
 	_draw_corridors()
@@ -126,33 +141,52 @@ func _draw() -> void:
 	draw_circle(_piece_pos, NODE_RADIUS * 0.55, COLOR_PIECE)
 
 
-## 世界外深色底板 (offset 矩形世界的四角外扩)。
-func _draw_backdrop() -> void:
-	var points := PackedVector2Array()
-	var center := Vector2.ZERO
-	for corner in _world_corner_cells():
-		var pos := _axial_to_plane(corner)
-		points.append(pos)
-		center += pos
-	center /= float(points.size())
-	var expanded := PackedVector2Array()
-	for point in points:
-		expanded.append(center + (point - center) * 1.04 + (point - center).normalized() * HEX_SIZE * 1.6)
-	draw_colored_polygon(expanded, COLOR_BACKDROP)
-
-
-## 地理底图: 地形色块 + per-cell 明度微扰 (hash, 确定性) + 细描边。v1 全明, 迷雾表现 = Phase 4。
+## 地理底图 = 烘好的连续地形图铺底 + hex 细格线叠层 + 地图纸描边
+## ("完整地形图": 关掉格线仍是一张完整地图)。v1 全明, 迷雾表现 = Phase 4。
 func _draw_terrain() -> void:
+	if _terrain_texture != null:
+		draw_texture_rect(_terrain_texture, _terrain_rect, false)
 	for row in range(_map_height):
 		for col in range(_map_width):
-			var cell := InkMonWorldMapData.offset_to_axial(col, row)
-			var points := _hex_points(_axial_to_plane(cell))
-			var base := _terrain_color(cell)
-			var shade := _cell_shade(cell)
-			draw_colored_polygon(points, Color(base.r * shade, base.g * shade, base.b * shade, 1.0))
+			var points := _hex_points(_axial_to_plane(InkMonWorldMapData.offset_to_axial(col, row)))
 			var outline := points.duplicate()
 			outline.append(points[0])
 			draw_polyline(outline, COLOR_HEX_BORDER, 1.0)
+	if _terrain_texture != null:
+		draw_rect(_terrain_rect, COLOR_BACKDROP, false, 3.0)
+
+
+## 逐像素采样最近 cell 烘低分辨率地形图。超界像素 clamp 到最近界内 cell 颜色 —— 底图是一张
+## 完整矩形"地图纸"(无 odd-r 边缘锯齿), 可玩边界由 hex 格线终止表达。
+## 地理开档固定 → hash 缓存, 一趟只烘一次 (~40k 像素, 毫秒级)。
+func _bake_terrain_texture() -> void:
+	var bounds := _world_plane_bounds()
+	if bounds.size.x <= 0.0 or bounds.size.y <= 0.0:
+		_terrain_texture = null
+		return
+	var image_width := maxi(8, int(ceil(bounds.size.x * TERRAIN_BAKE_SCALE)))
+	var image_height := maxi(8, int(ceil(bounds.size.y * TERRAIN_BAKE_SCALE)))
+	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	for py in range(image_height):
+		for px in range(image_width):
+			var plane := bounds.position + Vector2(
+				(float(px) + 0.5) / TERRAIN_BAKE_SCALE, (float(py) + 0.5) / TERRAIN_BAKE_SCALE)
+			var offset := InkMonWorldMapData.axial_to_offset(_plane_to_axial_approx(plane))
+			offset.x = clampi(offset.x, 0, _map_width - 1)
+			offset.y = clampi(offset.y, 0, _map_height - 1)
+			var cell := InkMonWorldMapData.offset_to_axial(offset.x, offset.y)
+			var base := _terrain_color(cell)
+			var shade := _cell_shade(cell)
+			image.set_pixel(px, py, Color(base.r * shade, base.g * shade, base.b * shade, 1.0))
+	_terrain_texture = ImageTexture.create_from_image(image)
+	_terrain_rect = bounds
+
+
+## view 平面 (含 HEX_SIZE 缩放 + iso squish) → 近似最近 axial cell (round 误差半格内, 插值糊化吃掉)。
+func _plane_to_axial_approx(plane: Vector2) -> Vector2i:
+	var r := plane.y / (HEX_SIZE * 1.5 * ISO_SQUISH)
+	var q := plane.x / (HEX_SIZE * sqrt(3.0)) - r * 0.5
+	return Vector2i(int(round(q)), int(round(r)))
 
 
 ## 全部地标画旗 (本趟目标金色高亮 + 光晕; 其余暗金 = 世界上还有别的方向)。
@@ -205,10 +239,10 @@ func _draw_nodes() -> void:
 			draw_arc(pos, NODE_RADIUS + 5.0, 0.0, TAU, 24, COLOR_PIECE, 2.5)
 
 
-## per-cell 明度微扰 [0.94, 1.06): 整数 hash, 无 rng, 帧间/跑次稳定。
+## per-cell 明度微扰 [0.96, 1.04): 整数 hash, 无 rng, 帧间/跑次稳定 (烘进底图后成柔和纹理)。
 func _cell_shade(cell: Vector2i) -> float:
 	var hashed := absi((cell.x * 92837111) ^ (cell.y * 689287499))
-	return 0.94 + float(hashed % 1000) / 1000.0 * 0.12
+	return 0.96 + float(hashed % 1000) / 1000.0 * 0.08
 
 
 func _node_color(node: Dictionary, node_id: int, next_ids: Array[int]) -> Color:
@@ -279,18 +313,29 @@ func _world_corner_cells() -> Array[Vector2i]:
 	]
 
 
+## 世界 offset 矩形的 view 平面包围盒 (±2 hex margin): fit 与地形烘焙共用, 保证底图与格线对位。
+func _world_plane_bounds() -> Rect2:
+	if _map_width <= 0 or _map_height <= 0:
+		return Rect2()
+	var corners := _world_corner_cells()
+	var min_pos := _axial_to_plane(corners[0])
+	var max_pos := min_pos
+	for corner in corners:
+		var pos := _axial_to_plane(corner)
+		min_pos = min_pos.min(pos)
+		max_pos = max_pos.max(pos)
+	min_pos -= Vector2.ONE * HEX_SIZE * 2.0
+	max_pos += Vector2.ONE * HEX_SIZE * 2.0
+	return Rect2(min_pos, max_pos - min_pos)
+
+
 ## 全图 fit 进 viewport (v1 单区域一屏可见, 免相机)。
 func _fit_to_viewport() -> void:
 	if _map_width <= 0 or _map_height <= 0:
 		return
-	var corners := _world_corner_cells()
-	var top_left := _axial_to_plane(corners[0])
-	var top_right := _axial_to_plane(corners[1])
-	var bottom_right := _axial_to_plane(corners[2])
-	var bottom_left := _axial_to_plane(corners[3])
-	var min_pos := top_left.min(bottom_left).min(top_right).min(bottom_right) - Vector2.ONE * HEX_SIZE * 2.0
-	var max_pos := top_left.max(bottom_left).max(top_right).max(bottom_right) + Vector2.ONE * HEX_SIZE * 2.0
-	var content := max_pos - min_pos
+	var bounds := _world_plane_bounds()
+	var min_pos := bounds.position
+	var content := bounds.size
 	# 用 viewport 原生尺寸: get_viewport_rect() 是 local 系(受本节点已设 transform 逆变换),
 	# 第二次 refresh 会用歪掉的尺寸算 fit → 地图漂移。
 	var viewport_size := get_viewport().get_visible_rect().size

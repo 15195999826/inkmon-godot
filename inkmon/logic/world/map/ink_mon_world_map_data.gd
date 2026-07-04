@@ -17,6 +17,14 @@ const DEFAULT_HEIGHT := 22
 const TERRAIN_PLAIN := "plain"
 const TERRAIN_FOREST := "forest"
 const TERRAIN_HILL := "hill"
+## 地形噪声 ("完整地形图"拍板 2026-07-05: 地貌连续成片, hex 只是叠加网格边界, 不是色块拼凑):
+## 频率按未压扁平面单位 (世界宽 ~39 单位 → 特征尺度 ~8 单位, 一图 4-5 个地貌团)。
+## 地形入档, 噪声只在开档跑一次 —— 跨平台浮点漂移不影响已有档。
+const TERRAIN_NOISE_FREQUENCY := 0.13
+const HILL_THRESHOLD := 0.34
+const FOREST_THRESHOLD := 0.22
+## vegetation 噪声的 seed 派生偏移 (与 elevation 噪声独立, 林区不贴着丘陵长)。
+const VEGETATION_SEED_OFFSET := 7919
 ## 地标 kind: site = 委托目标候选。
 const LANDMARK_SITE := "site"
 const SITE_COUNT := 3
@@ -44,10 +52,10 @@ var landmarks: Array[Dictionary] = []
 var revealed_cells: Dictionary = {}
 
 
-## 开档一次性生成 (同 seed 同图, 确定性)。v1 极简: 矩形区域 + 稀疏地形撒点 + 出生点靠中心随机 +
-## 3 个目标地标按方向扇区散布四方 (每趟出征方向天然多样, "像一个世界")。
+## 开档一次性生成 (同 seed 同图, 确定性)。v1: 矩形区域 + 连续噪声地貌 (成片林区/丘陵带) +
+## 出生点靠中心随机 + 3 个目标地标按方向扇区散布四方 (每趟出征方向天然多样, "像一个世界")。
 ## 皮肤质量 (走廊寻形 / 区域生态 / 多区域) = Phase 5+, 数据形状以本类为准先钉死。
-## rng 消耗序钉死 (同 seed 同图): ① entry jitter ② 扇区相位 ③ 逐格地形 ④ 逐扇区挑 site。
+## rng 消耗序钉死 (同 seed 同图): ① entry jitter ② 扇区相位 ③ 逐扇区挑 site (地形走噪声不耗 rng)。
 static func generate(seed_value: int) -> InkMonWorldMapData:
 	var map := InkMonWorldMapData.new()
 	map.generation_seed = seed_value
@@ -60,17 +68,28 @@ static func generate(seed_value: int) -> InkMonWorldMapData:
 	map.entry_coord = offset_to_axial(entry_offset.x, entry_offset.y)
 	# 扇区相位随机: 不同档的"三个方向"整体旋转, 世界朝向也独一无二。
 	var sector_phase := rng.randf() * TAU
+	# 地形 = 两张独立 FBM 噪声按未压扁平面坐标采样 (axial 斜坐标直接采样会把地貌团剪切拉斜):
+	# elevation 高段 → 丘陵带; vegetation 高段 (且非丘陵) → 林区。
+	var elevation_noise := FastNoiseLite.new()
+	elevation_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	elevation_noise.seed = seed_value
+	elevation_noise.frequency = TERRAIN_NOISE_FREQUENCY
+	elevation_noise.fractal_octaves = 3
+	var vegetation_noise := FastNoiseLite.new()
+	vegetation_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	vegetation_noise.seed = seed_value + VEGETATION_SEED_OFFSET
+	vegetation_noise.frequency = TERRAIN_NOISE_FREQUENCY
+	vegetation_noise.fractal_octaves = 3
 	for row in range(DEFAULT_HEIGHT):
 		for col in range(DEFAULT_WIDTH):
-			# roll 每格都消耗 (含 entry / 后续地标格), 保证同 seed 逐格同序。
-			var roll := rng.randf()
 			var cell := offset_to_axial(col, row)
 			if cell == map.entry_coord:
 				continue
-			if roll < 0.12:
-				map.terrain[cell] = TERRAIN_FOREST
-			elif roll < 0.20:
+			var sample := axial_to_plane(cell)
+			if elevation_noise.get_noise_2d(sample.x, sample.y) > HILL_THRESHOLD:
 				map.terrain[cell] = TERRAIN_HILL
+			elif vegetation_noise.get_noise_2d(sample.x, sample.y) > FOREST_THRESHOLD:
+				map.terrain[cell] = TERRAIN_FOREST
 	# site 放置: 全格按相对入口的平面方位角分进 SITE_COUNT 个扇区桶 (界内 + 距离达标 + 扇区 margin),
 	# 每桶随机挑 1 格 —— 枚举法必然成功 (桶空 = 尺寸/距离常量配置错误, assert 兜底), 无 attempts 抽奖。
 	var sector_width := TAU / float(SITE_COUNT)

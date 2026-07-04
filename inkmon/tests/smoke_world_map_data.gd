@@ -142,6 +142,26 @@ func _check_geography(map: InkMonWorldMapData) -> String:
 		max_gap = maxf(max_gap, gap)
 	if max_gap > deg_to_rad(211.0):
 		return "seed %d: sites bunched to one side (max angular gap %.1f deg)" % [map.generation_seed, rad_to_deg(max_gap)]
+	# 地貌成片契约 ("完整地形图"拍板): 森林格中至少 40% 有 ≥2 个森林邻居 —— 连续噪声下团内格
+	# 邻居 4-6 个轻松过; per-cell 独立 roll 的胡椒面 (12% 密度 → 邻居期望 ~0.7) 必挂。防生成回归。
+	var forest_cells: Array[Vector2i] = []
+	for cell_key in map.terrain:
+		if str(map.terrain[cell_key]) == InkMonWorldMapData.TERRAIN_FOREST:
+			forest_cells.append(cell_key as Vector2i)
+	if forest_cells.size() >= 10:
+		var clustered := 0
+		var axial_neighbors: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1),
+			Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 1)]
+		for cell in forest_cells:
+			var forest_neighbor_count := 0
+			for direction in axial_neighbors:
+				if str(map.terrain.get(cell + direction, "")) == InkMonWorldMapData.TERRAIN_FOREST:
+					forest_neighbor_count += 1
+			if forest_neighbor_count >= 2:
+				clustered += 1
+		if float(clustered) / float(forest_cells.size()) < 0.4:
+			return "seed %d: forest not clumped (%d/%d cells with >=2 forest neighbors) - terrain regressed to per-cell noise?" % [
+				map.generation_seed, clustered, forest_cells.size()]
 	return ""
 
 
