@@ -89,7 +89,8 @@ func _drain(gi: InkMonWorldGI) -> void:
 	gi.tick(FIXED_DT)
 
 
-## 遇战即打 (走图 harness): 起野群战斗 → 秒杀右队 → tick 至收尾。胜后必战锁解除, 走图继续。
+## 遇战即打 (走图 harness): 起野群战斗 → 秒杀右队 → tick 至收尾 → 不捕直接离场 (resolve)。
+## M2.3 后胜局锁保持到离场 —— resolve 即"离开战场", 解锁走图继续。
 func _resolve_wild_battle(gi: InkMonWorldGI) -> String:
 	gi.request_wild_battle()
 	if not gi.has_active_battle():
@@ -102,8 +103,9 @@ func _resolve_wild_battle(gi: InkMonWorldGI) -> String:
 		guard += 1
 	if gi.has_active_battle():
 		return "wild battle should finish after right team is downed"
+	gi.resolve_wild_battle_encounter()
 	if gi.has_active_mission() and gi.mission_state.has_pending_battle():
-		return "pending battle lock should clear after a won wild battle"
+		return "pending battle lock should clear after leaving the encounter"
 	return ""
 
 

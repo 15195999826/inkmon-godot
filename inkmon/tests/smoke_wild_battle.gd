@@ -1,9 +1,11 @@
 extends Node
-## M2.2 野群战斗 GI 级契约 (不碰 user://, 可并行):
+## M2.2/M2.3 野群战斗+捕捉 GI 级契约 (不碰 user://, 可并行):
 ##   模板地图生成 (seed 确定性 / radius-4 盘 61 格 / 皮肤映射 / 障碍 ≤3 限中带不压布阵点) /
 ##   踩 battle 节点 → 必战锁 + mission_battle_triggered / 锁定期选路拒 /
 ##   request_wild_battle 队伍契约 (payload 物种逐只对应 + 出生 roll 同源 + 等级 = 出战队均值) /
-##   胜 → 清锁续走; 败 (right_win) → 锁保留 (Host 层丢趟出口在 smoke_mission_departure 串行覆盖)。
+##   胜 → 捕捉窗口 (锁保持, 逐只掷球一次, 结果按规则确定) → resolve 离场清锁续走 →
+##   完赛结算 adopt 落袋 (战场个体 ↔ 入库个体技能同源闭环) /
+##   败 (right_win) → 锁保留无捕捉池 (Host 层丢趟出口在 smoke_mission_departure 串行覆盖)。
 
 
 const FIXED_DT := 1.0 / 30.0
@@ -38,9 +40,9 @@ func _run() -> String:
 	gi.mission_battle_triggered.connect(func(node_id: int) -> void:
 		_triggered_node_ids.append(node_id))
 
-	# === 踩 battle 节点触发 + 必战锁 ===
-	if not _start_mission_and_walk_to_battle(gi):
-		return _fail("no battle node reachable across candidate mission seeds (gen constants drifted?)")
+	# === 踩 battle 节点触发 + 必战锁 (要求预测捕捉结果混合, 给后面捕捉段两分支覆盖) ===
+	if not _start_mission_and_walk_to_battle(gi, true):
+		return _fail("no battle node with mixed capture odds across candidate mission seeds (gen constants drifted?)")
 	if _triggered_node_ids.size() != 1:
 		return _fail("mission_battle_triggered should fire exactly once (got %d)" % _triggered_node_ids.size())
 	var state := gi.mission_state
@@ -88,7 +90,7 @@ func _run() -> String:
 		if JSON.stringify(wild_actor.skill_slots) != JSON.stringify(expected_slots):
 			return _fail("wild actor %d skill roll must match adopt birth roll for the same seed" % i)
 
-	# === 胜: 清必战锁 + 选路恢复 ===
+	# === 胜: 捕捉窗口开启 (M2.3 锁保持到离场), 逐只掷球一次 ===
 	for wild_actor in gi.right_team:
 		wild_actor.set_current_hp(0.0)
 	var guard := 0
@@ -101,21 +103,92 @@ func _run() -> String:
 		return _fail("downed right team should yield left_win (got %s)" % gi.get_result())
 	if not gi.has_active_mission():
 		return _fail("mission must survive a won wild battle")
-	if gi.mission_state.has_pending_battle():
-		return _fail("pending battle lock must clear after victory")
-	var before_move := gi.mission_state.current_node_id
-	var onward_ids := gi.mission_state.map.next_node_ids(before_move)
-	if onward_ids.is_empty():
-		return _fail("battle node should have onward edges (never target layer)")
-	gi.submit(InkMonMissionMoveCommand.new(onward_ids[0]))
-	gi.tick(FIXED_DT)
-	# 战斗节点可坐落最后一个中间层 → 续走一步恰好抵达目标自动结算也是合法结果。
-	if gi.mission_state != null and gi.mission_state.current_node_id == before_move:
-		return _fail("moves must be accepted again after victory")
+	if not gi.mission_state.has_pending_battle():
+		return _fail("pending lock must persist through the capture window (cleared only on leave)")
+	if gi.mission_state.capture_pool.size() != wild_payload.size():
+		return _fail("capture pool must cover every downed wild (%d != %d)"
+			% [gi.mission_state.capture_pool.size(), wild_payload.size()])
+	# 捕捉窗口期移动仍拒 (还没离开战场)。
+	var locked_capture_node := gi.mission_state.current_node_id
+	var capture_escape := gi.mission_state.map.next_node_ids(locked_capture_node)
+	if not capture_escape.is_empty():
+		gi.submit(InkMonMissionMoveCommand.new(capture_escape[0]))
+		gi.tick(FIXED_DT)
+		if gi.mission_state.current_node_id != locked_capture_node:
+			return _fail("moves must stay refused during the capture window")
+	# 逐只掷球: 结果 == 规则掷点 (roll < chance); 同只二掷拒; captured_pending 精确累计。
+	var mission_seed := gi.mission_state.mission_seed
+	var battle_node_id := gi.mission_state.pending_battle_node_id
+	var expected_captures := 0
+	var captured_battle_slots: Array = []
+	for entry in gi.mission_state.capture_pool.duplicate():
+		var slot_index := int(entry.get("slot_index", -1))
+		var capture_result := gi.attempt_wild_capture(slot_index)
+		if not bool(capture_result.get("ok", false)):
+			return _fail("capture attempt %d should be accepted" % slot_index)
+		var species := str(entry.get("species_id", ""))
+		var predicted := InkMonCaptureRules.capture_roll(mission_seed, battle_node_id, slot_index) \
+			< InkMonCaptureRules.capture_chance(species)
+		if bool(capture_result.get("captured", false)) != predicted:
+			return _fail("capture outcome must follow InkMonCaptureRules wiring (slot %d)" % slot_index)
+		if predicted:
+			expected_captures += 1
+			captured_battle_slots.append({
+				"species_id": species,
+				"skill_slots": gi.right_team[slot_index].skill_slots.duplicate(true),
+			})
+		if bool(gi.attempt_wild_capture(slot_index).get("ok", false)):
+			return _fail("second throw on the same wild must be refused (slot %d)" % slot_index)
+	if gi.mission_state.captured_pending.size() != expected_captures:
+		return _fail("captured_pending must accumulate exactly the successful throws (%d != %d)"
+			% [gi.mission_state.captured_pending.size(), expected_captures])
+	if expected_captures == 0 or expected_captures == gi.mission_state.capture_pool.size():
+		return _fail("seed search should have produced mixed capture outcomes (got %d/%d)"
+			% [expected_captures, gi.mission_state.capture_pool.size()])
 
-	# === 败 (right_win): 必战锁保留, GI 不自灭 (丢趟出口归 Host) ===
+	# === resolve 离场: 清锁清池, 选路恢复 ===
+	gi.resolve_wild_battle_encounter()
+	if gi.mission_state.has_pending_battle():
+		return _fail("leaving the encounter must clear the pending battle lock")
+	if not gi.mission_state.capture_pool.is_empty():
+		return _fail("leaving the encounter must forfeit the capture pool")
+
+	# === 走到目标完赛: settle adopt 落袋, 战场个体 ↔ 入库个体技能同源闭环 ===
+	var roster_before := gi.roster.size()
+	var walk_guard := 0
+	while gi.has_active_mission() and walk_guard < 32:
+		var onward := gi.mission_state.map.next_node_ids(gi.mission_state.current_node_id)
+		if onward.is_empty():
+			return _fail("non-target node with no outgoing edges during settle walk")
+		gi.submit(InkMonMissionMoveCommand.new(onward[0]))
+		gi.tick(FIXED_DT)
+		walk_guard += 1
+		if gi.has_active_mission() and gi.mission_state.has_pending_battle():
+			# 途中再撞野群: 秒杀 + 不捕直接离场 (captured_pending 保持精确)。
+			gi.request_wild_battle()
+			for wild_actor in gi.right_team:
+				wild_actor.set_current_hp(0.0)
+			var inner_guard := 0
+			while gi.has_active_battle() and inner_guard < 20:
+				gi.tick(FIXED_DT)
+				inner_guard += 1
+			if gi.has_active_battle():
+				return _fail("settle-walk wild battle should finish")
+			gi.resolve_wild_battle_encounter()
 	if gi.has_active_mission():
-		gi.end_mission("aborted")
+		return _fail("mission should complete within the settle walk")
+	if gi.roster.size() != roster_before + expected_captures:
+		return _fail("settle must adopt exactly the captured wilds (%d != %d + %d)"
+			% [gi.roster.size(), roster_before, expected_captures])
+	for i in range(expected_captures):
+		var adopted := gi.roster[roster_before + i]
+		var captured_slot := captured_battle_slots[i] as Dictionary
+		if adopted.species != str(captured_slot.get("species_id", "")):
+			return _fail("adopted %d species must match the captured wild" % i)
+		if JSON.stringify(adopted.skill_slots) != JSON.stringify(captured_slot.get("skill_slots", [])):
+			return _fail("adopted %d skills must equal the wild individual seen in battle (roll_seed reuse)" % i)
+
+	# === 败 (right_win): 必战锁保留 + 无捕捉池, GI 不自灭 (丢趟出口归 Host) ===
 	_triggered_node_ids.clear()
 	for actor in gi.roster:
 		actor.set_current_hp(-1.0)
@@ -136,6 +209,10 @@ func _run() -> String:
 		return _fail("GI must not self-terminate the mission on defeat (wipe exit is Host's)")
 	if not gi.mission_state.has_pending_battle():
 		return _fail("pending battle lock must stay set after defeat")
+	if not gi.mission_state.capture_pool.is_empty():
+		return _fail("defeat must not open a capture window")
+	if bool(gi.attempt_wild_capture(0).get("ok", false)):
+		return _fail("capture attempts must be rejected without a capture pool")
 
 	# === 必战锁只认野群战: 出征中混入训练战 (dev-agent 路径), 胜负都不碰锁 ===
 	for actor in gi.roster:
@@ -153,14 +230,20 @@ func _run() -> String:
 		return _fail("training battle should finish after dummies are downed")
 	if not gi.mission_state.has_pending_battle():
 		return _fail("a won training battle must not clear the wild battle lock")
+	# Host 对任何战斗离场都会调 resolve —— 训练战后的 resolve 必须是 no-op (锁属于还没打的野群战)。
+	gi.resolve_wild_battle_encounter()
+	if not gi.mission_state.has_pending_battle():
+		return _fail("leaving a training battle view must not resolve the pending wild encounter")
 	GameWorld.shutdown()
 	return ""
 
 
-## 起一趟出征并沿图走到 battle 节点 (走法偏好 battle 出边)。整趟没撞到则换 seed 重试。
-## 返回是否成功触发 (成功时 gi.mission_state 停在 battle 节点, 必战锁已置)。
-func _start_mission_and_walk_to_battle(gi: InkMonWorldGI) -> bool:
-	for seed_value in range(4000, 4020):
+## 起一趟出征并沿图走到 battle 节点 (走法偏好 battle 出边)。require_mixed_captures = 要求该节点
+## 预测捕捉结果同时含成功与失败 (捕捉契约两分支都要吃到)。整趟没撞到/不满足则换 seed 重试。
+## 每次 seed 尝试前清触发记录 → 成功返回后 _triggered_node_ids 只含最终这趟 (exactly-once 断言成立)。
+func _start_mission_and_walk_to_battle(gi: InkMonWorldGI, require_mixed_captures := false) -> bool:
+	for seed_value in range(4000, 4040):
+		_triggered_node_ids.clear()
 		var start_result := gi.start_mission({"seed": seed_value, "supplies": 40})
 		if not bool(start_result.get("ok", false)):
 			return false
@@ -177,11 +260,25 @@ func _start_mission_and_walk_to_battle(gi: InkMonWorldGI) -> bool:
 			gi.submit(InkMonMissionMoveCommand.new(pick))
 			gi.tick(FIXED_DT)
 			steps += 1
-		if gi.has_active_mission() and gi.mission_state.has_pending_battle():
+		if gi.has_active_mission() and gi.mission_state.has_pending_battle() \
+				and (not require_mixed_captures or _predicted_captures_mixed(gi)):
 			return true
 		if gi.has_active_mission():
 			gi.end_mission("aborted")
 	return false
+
+
+## 该 pending 节点的预测捕捉结果是否混合 (≥1 成 且 ≥1 败) —— 复用生产规则函数做预测。
+func _predicted_captures_mixed(gi: InkMonWorldGI) -> bool:
+	var node_id := gi.mission_state.pending_battle_node_id
+	var wild_pack := gi.mission_state.map.get_node_info(node_id).get("wild", []) as Array
+	var successes := 0
+	for i in range(wild_pack.size()):
+		var species := str((wild_pack[i] as Dictionary).get("species_id", ""))
+		if InkMonCaptureRules.capture_roll(gi.mission_state.mission_seed, node_id, i) \
+				< InkMonCaptureRules.capture_chance(species):
+			successes += 1
+	return successes > 0 and successes < wild_pack.size()
 
 
 ## 模板地图生成契约 (纯 static, 不动世界)。

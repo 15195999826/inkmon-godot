@@ -19,9 +19,14 @@ var supplies := 0
 var captured_pending: Array[Dictionary] = []
 ## 趟内足迹: node_id -> true (趟内视野/回访判定的底料)。
 var visited_node_ids: Dictionary = {}
-## 待打的野群节点 (M2.2): 踩上 battle 节点即置 (节点即内容, 必战不可绕), 期间选路移动一律拒;
-## 战斗非败收尾清回 -1 解锁。败 = 全灭不清 —— 世界被 Host load 出发档整体重建, 本对象随之销毁。
+## 待打的野群节点 (M2.2): 踩上 battle 节点即置 (节点即内容, 必战不可绕), 期间选路移动一律拒。
+## 胜后延续到捕捉阶段 (M2.3), resolve_wild_battle_encounter 收尾清 -1 解锁;
+## 败 = 全灭不清 —— 世界被 Host load 出发档整体重建, 本对象随之销毁。
 var pending_battle_node_id := -1
+## 战后捕捉池 (M2.3, 胜利时从节点 wild payload 建): 每条
+## {slot_index, actor_id, species_id, roll_seed, display_name, attempted, captured}。
+## 每只恰好一次投掷; 离开战场 (resolve) 即作废未尝试者 ("留在战斗场景扔球"的窗口)。
+var capture_pool: Array[Dictionary] = []
 
 
 func has_pending_battle() -> bool:

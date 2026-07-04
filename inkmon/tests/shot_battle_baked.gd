@@ -40,8 +40,43 @@ func _ready() -> void:
 	var wild_path := "%s/11_wild_battle_map.png" % _shot_dir_global
 	var wild_err := wild_image.save_png(wild_path)
 	print("  [shot] 11_wild_battle_map (%s) -> %s (err=%d)" % [str(wild_doc.get("map_id", "")), wild_path, wild_err])
+
+	# M2.3 战后捕捉阶段: 播完 + 捕捉池 → 提示行 + 掷球落标 (一成一败)。
+	var pool: Array[Dictionary] = [
+		{"slot_index": 0, "actor_id": "u_r", "species_id": "cinder_kit", "roll_seed": 1,
+			"display_name": "Wild Kit", "attempted": false, "captured": false},
+		{"slot_index": 1, "actor_id": "u_r2", "species_id": "gale_mote", "roll_seed": 2,
+			"display_name": "Wild Mote", "attempted": false, "captured": false},
+	]
+	view.play_replay(_capture_record(), {"result": "left_win"}, wild_doc, pool)
+	view.get_animator().step(1_000_000.0)
+	await get_tree().process_frame
+	view.apply_capture_result({"ok": true, "slot_index": 0, "captured": true,
+		"species_id": "cinder_kit", "display_name": "Wild Kit", "chance": 0.5})
+	view.apply_capture_result({"ok": true, "slot_index": 1, "captured": false,
+		"species_id": "gale_mote", "display_name": "Wild Mote", "chance": 0.5})
+	for _i in range(10):
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var capture_image := get_viewport().get_texture().get_image()
+	var capture_path := "%s/12_wild_capture.png" % _shot_dir_global
+	var capture_err := capture_image.save_png(capture_path)
+	print("  [shot] 12_wild_capture -> %s (err=%d)" % [capture_path, capture_err])
 	print("SHOT_HARNESS_RESULT: DONE - shots in %s" % _shot_dir_global)
-	get_tree().quit(0 if err == OK and wild_err == OK else 1)
+	get_tree().quit(0 if err == OK and wild_err == OK and capture_err == OK else 1)
+
+
+## 捕捉截图用: 两只气绝野生 + 一只己方。
+func _capture_record() -> Dictionary:
+	return {
+		"meta": {"tickInterval": 100, "totalFrames": 5},
+		"world_snapshot": {"actors": [
+			{"id": "u_l", "team": 0, "displayName": "L", "position": [-3, 0, 0], "attributes": {"hp": 30, "max_hp": 30}},
+			{"id": "u_r", "team": 1, "displayName": "Wild Kit", "position": [3, 0, 0], "attributes": {"hp": 0, "max_hp": 20}},
+			{"id": "u_r2", "team": 1, "displayName": "Wild Mote", "position": [3, 1, 0], "attributes": {"hp": 0, "max_hp": 20}},
+		]},
+		"timeline": [],
+	}
 
 
 ## 找一个必带障碍的野群图 seed (截图要看得到 water 障碍)。生成确定性 → 找到的 seed 稳定。

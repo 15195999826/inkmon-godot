@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon/tests/smoke_wild_capture_ui.gd" id="1_wildcapture"]
+
+[node name="SmokeWildCaptureUi" type="Node"]
+script = ExtResource("1_wildcapture")

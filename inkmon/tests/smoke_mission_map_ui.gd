@@ -1,7 +1,9 @@
 extends Node
 ## 出征大地图 UI 交互 smoke (real mouse input):
-##   Host 全链 → guild 出征 → mission view 顶上(overworld 隐) →
-##   真鼠标点击可达节点 = 前进一步 + 扣粮; 点不可达节点 = 不动。
+##   mission view 顶上(overworld 隐) → 真鼠标点击可达节点 = 前进一步 + 扣粮; 点不可达节点 = 不动。
+## 出征起动走 **GI 直调 + seed 定死** (纯函数预探 seed, 首步必有非战斗节点):
+##   guild 全链会写 user:// 出发档 —— 那是 launcher 并行下与 smoke_mission_departure 互踩的
+##   共享文件 (红线: 出发档生命周期只归 departure smoke 串行独占), 本 smoke 绝不触碰。
 ## UI 交互 smoke 约定: _ready 首行 ensure window size(headless 默认 64×64 点击全落空);
 ## PASS 输出带 "(real mouse input)" 标记。
 
@@ -30,28 +32,33 @@ func _run() -> String:
 		return "presentation not found"
 
 	# M2.2 后踩野群节点必战 (会切进战斗回放) —— 本 smoke 只验选路交互, 点击目标选**非战斗**
-	# 下一节点; 出征地图随机 (guild 路径无 seed), 首层全是战斗节点时放弃重开 (期望 ~1.1 次)。
-	var gi: InkMonWorldGI = null
-	var safe_next_id := -1
-	for _attempt in range(10):
-		presentation.run_npc_action_for("guild", InkMonGuildNpcHandler.ACTION_START_MISSION)
-		await get_tree().create_timer(0.5).timeout
-		if not bool(_host.get_dev_agent_state().get("mission_active", false)):
-			return "mission should be active after guild intent"
-		gi = _host._world_gi
-		var candidate_ids := gi.mission_state.map.next_node_ids(gi.mission_state.current_node_id)
-		if candidate_ids.is_empty():
-			return "entry node should have reachable next nodes"
-		for next_id in candidate_ids:
-			if str(gi.mission_state.map.get_node_info(next_id).get("kind", "")) != InkMonMissionMapData.NODE_BATTLE:
-				safe_next_id = next_id
+	# 下一节点。节点 kind 序列只由 mission seed 决定 (与世界地理无关): 纯函数预探出
+	# "首层有非战斗节点"的 seed, 一次起准, 全程无 guild 流/无出发档写入/无 end_mission。
+	var gi: InkMonWorldGI = _host._world_gi
+	var probe_bounds := Rect2i(0, 0, gi.world_map.width, gi.world_map.height)
+	var probe_target := gi.world_map.get_target_candidates()[0]
+	var chosen_seed := -1
+	for seed_value in range(5000, 5050):
+		var probe := InkMonMissionMapGen.generate(seed_value, gi.world_map.entry_coord, probe_target, probe_bounds)
+		for next_id in probe.next_node_ids(probe.entry_node_id):
+			if str(probe.get_node_info(next_id).get("kind", "")) != InkMonMissionMapData.NODE_BATTLE:
+				chosen_seed = seed_value
 				break
-		if safe_next_id >= 0:
+		if chosen_seed >= 0:
 			break
-		_host.abandon_mission()
-		await get_tree().process_frame
+	if chosen_seed < 0:
+		return "no seed in 5000..5049 with a non-battle first step (gen constants drifted?)"
+	if not bool(gi.start_mission({"seed": chosen_seed}).get("ok", false)):
+		return "start_mission should succeed"
+	# GI 直起时 Host flow 不在场, 手动推表演的出征态 (Host._begin_mission_flow 同款调用)。
+	presentation.set_mission_active(true)
+	var safe_next_id := -1
+	for next_id in gi.mission_state.map.next_node_ids(gi.mission_state.current_node_id):
+		if str(gi.mission_state.map.get_node_info(next_id).get("kind", "")) != InkMonMissionMapData.NODE_BATTLE:
+			safe_next_id = next_id
+			break
 	if safe_next_id < 0:
-		return "no non-battle first step across 10 mission rolls (gen constants drifted?)"
+		return "probed seed must yield a non-battle first step"
 	var mission_view := presentation.get_node_or_null("MissionMapLayer/MissionMapView") as InkMonMissionMapView
 	if mission_view == null or not mission_view.visible:
 		return "mission map view should be visible during mission"

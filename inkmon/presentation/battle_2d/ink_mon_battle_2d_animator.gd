@@ -120,6 +120,14 @@ func is_ended() -> bool:
 	return _ended
 
 
+## 战后捕捉阶段 (M2.3): 把某单位视图从死亡淡出里拉回指定透明度 —— 气绝野生个体是捕捉点选目标,
+## 不能隐形。仅在回放已结束后调用 (播放中状态 flush 会覆写 modulate)。
+func override_unit_alpha(actor_id: String, alpha: float) -> void:
+	var view := _unit_views.get(actor_id, null) as InkMonRender2DAvatar
+	if view != null:
+		view.modulate.a = alpha
+
+
 ## 单位快照（契约形状 {id:{x,y,hp,alive}}）。从 RenderWorld 读，x/y = 当前像素位置。
 func get_units_snapshot() -> Dictionary:
 	var result := {}

@@ -575,6 +575,86 @@ func is_wild_battle() -> bool:
 	return _wild_battle
 
 
+# === 战后捕捉 (M2.3, Q2.1 气绝制: 胜利后留在战斗场景, 对气绝野生个体逐只扔球一次) ===
+
+## 胜利收尾建捕捉池: 节点 wild payload × 右队 actor (下标对齐, build_wild_pack 保序)。
+## roll_seed 进池 —— 捕获后 adopt 复用同一 seed, "场上什么技能, 捕来就什么技能" (M2.1 拍板)。
+func _build_capture_pool() -> void:
+	mission_state.capture_pool.clear()
+	var node_info := mission_state.map.get_node_info(mission_state.pending_battle_node_id)
+	var wild_pack := node_info.get("wild", []) as Array
+	if wild_pack == null:
+		return
+	for i in range(wild_pack.size()):
+		var entry := wild_pack[i] as Dictionary
+		if entry == null:
+			continue
+		var wild_actor := right_team[i] if i < right_team.size() else null
+		mission_state.capture_pool.append({
+			"slot_index": i,
+			"actor_id": wild_actor.get_id() if wild_actor != null else "",
+			"species_id": str(entry.get("species_id", "")),
+			"roll_seed": int(entry.get("roll_seed", 0)),
+			"display_name": wild_actor.get_display_name() if wild_actor != null else str(entry.get("species_id", "")),
+			"attempted": false,
+			"captured": false,
+		})
+
+
+## 掷球捕捉 (Host 控制面调 —— 回放观看期世界泵冻结, command 不 drain, 捕捉走 Host 直调,
+## 对称 save/load 槽位的控制面路由)。每只恰好一次尝试; 成功暂存 captured_pending (回城 adopt 结算)。
+func attempt_wild_capture(slot_index: int) -> Dictionary:
+	if not has_active_mission() or not mission_state.has_pending_battle():
+		return {"ok": false, "message": "no capture window"}
+	for entry in mission_state.capture_pool:
+		if int(entry.get("slot_index", -1)) != slot_index:
+			continue
+		if bool(entry.get("attempted", false)):
+			return {"ok": false, "message": "already attempted", "slot_index": slot_index}
+		entry["attempted"] = true
+		var species := str(entry.get("species_id", ""))
+		var chance := InkMonCaptureRules.capture_chance(species)
+		var roll := InkMonCaptureRules.capture_roll(
+			mission_state.mission_seed, mission_state.pending_battle_node_id, slot_index)
+		var captured := roll < chance
+		entry["captured"] = captured
+		if captured:
+			mission_state.captured_pending.append({
+				"species_id": species,
+				"roll_seed": int(entry.get("roll_seed", 0)),
+			})
+		return {
+			"ok": true,
+			"slot_index": slot_index,
+			"captured": captured,
+			"species_id": species,
+			"display_name": str(entry.get("display_name", species)),
+			"chance": chance,
+		}
+	return {"ok": false, "message": "unknown capture slot %d" % slot_index}
+
+
+## 离开战场 = 野群遭遇收尾 (Host 在 battle_view_left / 无回放降级路径调): 清必战锁 + 作废
+## 未尝试的捕捉机会 ("扔球窗口 = 留在战斗场景期间")。幂等; 败局不经此 (世界整体重建)。
+## _wild_battle 门: Host 对任何战斗离场都会调此 —— pending 锁定期混入的训练战 (dev-agent 路径)
+## 离场绝不能清掉还没打的野群锁, 只有"刚结束的战斗就是这场野群战"才收尾。
+func resolve_wild_battle_encounter() -> void:
+	if not _wild_battle or not has_active_mission():
+		return
+	mission_state.pending_battle_node_id = -1
+	mission_state.capture_pool.clear()
+
+
+## 捕捉池值拷贝快照 (Host 推给回放视图做点选交互; 不外递内部 Dict 引用)。
+func get_capture_pool_snapshot() -> Array[Dictionary]:
+	if not has_active_mission():
+		return []
+	var result: Array[Dictionary] = []
+	for entry in mission_state.capture_pool:
+		result.append(entry.duplicate(true))
+	return result
+
+
 ## 用当前 left_team/right_team 起战斗: 每只备战 (全新 ability_set + 装技能 + 归零 ATB) → 布阵 → 注册 timeline → 开打。
 func _begin_battle_with_current_teams() -> void:
 	for actor in get_all_units():
@@ -737,11 +817,15 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 		_result = _inkmon_procedure.get_result()
 		tick_count = _inkmon_procedure.get_current_tick()
 	print("[InkMonWorldGI] battle finished result=%s ticks=%d" % [_result, tick_count])
-	# M2.2 野群战斗收尾: 非败(胜/超时)清必战锁解锁选路; 败(right_win)= 全灭不清 ——
-	# Host 据 result 走"丢这趟"出口, 世界连同 mission_state 整体重建。
-	# 只认野群战: 出征中混入的训练战 (dev-agent 路径) 胜负都不碰必战锁。
-	if _wild_battle and has_active_mission() and mission_state.has_pending_battle() and _result != "right_win":
-		mission_state.pending_battle_node_id = -1
+	# M2.2/M2.3 野群战斗收尾 (只认野群战: 出征中混入的训练战胜负都不碰必战锁/捕捉池):
+	#   胜 (left_win) → 建捕捉池, 必战锁**保持**到离开战场 (resolve_wild_battle_encounter);
+	#   败 (right_win) → 全灭不清 —— Host 据 result 走"丢这趟", 世界连同 mission_state 整体重建;
+	#   超时等其它 → 无捕捉窗口, 即刻清锁解锁选路。
+	if _wild_battle and has_active_mission() and mission_state.has_pending_battle():
+		if _result == "left_win":
+			_build_capture_pool()
+		elif _result != "right_win":
+			mission_state.pending_battle_node_id = -1
 	# 持久 world: 不 end() (那会单向销毁世界)。切回主世界 grid (若已 bind)。
 	_inkmon_procedure = null
 	if overworld_grid_model != null:

@@ -55,6 +55,7 @@ func _ready() -> void:
 	_presentation.save_slot_requested.connect(_on_save_slot_requested)
 	_presentation.load_slot_requested.connect(_on_load_slot_requested)
 	_presentation.battle_view_left.connect(_on_battle_view_left)
+	_presentation.capture_requested.connect(_on_capture_requested)
 	_bind_world_to_presentation()
 	_presentation.add_event("InkMonMain ready")
 	_install_dev_agent()
@@ -189,21 +190,38 @@ func _complete_battle_if_ready() -> void:
 			_mission_battle_lost = false
 			_presentation.add_event("party defeated in wild battle: mission lost")
 			call_deferred("_finish_mission_wipe", _world_generation)
+		else:
+			# 降级路径无战场可留 → 捕捉窗口不存在, 直接收尾遭遇 (幂等 no-op 若非野群胜局)。
+			_world_gi.resolve_wild_battle_encounter()
 	else:
 		# 回放观看期开始:battle 实例已收,但世界保持冻结(_replay_active),玩家确认离开才解冻。
+		# M2.3: 捕捉池随回放推入 —— 胜局播完后玩家在战场上点气绝野生个体掷球。
 		_replay_active = true
-		_presentation.play_battle_replay(replay, result, _world_gi.get_battle_map_doc())
+		_presentation.play_battle_replay(
+			replay, result, _world_gi.get_battle_map_doc(), _world_gi.get_capture_pool_snapshot())
 		_set_active_instance("")
 
 
 ## 表演上抛:玩家在战斗结果界面确认离开 → 解冻世界泵,回主世界节奏。
 ## M2.2: 出征野群战败时, 观看期结束即走"丢这趟"(load 出发档, 与全灭/放弃同一条路)。
+## M2.3: 非败离场 = 野群遭遇收尾 (清必战锁 + 作废未掷的捕捉机会; 非野群/无出征时幂等 no-op)。
 func _on_battle_view_left() -> void:
 	_replay_active = false
 	if _mission_battle_lost:
 		_mission_battle_lost = false
 		_presentation.add_event("party defeated in wild battle: mission lost")
 		_finish_mission_wipe(_world_generation)
+		return
+	if _world_gi != null:
+		_world_gi.resolve_wild_battle_encounter()
+
+
+## 掷球捕捉上抛 (M2.3): 回放观看期世界泵冻结 (command 不 drain), 捕捉走 Host 控制面直调
+## (对称 save/load 槽位路由), 结果同步推回表演做反馈。
+func _on_capture_requested(slot_index: int) -> void:
+	if _world_gi == null:
+		return
+	_presentation.on_capture_attempted(_world_gi.attempt_wild_capture(slot_index))
 
 
 # === flow:mission 出征 起/收(Host 控制面; P1/P2 拍板, 术语 glossary §4.8)===

@@ -34,6 +34,9 @@ signal save_slot_requested(slot: int)
 signal load_slot_requested(slot: int)
 ## 玩家在战斗结果界面确认离开(回放观看期结束)→ Host 据此解冻世界泵。
 signal battle_view_left()
+## 掷球捕捉请求 (M2.3): 战场点气绝野生个体 → 上抛 Host 控制面直调 GI
+## (回放观看期世界泵冻结, command 不 drain —— 与 save/load 槽位同款路由)。
+signal capture_requested(slot_index: int)
 
 ## CQRS 读+写句柄 = IWorldQuery facade(私有持 gi,只暴露 read+submit)。表演物理上够不到 concrete GI / flow / lifecycle。
 var _world_query: IWorldQuery = null
@@ -202,22 +205,36 @@ func on_battle_completed(result: Dictionary) -> void:
 
 ## Host 在战斗结束(有录像)时调:隐藏 overworld/大地图,起 2D 回放;_replaying 接管 BATTLE 态,
 ## 直到玩家在结果界面确认离开(leave_requested),非播完即回(game-vision §2 体验流)。
-## map_doc = 本场战斗生成图 (M2.2 野群模板图; {} = 静态默认图 battle_main)。
-func play_battle_replay(replay_data: Dictionary, result: Dictionary, map_doc: Dictionary = {}) -> void:
+## map_doc = 本场战斗生成图 (M2.2 野群模板图; {} = 静态默认图 battle_main);
+## capture_pool = 战后捕捉池 (M2.3 野群胜局非空; 播完后点气绝个体掷球)。
+func play_battle_replay(replay_data: Dictionary, result: Dictionary,
+		map_doc: Dictionary = {}, capture_pool: Array[Dictionary] = []) -> void:
 	_pending_battle_result = result
 	if _battle_2d_view == null:
 		_battle_2d_view = InkMonBattle2DView.new()
 		_battle_2d_view.name = "Battle2DView"
 		add_child(_battle_2d_view)
 		_battle_2d_view.leave_requested.connect(_on_battle_leave_requested)
+		# 捕捉点击 → 原样上抛 (表演不解释捕捉语义, 结果由 Host 经 on_capture_attempted 推回)。
+		_battle_2d_view.capture_requested.connect(func(slot_index: int) -> void:
+			capture_requested.emit(slot_index))
 	_replaying = true
 	if _world_layer != null:
 		_world_layer.visible = false
 	if _mission_view != null:
 		_mission_view.visible = false
 	_battle_2d_view.visible = true
-	_battle_2d_view.play_replay(replay_data, result, map_doc)
+	_battle_2d_view.play_replay(replay_data, result, map_doc, capture_pool)
 	_refresh_prompt()
+
+
+## Host 推回掷球结果 (M2.3) → 转交战斗视图做反馈 (浮字/标记/去重)。
+func on_capture_attempted(result: Dictionary) -> void:
+	if _battle_2d_view != null:
+		_battle_2d_view.apply_capture_result(result)
+	if bool(result.get("ok", false)):
+		var feedback := "captured %s!" if bool(result.get("captured", false)) else "%s broke free"
+		add_event(feedback % str(result.get("display_name", "")))
 
 
 ## 玩家确认离开战斗观看:按语境恢复(出征中回大地图, 否则回 overworld),清 _replaying,

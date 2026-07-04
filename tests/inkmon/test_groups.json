@@ -78,7 +78,8 @@
         "../../inkmon/tests/smoke_mission_flow.tscn",
         "../../inkmon/tests/smoke_mission_departure.tscn",
         "../../inkmon/tests/smoke_mission_map_ui.tscn",
-        "../../inkmon/tests/smoke_wild_battle.tscn"
+        "../../inkmon/tests/smoke_wild_battle.tscn",
+        "../../inkmon/tests/smoke_wild_capture_ui.tscn"
       ]
     }
   }
