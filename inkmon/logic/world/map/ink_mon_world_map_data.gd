@@ -521,6 +521,11 @@ func is_visual_sea(plane: Vector2, coast_noise: FastNoiseLite) -> bool:
 	return _land_factor(plane, coast_noise) < 0.5
 
 
+## 陆地系数公共入口 (表现层烘焙/参照图用同一公式, 含 isle 项)。
+func land_factor_at(plane: Vector2, coast_noise: FastNoiseLite) -> float:
+	return _land_factor(plane, coast_noise)
+
+
 ## 离岸小岛参数 (⚠ 与 shader land_factor 的 isle 项成对): 采样点 = sheet 矩形内的
 ## 缩放偏移重映射 (与 coast 场解相关), 阈值/距离带/岛陆系数三常量两端同值。
 const ISLE_UV_SCALE := 0.53

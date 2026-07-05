@@ -39,6 +39,11 @@ var _seed_edit: LineEdit = null
 var _style_name_label: Label = null
 var _style_buttons: Dictionary = {}
 var _fit_buttons: Dictionary = {}
+## Ref 模式 (定位渲染差异用): CPU 逐像素按 python 处理流程烘参照图, 盖在 view 上 A/B。
+var _ref_enabled := false
+var _ref_sprite: Sprite2D = null
+var _ref_toggle: CheckButton = null
+var _ref_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -52,11 +57,19 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_fit)
 	_regenerate(randi())
 	if OS.get_cmdline_user_args().has("--viewer-shot"):
+		# 自验双截: shader 版 + Ref CPU 参照 (同 seed 同风格 moss), A/B 定位渲染差异。
+		_on_style_pill(InkMonMapStylePresets.STYLE_MOSS)
 		await get_tree().create_timer(1.0).timeout
 		await RenderingServer.frame_post_draw
 		var absolute := ProjectSettings.globalize_path(SHOT_PATH)
 		get_viewport().get_texture().get_image().save_png(absolute)
 		print("SHOT_SAVED: %s" % absolute)
+		_on_ref_toggled(true)
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var ref_absolute := ProjectSettings.globalize_path("res://.claude/tmp/shot_map_viewer_ref.png")
+		get_viewport().get_texture().get_image().save_png(ref_absolute)
+		print("SHOT_SAVED: %s" % ref_absolute)
 		get_tree().quit(0)
 
 
@@ -126,6 +139,13 @@ func _build_control_bar() -> void:
 	fog_toggle.toggled.connect(_on_fog_toggled)
 	bar.add_child(fog_toggle)
 
+	_ref_toggle = CheckButton.new()
+	_ref_toggle.text = "Ref CPU"
+	_ref_toggle.tooltip_text = "CPU exact reference (python pipeline, smooth composition) for A/B"
+	_ref_toggle.add_theme_font_size_override("font_size", 14)
+	_ref_toggle.toggled.connect(_on_ref_toggled)
+	bar.add_child(_ref_toggle)
+
 	bar.add_child(VSeparator.new())
 	var hint := _make_caption("[Wheel] zoom   [Drag] pan   [Space] random   [S] style   [M] fit   [Esc] quit")
 	hint.add_theme_color_override("font_color", Color(0.7, 0.72, 0.75))
@@ -167,6 +187,8 @@ func _on_style_pill(style_id: String) -> void:
 	_style_id = style_id
 	_view.set_map_style(style_id)
 	_sync_control_states()
+	if _ref_enabled:
+		_on_ref_toggled(true)
 
 
 func _on_fit_pill(fit_id: String) -> void:
@@ -178,6 +200,34 @@ func _on_fit_pill(fit_id: String) -> void:
 func _on_fog_toggled(enabled: bool) -> void:
 	_fog_preview = enabled
 	_refresh_view()
+
+
+## Ref 参照图 (同世界同数值的 CPU 精确渲染) 盖在 view 顶上; 差异 = shader 实现缺口。
+func _on_ref_toggled(enabled: bool) -> void:
+	_ref_enabled = enabled
+	if _ref_toggle != null and _ref_toggle.button_pressed != enabled:
+		_ref_toggle.set_pressed_no_signal(enabled)
+	if not enabled:
+		if _ref_sprite != null:
+			_ref_sprite.visible = false
+		return
+	var cache_key := "%d:%s" % [_seed, _style_id]
+	if not _ref_cache.has(cache_key):
+		print("[map_viewer] baking CPU reference (seed %d, style %s)..." % [_seed, _style_id])
+		var uniforms := InkMonMapStylePresets.preset(_style_id).get("uniforms", {}) as Dictionary
+		_ref_cache[cache_key] = InkMonMapBakeMath.bake_reference_image(_map, uniforms)
+		print("[map_viewer] reference ready")
+	if _ref_sprite == null:
+		_ref_sprite = Sprite2D.new()
+		_ref_sprite.name = "RefOverlay"
+		_ref_sprite.centered = false
+		_view.add_child(_ref_sprite)
+	var texture := _ref_cache[cache_key] as ImageTexture
+	var sheet_rect: Rect2 = _view._sheet_view_rect
+	_ref_sprite.texture = texture
+	_ref_sprite.position = sheet_rect.position
+	_ref_sprite.scale = sheet_rect.size / Vector2(texture.get_size())
+	_ref_sprite.visible = true
 
 
 # === 输入 (快捷键 + 滚轮缩放 + 拖拽平移) ===
@@ -193,6 +243,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_on_style_pill(InkMonMapStylePresets.next_style(_style_id))
 			KEY_M:
 				_on_fit_pill(FIT_BLEED if _fit_mode == FIT_SHEET else FIT_SHEET)
+			KEY_R:
+				_on_ref_toggled(not _ref_enabled)
 			KEY_ESCAPE:
 				get_tree().quit(0)
 		return
@@ -235,6 +287,8 @@ func _regenerate(seed_value: int) -> void:
 	print("[map_viewer] seed=%d rivers=%d" % [seed_value, _map.rivers.size()])
 	_view.set_map_style(_style_id)
 	_refresh_view()
+	if _ref_enabled:
+		_on_ref_toggled(true)
 
 
 func _refresh_view() -> void:

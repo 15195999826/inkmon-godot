@@ -12,12 +12,13 @@ shader_type canvas_item;
 // land = 1 - smoothstep(0.6, ocean_margin - 1.0, 矩形外距离 * (0.65 + coast01))。
 // coast01 经 field_tex.b 传入 —— view 用与河流生成完全相同的 FastNoiseLite 烘, 零漂移。
 
-// 连续场 (sheet 矩形域, 与 UV 同映射): r = elev_raw 归一, g = moist_raw 归一,
+// 连续场 (sheet 矩形域, 与 UV 同映射; CPU 已做秩归一): r = elev 秩01, g = moist 秩01,
 // b = coast01 (与河流生成同源), a = 苔藓斑驳。
 uniform sampler2D field_tex : filter_linear;
-// 分位 CDF LUT (256×1): raw 归一值 → 秩01 (r = elev, g = moist)。
-// biome 阈值作用在秩域 = 覆盖率语义, 与逻辑层分类同域 (mock 的 percentile 同款)。
-uniform sampler2D cdf_tex : filter_linear;
+// 着色/海带场 (CPU 真 box×3 模糊 ≈ 高斯 —— shader 稀疏差分冒充模糊会让阴影与色块形体
+// 不同频, 读作"云影贴花"而非地形阴面, 用户对照踩过): r = 模糊秩高程 (含海岸下潜),
+// g/b/a = 三档模糊陆地带 (near/shallow/depth, mock 的海滩/浅滩/深海语义)。
+uniform sampler2D shade_tex : filter_linear;
 
 uniform vec2 sheet_origin = vec2(0.0);
 uniform vec2 sheet_size = vec2(1.0);
@@ -164,42 +165,36 @@ vec3 biome_color(float biome, float elev_rank, float moist_rank) {
 }
 
 
-// hillshade 采样: 秩域高程 (等面积拉伸, 中段坡度不被 raw 分布压扁 —— mock 的 percentile
-// 场同款); 海岸按陆地系数缓降到 0 (mock 的高程×海岸衰减同款 → 海岸出立体阴影带,
-// 水线硬切 0 只会得到一条锐利崖线)。
-float elev_rank_land_at(vec2 sp) {
+// 某采样点的地表分类与颜色 (mock 语义: 海深/浅滩/海滩全走模糊陆地带)。
+// class_id 供墨线比较: -1 海, 100 岸带, 其余 = biome。elev_rank_out 供雪线/调试。
+vec3 surface_color(vec2 sp, out float class_id, out float land, out float elev_rank_out) {
 	vec4 fields = texture(field_tex, sheet_uv(sp));
-	float land = land_factor(sp, fields.b);
-	return texture(cdf_tex, vec2(fields.r, 0.5)).r * smoothstep(0.45, 0.78, land);
-}
-
-
-// 某采样点的地表分类与颜色。class_id 供墨线比较: -1 海, 100 岸带, 其余 = biome。
-// elev_raw_out = 归一 raw 高程 (hillshade 用连续 raw, 秩会不均匀拉伸坡度)。
-vec3 surface_color(vec2 sp, out float class_id, out float land, out float elev_raw_out) {
-	vec4 fields = texture(field_tex, sheet_uv(sp));
+	vec4 bands = texture(shade_tex, sheet_uv(sp));
 	land = land_factor(sp, fields.b);
+	elev_rank_out = fields.r;
 	if (land < 0.5) {
 		class_id = -1.0;
-		elev_raw_out = 0.0;
-		vec3 sea = mix(col_deep, col_sea, smoothstep(0.02, 0.42, land));
-		float sh = smoothstep(0.30, 0.50, land);
+		vec3 sea = mix(col_deep, col_sea, smoothstep(0.02, 0.30, bands.a));
+		float sh = smoothstep(0.10, 0.45, bands.b);
 		if (shallow_steps > 0.5) {
 			sh = floor(sh * shallow_steps + 0.5) / shallow_steps;
 		}
 		return mix(sea, col_shallow, sh);
 	}
-	float elev_rank = texture(cdf_tex, vec2(fields.r, 0.5)).r;
-	float moist_rank = texture(cdf_tex, vec2(fields.g, 0.5)).g;
+	float elev_rank = fields.r;
+	float moist_rank = fields.g;
 	float t = temperature_at(sp, elev_rank);
 	float biome = classify(elev_rank, moist_rank, t);
-	elev_raw_out = fields.r;
-	vec3 c = biome_color(biome, elev_rank, moist_rank);
-	// 岸带跟水线走 (land 0.52..0.66 = 滩): 界外陆地由连续场自然延伸, 只在近水收窄滩。
-	float shore_mix = smoothstep(0.66, 0.52, land);
-	c = mix(c, col_shore, shore_mix);
-	class_id = shore_mix > 0.6 ? 100.0 : biome;
-	return c;
+	// 海滩 (mock: 模糊陆地带的陆侧, 低地才有; 山崖入海不铺沙)。
+	float near_sea = 1.0 - bands.g;
+	if (biome < 1.5 || biome > 3.5) {
+		if (near_sea > 0.34 && elev_rank < 0.52) {
+			class_id = 100.0;
+			return col_shore;
+		}
+	}
+	class_id = biome;
+	return biome_color(biome, elev_rank, moist_rank);
 }
 
 
@@ -243,20 +238,16 @@ void fragment() {
 	float elev1;
 	vec3 c = surface_color(sp, class1, land1, elev1);
 
-	// hillshade: 秩域高程宽差分 (mock 管线 = 先 σ0.2u 高斯模糊再逐像素梯度 —— 细于 ~1u 的
-	// 坡度被滤掉, 剩 1-3u 柔和大起伏; 差分窗口太细会把 5-octave 微褶全饱和成暗色蠕虫纹,
-	// 贴着色块边缘爬 = "脏边" + 整图变暗, 用户对照踩过)。双尺度差分 ≈ 模糊后梯度。
+	// hillshade: CPU 预模糊着色场 (shade_tex.r = 秩高程·海岸下潜 → box×3) 的中央差分 ——
+	// 数学上 = mock 的"先高斯模糊再逐像素梯度", 阴影特征与色阶带同频、紧贴形体
+	// (稀疏差分冒充模糊 → 阴影与色块脱钩成"云影贴花", 用户对照踩过)。
 	// 面片模式 sp 整面片恒定 → 每面片一个平面阴影 = low poly 平面着色。光源西北。
-	float eps = facet_mix > 0.5 ? facet_scale * 0.75 : 0.45;
+	float eps = facet_mix > 0.5 ? facet_scale * 0.75 : 0.15;
 	if (land1 >= 0.5 || sea_facet > 0.5) {
-		float slope = (elev_rank_land_at(sp + vec2(eps, 0.0)) - elev_rank_land_at(sp - vec2(eps, 0.0))
-			+ elev_rank_land_at(sp + vec2(0.0, eps)) - elev_rank_land_at(sp - vec2(0.0, eps))) / (2.0 * eps);
-		if (facet_mix < 0.5) {
-			float eps2 = eps * 2.0;
-			float slope2 = (elev_rank_land_at(sp + vec2(eps2, 0.0)) - elev_rank_land_at(sp - vec2(eps2, 0.0))
-				+ elev_rank_land_at(sp + vec2(0.0, eps2)) - elev_rank_land_at(sp - vec2(0.0, eps2))) / (2.0 * eps2);
-			slope = slope * 0.6 + slope2 * 0.4;
-		}
+		float slope = (texture(shade_tex, sheet_uv(sp + vec2(eps, 0.0))).r
+			- texture(shade_tex, sheet_uv(sp - vec2(eps, 0.0))).r
+			+ texture(shade_tex, sheet_uv(sp + vec2(0.0, eps))).r
+			- texture(shade_tex, sheet_uv(sp - vec2(0.0, eps))).r) / (2.0 * eps);
 		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.82, 1.14);
 		if (land1 >= 0.5) {
 			c *= shade;

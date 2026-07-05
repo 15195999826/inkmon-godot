@@ -21,11 +21,8 @@ const HEX_SIZE := 20.0
 const ISO_SQUISH := 0.5
 ## 迷雾遮罩烘焙分辨率 (px per view-plane px): 低分辨率 + LINEAR 放大 → 柔和雾缘。
 const FOG_BAKE_SCALE := 0.35
-## 连续场纹理分辨率 (px per 平面单位): 渲染真相 = 连续场逐像素 (mock 同法, adr/0012 决定四),
-## 起伏/过渡的细节密度由它决定 —— 616 格放大出不来 3D 起伏感 (用户验收踩过)。
-const FIELD_BAKE_PX_PER_UNIT := 10.0
-## 分位 CDF LUT 宽度: raw 归一值 → 秩01, biome 阈值的覆盖率语义靠它与逻辑层同域。
-const CDF_LUT_WIDTH := 256
+## 场纹理烘焙 (逐像素秩归一 / 真模糊着色场 / 参照图) 全部归 InkMonMapBakeMath
+## (adr/0012 决定四修订; 616 格放大出不来 3D 起伏感, 用户验收踩过)。
 const NODE_RADIUS := 10.0
 const FIT_MARGIN := 48.0
 const PIECE_SPEED := 420.0
@@ -53,10 +50,6 @@ const COLOR_FOG_GRAY := Color(0.04, 0.045, 0.055, 0.55)
 ## seen 灰态节点 (Q4.5 最后所见快照) 的暗化系数与 "?" 节点色。
 const SEEN_NODE_DIM := 0.55
 const COLOR_NODE_UNKNOWN := Color(0.62, 0.6, 0.55)
-
-## 苔藓斑驳噪声 seed 派生 (纯表现层美学场, 与逻辑层无配对关系)。
-const MOTTLE_SEED_OFFSET := 424267
-
 
 var _mission: Dictionary = {}
 var _landmarks: Array[Dictionary] = []
@@ -146,7 +139,7 @@ func refresh(mission_snapshot: Dictionary, world_map_snapshot: Dictionary) -> vo
 		_biome_codes, _elevation_levels, _moisture_levels])
 	if bake_hash != _map_bake_hash:
 		_map_bake_hash = bake_hash
-		_rebuild_sheet()
+		_rebuild_sheet(world_map_snapshot)
 	_bake_fog_texture()
 	_fit_to_viewport()
 	var current_pos := _node_plane_pos(int(_mission.get("current_node_id", 0)))
@@ -239,8 +232,8 @@ func _plane_rect_to_view(rect: Rect2) -> Rect2:
 	return Rect2(top_left, bottom_right - top_left)
 
 
-## 世界变化 (开档/换档) 时重烘连续场纹理 + CDF LUT + 下发矩形/分类 uniform + 当前风格。
-func _rebuild_sheet() -> void:
+## 世界变化 (开档/换档) 时重烘连续场/着色场纹理 + 下发矩形/分类 uniform + 当前风格。
+func _rebuild_sheet(world_map_snapshot: Dictionary) -> void:
 	if _map_width <= 0 or _map_height <= 0 or _biome_codes.is_empty():
 		_sheet.set_sheet_rect(Rect2())
 		_sheet_view_rect = Rect2()
@@ -249,15 +242,11 @@ func _rebuild_sheet() -> void:
 	var sheet_rect := _sheet_plane_rect()
 	_sheet_view_rect = _plane_rect_to_view(sheet_rect)
 	_sheet.set_sheet_rect(_sheet_view_rect)
-	# 可玩格中心的 raw 场样本: min-max 归一范围与 CDF (分位) 都从它来 —— 与 generate 的
-	# 量化/秩域同一批采样点, 渲染分类与入档 cells 对齐在格中心 (亚格细节纯视觉发散)。
-	var cell_raws := _sample_cell_raw_fields()
-	var elev_raws := cell_raws.get("elev") as PackedFloat64Array
-	var moist_raws := cell_raws.get("moist") as PackedFloat64Array
-	var elev_range := _raw_range(elev_raws)
-	var moist_range := _raw_range(moist_raws)
-	_sheet.set_sheet_uniform("field_tex", _bake_field_texture(sheet_rect, elev_range, moist_range))
-	_sheet.set_sheet_uniform("cdf_tex", _bake_cdf_texture(elev_raws, moist_raws, elev_range, moist_range))
+	# 场烘焙归 InkMonMapBakeMath (逐像素秩归一 + 真模糊, adr/0012 决定四修订):
+	# 快照即 to_dict, from_dict 得临时 map 实例喂噪声工厂/海岸公式。
+	var bake := InkMonMapBakeMath.bake_view_textures(InkMonWorldMapData.from_dict(world_map_snapshot))
+	_sheet.set_sheet_uniform("field_tex", bake.get("field_tex"))
+	_sheet.set_sheet_uniform("shade_tex", bake.get("shade_tex"))
 	_sheet.set_sheet_uniform("sheet_origin", sheet_rect.position)
 	_sheet.set_sheet_uniform("sheet_size", sheet_rect.size)
 	_sheet.set_sheet_uniform("play_origin", play_rect.position)
@@ -276,100 +265,6 @@ func _rebuild_sheet() -> void:
 	_sheet.set_sheet_uniform("temp_lat_bias", InkMonWorldMapData.TEMP_LAT_BIAS)
 	_sheet.set_sheet_uniform("temp_elev_drop", InkMonWorldMapData.TEMP_ELEV_DROP)
 	_apply_style_uniforms()
-
-
-## 可玩格中心 raw 场采样 (与 generate 同噪声同公式同采样点)。
-func _sample_cell_raw_fields() -> Dictionary:
-	var elevation_noise := InkMonWorldMapData.make_elevation_noise(_generation_seed)
-	var ridge_noise := InkMonWorldMapData.make_ridge_noise(_generation_seed)
-	var moisture_noise := InkMonWorldMapData.make_moisture_noise(_generation_seed)
-	var elev_raws := PackedFloat64Array()
-	var moist_raws := PackedFloat64Array()
-	elev_raws.resize(_map_width * _map_height)
-	moist_raws.resize(_map_width * _map_height)
-	for row in range(_map_height):
-		for col in range(_map_width):
-			var plane := InkMonWorldMapData.axial_to_plane(InkMonWorldMapData.offset_to_axial(col, row))
-			var index := row * _map_width + col
-			elev_raws[index] = InkMonWorldMapData.raw_elevation_at(elevation_noise, ridge_noise, plane)
-			moist_raws[index] = InkMonWorldMapData.raw_moisture_at(moisture_noise, plane)
-	return {"elev": elev_raws, "moist": moist_raws}
-
-
-static func _raw_range(raw_values: PackedFloat64Array) -> Vector2:
-	var lowest := INF
-	var highest := -INF
-	for value in raw_values:
-		lowest = minf(lowest, value)
-		highest = maxf(highest, value)
-	return Vector2(lowest, maxf(highest - lowest, 1e-9))
-
-
-## 连续场纹理 (sheet 矩形域, 与 shader UV 同映射): r = elev_raw 归一 (hillshade/雪顶的连续真相),
-## g = moist_raw 归一, b = coast01 (⚠ 与河流生成同一 FastNoiseLite —— make_coast_noise,
-## 海岸线/河口零漂移), a = 苔藓斑驳。~8 万像素, 每世界一次, 亚秒级。
-func _bake_field_texture(sheet_rect: Rect2, elev_range: Vector2, moist_range: Vector2) -> ImageTexture:
-	var elevation_noise := InkMonWorldMapData.make_elevation_noise(_generation_seed)
-	var ridge_noise := InkMonWorldMapData.make_ridge_noise(_generation_seed)
-	var moisture_noise := InkMonWorldMapData.make_moisture_noise(_generation_seed)
-	var coast_noise := InkMonWorldMapData.make_coast_noise(_generation_seed)
-	var mottle_noise := _make_mottle_noise(_generation_seed + MOTTLE_SEED_OFFSET)
-	var image_width := maxi(8, int(ceil(sheet_rect.size.x * FIELD_BAKE_PX_PER_UNIT)))
-	var image_height := maxi(8, int(ceil(sheet_rect.size.y * FIELD_BAKE_PX_PER_UNIT)))
-	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBAH)
-	for py in range(image_height):
-		for px in range(image_width):
-			var plane := sheet_rect.position + Vector2(
-				(float(px) + 0.5) / FIELD_BAKE_PX_PER_UNIT, (float(py) + 0.5) / FIELD_BAKE_PX_PER_UNIT)
-			var elev_raw := InkMonWorldMapData.raw_elevation_at(elevation_noise, ridge_noise, plane)
-			var moist_raw := InkMonWorldMapData.raw_moisture_at(moisture_noise, plane)
-			image.set_pixel(px, py, Color(
-				clampf((elev_raw - elev_range.x) / elev_range.y, 0.0, 1.0),
-				clampf((moist_raw - moist_range.x) / moist_range.y, 0.0, 1.0),
-				(coast_noise.get_noise_2d(plane.x, plane.y) + 1.0) * 0.5,
-				(mottle_noise.get_noise_2d(plane.x, plane.y) + 1.0) * 0.5))
-	return ImageTexture.create_from_image(image)
-
-
-## 分位 CDF LUT (256×1, r = elev / g = moist): raw 归一值 → 秩01。shader 用它把连续场
-## 换回覆盖率语义再过 biome 阈值 —— mock 的 per-pixel percentile 同款 (adr/0012 决定一)。
-func _bake_cdf_texture(elev_raws: PackedFloat64Array, moist_raws: PackedFloat64Array,
-		elev_range: Vector2, moist_range: Vector2) -> ImageTexture:
-	var sorted_elev := elev_raws.duplicate()
-	var sorted_moist := moist_raws.duplicate()
-	sorted_elev.sort()
-	sorted_moist.sort()
-	var image := Image.create(CDF_LUT_WIDTH, 1, false, Image.FORMAT_RGBAH)
-	for lut_x in range(CDF_LUT_WIDTH):
-		var fraction := float(lut_x) / float(CDF_LUT_WIDTH - 1)
-		image.set_pixel(lut_x, 0, Color(
-			_rank01_of(sorted_elev, elev_range.x + elev_range.y * fraction),
-			_rank01_of(sorted_moist, moist_range.x + moist_range.y * fraction),
-			0.0, 1.0))
-	return ImageTexture.create_from_image(image)
-
-
-## 升序数组内 raw 值的秩01 (≤raw 的样本数-1 / n-1, 对齐 _rank_quantize 语义)。
-static func _rank01_of(sorted_values: PackedFloat64Array, raw_value: float) -> float:
-	var low := 0
-	var high := sorted_values.size()
-	while low < high:
-		@warning_ignore("integer_division")
-		var mid := (low + high) / 2
-		if sorted_values[mid] <= raw_value:
-			low = mid + 1
-		else:
-			high = mid
-	return clampf(float(low - 1) / float(maxi(sorted_values.size() - 1, 1)), 0.0, 1.0)
-
-
-static func _make_mottle_noise(seed_value: int) -> FastNoiseLite:
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.seed = seed_value
-	noise.frequency = 1.6
-	noise.fractal_octaves = 3
-	return noise
 
 
 func _apply_style_uniforms() -> void:
