@@ -23,7 +23,7 @@ const ISO_SQUISH := 0.5
 const FOG_BAKE_SCALE := 0.35
 ## 连续场纹理分辨率 (px per 平面单位): 渲染真相 = 连续场逐像素 (mock 同法, adr/0012 决定四),
 ## 起伏/过渡的细节密度由它决定 —— 616 格放大出不来 3D 起伏感 (用户验收踩过)。
-const FIELD_BAKE_PX_PER_UNIT := 8.0
+const FIELD_BAKE_PX_PER_UNIT := 10.0
 ## 分位 CDF LUT 宽度: raw 归一值 → 秩01, biome 阈值的覆盖率语义靠它与逻辑层同域。
 const CDF_LUT_WIDTH := 256
 const NODE_RADIUS := 10.0

@@ -374,7 +374,9 @@ func _force_plain(coord: Vector2i) -> void:
 ## 场噪声公共工厂 (adr/0012 决定四): 生成入档 cells 与表现层连续场纹理必须同一组噪声 ——
 ## 两边都从这里拿, 渲染的逐像素地貌与入档格真相同源 (对齐在格中心)。
 static func make_elevation_noise(seed_value: int) -> FastNoiseLite:
-	return _make_field_noise(seed_value, TERRAIN_NOISE_FREQUENCY, 3, true)
+	# 5 octave 与 mock 对等 —— 最细两层 (波长 ~1u/~0.5u) 是满图微褶皱凹凸感的来源,
+	# 少两层的话场里根本没有这些信息, hillshade 再强也画不出 (用户验收踩过)。
+	return _make_field_noise(seed_value, TERRAIN_NOISE_FREQUENCY, 5, true)
 
 
 static func make_ridge_noise(seed_value: int) -> FastNoiseLite:

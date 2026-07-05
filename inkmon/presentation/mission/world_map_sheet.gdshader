@@ -165,13 +165,12 @@ vec3 biome_color(float biome, float elev_rank, float moist_rank) {
 
 
 // hillshade 采样: 秩域高程 (等面积拉伸, 中段坡度不被 raw 分布压扁 —— mock 的 percentile
-// 场同款), 海取 0 → 海岸出立体崖线。
+// 场同款); 海岸按陆地系数缓降到 0 (mock 的高程×海岸衰减同款 → 海岸出立体阴影带,
+// 水线硬切 0 只会得到一条锐利崖线)。
 float elev_rank_land_at(vec2 sp) {
 	vec4 fields = texture(field_tex, sheet_uv(sp));
-	if (land_factor(sp, fields.b) < 0.5) {
-		return 0.0;
-	}
-	return texture(cdf_tex, vec2(fields.r, 0.5)).r;
+	float land = land_factor(sp, fields.b);
+	return texture(cdf_tex, vec2(fields.r, 0.5)).r * smoothstep(0.45, 0.78, land);
 }
 
 
@@ -251,7 +250,7 @@ void fragment() {
 	if (land1 >= 0.5 || sea_facet > 0.5) {
 		float slope = (elev_rank_land_at(sp + vec2(eps, 0.0)) - elev_rank_land_at(sp - vec2(eps, 0.0))
 			+ elev_rank_land_at(sp + vec2(0.0, eps)) - elev_rank_land_at(sp - vec2(0.0, eps))) / (2.0 * eps);
-		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.82, 1.16);
+		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.82, 1.14);
 		if (land1 >= 0.5) {
 			c *= shade;
 			// 阴影排线 (ink sketch): 只给明确背光的坡叠稀疏斜线。
