@@ -243,13 +243,20 @@ void fragment() {
 	float elev1;
 	vec3 c = surface_color(sp, class1, land1, elev1);
 
-	// hillshade: 秩域高程中央差分 (mock 管线同款: percentile 场逐像素梯度; 半浮点纹理
-	// 免 8-bit 台阶)。面片模式 sp 整面片恒定 → 每面片一个平面阴影 = low poly 平面着色。
-	// 光源西北; 数值对齐 mock: shade = 1 - shade_k·slope·relief_gain, clamp 0.82..1.16。
-	float eps = facet_mix > 0.5 ? facet_scale * 0.75 : 0.18;
+	// hillshade: 秩域高程宽差分 (mock 管线 = 先 σ0.2u 高斯模糊再逐像素梯度 —— 细于 ~1u 的
+	// 坡度被滤掉, 剩 1-3u 柔和大起伏; 差分窗口太细会把 5-octave 微褶全饱和成暗色蠕虫纹,
+	// 贴着色块边缘爬 = "脏边" + 整图变暗, 用户对照踩过)。双尺度差分 ≈ 模糊后梯度。
+	// 面片模式 sp 整面片恒定 → 每面片一个平面阴影 = low poly 平面着色。光源西北。
+	float eps = facet_mix > 0.5 ? facet_scale * 0.75 : 0.45;
 	if (land1 >= 0.5 || sea_facet > 0.5) {
 		float slope = (elev_rank_land_at(sp + vec2(eps, 0.0)) - elev_rank_land_at(sp - vec2(eps, 0.0))
 			+ elev_rank_land_at(sp + vec2(0.0, eps)) - elev_rank_land_at(sp - vec2(0.0, eps))) / (2.0 * eps);
+		if (facet_mix < 0.5) {
+			float eps2 = eps * 2.0;
+			float slope2 = (elev_rank_land_at(sp + vec2(eps2, 0.0)) - elev_rank_land_at(sp - vec2(eps2, 0.0))
+				+ elev_rank_land_at(sp + vec2(0.0, eps2)) - elev_rank_land_at(sp - vec2(0.0, eps2))) / (2.0 * eps2);
+			slope = slope * 0.6 + slope2 * 0.4;
+		}
 		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.82, 1.14);
 		if (land1 >= 0.5) {
 			c *= shade;
@@ -290,8 +297,8 @@ void fragment() {
 		c = mix(c, col_ink, clamp(ink, 0.0, 0.92));
 	}
 
-	// 纸纹颗粒 + 暗角。
-	c += (hash12(floor(plane * 96.0)) - 0.5) * grain_amt;
+	// 纸纹颗粒 + 暗角 (颗粒 ~24/单位 ≈ 屏幕像素级; 96/单位在游戏缩放下亚像素化成闪烁脏点)。
+	c += (hash12(floor(plane * 24.0)) - 0.5) * grain_amt;
 	float vr = length((UV - 0.5) * vec2(sheet_size.x / sheet_size.y, 1.0)) / 0.7071;
 	c *= 1.0 - vignette_amt * smoothstep(0.55, 1.0, vr);
 
