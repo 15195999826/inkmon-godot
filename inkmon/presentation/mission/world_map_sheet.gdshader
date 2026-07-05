@@ -45,7 +45,7 @@ uniform float facet_scale = 0.80;     // 面片格尺寸 (平面单位)
 uniform float ink_strength = 0.85;    // 墨线强度 (0 = 无墨线)
 uniform float hatch_strength = 0.0;   // 阴影排线 (ink sketch)
 uniform float shade_k = 0.4;          // hillshade 强度
-uniform float relief_gain = 14.0;     // 坡度→明暗增益 (mock 校准值)
+uniform float relief_gain = 3.0;      // 坡度→明暗增益 (mock 数值对齐: shade_k*gain≈1.2/坡度单位)
 uniform float grain_amt = 0.05;       // 纸纹颗粒
 uniform float vignette_amt = 0.12;    // 暗角
 uniform float shallow_steps = 0.0;    // >0 = 浅滩量化档数 (MC 风)
@@ -151,13 +151,27 @@ vec3 biome_color(float biome, float elev_rank, float moist_rank) {
 	} else if (biome < 2.5) {
 		c = col_hill;
 	} else if (biome < 3.5) {
-		c = mix(col_mountain, col_snowcap, smoothstep(snow_min_rank, 1.0, elev_rank) * snowcap_amt);
+		// 山体三段: 石壁 → 亮岩带 → 雪顶 (mock 的高程色阶台阶, 立体感的强线索)。
+		vec3 rock = mix(col_mountain, col_snowcap, 0.45);
+		c = mix(col_mountain, rock, smoothstep(0.895, 0.945, elev_rank));
+		c = mix(c, col_snowcap, smoothstep(snow_min_rank, 0.99, elev_rank) * snowcap_amt);
 	} else if (biome < 4.5) {
 		c = col_tundra;
 	} else {
 		c = col_dry;
 	}
 	return c;
+}
+
+
+// hillshade 采样: 秩域高程 (等面积拉伸, 中段坡度不被 raw 分布压扁 —— mock 的 percentile
+// 场同款), 海取 0 → 海岸出立体崖线。
+float elev_rank_land_at(vec2 sp) {
+	vec4 fields = texture(field_tex, sheet_uv(sp));
+	if (land_factor(sp, fields.b) < 0.5) {
+		return 0.0;
+	}
+	return texture(cdf_tex, vec2(fields.r, 0.5)).r;
 }
 
 
@@ -230,26 +244,20 @@ void fragment() {
 	float elev1;
 	vec3 c = surface_color(sp, class1, land1, elev1);
 
-	// hillshade: raw 高程梯度 (海取 0 → 海岸出立体崖线; relief_gain 为 mock 校准的坡度增益)。
-	// 面片模式下 sp 整面片恒定 → 每面片一个平面阴影 = low poly 平面着色。光源西北。
-	float eps = facet_mix > 0.5 ? facet_scale : 0.35;
-	float cx1;
-	float lx1;
-	float ex1;
-	surface_color(sp + vec2(eps, 0.0), cx1, lx1, ex1);
-	float cy1;
-	float ly1;
-	float ey1;
-	surface_color(sp + vec2(0.0, eps), cy1, ly1, ey1);
+	// hillshade: 秩域高程中央差分 (mock 管线同款: percentile 场逐像素梯度; 半浮点纹理
+	// 免 8-bit 台阶)。面片模式 sp 整面片恒定 → 每面片一个平面阴影 = low poly 平面着色。
+	// 光源西北; 数值对齐 mock: shade = 1 - shade_k·slope·relief_gain, clamp 0.82..1.16。
+	float eps = facet_mix > 0.5 ? facet_scale * 0.75 : 0.18;
 	if (land1 >= 0.5 || sea_facet > 0.5) {
-		float slope = (ex1 - elev1) / eps + (ey1 - elev1) / eps;
-		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.78, 1.18);
+		float slope = (elev_rank_land_at(sp + vec2(eps, 0.0)) - elev_rank_land_at(sp - vec2(eps, 0.0))
+			+ elev_rank_land_at(sp + vec2(0.0, eps)) - elev_rank_land_at(sp - vec2(0.0, eps))) / (2.0 * eps);
+		float shade = clamp(1.0 - shade_k * slope * relief_gain, 0.82, 1.16);
 		if (land1 >= 0.5) {
 			c *= shade;
 			// 阴影排线 (ink sketch): 只给明确背光的坡叠稀疏斜线。
 			if (hatch_strength > 0.001 && shade < 0.94) {
 				float stripe = step(0.55, fract((plane.x + plane.y) * 2.6));
-				c *= 1.0 - hatch_strength * stripe * smoothstep(0.94, 0.82, shade);
+				c *= 1.0 - hatch_strength * stripe * smoothstep(0.94, 0.84, shade);
 			}
 		}
 	}

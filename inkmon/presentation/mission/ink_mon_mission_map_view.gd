@@ -316,7 +316,7 @@ func _bake_field_texture(sheet_rect: Rect2, elev_range: Vector2, moist_range: Ve
 	var mottle_noise := _make_mottle_noise(_generation_seed + MOTTLE_SEED_OFFSET)
 	var image_width := maxi(8, int(ceil(sheet_rect.size.x * FIELD_BAKE_PX_PER_UNIT)))
 	var image_height := maxi(8, int(ceil(sheet_rect.size.y * FIELD_BAKE_PX_PER_UNIT)))
-	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBAH)
 	for py in range(image_height):
 		for px in range(image_width):
 			var plane := sheet_rect.position + Vector2(
@@ -339,7 +339,7 @@ func _bake_cdf_texture(elev_raws: PackedFloat64Array, moist_raws: PackedFloat64A
 	var sorted_moist := moist_raws.duplicate()
 	sorted_elev.sort()
 	sorted_moist.sort()
-	var image := Image.create(CDF_LUT_WIDTH, 1, false, Image.FORMAT_RGBA8)
+	var image := Image.create(CDF_LUT_WIDTH, 1, false, Image.FORMAT_RGBAH)
 	for lut_x in range(CDF_LUT_WIDTH):
 		var fraction := float(lut_x) / float(CDF_LUT_WIDTH - 1)
 		image.set_pixel(lut_x, 0, Color(
@@ -423,7 +423,7 @@ func _bake_fog_texture() -> void:
 		return
 	var image_width := maxi(8, int(ceil(_sheet_view_rect.size.x * FOG_BAKE_SCALE)))
 	var image_height := maxi(8, int(ceil(_sheet_view_rect.size.y * FOG_BAKE_SCALE)))
-	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBA8)
+	var image := Image.create(image_width, image_height, false, Image.FORMAT_RGBAH)
 	for py in range(image_height):
 		for px in range(image_width):
 			var view_pos := _sheet_view_rect.position + Vector2(
