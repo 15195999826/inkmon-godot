@@ -25,6 +25,9 @@ func _ready() -> void:
 
 func _run() -> String:
 	# === ① CSV 结构 ===
+	var key_format := RegEx.new()
+	if key_format.compile("^[A-Z][A-Z0-9_]*$") != OK:
+		return "key format regex failed to compile"
 	var keys := {}
 	var file := FileAccess.open(CSV_PATH, FileAccess.READ)
 	if file == null:
@@ -39,8 +42,8 @@ func _run() -> String:
 		if row.size() != 3:
 			return "csv row must have 3 columns: %s" % ",".join(row)
 		var key := row[0]
-		if key != key.to_upper() or key == "":
-			return "csv key must be non-empty upper snake: %s" % key
+		if key_format.search(key) == null:
+			return "csv key must match ^[A-Z][A-Z0-9_]*$: %s" % key
 		if keys.has(key):
 			return "duplicate csv key: %s" % key
 		if row[1].strip_edges() == "" or row[2].strip_edges() == "":
@@ -48,13 +51,19 @@ func _run() -> String:
 		keys[key] = true
 	file.close()
 
-	# === ② 代码字面 key ===
+	# === ② 代码字面 key + InkMonText 出口唯一性 (禁直调 tr/atr/TranslationServer.translate) ===
 	var key_regex := RegEx.new()
 	if key_regex.compile("\\btf?\\(\"([A-Z][A-Z0-9_]*)\"") != OK:
 		return "key regex failed to compile"
+	var bypass_regex := RegEx.new()
+	if bypass_regex.compile("\\ba?tr\\(") != OK:
+		return "bypass regex failed to compile"
 	for root in CODE_SCAN_ROOTS:
 		for path in _collect_files(root, ".gd"):
 			var source := FileAccess.get_file_as_string(path)
+			if path != "res://inkmon/presentation/text/ink_mon_text.gd" \
+					and (source.contains("TranslationServer.translate") or bypass_regex.search(source) != null):
+				return "text must route through InkMonText, found direct tr()/translate (%s)" % path
 			for found in key_regex.search_all(source):
 				var literal_key := found.get_string(1)
 				if not keys.has(literal_key):
@@ -91,8 +100,9 @@ func _run() -> String:
 	var text_regex := RegEx.new()
 	if text_regex.compile("(?m)^text = \"([^\"]*)\"") != OK:
 		return "tscn regex failed to compile"
+	# 字母或 CJK 都算"承载文案"(硬编码中文 text 同样违例); 纯符号才放过。
 	var letters := RegEx.new()
-	if letters.compile("[A-Za-z]") != OK:
+	if letters.compile("[A-Za-z]|\\p{Han}") != OK:
 		return "letters regex failed to compile"
 	for path in _collect_files("res://inkmon/presentation", ".tscn"):
 		var scene_source := FileAccess.get_file_as_string(path)
