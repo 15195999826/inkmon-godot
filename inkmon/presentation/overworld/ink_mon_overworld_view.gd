@@ -88,7 +88,7 @@ func set_npcs(defs: Dictionary) -> void:
 		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
 		_driver.seed_actor(
 			npc_id,
-			str(npc_def.get("display_name", npc_id)),
+			InkMonText.npc_name(npc_id),
 			HexCoord.new(coord.x, coord.y),
 			InkMonRender2DAvatar.Style.overworld_npc(_npc_color(npc_id))
 		)

@@ -55,15 +55,15 @@ theme_override_constants/separation = 6
 
 [node name="Tab_Party" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
 custom_minimum_size = Vector2(92, 34)
-text = "Party"
+text = "UI_TAB_PARTY"
 
 [node name="Tab_Bag" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
 custom_minimum_size = Vector2(92, 34)
-text = "Bag"
+text = "UI_TAB_BAG"
 
 [node name="Tab_Journal" type="Button" parent="RightDrawer/PanelBox/PanelTabs"]
 custom_minimum_size = Vector2(92, 34)
-text = "Journal"
+text = "UI_TAB_JOURNAL"
 
 [node name="PanelBody" type="VBoxContainer" parent="RightDrawer/PanelBox"]
 theme_override_constants/separation = 10

@@ -260,7 +260,7 @@ func on_capture_attempted(result: Dictionary) -> void:
 		_battle_2d_view.apply_capture_result(result)
 	if bool(result.get("ok", false)):
 		var feedback := "captured %s!" if bool(result.get("captured", false)) else "%s broke free"
-		add_event(feedback % str(result.get("display_name", "")))
+		add_event(feedback % str(result.get("species_id", "")))
 
 
 ## 玩家确认离开战斗观看:按语境恢复(出征中回大地图, 否则回 overworld),清 _replaying,
@@ -579,7 +579,7 @@ func _build_world_and_ui() -> void:
 	add_child(_prompt_layer)
 	_prompt_button = Button.new()
 	_prompt_button.name = "PromptEnterButton"
-	_prompt_button.text = "Enter"
+	_prompt_button.text = InkMonText.t("UI_TALK_PROMPT")
 	_prompt_button.custom_minimum_size = Vector2(88, 40)
 	_prompt_button.pressed.connect(func() -> void:
 		open_near_npc_menu()
@@ -605,14 +605,17 @@ func _build_hud() -> void:
 	_rank_label = _hud_root.get_node("TopLeftHud/HudBox/GoldRankRow/RankLabel") as Label
 	_roster_box = _hud_root.get_node("TopLeftHud/HudBox/RosterChips") as HBoxContainer
 	var tools := _hud_root.get_node("TopRightTools") as HBoxContainer
-	_register_tool_button(tools, "party")
-	_register_tool_button(tools, "bag")
-	_register_tool_button(tools, "journal")
-	_register_tool_button(tools, "menu")
+	_register_tool_button(tools, "party", "P")
+	_register_tool_button(tools, "bag", "B")
+	_register_tool_button(tools, "journal", "J")
+	_register_tool_button(tools, "menu", "Esc")
 
 
-func _register_tool_button(parent: Control, panel_id: String) -> void:
+func _register_tool_button(parent: Control, panel_id: String, hotkey: String) -> void:
 	var button := parent.get_node("Tool_%s" % panel_id.capitalize()) as Button
+	# 双行文本 (名字+快捷键) 运行时组装 (CSV 不放换行, adr/0011)。
+	var tool_label := InkMonText.t("UI_MENU") if panel_id == "menu" else InkMonText.drawer_title(panel_id)
+	button.text = "%s\n%s" % [tool_label, hotkey]
 	button.pressed.connect(func() -> void:
 		if panel_id == "menu":
 			open_save_load_menu()
@@ -702,7 +705,7 @@ func _layout_ui() -> void:
 	if _near_npc_id != "" and _npc_defs.has(_near_npc_id):
 		var npc_def := _npc_defs[_near_npc_id] as Dictionary
 		var coord := npc_def.get("coord", Vector2i.ZERO) as Vector2i
-		_prompt_button.text = "[E] Talk"
+		_prompt_button.text = InkMonText.t("UI_TALK_PROMPT")
 		_prompt_button.position = _world_layer.coord_to_screen(coord) + Vector2(-54, -82)
 
 func _refresh_roster_chips() -> void:
@@ -726,10 +729,9 @@ func _refresh_panel() -> void:
 		return
 	# 滑入动画开始前内容就绪: 先填 body 再 show (开/关 tween 竞态在 InkMonRightDrawer 内处理)。
 	_rebuild_panel_body()
-	var title_text := _drawer_mode.capitalize()
+	var title_text := InkMonText.drawer_title(_drawer_mode)
 	if _drawer_mode == "npc":
-		var npc_def := _npc_defs[_active_npc_id] as Dictionary
-		title_text = str(npc_def.get("display_name", _active_npc_id))
+		title_text = InkMonText.npc_name(_active_npc_id)
 	_drawer_view.show_drawer(title_text, _drawer_mode != "npc")
 
 
@@ -751,7 +753,7 @@ func _rebuild_panel_body() -> void:
 
 	if _world_query == null or not _world_query.has_npc_handler(_active_npc_id):
 		var placeholder := PanelMessageScene.instantiate() as Label
-		placeholder.text = "System linked"
+		placeholder.text = InkMonText.t("UI_SYSTEM_LINKED")
 		_panel_body.add_child(placeholder)
 		return
 
@@ -779,13 +781,13 @@ func _add_action_row(action: Dictionary) -> void:
 	var row := NpcActionRowScene.instantiate() as HBoxContainer
 	row.name = "ActionRow_%s" % str(action.get(InkMonNpcHandler.ACTION_ID, "unknown"))
 	(row.get_node("ItemLabel") as Label).text = "%s\n%s" % [
-		str(action.get(InkMonNpcHandler.ACTION_LABEL, "")),
-		str(action.get(InkMonNpcHandler.ACTION_DETAIL, "")),
+		InkMonText.npc_action_label(action),
+		InkMonText.npc_action_detail(action),
 	]
 	var action_id := str(action.get(InkMonNpcHandler.ACTION_ID, ""))
 	var button := row.get_node("ActionButton") as Button
 	button.name = "Action_%s" % action_id
-	button.text = "Buy" if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy" else "Go"
+	button.text = InkMonText.t("UI_BUY") if str(action.get(InkMonNpcHandler.ACTION_KIND, "")) == "shop_buy" else InkMonText.t("UI_GO")
 	button.disabled = not bool(action.get(InkMonNpcHandler.ACTION_ENABLED, true))
 	button.pressed.connect(func() -> void:
 		run_active_npc_action(action_id)

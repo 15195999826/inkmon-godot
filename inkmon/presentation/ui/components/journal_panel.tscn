@@ -9,4 +9,4 @@ modulate = Color(0.92, 0.88, 0.78, 1)
 
 [node name="OpenSystemMenu" type="Button" parent="."]
 custom_minimum_size = Vector2(180, 38)
-text = "Save / Load"
+text = "UI_SAVELOAD_TITLE"

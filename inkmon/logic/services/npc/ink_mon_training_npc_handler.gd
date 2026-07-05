@@ -9,7 +9,7 @@ const INTENT_START_BATTLE := "start_battle"
 
 func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return [
-		_action(ACTION_START_BATTLE, "Start Training Battle", "4v4 ATB drill, earns Gold", "battle"),
+		_action(ACTION_START_BATTLE, "battle"),
 	]
 
 

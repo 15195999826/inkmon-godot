@@ -644,7 +644,6 @@ func _build_capture_pool() -> void:
 			"actor_id": wild_actor.get_id() if wild_actor != null else "",
 			"species_id": str(entry.get("species_id", "")),
 			"roll_seed": int(entry.get("roll_seed", 0)),
-			"display_name": wild_actor.get_display_name() if wild_actor != null else str(entry.get("species_id", "")),
 			"attempted": false,
 			"captured": false,
 		})
@@ -679,7 +678,6 @@ func attempt_wild_capture(slot_index: int) -> Dictionary:
 			"slot_index": slot_index,
 			"captured": captured,
 			"species_id": species,
-			"display_name": str(entry.get("display_name", species)),
 			"chance": chance,
 		}
 	return {"ok": false, "message": "unknown capture slot %d" % slot_index}

@@ -64,7 +64,6 @@ func get_roster_snapshot() -> Array[Dictionary]:
 		result.append({
 			"actor_id": actor.get_id(),
 			"species_id": actor.species,
-			"display_name": actor.get_display_name(),
 			"level": actor.level,
 			"exp": actor.exp,
 			"elements": actor.elements.duplicate(),
@@ -90,7 +89,8 @@ func get_bag_snapshot() -> Array[Dictionary]:
 			"count": int(snapshot.get("count", 1)),
 			"slot_index": int(snapshot.get("slot_index", -1)),
 			"display_name": str(config.get("display_name", config_id)),
-			"description": str(config.get("description", "Inventory item")),
+			"display_name_zh": str(config.get("display_name_zh", "")),
+			"description": str(config.get("description", "")),
 		})
 	return result
 
@@ -142,11 +142,10 @@ func get_mission_snapshot() -> Dictionary:
 		if def == null:
 			continue
 		quests.append({
-			"title": def.title(),
+			"quest": def.to_dict(),
 			"role": str(quest_entry.get("role", "")),
 			"progress": int(quest_entry.get("progress", 0)),
 			"goal_count": def.goal_count,
-			"reward_label": def.reward_label(),
 		})
 	return {
 		"nodes": nodes,

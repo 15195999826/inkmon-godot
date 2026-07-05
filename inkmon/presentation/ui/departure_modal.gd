@@ -73,6 +73,10 @@ func open(gold_available: int) -> void:
 func close() -> void:
 	_open_requested = false
 	if _panel == null or not _panel.visible:
+		# 防御自愈: "panel 已隐但 overlay 残留"的死状态会永久吞全屏点击且本函数原样 return
+		# 永远关不掉 —— 顺手补隐 overlay (正常流两者同隐, 此行幂等无害)。
+		if _overlay != null:
+			_overlay.visible = false
 		return
 	_kill_tween()
 	_transition_active = true
@@ -121,9 +125,9 @@ func _set_supplies(value: int) -> void:
 func _refresh_labels() -> void:
 	var cost := _supplies * InkMonMissionSetup.SUPPLY_UNIT_COST
 	if _supply_count_label != null:
-		_supply_count_label.text = "%d supplies" % _supplies
+		_supply_count_label.text = InkMonText.tf("UI_SUPPLIES_COUNT", {"n": _supplies})
 	if _cost_label != null:
-		_cost_label.text = "Cost: %d gold (have %d)" % [cost, _gold_available]
+		_cost_label.text = InkMonText.tf("UI_DEPART_COST", {"cost": cost, "gold": _gold_available})
 	if _confirm_button != null:
 		_confirm_button.disabled = cost > _gold_available
 

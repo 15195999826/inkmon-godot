@@ -96,13 +96,13 @@ func _build() -> void:
 
 	_skip_button = Button.new()
 	_skip_button.name = "SkipButton"
-	_skip_button.text = "Skip ▶"
+	_skip_button.text = InkMonText.t("BATTLE_SKIP")
 	_skip_button.pressed.connect(_on_skip_pressed)
 	add_child(_skip_button)
 
 	_leave_button = Button.new()
 	_leave_button.name = "LeaveButton"
-	_leave_button.text = "Leave ◀"
+	_leave_button.text = InkMonText.t("BATTLE_LEAVE")
 	_leave_button.visible = false
 	_leave_button.pressed.connect(_on_leave_pressed)
 	add_child(_leave_button)
@@ -144,7 +144,8 @@ func play_replay(record_dict: Dictionary, result: Dictionary = {},
 	if _leave_button != null:
 		_leave_button.visible = false
 	if _result_label != null:
-		_result_label.text = "Battle: %s" % str(result.get("result", ""))
+		_result_label.text = InkMonText.tf("BATTLE_RESULT",
+			{"result": InkMonText.battle_result_name(str(result.get("result", "")))})
 	_capture_pool = capture_pool.duplicate(true)
 	_clear_capture_marks()
 	var record := PlaybackData.BattleRecord.from_dict(record_dict)
@@ -175,7 +176,7 @@ func _on_animator_ended() -> void:
 	# M2.3 捕捉窗口开启: 死亡淡出把气绝个体隐形了 —— 点选目标拉回半透明可见 + 画待掷 marker。
 	if not _capture_pool.is_empty():
 		if _result_label != null:
-			_result_label.text += "\nClick a fainted wild to throw a ball (one try each)"
+			_result_label.text += "\n" + InkMonText.t("BATTLE_CAPTURE_HINT")
 		for entry in _capture_pool:
 			if bool(entry.get("attempted", false)):
 				continue
@@ -185,7 +186,7 @@ func _on_animator_ended() -> void:
 			if not unit.is_empty():
 				var slot_index := int(entry.get("slot_index", -1))
 				var mark := Label.new()
-				mark.text = "◎ throw"
+				mark.text = InkMonText.t("BATTLE_THROW")
 				mark.add_theme_color_override("font_color", Color(0.98, 0.88, 0.5))
 				mark.add_theme_font_size_override("font_size", 13)
 				mark.position = Vector2(float(unit.get("x", 0.0)), float(unit.get("y", 0.0))) + Vector2(-24.0, 26.0)
@@ -259,7 +260,7 @@ func apply_capture_result(result: Dictionary) -> void:
 			var unit_pos := Vector2(float(unit.get("x", 0.0)), float(unit.get("y", 0.0)))
 			var float_text := InkMonRender2DFloatingText2D.new()
 			_fx_root.add_child(float_text)
-			float_text.initialize("Caught!" if captured else "Broke free!",
+			float_text.initialize(InkMonText.t("BATTLE_CAUGHT_FLOAT") if captured else InkMonText.t("BATTLE_BROKE_FREE"),
 				Color(0.45, 0.9, 0.5) if captured else Color(0.95, 0.55, 0.45), unit_pos, 1.2)
 			_add_capture_mark(unit_pos, captured)
 		return
@@ -268,7 +269,7 @@ func apply_capture_result(result: Dictionary) -> void:
 ## 常驻落标 (单位脚下一行小字): 离场前一直可见, 标记该个体已掷过。
 func _add_capture_mark(unit_pos: Vector2, captured: bool) -> void:
 	var mark := Label.new()
-	mark.text = "● caught" if captured else "✗ fled"
+	mark.text = InkMonText.t("BATTLE_CAUGHT_MARK") if captured else InkMonText.t("BATTLE_FLED_MARK")
 	mark.add_theme_color_override("font_color",
 		Color(0.45, 0.9, 0.5) if captured else Color(0.7, 0.6, 0.55))
 	mark.add_theme_font_size_override("font_size", 13)

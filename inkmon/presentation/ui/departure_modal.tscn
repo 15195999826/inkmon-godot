@@ -38,12 +38,12 @@ theme_override_styles/panel = SubResource("modal_style")
 theme_override_constants/separation = 10
 
 [node name="DepartureTitle" type="Label" parent="DepartureModal/DepartureBox"]
-text = "Set Out on Mission"
+text = "UI_DEPARTURE_TITLE"
 theme_override_font_sizes/font_size = 24
 
 [node name="DepartureDetail" type="Label" parent="DepartureModal/DepartureBox"]
 custom_minimum_size = Vector2(340, 0)
-text = "Buy supplies for the road. One supply is consumed per step; marching on empty drains the party's HP."
+text = "UI_DEPARTURE_HINT"
 autowrap_mode = 3
 
 [node name="SupplyRow" type="HBoxContainer" parent="DepartureModal/DepartureBox"]
@@ -55,7 +55,7 @@ text = "-"
 
 [node name="SupplyCount" type="Label" parent="DepartureModal/DepartureBox/SupplyRow"]
 custom_minimum_size = Vector2(120, 0)
-text = "10 supplies"
+text = "UI_SUPPLIES_COUNT"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -64,12 +64,12 @@ custom_minimum_size = Vector2(44, 38)
 text = "+"
 
 [node name="CostLabel" type="Label" parent="DepartureModal/DepartureBox"]
-text = "Cost: 20 gold (have 100)"
+text = "UI_DEPART_COST"
 
 [node name="ConfirmButton" type="Button" parent="DepartureModal/DepartureBox"]
 custom_minimum_size = Vector2(180, 38)
-text = "Depart"
+text = "UI_DEPART"
 
 [node name="CancelButton" type="Button" parent="DepartureModal/DepartureBox"]
 custom_minimum_size = Vector2(180, 38)
-text = "Cancel"
+text = "UI_CANCEL"

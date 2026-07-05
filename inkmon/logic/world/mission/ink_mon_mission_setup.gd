@@ -130,7 +130,7 @@ static func settle_complete(world: InkMonWorldGI) -> Dictionary:
 				world.create_bag_item(StringName(def.reward_item_id))
 		quest_results.append({
 			"quest_id": def.quest_id,
-			"title": def.title(),
+			"quest": def.to_dict(),
 			"role": str(quest_entry.get("role", "")),
 			"fulfilled": fulfilled,
 			"reward_gold": def.reward_gold if fulfilled else 0,

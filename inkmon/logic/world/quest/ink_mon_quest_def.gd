@@ -28,31 +28,8 @@ func is_side_type() -> bool:
 	return type == TYPE_HUNT_COUNT or type == TYPE_CAPTURE_COUNT
 
 
-## 展示标题 (派生不存; v1 英文对齐现有 UI 语言)。
-func title() -> String:
-	match type:
-		TYPE_REACH:
-			return "Reach %s" % _site_label()
-		TYPE_HUNT:
-			return "Clear the wilds at %s" % _site_label()
-		TYPE_HUNT_COUNT:
-			return "Win %d wild battle%s" % [goal_count, "s" if goal_count > 1 else ""]
-		TYPE_CAPTURE_COUNT:
-			return "Capture %d wild%s" % [goal_count, "s" if goal_count > 1 else ""]
-	return quest_id
-
-
-## 奖励一行 (展示派生)。
-func reward_label() -> String:
-	if reward_item_id != "":
-		return "%d gold + item" % reward_gold
-	return "%d gold" % reward_gold
-
-
-func _site_label() -> String:
-	return target_site_id.replace("_", " ").capitalize()
-
-
+## 展示文案不在本类 (adr/0011 逻辑层禁产玩家可见文案): 标题/奖励行由表现层
+## InkMonText.quest_title / quest_reward 按 to_dict() 语义字段组装。
 func to_dict() -> Dictionary:
 	return {
 		"quest_id": quest_id,

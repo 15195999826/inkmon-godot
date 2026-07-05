@@ -27,13 +27,15 @@ offset_left = 24.0
 offset_top = 140.0
 offset_right = 260.0
 offset_bottom = 300.0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("hud_style")
 
 [node name="MissionBox" type="VBoxContainer" parent="MissionPanel"]
+mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="SuppliesLabel" type="Label" parent="MissionPanel/MissionBox"]
-text = "Supplies: 10"
+text = "UI_SUPPLIES"
 theme_override_font_sizes/font_size = 22
 
 [node name="QuestRows" type="VBoxContainer" parent="MissionPanel/MissionBox"]
@@ -44,4 +46,4 @@ theme_override_constants/separation = 4
 
 [node name="AbandonButton" type="Button" parent="MissionPanel/MissionBox"]
 custom_minimum_size = Vector2(180, 34)
-text = "Abandon Mission"
+text = "UI_ABANDON_MISSION"

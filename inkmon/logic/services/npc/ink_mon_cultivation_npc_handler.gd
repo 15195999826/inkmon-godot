@@ -8,7 +8,7 @@ const CULTIVATION_COST := 25
 
 func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return [
-		_action(ACTION_CULTIVATE_LEAD, "Cultivate Lead InkMon", "25 Gold, +1 level", "progression"),
+		_action(ACTION_CULTIVATE_LEAD, "progression"),
 	]
 
 

@@ -29,7 +29,8 @@ func build_roster_chips(container: HBoxContainer, roster_snapshot: Array[Diction
 		if style != null:
 			style.border_color = element_color(str(elements[0]) if not elements.is_empty() else "")
 		(chip.get_node("ChipLabel") as Label).text = "%s\nLv%d" % [
-			short_name(str(entry.get("display_name", ""))), int(entry.get("level", 1))]
+			short_name(InkMonText.species_name(str(entry.get("species_id", "")))),
+			int(entry.get("level", 1))]
 		container.add_child(chip)
 
 
@@ -43,28 +44,31 @@ func build_party_panel(container: VBoxContainer, roster_snapshot: Array[Dictiona
 		(row.get_node("ElementSwatch") as ColorRect).color = element_color(
 			str(elements[0]) if not elements.is_empty() else "")
 
-		var element_names: PackedStringArray = []
-		for element_value in elements:
-			element_names.append(str(element_value))
 		var label := row.get_node("PartyEntryLabel") as Label
-		label.text = "%s  Lv%d\n%s  EXP %d  Skill %s" % [
-			str(entry.get("display_name", "")),
+		label.text = "%s  Lv%d\n%s" % [
+			InkMonText.species_name(str(entry.get("species_id", ""))),
 			int(entry.get("level", 1)),
-			", ".join(element_names),
-			int(entry.get("exp", 0)),
-			str(entry.get("primary_skill_id", "")),
+			InkMonText.tf("UI_PARTY_META", {
+				"elements": InkMonText.elements_line(elements),
+				"exp": int(entry.get("exp", 0)),
+				"skill": str(entry.get("primary_skill_id", "")),
+			}),
 		]
 		label.modulate = Color(0.92, 0.88, 0.78)
 
 		var stats := row.get_node("StatsLabel") as Label
 		var live := entry.get("stats", {}) as Dictionary
-		stats.text = "HP %d  AD %d  AP %d\nArmor %d  MR %d  SPD %d" % [
-			int(float(live.get("max_hp", 0.0))),
-			int(float(live.get("ad", 0.0))),
-			int(float(live.get("ap", 0.0))),
-			int(float(live.get("armor", 0.0))),
-			int(float(live.get("mr", 0.0))),
-			int(float(live.get("speed", 0.0))),
+		stats.text = "%s\n%s" % [
+			InkMonText.tf("UI_STATS_ROW_1", {
+				"hp": int(float(live.get("max_hp", 0.0))),
+				"ad": int(float(live.get("ad", 0.0))),
+				"ap": int(float(live.get("ap", 0.0))),
+			}),
+			InkMonText.tf("UI_STATS_ROW_2", {
+				"armor": int(float(live.get("armor", 0.0))),
+				"mr": int(float(live.get("mr", 0.0))),
+				"spd": int(float(live.get("speed", 0.0))),
+			}),
 		]
 		stats.modulate = Color(0.82, 0.78, 0.68)
 		container.add_child(row)
@@ -75,7 +79,7 @@ func build_bag_panel(container: VBoxContainer, bag_items: Array) -> void:
 	if bag_items.is_empty():
 		var empty := PanelMessageScene.instantiate() as Label
 		empty.name = "BagEmptyLabel"
-		empty.text = "Bag is empty."
+		empty.text = InkMonText.t("UI_BAG_EMPTY")
 		container.add_child(empty)
 		return
 
@@ -86,10 +90,13 @@ func build_bag_panel(container: VBoxContainer, bag_items: Array) -> void:
 		var row := BagItemRowScene.instantiate() as HBoxContainer
 		row.name = "BagItem_%s" % str(item.get("config_id", "unknown"))
 		var label := row.get_node("BagItemLabel") as Label
+		var description := str(item.get("description", ""))
+		if description == "":
+			description = InkMonText.t("UI_ITEM_NO_DESC")
 		label.text = "%s x%d\n%s" % [
-			str(item.get("display_name", item.get("config_id", ""))),
+			InkMonText.item_display(item),
 			int(item.get("count", 1)),
-			str(item.get("description", "Inventory item")),
+			description,
 		]
 		label.modulate = Color(0.92, 0.88, 0.78)
 		container.add_child(row)
@@ -98,16 +105,16 @@ func build_bag_panel(container: VBoxContainer, bag_items: Array) -> void:
 ## journal 概要 + 系统菜单按钮(on_system_menu = 打开 save/load 的 Host 回调)。
 func build_journal_panel(container: VBoxContainer, progression: Dictionary, last_battle: Dictionary, on_system_menu: Callable) -> void:
 	var lines := PackedStringArray([
-		"Trainer Rank: R%d" % int(progression.get("trainer_rank", 1)),
-		"Guild Joined: %s" % ("yes" if bool(progression.get("guild_joined", false)) else "no"),
-		"Cultivation Points: %d" % int(progression.get("cultivation_points", 0)),
-		"Guild Tasks: %d" % int(progression.get("guild_tasks_completed", 0)),
+		InkMonText.tf("UI_JOURNAL_RANK", {"n": int(progression.get("trainer_rank", 1))}),
+		InkMonText.t("UI_JOURNAL_GUILD_YES" if bool(progression.get("guild_joined", false)) else "UI_JOURNAL_GUILD_NO"),
+		InkMonText.tf("UI_JOURNAL_CULTIVATION", {"n": int(progression.get("cultivation_points", 0))}),
+		InkMonText.tf("UI_JOURNAL_TASKS", {"n": int(progression.get("guild_tasks_completed", 0))}),
 	])
 	if not last_battle.is_empty():
-		lines.append("Last Battle: %s / winner %s" % [
-			str(last_battle.get("result", "")),
-			str(last_battle.get("winner_team", "")),
-		])
+		lines.append(InkMonText.tf("UI_JOURNAL_LAST_BATTLE", {
+			"result": InkMonText.battle_result_name(str(last_battle.get("result", ""))),
+			"team": InkMonText.team_name(str(last_battle.get("winner_team", ""))),
+		}))
 	var panel := JournalPanelScene.instantiate()
 	(panel.get_node("JournalSummary") as Label).text = "\n".join(lines)
 	(panel.get_node("OpenSystemMenu") as Button).pressed.connect(on_system_menu)
@@ -132,10 +139,20 @@ static func element_color(element: String) -> Color:
 			return Color(0.72, 0.68, 0.56)
 
 
-## roster chip 紧凑标签:取 name_en 首词前 4 字母大写(adr/0008:不再显示 role badge,改显示单位名)。
-static func short_name(name_en: String) -> String:
-	var trimmed := name_en.strip_edges()
+## roster chip 紧凑标签 (adr/0008 显示单位名): 中文名取前 2 字; 拉丁名取首词前 4 字母大写。
+static func short_name(display: String) -> String:
+	var trimmed := display.strip_edges()
 	if trimmed == "":
 		return "???"
+	if _has_cjk(trimmed):
+		return trimmed.substr(0, 2)
 	var first_word := trimmed.split(" ", false)[0] as String
 	return first_word.substr(0, 4).to_upper()
+
+
+static func _has_cjk(text: String) -> bool:
+	for i in range(text.length()):
+		var code := text.unicode_at(i)
+		if code >= 0x4E00 and code <= 0x9FFF:
+			return true
+	return false

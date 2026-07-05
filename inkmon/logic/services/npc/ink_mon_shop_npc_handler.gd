@@ -42,13 +42,10 @@ func buy(world: InkMonWorldGI, config_id: StringName) -> Dictionary:
 func _buy_action(config_id: StringName, action_id: String, world: InkMonWorldGI) -> Dictionary:
 	var config := ItemSystem.get_item_config(config_id)
 	var price := int(config.get("price", 0))
-	var action := _action(
-		action_id,
-		str(config.get("display_name", str(config_id))),
-		"%d Gold" % price,
-		"shop_buy",
-		world.player_actor.gold >= price
-	)
-	action["item_config_id"] = str(config_id)
-	action["price"] = price
-	return action
+	# display_name* = 内容字段透传 (adr/0011 内容轨), 非组装文案; 表现层 item_display 挑列。
+	return _action(action_id, "shop_buy", world.player_actor.gold >= price, {
+		"item_config_id": str(config_id),
+		"price": price,
+		"display_name": str(config.get("display_name", str(config_id))),
+		"display_name_zh": str(config.get("display_name_zh", "")),
+	})

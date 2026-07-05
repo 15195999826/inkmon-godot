@@ -1,0 +1,93 @@
+keys,en,zh
+MENU_SUBTITLE,hex expedition prototype,六边形远征原型
+MENU_NEW_GAME,New Game,新的旅程
+MENU_CONTINUE,Continue,继续旅程
+MENU_RECOVER_HINT,Last mission never returned.,上次出征未曾归来。
+MENU_RECOVER,Return to Departure,回到出发时刻
+UI_DEPARTURE_TITLE,Set Out on Mission,出征启程
+UI_DEPARTURE_HINT,Buy supplies for the road. One supply is consumed per step; marching on empty drains the party's HP.,为旅途购置粮草。每走一步消耗 1 份；断粮行军会耗损全队生命。
+UI_SUPPLIES_COUNT,{n} supplies,{n} 份粮草
+UI_DEPART_COST,Cost: {cost} gold (have {gold}),花费 {cost} 金币（持有 {gold}）
+UI_DEPART,Depart,出发
+UI_CANCEL,Cancel,取消
+UI_SAVELOAD_TITLE,Save / Load,存档 / 读档
+UI_SAVELOAD_HINT,Pick a slot to save or reload the local game state.,选择一个槽位来保存或读取进度。
+UI_SLOT_1,Slot 1,槽位 1
+UI_SLOT_2,Slot 2,槽位 2
+UI_SLOT_3,Slot 3,槽位 3
+UI_SAVE,Save,存
+UI_LOAD,Load,读
+UI_CLOSE,Close,关闭
+UI_TAB_PARTY,Party,队伍
+UI_TAB_BAG,Bag,背包
+UI_TAB_JOURNAL,Journal,日志
+UI_MENU,Menu,菜单
+UI_HOTKEY_HINT,P Party   B Bag   J Journal   Esc Menu,P 队伍   B 背包   J 日志   Esc 菜单
+UI_SUPPLIES,Supplies: {n},粮草：{n}
+UI_ABANDON_MISSION,Abandon Mission,放弃出征
+UI_ABANDON_CONFIRM,Abandon?! (click again),确定放弃？！（再点一次）
+UI_TALK_PROMPT,[E] Talk,[E] 交谈
+UI_SYSTEM_LINKED,System linked,系统已连接
+UI_BUY,Buy,购买
+UI_GO,Go,前往
+UI_BAG_EMPTY,Bag is empty.,背包空空如也。
+UI_ITEM_NO_DESC,Inventory item,背包物品
+UI_PARTY_META,{elements}  EXP {exp}  Skill {skill},{elements}  经验 {exp}  技能 {skill}
+UI_STATS_ROW_1,HP {hp}  AD {ad}  AP {ap},生命 {hp}  攻击 {ad}  法强 {ap}
+UI_STATS_ROW_2,Armor {armor}  MR {mr}  SPD {spd},护甲 {armor}  魔抗 {mr}  速度 {spd}
+UI_JOURNAL_RANK,Trainer Rank: R{n},训练家阶位：R{n}
+UI_JOURNAL_GUILD_YES,Guild Joined: yes,公会：已加入
+UI_JOURNAL_GUILD_NO,Guild Joined: no,公会：未加入
+UI_JOURNAL_CULTIVATION,Cultivation Points: {n},修行点数：{n}
+UI_JOURNAL_TASKS,Guild Tasks: {n},公会杂务：{n}
+UI_JOURNAL_LAST_BATTLE,Last Battle: {result} / winner {team},上场战斗：{result} / 胜方 {team}
+UI_TEAM_LEFT,left,我方
+UI_TEAM_RIGHT,right,敌方
+BATTLE_SKIP,Skip ▶,跳过 ▶
+BATTLE_LEAVE,Leave ◀,◀ 离开
+BATTLE_RESULT,Battle: {result},战斗结果：{result}
+BATTLE_RESULT_LEFT_WIN,left_win,我方胜利
+BATTLE_RESULT_RIGHT_WIN,right_win,我方败北
+BATTLE_RESULT_TIMEOUT,timeout,超时收场
+BATTLE_CAPTURE_HINT,Click a fainted wild to throw a ball (one try each),点击气绝的野生个体掷球（每只仅一次机会）
+BATTLE_THROW,◎ throw,◎ 掷球
+BATTLE_CAUGHT_MARK,● caught,● 已捕
+BATTLE_FLED_MARK,✗ fled,✗ 挣脱
+BATTLE_CAUGHT_FLOAT,Caught!,捕获成功！
+BATTLE_BROKE_FREE,Broke free!,挣脱了！
+QUEST_TITLE_REACH,Reach {site},抵达{site}
+QUEST_TITLE_HUNT,Clear the wilds at {site},讨伐{site}的野群
+QUEST_TITLE_HUNT_COUNT_ONE,Win {n} wild battle,赢下 {n} 场野外战斗
+QUEST_TITLE_HUNT_COUNT_MANY,Win {n} wild battles,赢下 {n} 场野外战斗
+QUEST_TITLE_CAPTURE_COUNT_ONE,Capture {n} wild,捕获 {n} 只野生 InkMon
+QUEST_TITLE_CAPTURE_COUNT_MANY,Capture {n} wilds,捕获 {n} 只野生 InkMon
+QUEST_REWARD_GOLD,{n} gold,{n} 金币
+QUEST_REWARD_GOLD_ITEM,{n} gold + item,{n} 金币 + 物品
+QUEST_BOARD_DETAIL,quest board | reward: {reward},委托板 | 酬劳：{reward}
+SITE_LABEL,Site {n},{n}号据点
+NPC_SHOP,Shop,商店
+NPC_TRAINER,Training,训练场
+NPC_CULTIVATION,Cultivation,修行所
+NPC_GUILD,Guild,冒险公会
+NPC_ADVANCEMENT,Trainer Advancement,训练家晋升处
+NPC_RELEASE_ADOPT,Release / Adopt,放归 / 领养
+NPC_ACTION_GUILD_TASK_JOIN,Join Guild,加入公会
+NPC_ACTION_GUILD_TASK_CLAIM,Claim Guild Errand,领取公会杂务
+NPC_ACTION_GUILD_TASK_DETAIL,"+1 task marker, no battle",杂务记号 +1，无战斗
+NPC_ACTION_START_MISSION,Set Out on Mission,自由出征
+NPC_ACTION_START_MISSION_DETAIL,freelance expedition: reach a target site,自由远征：抵达目标据点
+NPC_ACTION_CULTIVATE_LEAD,Cultivate Lead InkMon,修行首发 InkMon
+NPC_ACTION_CULTIVATE_LEAD_DETAIL,"25 Gold, +1 level",25 金币，等级 +1
+NPC_ACTION_RANK_UP_TRAINER,Advance Trainer Rank,晋升训练家阶位
+NPC_ACTION_RANK_UP_TRAINER_DETAIL,"40 Gold, +1 rank",40 金币，阶位 +1
+NPC_ACTION_START_TRAINING_BATTLE,Start Training Battle,开始训练赛
+NPC_ACTION_START_TRAINING_BATTLE_DETAIL,"4v4 ATB drill, earns Gold",4v4 ATB 演练，可赚金币
+NPC_ACTION_ADOPT_INKMON,Adopt Field InkMon,领养野外 InkMon
+NPC_ACTION_ADOPT_INKMON_DETAIL,"15 Gold, adds roster entry",15 金币，队伍 +1
+NPC_ACTION_BUY_DETAIL,{price} Gold,{price} 金币
+ELEM_FIRE,fire,火
+ELEM_WATER,water,水
+ELEM_LIGHT,light,光
+ELEM_DARK,dark,暗
+ELEM_WIND,wind,风
+ELEM_EARTH,earth,土

@@ -51,23 +51,15 @@ theme_override_constants/separation = 8
 
 [node name="Tool_Party" type="Button" parent="TopRightTools"]
 custom_minimum_size = Vector2(74, 54)
-text = "Party
-P"
 
 [node name="Tool_Bag" type="Button" parent="TopRightTools"]
 custom_minimum_size = Vector2(74, 54)
-text = "Bag
-B"
 
 [node name="Tool_Journal" type="Button" parent="TopRightTools"]
 custom_minimum_size = Vector2(74, 54)
-text = "Journal
-J"
 
 [node name="Tool_Menu" type="Button" parent="TopRightTools"]
 custom_minimum_size = Vector2(74, 54)
-text = "Menu
-Esc"
 
 [node name="HotbarHint" type="Label" parent="."]
 modulate = Color(1, 0.88, 0.58, 0.82)
@@ -77,5 +69,5 @@ offset_left = 24.0
 offset_top = -48.0
 offset_right = 360.0
 offset_bottom = -18.0
-text = "P Party   B Bag   J Journal   Esc Menu"
+text = "UI_HOTKEY_HINT"
 theme_override_font_sizes/font_size = 14

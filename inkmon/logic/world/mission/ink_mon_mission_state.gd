@@ -30,7 +30,7 @@ var seen_node_kinds: Dictionary = {}
 ## 败 = 全灭不清 —— 世界被 Host load 出发档整体重建, 本对象随之销毁。
 var pending_battle_node_id := -1
 ## 战后捕捉池 (M2.3, 胜利时从节点 wild payload 建): 每条
-## {slot_index, actor_id, species_id, roll_seed, display_name, attempted, captured}。
+## {slot_index, actor_id, species_id, roll_seed, attempted, captured} (显示名由表现层按 species_id 查, adr/0011)。
 ## 每只恰好一次投掷; 离开战场 (resolve) 即作废未尝试者 ("留在战斗场景扔球"的窗口)。
 var capture_pool: Array[Dictionary] = []
 

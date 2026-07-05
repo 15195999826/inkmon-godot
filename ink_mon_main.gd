@@ -22,6 +22,8 @@ var _menu_layer: CanvasLayer = null
 
 
 func _ready() -> void:
+	# 默认 locale = zh (adr/0011 决定 6): 不跟系统, v1 无游戏内切换; 想换语言改这一行。
+	TranslationServer.set_locale("zh")
 	# dev-agent 无头驾驶 (host/DEV_AGENT.md): 树路径契约 = /root/InkMonMain/WorldHost/...,
 	# agent 不会点菜单 —— 跳过主菜单直接进游戏。
 	if OS.get_cmdline_user_args().has("--dev-agent"):
@@ -61,7 +63,7 @@ func _show_main_menu() -> void:
 	column.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "hex expedition prototype"
+	subtitle.text = InkMonText.t("MENU_SUBTITLE")
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", 16)
 	subtitle.add_theme_color_override("font_color", COLOR_SUBTITLE)
@@ -71,11 +73,11 @@ func _show_main_menu() -> void:
 	spacer.custom_minimum_size = Vector2(0.0, 18.0)
 	column.add_child(spacer)
 
-	var new_game_button := _make_menu_button("NewGameButton", "New Game")
+	var new_game_button := _make_menu_button("NewGameButton", InkMonText.t("MENU_NEW_GAME"))
 	new_game_button.pressed.connect(_on_new_game_pressed)
 	column.add_child(new_game_button)
 
-	var continue_button := _make_menu_button("ContinueButton", "Continue")
+	var continue_button := _make_menu_button("ContinueButton", InkMonText.t("MENU_CONTINUE"))
 	continue_button.disabled = _latest_save_path() == ""
 	continue_button.pressed.connect(_on_continue_pressed)
 	column.add_child(continue_button)
@@ -84,12 +86,12 @@ func _show_main_menu() -> void:
 	if FileAccess.file_exists(InkMonWorldHost.DEPARTURE_SAVE_PATH):
 		var hint := Label.new()
 		hint.name = "RecoverHint"
-		hint.text = "Last mission never returned."
+		hint.text = InkMonText.t("MENU_RECOVER_HINT")
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hint.add_theme_font_size_override("font_size", 14)
 		hint.add_theme_color_override("font_color", COLOR_RECOVER_HINT)
 		column.add_child(hint)
-		var recover_button := _make_menu_button("RecoverButton", "Return to Departure")
+		var recover_button := _make_menu_button("RecoverButton", InkMonText.t("MENU_RECOVER"))
 		recover_button.pressed.connect(_on_recover_pressed)
 		column.add_child(recover_button)
 

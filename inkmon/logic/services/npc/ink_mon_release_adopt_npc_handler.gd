@@ -8,7 +8,7 @@ const ADOPT_COST := 15
 
 func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return [
-		_action(ACTION_ADOPT, "Adopt Field InkMon", "15 Gold, adds roster entry", "roster"),
+		_action(ACTION_ADOPT, "roster"),
 	]
 
 

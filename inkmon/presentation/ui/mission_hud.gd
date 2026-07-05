@@ -33,10 +33,10 @@ func _ready() -> void:
 
 
 ## root 推入刷新 (出征开始 / 每步 progressed / 战斗离场回大地图)。
-## quests (Phase 3): [{title, role, progress, goal_count}] —— 主委托一行 + 副委托进度行。
+## quests (Phase 3): [{quest(语义 dict), role, progress, goal_count}] —— 主委托一行 + 副委托进度行。
 func refresh(supplies: int, roster_snapshot: Array[Dictionary], quests: Array[Dictionary] = []) -> void:
 	if _supplies_label != null:
-		_supplies_label.text = "Supplies: %d" % supplies
+		_supplies_label.text = InkMonText.tf("UI_SUPPLIES", {"n": supplies})
 		_supplies_label.add_theme_color_override("font_color",
 			Color(0.9, 0.45, 0.35) if supplies <= 0 else Color(0.92, 0.9, 0.85))
 	_rebuild_quest_rows(quests)
@@ -53,12 +53,13 @@ func _rebuild_quest_rows(quests: Array[Dictionary]) -> void:
 		row.add_theme_font_size_override("font_size", 13)
 		var is_main := str(quest.get("role", "")) == "main"
 		var goal := int(quest.get("goal_count", 0))
+		var title := InkMonText.quest_title(quest.get("quest", {}) as Dictionary)
 		if is_main:
-			row.text = "★ %s" % str(quest.get("title", ""))
+			row.text = "★ %s" % title
 			row.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
 		else:
 			var progress := mini(int(quest.get("progress", 0)), goal)
-			row.text = "• %s (%d/%d)" % [str(quest.get("title", "")), progress, goal]
+			row.text = "• %s (%d/%d)" % [title, progress, goal]
 			row.add_theme_color_override("font_color",
 				Color(0.55, 0.85, 0.6) if progress >= goal else Color(0.75, 0.73, 0.68))
 		_quest_rows.add_child(row)
@@ -75,7 +76,7 @@ func _rebuild_party_rows(roster_snapshot: Array[Dictionary]) -> void:
 		var name_label := Label.new()
 		name_label.custom_minimum_size = Vector2(72.0, 0.0)
 		name_label.add_theme_font_size_override("font_size", 13)
-		name_label.text = str(entry.get("display_name", ""))
+		name_label.text = InkMonText.species_name(str(entry.get("species_id", "")))
 		row.add_child(name_label)
 		var max_hp := maxf(1.0, float(entry.get("max_hp", 1.0)))
 		var ratio := clampf(float(entry.get("hp", 0.0)) / max_hp, 0.0, 1.0)
@@ -95,7 +96,7 @@ func _on_abandon_pressed() -> void:
 	if not _abandon_armed:
 		# 第一击只上膛: 文案变确认, 3 秒不二击自动回弹 (丢整趟不能单击误触)。
 		_abandon_armed = true
-		_abandon_button.text = "Abandon?! (click again)"
+		_abandon_button.text = InkMonText.t("UI_ABANDON_CONFIRM")
 		_abandon_rearm_timer = get_tree().create_timer(ABANDON_CONFIRM_WINDOW)
 		_abandon_rearm_timer.timeout.connect(_disarm_abandon)
 		return
@@ -106,7 +107,7 @@ func _on_abandon_pressed() -> void:
 func _disarm_abandon() -> void:
 	_abandon_armed = false
 	if _abandon_button != null:
-		_abandon_button.text = "Abandon Mission"
+		_abandon_button.text = InkMonText.t("UI_ABANDON_MISSION")
 
 
 ## smoke / dev-agent 读口。

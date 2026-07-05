@@ -8,8 +8,6 @@ extends RefCounted
 
 
 const ACTION_ID := "id"
-const ACTION_LABEL := "label"
-const ACTION_DETAIL := "detail"
 const ACTION_KIND := "kind"
 const ACTION_ENABLED := "enabled"
 
@@ -35,20 +33,22 @@ func run_action(action_id: String, _world: InkMonWorldGI) -> Dictionary:
 	return _result(false, "unsupported action: %s" % action_id)
 
 
+## action = 语义数据 (adr/0011 逻辑层禁产玩家可见文案): id/kind/enabled + 语义 extras
+## (variant / quest / item_config_id / price / 内容名字段透传等)。
+## 文案由表现层 InkMonText.npc_action_label / npc_action_detail 按 id + extras 组装。
 func _action(
 	action_id: String,
-	label: String,
-	detail: String,
 	kind: String = "command",
-	enabled: bool = true
+	enabled: bool = true,
+	extras: Dictionary = {}
 ) -> Dictionary:
-	return {
+	var action := {
 		ACTION_ID: action_id,
-		ACTION_LABEL: label,
-		ACTION_DETAIL: detail,
 		ACTION_KIND: kind,
 		ACTION_ENABLED: enabled,
 	}
+	action.merge(extras)
+	return action
 
 
 func _result(ok: bool, message: String) -> Dictionary:

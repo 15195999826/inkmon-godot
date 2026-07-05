@@ -8,7 +8,7 @@ const ADVANCEMENT_COST := 40
 
 func get_actions(_world: InkMonWorldGI) -> Array[Dictionary]:
 	return [
-		_action(ACTION_RANK_UP, "Advance Trainer Rank", "40 Gold, +1 rank", "progression"),
+		_action(ACTION_RANK_UP, "progression"),
 	]
 
 

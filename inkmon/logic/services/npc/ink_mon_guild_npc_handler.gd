@@ -14,17 +14,14 @@ const INTENT_START_MISSION := "start_mission"
 ## ACTION_START_MISSION 保留为"无单出征"兼容入口 (占位 reach 单), 板空时也兜底。
 func get_actions(world: InkMonWorldGI) -> Array[Dictionary]:
 	var joined := bool(world.player_actor.progression.get("guild_joined", false))
-	var label := "Claim Guild Errand" if joined else "Join Guild"
-	var detail := "+1 task marker, no battle"
 	var actions: Array[Dictionary] = [
-		_action(ACTION_GUILD_TASK, label, detail, "guild"),
+		_action(ACTION_GUILD_TASK, "guild", true, {"variant": "claim" if joined else "join"}),
 	]
 	for quest in world.quest_board:
-		actions.append(_action(ACTION_QUEST_PREFIX + quest.quest_id,
-			quest.title(), "quest board | reward: %s" % quest.reward_label(), "guild"))
+		actions.append(_action(ACTION_QUEST_PREFIX + quest.quest_id, "guild", true,
+			{"quest": quest.to_dict()}))
 	if world.quest_board.is_empty():
-		actions.append(_action(ACTION_START_MISSION, "Set Out on Mission",
-			"freelance expedition: reach a target site", "guild"))
+		actions.append(_action(ACTION_START_MISSION, "guild"))
 	return actions
 
 

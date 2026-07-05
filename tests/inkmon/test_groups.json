@@ -70,6 +70,11 @@
         "../../inkmon/tests/smoke_world_command.tscn"
       ]
     },
+    "localization": {
+      "scenes": [
+        "../../inkmon/tests/smoke_localization.tscn"
+      ]
+    },
     "mission": {
       "default_timeout_ms": 45000,
       "scenes": [

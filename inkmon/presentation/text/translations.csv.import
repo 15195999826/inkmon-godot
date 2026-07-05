@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cxqsu7ivrica"
+
+[deps]
+
+files=["res://inkmon/presentation/text/translations.en.translation", "res://inkmon/presentation/text/translations.zh.translation"]
+
+source_file="res://inkmon/presentation/text/translations.csv"
+dest_files=["res://inkmon/presentation/text/translations.en.translation", "res://inkmon/presentation/text/translations.zh.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

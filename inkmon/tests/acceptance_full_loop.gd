@@ -91,7 +91,7 @@ func _depart(presentation: InkMonWorldPresentation) -> String:
 			if candidate.type == InkMonQuestDef.TYPE_HUNT:
 				quest = candidate
 				break
-		_journey.append("taking quest: %s (%s)" % [quest.title(), quest.reward_label()])
+		_journey.append("taking quest: %s -> %s (%d gold)" % [quest.type, quest.target_site_id, quest.reward_gold])
 		presentation.run_npc_action_for("guild",
 			InkMonGuildNpcHandler.ACTION_QUEST_PREFIX + quest.quest_id)
 	else:
@@ -135,7 +135,10 @@ func _play_mission_out(presentation: InkMonWorldPresentation) -> String:
 		print("  [loop-debug] step=%d node=%d pending=%s supplies=%d" % [
 			steps, gi.mission_state.current_node_id,
 			str(gi.mission_state.has_pending_battle()), gi.mission_state.supplies])
-		if gi.mission_state.has_pending_battle():
+		# 有仗要看 = 必战锁在 (胜局保持到离场) **或回放在播**: timeout 结局 GI 即刻清锁
+		# (world_gi 战斗收尾"超时解锁选路"), 但录像回放仍须看完点离开, 否则 _replaying
+		# 挡住地图点击 —— 对齐真实玩家行为, 堵 harness 只认 pending 的盲区。
+		if gi.mission_state.has_pending_battle() or presentation._replaying:
 			var battle_status: String = await _ride_out_battle(presentation)
 			if battle_status != "":
 				return "ERR:" + battle_status

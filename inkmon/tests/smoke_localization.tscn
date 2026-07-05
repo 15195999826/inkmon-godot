@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon/tests/smoke_localization.gd" id="1_smoke_localization"]
+
+[node name="SmokeLocalization" type="Node"]
+script = ExtResource("1_smoke_localization")

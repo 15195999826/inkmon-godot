@@ -76,8 +76,9 @@ func _run() -> String:
 	var mission_hud := presentation.get_node_or_null("HUDLayer/MissionHudRoot") as InkMonMissionHud
 	if mission_hud == null or not mission_hud.visible:
 		return "mission HUD should be visible during mission"
+	# 断数字不断文案 (adr/0011: 测试断言不依赖 locale)。
 	var supplies_label := mission_hud.get_debug_controls().get("supplies_label", null) as Label
-	if supplies_label == null or supplies_label.text != "Supplies: %d" % InkMonMissionSetup.DEFAULT_SUPPLIES:
+	if supplies_label == null or not supplies_label.text.contains(str(InkMonMissionSetup.DEFAULT_SUPPLIES)):
 		return "mission HUD should show the carried supplies"
 
 	# "丢这趟"回滚 (M2.4 尾项④: 走 HUD 放弃按钮全真实链路): 污染内存 gold → 两击确认 →
