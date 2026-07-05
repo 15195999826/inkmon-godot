@@ -1,11 +1,12 @@
 extends Node
-## 世界大地图 data shape 契约 (P2, glossary §4.9):
+## 世界大地图 data shape 契约 (P2, glossary §4.9; v2 形状 adr/0012):
 ##   1. 同 seed 生成确定性 / 异 seed 不同图。
 ##   2. to_dict → from_dict → to_dict 深相等 (roundtrip 幂等)。
 ##   3. 地理契约 (多 seed 扫描): SITE_COUNT 个目标候选、界内、距入口 ≥ MIN_TARGET_DISTANCE、
-##      出生点靠中心 (±ENTRY_CENTER_JITTER)、目标方向散布 (两两方位角差 ≥30° / 不全挤一侧)。
+##      出生点靠中心 (±ENTRY_CENTER_JITTER)、目标方向散布 (两两方位角差 ≥30° / 不全挤一侧)、
+##      biome 邻聚 (地貌成片) + v2 硬不变量 (逐格数组尺寸/值域、秩归一铺满、河流结构)。
 ##   4. 持久点亮跨序列化存续 (地理记忆载体)。
-##   5. GI 集成: new_game 生成 / v3 档 round-trip 后地理逐字节不变 (永久固定世界) / 旧版本档丢弃重开仍有图。
+##   5. GI 集成: new_game 生成 / 当前版档 round-trip 后地理逐字节不变 (永久固定世界) / 旧版本档丢弃重开仍有图。
 
 
 const SEED_A := 12345
@@ -16,7 +17,7 @@ const SCAN_SEEDS := 10
 func _ready() -> void:
 	var status := _run()
 	if status == "":
-		print("SMOKE_TEST_RESULT: PASS - world map data: deterministic generate + roundtrip + revealed persistence + GI v3 integration")
+		print("SMOKE_TEST_RESULT: PASS - world map data v2: deterministic generate + roundtrip + biome/field/river invariants + GI integration")
 		get_tree().quit(0)
 	else:
 		print("SMOKE_TEST_RESULT: FAIL - %s" % status)
@@ -145,9 +146,11 @@ func _check_geography(map: InkMonWorldMapData) -> String:
 	# 地貌成片契约 ("完整地形图"拍板): 森林格中至少 40% 有 ≥2 个森林邻居 —— 连续噪声下团内格
 	# 邻居 4-6 个轻松过; per-cell 独立 roll 的胡椒面 (12% 密度 → 邻居期望 ~0.7) 必挂。防生成回归。
 	var forest_cells: Array[Vector2i] = []
-	for cell_key in map.terrain:
-		if str(map.terrain[cell_key]) == InkMonWorldMapData.TERRAIN_FOREST:
-			forest_cells.append(cell_key as Vector2i)
+	for row in range(map.height):
+		for col in range(map.width):
+			var cell := InkMonWorldMapData.offset_to_axial(col, row)
+			if map.biome_at(cell) == InkMonWorldMapData.BIOME_FOREST:
+				forest_cells.append(cell)
 	if forest_cells.size() >= 10:
 		var clustered := 0
 		var axial_neighbors: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1),
@@ -155,13 +158,66 @@ func _check_geography(map: InkMonWorldMapData) -> String:
 		for cell in forest_cells:
 			var forest_neighbor_count := 0
 			for direction in axial_neighbors:
-				if str(map.terrain.get(cell + direction, "")) == InkMonWorldMapData.TERRAIN_FOREST:
+				if map.biome_at(cell + direction) == InkMonWorldMapData.BIOME_FOREST:
 					forest_neighbor_count += 1
 			if forest_neighbor_count >= 2:
 				clustered += 1
 		if float(clustered) / float(forest_cells.size()) < 0.4:
 			return "seed %d: forest not clumped (%d/%d cells with >=2 forest neighbors) - terrain regressed to per-cell noise?" % [
 				map.generation_seed, clustered, forest_cells.size()]
+	return _check_v2_shape(map)
+
+
+## v2 数据形状硬不变量 (adr/0012): 逐格数组尺寸/值域、秩归一铺满 (0 与 QUANT_MAX 必现)、
+## biome 码在域内、河流结构 (点数下限 / 步长连续 ≤1 hex / 源头在界内 / 终点入海或汇入先成河)。
+func _check_v2_shape(map: InkMonWorldMapData) -> String:
+	var expected := map.width * map.height
+	if map.biome_codes.size() != expected or map.elevation_levels.size() != expected \
+			or map.moisture_levels.size() != expected:
+		return "seed %d: cell arrays must be width*height" % map.generation_seed
+	var seen_min_elev := InkMonWorldMapData.QUANT_MAX
+	var seen_max_elev := 0
+	for index in range(expected):
+		var code := map.biome_codes[index]
+		if code < 0 or code >= InkMonWorldMapData.BIOME_ORDER.size():
+			return "seed %d: biome code %d out of domain" % [map.generation_seed, code]
+		var elevation := map.elevation_levels[index]
+		var moisture := map.moisture_levels[index]
+		if elevation < 0 or elevation > InkMonWorldMapData.QUANT_MAX \
+				or moisture < 0 or moisture > InkMonWorldMapData.QUANT_MAX:
+			return "seed %d: quantized field out of range" % map.generation_seed
+		seen_min_elev = mini(seen_min_elev, elevation)
+		seen_max_elev = maxi(seen_max_elev, elevation)
+	if seen_min_elev != 0 or seen_max_elev != InkMonWorldMapData.QUANT_MAX:
+		return "seed %d: rank quantize must span 0..%d (got %d..%d)" % [
+			map.generation_seed, InkMonWorldMapData.QUANT_MAX, seen_min_elev, seen_max_elev]
+	for site in map.get_target_candidates():
+		if map.biome_at(site) != InkMonWorldMapData.BIOME_PLAIN:
+			return "seed %d: site cell must stay plain biome" % map.generation_seed
+	if map.rivers.is_empty():
+		return "seed %d: expected at least one river" % map.generation_seed
+	if map.rivers.size() > InkMonWorldMapData.RIVER_MAX_COUNT:
+		return "seed %d: too many rivers (%d)" % [map.generation_seed, map.rivers.size()]
+	var earlier_points: Dictionary = {}
+	# 河口↔海岸同源锁 (codex review Low): 用与 shader 完全同源的 coast field 判海,
+	# 任何一侧换噪声参数不换另一侧, 这里必挂。
+	var coast_noise := InkMonWorldMapData.make_coast_noise(map.generation_seed)
+	for river_index in range(map.rivers.size()):
+		var polyline := map.rivers[river_index]
+		if polyline.size() < InkMonWorldMapData.RIVER_MIN_POINTS:
+			return "seed %d: river %d too short" % [map.generation_seed, river_index]
+		if not map.in_bounds(InkMonWorldMapData.plane_to_axial(polyline[0])):
+			return "seed %d: river %d source must start in playable bounds" % [map.generation_seed, river_index]
+		for point_index in range(1, polyline.size()):
+			if polyline[point_index].distance_to(polyline[point_index - 1]) > 1.01:
+				return "seed %d: river %d step discontinuous" % [map.generation_seed, river_index]
+		var mouth := polyline[polyline.size() - 1]
+		var joins_earlier: bool = earlier_points.has(InkMonWorldMapData.plane_to_axial(mouth))
+		if not joins_earlier and not map.is_visual_sea(mouth, coast_noise):
+			return "seed %d: river %d mouth must land in visual sea or join an earlier river" % [
+				map.generation_seed, river_index]
+		for point in polyline:
+			earlier_points[InkMonWorldMapData.plane_to_axial(point)] = true
 	return ""
 
 

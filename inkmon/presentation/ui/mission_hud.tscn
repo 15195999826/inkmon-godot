@@ -47,3 +47,7 @@ theme_override_constants/separation = 4
 [node name="AbandonButton" type="Button" parent="MissionPanel/MissionBox"]
 custom_minimum_size = Vector2(180, 34)
 text = "UI_ABANDON_MISSION"
+
+[node name="MapStyleButton" type="Button" parent="MissionPanel/MissionBox"]
+custom_minimum_size = Vector2(180, 28)
+text = "UI_MAP_STYLE"

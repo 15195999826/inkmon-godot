@@ -57,4 +57,21 @@ func _run() -> void:
 	var absolute := ProjectSettings.globalize_path(SHOT_PATH)
 	image.save_png(absolute)
 	print("SHOT_SAVED: %s" % absolute)
+	# adr/0012 决定五: 逐风格截图 (画风自验从单张变多张)。去雾 + 整张 sheet 适配屏幕,
+	# 专看地图纸本体 (海岸线/biome/河流); 入游雾态由上面主 shot 覆盖。
+	var mission_view: InkMonMissionMapView = presentation._mission_view
+	mission_view._fog_texture = null
+	var sheet_rect: Rect2 = mission_view._sheet_view_rect
+	var viewport_size := get_viewport().get_visible_rect().size
+	var sheet_fit := minf(viewport_size.x / sheet_rect.size.x, viewport_size.y / sheet_rect.size.y)
+	mission_view.scale = Vector2.ONE * sheet_fit
+	mission_view.position = (viewport_size - sheet_rect.size * sheet_fit) * 0.5 - sheet_rect.position * sheet_fit
+	for style_id in InkMonMapStylePresets.ORDER:
+		mission_view.set_map_style(style_id)
+		await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var style_image := get_viewport().get_texture().get_image()
+		var style_path := ProjectSettings.globalize_path("res://.claude/tmp/shot_mission_map_%s.png" % style_id)
+		style_image.save_png(style_path)
+		print("SHOT_SAVED: %s" % style_path)
 	get_tree().quit(0)

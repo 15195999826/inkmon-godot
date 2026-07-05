@@ -45,8 +45,8 @@ signal mission_battle_triggered(node_id: int)
 const STEP_DURATION := 0.22
 
 ## 存档版本 (adr/0001 统一 live-actor 模型; v3 起含 world_map 世界地理; v4 起含 quest_board
-## 委托板, Phase 3)。不符即丢弃重开。
-const SAVE_VERSION := 4
+## 委托板, Phase 3; v5 起 world_map 为 biome+量化场+河流 v2 形状, adr/0012)。不符即丢弃重开。
+const SAVE_VERSION := 5
 ## 新游戏默认出战上限 (左队取 roster 前 N)。
 const MAX_BATTLE_UNITS := 4
 ## NPC 邻近判定半径 (axial 距离 ≤ 此值 = 相邻, 可交互)。

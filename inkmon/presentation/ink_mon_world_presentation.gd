@@ -176,6 +176,26 @@ func _ensure_mission_view() -> void:
 	_mission_view.name = "MissionMapView"
 	_mission_layer.add_child(_mission_view)
 	_mission_view.node_clicked.connect(_on_mission_node_clicked)
+	# 画风偏好 (adr/0012 决定五): user:// 本地偏好, 不进存档。
+	_mission_view.set_map_style(InkMonMapStylePresets.load_pref())
+	_sync_map_style_label()
+
+
+## HUD 画风按钮 → 循环切换 + 存偏好 + 即时下发 view (纯表现层, 不碰逻辑/存档)。
+func _on_map_style_cycle_requested() -> void:
+	_ensure_mission_view()
+	var next_style := InkMonMapStylePresets.next_style(_mission_view.map_style_id)
+	InkMonMapStylePresets.save_pref(next_style)
+	_mission_view.set_map_style(next_style)
+	_sync_map_style_label()
+
+
+func _sync_map_style_label() -> void:
+	if _mission_hud_view == null:
+		return
+	var style_id: String = _mission_view.map_style_id if _mission_view != null \
+		else InkMonMapStylePresets.load_pref()
+	_mission_hud_view.set_map_style_name(InkMonText.t(InkMonMapStylePresets.name_key(style_id)))
 
 
 ## view 报点击(只报可达节点)→ root 接线走 CQRS 写通道(方案 A)。
@@ -680,6 +700,8 @@ func _build_mission_hud() -> void:
 	_hud_layer.add_child(_mission_hud_view)
 	_mission_hud_view.abandon_requested.connect(func() -> void:
 		mission_abandon_requested.emit())
+	_mission_hud_view.map_style_cycle_requested.connect(_on_map_style_cycle_requested)
+	_sync_map_style_label()
 
 
 # === 刷新 / 布局 / 动画 ===

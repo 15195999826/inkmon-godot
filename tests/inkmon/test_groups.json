@@ -87,7 +87,8 @@
         "../../inkmon/tests/smoke_wild_capture_ui.tscn",
         "../../inkmon/tests/smoke_departure_modal_ui.tscn",
         "../../inkmon/tests/smoke_quest_board.tscn",
-        "../../inkmon/tests/smoke_mission_fog.tscn"
+        "../../inkmon/tests/smoke_mission_fog.tscn",
+        "../../inkmon/tests/smoke_map_style.tscn"
       ]
     }
   }

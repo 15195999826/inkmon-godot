@@ -6,6 +6,8 @@ extends Control
 
 
 signal abandon_requested
+## 大地图画风循环切换 (adr/0012 决定五)。执行归 root (读预设/存偏好/喂 view), HUD 只上抛。
+signal map_style_cycle_requested
 
 
 ## 两击确认回弹时长 (秒)。
@@ -20,6 +22,7 @@ var _supplies_label: Label
 var _quest_rows: VBoxContainer
 var _party_rows: VBoxContainer
 var _abandon_button: Button
+var _map_style_button: Button
 var _abandon_armed := false
 var _abandon_rearm_timer: SceneTreeTimer = null
 
@@ -30,6 +33,14 @@ func _ready() -> void:
 	_party_rows = get_node("MissionPanel/MissionBox/PartyRows") as VBoxContainer
 	_abandon_button = get_node("MissionPanel/MissionBox/AbandonButton") as Button
 	_abandon_button.pressed.connect(_on_abandon_pressed)
+	_map_style_button = get_node("MissionPanel/MissionBox/MapStyleButton") as Button
+	_map_style_button.pressed.connect(func() -> void: map_style_cycle_requested.emit())
+
+
+## root 推入当前画风显示名 (build 时初值 + 每次切换后)。
+func set_map_style_name(display_name: String) -> void:
+	if _map_style_button != null:
+		_map_style_button.text = InkMonText.tf("UI_MAP_STYLE", {"name": display_name})
 
 
 ## root 推入刷新 (出征开始 / 每步 progressed / 战斗离场回大地图)。
