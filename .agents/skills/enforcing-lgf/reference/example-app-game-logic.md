@@ -415,7 +415,7 @@ Project-specific selectors in `logic/target_selectors.gd` (`class_name HexBattle
 | `config/skill_config.gd` | `class_name HexBattleSkillConfig`, `get_class_skill(char_class) -> AbilityConfig` | Which class gets which skill — returns the `AbilityConfig` directly, no enum indirection |
 | `config/skill_meta_keys.gd` | `class_name HexBattleSkillMetaKeys`, string constants | `RANGE` (int, cast distance), `ALLOWED_TARGET_KINDS` (Array[String], default `["Character"]`) |
 | `abilities/shared/all_skills.gd` | `class_name HexBattleAllSkills`, single manifest | One entry (`AbilityConfig` + its Timeline data) per skill/passive/buff drives both `register_all_timelines()` and `all_abilities()` — adding a skill means one new line here |
-| `attributes_config.gd` (`example/attributes/`) | Dictionary config, shared across hex + dota2 examples | Attribute base values and constraints |
+| `attributes_config.gd` (`logic/attributes/`) | Dictionary config, example-local (auto-discovered by `AttributeSetGeneratorScript`, one per example; generated sets in sibling `generated/`) | Attribute base values and constraints |
 
 ### Logging
 
