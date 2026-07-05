@@ -6,12 +6,13 @@ class_name InkMonMapStylePresets
 
 
 const STYLE_INK := "ink"
+const STYLE_INK_WASH := "ink_wash"
 const STYLE_MOSS := "moss"
 const STYLE_WATERCOLOR := "watercolor"
 const STYLE_PLAIN_WC := "plain_wc"
 const STYLE_FLAT := "flat"
 const STYLE_CODEX := "codex"
-const ORDER: Array[String] = [STYLE_INK, STYLE_MOSS, STYLE_WATERCOLOR, STYLE_PLAIN_WC, STYLE_FLAT, STYLE_CODEX]
+const ORDER: Array[String] = [STYLE_INK, STYLE_INK_WASH, STYLE_MOSS, STYLE_WATERCOLOR, STYLE_PLAIN_WC, STYLE_FLAT, STYLE_CODEX]
 const DEFAULT_STYLE := STYLE_INK
 
 const PREF_PATH := "user://inkmon_map_style.cfg"
@@ -110,6 +111,21 @@ static func preset(style_id: String) -> Dictionary:
 					"ink_strength": 0.85, "hatch_strength": 0.22, "shade_k": 0.42,
 					"grain_amt": 0.05, "vignette_amt": 0.16, "shallow_steps": 0.0,
 					"mottle_amt": 0.16, "post_darken": 0.95,
+				}),
+			}
+		STYLE_INK_WASH:
+			# 墨线水彩 (用户拍板 2026-07-05: 两种 ink 并存): moss 连续底原样 + 墨线层
+			# (biome 边界描线带手绘抖动 / 海岸描线 / 背光坡排线), 与面片版 ink 互为取向。
+			return {
+				"name_key": "MAP_STYLE_INK_WASH",
+				"rivers": true,
+				"river_under": Color(0.13, 0.15, 0.15, 0.85),
+				"river_core": Color(0.34, 0.41, 0.45, 0.95),
+				"uniforms": _merge(_MOSS_COLORS, {
+					"facet_mix": 0.0, "facet_scale": 0.62,
+					"ink_strength": 0.85, "border_ink": 0.8, "hatch_strength": 0.18,
+					"shade_k": 0.40, "grain_amt": 0.06, "vignette_amt": 0.16,
+					"shallow_steps": 0.0, "mottle_amt": 0.16, "post_darken": 0.95,
 				}),
 			}
 		STYLE_MOSS:

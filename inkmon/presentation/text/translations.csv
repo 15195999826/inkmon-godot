@@ -28,6 +28,7 @@ UI_ABANDON_MISSION,Abandon Mission,放弃出征
 UI_ABANDON_CONFIRM,Abandon?! (click again),确定放弃？！（再点一次）
 UI_MAP_STYLE,Style: {name},画风：{name}
 MAP_STYLE_INK,Ink Facet,墨线面片
+MAP_STYLE_INK_WASH,Ink Wash,墨线水彩
 MAP_STYLE_MOSS,Moss Wash,苔藓水彩
 MAP_STYLE_WATERCOLOR,Bright Wash,明亮水彩
 MAP_STYLE_PLAIN_WC,Calm Wash,素净水彩

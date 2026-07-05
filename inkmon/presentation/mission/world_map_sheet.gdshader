@@ -27,6 +27,7 @@ uniform int u_seed = 0;
 uniform float facet_mix = 0.0;        // >0.5 = 面片化 (low poly faceted)
 uniform float facet_scale = 0.80;     // 面片格尺寸 (平面单位)
 uniform float ink_strength = 0.75;    // 墨线/海岸描线强度
+uniform float border_ink = 0.0;       // 连续底上的 biome 边界墨线 (ink_wash 风格; 面片模式忽略)
 uniform float hatch_strength = 0.0;   // 阴影排线 (ink sketch)
 uniform float shade_k = 0.40;         // hillshade 强度 (mock: k=0.40)
 uniform float relief_gain = 3.0;      // 坡度增益 (shade_k·gain = mock 的 1.2/坡度单位)
@@ -200,6 +201,15 @@ float shade_sample(vec2 sp) {
 }
 
 
+// 分类采样 (biome 边界墨线用; 只要类 id, 颜色丢弃)。
+float class_at(vec2 sp) {
+	float class_id;
+	float land;
+	surface_color(sp, class_id, land);
+	return class_id;
+}
+
+
 void fragment() {
 	vec2 plane = sheet_origin + UV * sheet_size;
 	// 采样点: 面片模式取 jitter Voronoi 最近种子 (整面片同色/同坡 = low poly faceted);
@@ -279,6 +289,27 @@ void fragment() {
 			float edge_line = clamp(land1 - minv, 0.0, 1.0);
 			c = c * (1.0 - edge_line * ink_strength) + col_ink * edge_line * ink_strength;
 		}
+	}
+
+	// biome 边界墨线 (ink_wash: 连续底不动, 加法叠墨线层; 与面片方案互斥 —— 面片自带界线)。
+	// 采样点加低频抖动 = 手绘笔迹感; 海陆边界交给海岸描线, 此处只描陆上类界。
+	if (border_ink > 0.001 && facet_mix < 0.5 && land1 >= 0.5) {
+		float wob_x = fbm(plane.x, plane.y, u_seed + 301, 3.0, 2) - 0.5;
+		float wob_y = fbm(plane.x, plane.y, u_seed + 302, 3.0, 2) - 0.5;
+		vec2 pb = plane + vec2(wob_x, wob_y) * 0.10;
+		float eps_b = (sheet_size.x / vec2(textureSize(field_tex, 0)).x) * 1.5;
+		float c_e = class_at(pb + vec2(eps_b, 0.0));
+		float c_w = class_at(pb - vec2(eps_b, 0.0));
+		float c_s = class_at(pb + vec2(0.0, eps_b));
+		float c_n = class_at(pb - vec2(0.0, eps_b));
+		float differs = 0.0;
+		if (min(c_e, c_w) >= -0.5 && abs(c_e - c_w) > 0.5) {
+			differs += 1.0;
+		}
+		if (min(c_s, c_n) >= -0.5 && abs(c_s - c_n) > 0.5) {
+			differs += 1.0;
+		}
+		c = mix(c, col_ink, clamp(differs * 0.6, 0.0, 1.0) * border_ink);
 	}
 
 	// 苔藓斑驳 (陆地, mock C: fbm(seed+55, 2.4, 3)) + 整体压暗。
