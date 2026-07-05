@@ -8,9 +8,12 @@ extends RefCounted
 ## 序列化风格对齐 InkMonPlayerActor: static from_dict / 实例 to_dict / `as Dictionary` null guard /
 ## 数值一律 int() 归一 (存档经 JSON 后整数变 float, 归一保 roundtrip 深相等)。
 ##
-## adr/0012 生成管线: elevation(FBM+ridge+domain warp) / moisture(FBM+warp) / temperature(纬度带+抖动)
-## 三场按未压扁平面坐标采样 → 616 格秩归一 (biome 覆盖率跨 seed 稳定) → 查表得每格 biome;
-## 河流 = 高地格逐格走最低"势能"(raw 高程 × 陆地衰减) 直到入海/汇入先成河。全部入档永久固定。
+## adr/0012 生成管线 (A2 拍板 2026-07-05: 噪声源 = mockgen 值噪声, 与用户拍板基准图同族):
+## uint32 整数 hash 值噪声 (跨平台位级确定, GPU 复刻可同源) → domain warp → elevation
+## (FBM+ridge²) / moisture / 纬度温度(+抖动) → 616 格双域量化 (分类=秩+hex 低通 / 渲染场=minmax)
+## → biome 查表; 河流 = 最低势能探索 + BFS 河道。全部入档永久固定。
+## ⚠ 场公式与 GPU 场 shader (map_gpu_fields.gdshader) 成对: 常量/公式两端同值,
+## 改一处必改另一处 (hash 位级同源, 浮点仅 float64/float32 精度差 = 同源近似口径)。
 
 
 ## v1 唯一区域 (多区域 = Phase 5+)。
@@ -40,38 +43,48 @@ const BIOME_DRY_MAX_M := 0.24
 const BIOME_DRY_MIN_T := 0.58
 ## 量化档位 (elev/moist 0..QUANT_MAX 入档; 数据纹理同域)。
 const QUANT_MAX := 255
-## 地形噪声 ("完整地形图"拍板 2026-07-05: 地貌连续成片): 频率按未压扁平面单位
-## (世界宽 ~28.5 单位 → 特征尺度 ~8 单位, 一图 4-5 个地貌团)。地形入档, 噪声只在开档跑一次
-## —— 跨平台浮点漂移不影响已有档。
-const TERRAIN_NOISE_FREQUENCY := 0.13
-const RIDGE_NOISE_FREQUENCY := 0.085
-const MOISTURE_NOISE_FREQUENCY := 0.09
-const TEMPERATURE_NOISE_FREQUENCY := 0.15
-## domain warp (有机地貌边界): 位移幅度单位 = 平面单位。
+## === mock 场常量 (A2: 与基准图 mockgen 逐字同值; GPU 场 shader 同一组) ===
+## 频率按未压扁平面单位 (hex 间距 = 1); 地形入档, 生成只在开档跑一次。
+const ELEV_FREQ := 0.13
+const ELEV_OCTAVES := 5
+const RIDGE_FREQ := 0.085
+const RIDGE_OCTAVES := 4
+const MOIST_FREQ := 0.09
+const MOIST_OCTAVES := 4
+const TEMP_NOISE_FREQ := 0.15
+const TEMP_NOISE_OCTAVES := 3
+const WARP_FREQ := 0.09
+const WARP_OCTAVES := 4
 const WARP_AMPLITUDE := 2.0
-const WARP_FREQUENCY := 0.09
-## seed 派生偏移 (各场独立, 互不贴着长)。
-const MOISTURE_SEED_OFFSET := 7919
-const RIDGE_SEED_OFFSET := 104729
-const TEMPERATURE_SEED_OFFSET := 1299709
-const COAST_SEED_OFFSET := 15485863
-## 纬度温度带: t = lat*系数 + 偏置 - 高程降温 + 噪声抖动 (北冷南暖, 锚在可玩矩形)。
-## 纬度重映射 [LAT_LO, LAT_LO+LAT_SPAN]: 极端气候带只在南北边缘偶发点缀。
-const TEMP_LAT_LO := 0.15
-const TEMP_LAT_SPAN := 0.7
+const COAST_FREQ := 0.22
+const COAST_OCTAVES := 4
+const ISLE_FREQ := 0.30
+const ISLE_OCTAVES := 4
+const ISLE_THRESHOLD := 0.63
+const ISLE_NEAR := 1.8
+const ISLE_FAR_INSET := 0.8
+const ISLE_LAND := 0.75
+## seed 派生偏移 (mock 同值)。
+const WARP_X_SEED := 11
+const WARP_Y_SEED := 12
+const COAST_SEED := 5
+const ISLE_SEED := 21
+const RIDGE_SEED := 33
+const MOIST_SEED := 7
+const TEMP_SEED := 9
+## 海洋视觉边框 (adr/0012 决定三): 陆地矩形恒陆地, 海岸线长在矩形外 margin 带 (mock 6.5)。
+const OCEAN_MARGIN := 6.5
+const COAST_FALL_START := 0.6
+const COAST_JITTER_BASE := 0.65
+## 纬度温度带 (mock): t = lat·1.05 − 0.03 − 0.30·(elev−0.5) + (jitter−0.5)·0.20,
+## lat = (y+2)/(PLANE_H+4)。北冷南暖, 高地降温。
 const TEMP_LAT_SCALE := 1.05
 const TEMP_LAT_BIAS := -0.03
 const TEMP_ELEV_DROP := 0.30
 const TEMP_JITTER := 0.20
-## 海洋视觉边框 (adr/0012 决定三): 可玩矩形恒陆地, 海岸线长在矩形外 margin 带。
-## ⚠ 本组常量与 world_map_sheet.gdshader 的海岸公式成对 (shader 无法调 GDScript, 双份同值):
-## land = 1 - smoothstep(COAST_FALL_START, OCEAN_MARGIN-1, 矩形外距离 × (COAST_JITTER_BASE + coast01))。
-const OCEAN_MARGIN := 6.0
-const COAST_FALL_START := 0.6
-const COAST_JITTER_BASE := 0.65
-const COAST_NOISE_FREQUENCY := 0.22
+const TEMP_LAT_ANCHOR := 2.0
 ## 河流 (adr/0012): 源头取高程秩前列、彼此 axial 距离 ≥ SPACING 的格; 逐格走最低势能
-## (raw 高程 × 陆地衰减), 允许爬出局部坑 (走最低未访邻格); 入海或汇入先成河即成。
+## (raw 高程 × 陆地系数), 允许爬出局部坑; 入海或汇入先成河即成, 已访集合 BFS 取河道。
 const RIVER_MAX_COUNT := 3
 const RIVER_SOURCE_SPACING := 7
 const RIVER_MAX_STEPS := 400
@@ -111,7 +124,7 @@ var revealed_cells: Dictionary = {}
 
 ## 开档一次性生成 (同 seed 同图, 确定性)。
 ## rng 消耗序钉死 (同 seed 同图): ① entry jitter ② 扇区相位 ③ 逐扇区挑 site
-## (地形场/biome/河流全走噪声与确定性排序, 不耗 rng)。
+## (地形场/biome/河流全走值噪声与确定性排序, 不耗 rng)。
 static func generate(seed_value: int) -> InkMonWorldMapData:
 	var map := InkMonWorldMapData.new()
 	map.generation_seed = seed_value
@@ -124,26 +137,24 @@ static func generate(seed_value: int) -> InkMonWorldMapData:
 	map.entry_coord = offset_to_axial(entry_offset.x, entry_offset.y)
 	# 扇区相位随机: 不同档的"三个方向"整体旋转, 世界朝向也独一无二。
 	var sector_phase := rng.randf() * TAU
-	# === 地形场 (adr/0012 决定一): raw 场 → 秩归一 → biome 查表 (噪声走公共工厂, 与表现层同源) ===
-	var elevation_noise := make_elevation_noise(seed_value)
-	var ridge_noise := make_ridge_noise(seed_value)
-	var moisture_noise := make_moisture_noise(seed_value)
-	var temperature_noise := _make_field_noise(seed_value + TEMPERATURE_SEED_OFFSET, TEMPERATURE_NOISE_FREQUENCY, 3, false)
+	# === 地形场 (adr/0012 决定一; A2 值噪声): raw 场 → 秩归一 → biome 查表 ===
+	# 可玩格全在陆地矩形内 (land=1) → mock 的海岸高程压制项恒为 1, 逐格省略。
 	var cell_count := DEFAULT_WIDTH * DEFAULT_HEIGHT
 	var raw_elevation := PackedFloat64Array()
 	var raw_moisture := PackedFloat64Array()
+	var jitter01 := PackedFloat64Array()
 	raw_elevation.resize(cell_count)
 	raw_moisture.resize(cell_count)
+	jitter01.resize(cell_count)
 	for row in range(DEFAULT_HEIGHT):
 		for col in range(DEFAULT_WIDTH):
 			var sample := axial_to_plane(offset_to_axial(col, row))
+			var warped := warp_plane(sample, seed_value)
 			var index := row * DEFAULT_WIDTH + col
-			raw_elevation[index] = _raw_elevation(elevation_noise, ridge_noise, sample)
-			raw_moisture[index] = raw_moisture_at(moisture_noise, sample)
-	# 双域量化 (shot 自验踩过的坑): biome 分类走秩归一 (覆盖率跨 seed 稳定);
-	# 入档渲染场走 min-max (保空间平滑 —— 秩会把邻格小差放大成大跳变,
-	# hillshade/雪顶/密林渐变全图撒胡椒)。分类秩场再过一轮 hex 邻域低通:
-	# 秩放大的邻格跳变会把 biome 撒成碎花, 低通后地貌成大片连贯团 (同为 shot 踩坑)。
+			raw_elevation[index] = raw_elevation_at(warped, seed_value)
+			raw_moisture[index] = raw_moisture_at(warped, seed_value)
+			jitter01[index] = temperature_noise_at(sample, seed_value)
+	# 双域量化: biome 分类走秩归一+hex 低通 (覆盖率稳定+地貌成片); 入档渲染场走 min-max (空间平滑)。
 	var elevation_rank := _hex_smooth(_rank_quantize(raw_elevation))
 	var moisture_rank := _hex_smooth(_rank_quantize(raw_moisture))
 	map.elevation_levels = _minmax_quantize(raw_elevation)
@@ -155,8 +166,7 @@ static func generate(seed_value: int) -> InkMonWorldMapData:
 			var sample := axial_to_plane(offset_to_axial(col, row))
 			var elevation01 := float(elevation_rank[index]) / float(QUANT_MAX)
 			var moisture01 := float(moisture_rank[index]) / float(QUANT_MAX)
-			var jitter01 := (temperature_noise.get_noise_2d(sample.x, sample.y) + 1.0) * 0.5
-			var temperature := _temperature(row, elevation01, jitter01)
+			var temperature := _temperature(sample.y, elevation01, jitter01[index])
 			map.biome_codes[index] = _classify_biome(elevation01, moisture01, temperature)
 	# site 放置: 全格按相对入口的平面方位角分进 SITE_COUNT 个扇区桶 (界内 + 距离达标 + 扇区 margin),
 	# 每桶随机挑 1 格 —— 枚举法必然成功 (桶空 = 尺寸/距离常量配置错误, assert 兜底), 无 attempts 抽奖。
@@ -191,8 +201,7 @@ static func generate(seed_value: int) -> InkMonWorldMapData:
 	for landmark in map.landmarks:
 		map._force_plain(landmark.get("coord", Vector2i.ZERO) as Vector2i)
 	# === 河流 (确定性, 不耗 rng): 源头按高程秩降序枚举 ===
-	# coast 噪声必须走公共工厂 —— 与 shader 海岸线同源 (codex review High: 各配各的参数会漂)。
-	map._trace_rivers(elevation_noise, ridge_noise, make_coast_noise(seed_value))
+	map._trace_rivers()
 	return map
 
 
@@ -368,67 +377,101 @@ func _force_plain(coord: Vector2i) -> void:
 		biome_codes[index] = BIOME_ORDER.find(BIOME_PLAIN)
 
 
-# === 生成内部 (adr/0012) ===
+# === 值噪声与场 (A2: mock 逐字同源; ⚠ 与 map_gpu_fields.gdshader 成对) ===
 
 
-## 场噪声公共工厂 (adr/0012 决定四): 生成入档 cells 与表现层连续场纹理必须同一组噪声 ——
-## 两边都从这里拿, 渲染的逐像素地貌与入档格真相同源 (对齐在格中心)。
-static func make_elevation_noise(seed_value: int) -> FastNoiseLite:
-	# 5 octave 与 mock 对等 —— 最细两层 (波长 ~1u/~0.5u) 是满图微褶皱凹凸感的来源,
-	# 少两层的话场里根本没有这些信息, hillshade 再强也画不出 (用户验收踩过)。
-	return _make_field_noise(seed_value, TERRAIN_NOISE_FREQUENCY, 5, true)
+## uint32 整数 hash → [0,1)。跨平台位级确定 (int64 掩码模拟 uint32 wrap, 与 numpy/GLSL 同余)。
+static func _hash01(ix: int, iy: int, seed_value: int) -> float:
+	var h := ((ix * 2654435761) & 0xFFFFFFFF) ^ ((iy * 2246822519) & 0xFFFFFFFF) \
+		^ ((seed_value * 3266489917) & 0xFFFFFFFF)
+	h = ((h ^ (h >> 13)) * 668265263) & 0xFFFFFFFF
+	h = h ^ (h >> 15)
+	return float(h & 0xFFFFFF) / 16777216.0
 
 
-static func make_ridge_noise(seed_value: int) -> FastNoiseLite:
-	return _make_field_noise(seed_value + RIDGE_SEED_OFFSET, RIDGE_NOISE_FREQUENCY, 4, true)
+static func _vnoise(x: float, y: float, seed_value: int) -> float:
+	var x0f := floorf(x)
+	var y0f := floorf(y)
+	var fx := x - x0f
+	var fy := y - y0f
+	var ix := int(x0f)
+	var iy := int(y0f)
+	var u := fx * fx * (3.0 - 2.0 * fx)
+	var v := fy * fy * (3.0 - 2.0 * fy)
+	var n00 := _hash01(ix, iy, seed_value)
+	var n10 := _hash01(ix + 1, iy, seed_value)
+	var n01 := _hash01(ix, iy + 1, seed_value)
+	var n11 := _hash01(ix + 1, iy + 1, seed_value)
+	return (n00 * (1.0 - u) + n10 * u) * (1.0 - v) + (n01 * (1.0 - u) + n11 * u) * v
 
 
-static func make_moisture_noise(seed_value: int) -> FastNoiseLite:
-	return _make_field_noise(seed_value + MOISTURE_SEED_OFFSET, MOISTURE_NOISE_FREQUENCY, 4, true)
+static func value_fbm(plane: Vector2, seed_value: int, freq: float, octaves: int) -> float:
+	var total := 0.0
+	var amp := 1.0
+	var f := freq
+	var norm := 0.0
+	for octave in range(octaves):
+		total += _vnoise(plane.x * f, plane.y * f, seed_value + octave * 131) * amp
+		norm += amp
+		amp *= 0.5
+		f *= 2.0
+	return total / norm
 
 
-## raw 场公共入口 (供表现层按同一公式烘连续场)。
-static func raw_elevation_at(elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite, plane: Vector2) -> float:
-	return _raw_elevation(elevation_noise, ridge_noise, plane)
+## domain warp (mock: W = P + 2·(fbm−0.5)·2): 有机地貌边界的来源。
+static func warp_plane(plane: Vector2, seed_value: int) -> Vector2:
+	var wx := value_fbm(plane, seed_value + WARP_X_SEED, WARP_FREQ, WARP_OCTAVES) * 2.0 - 1.0
+	var wy := value_fbm(plane, seed_value + WARP_Y_SEED, WARP_FREQ, WARP_OCTAVES) * 2.0 - 1.0
+	return plane + Vector2(wx, wy) * WARP_AMPLITUDE
 
 
-static func raw_moisture_at(moisture_noise: FastNoiseLite, plane: Vector2) -> float:
-	return (moisture_noise.get_noise_2d(plane.x, plane.y) + 1.0) * 0.5
+## raw 高程 (warped 坐标; FBM 底 + 山脊分量 ridge² → 连绵山带)。不含海岸压制 (调用方乘 land 项)。
+static func raw_elevation_at(warped: Vector2, seed_value: int) -> float:
+	var base01 := value_fbm(warped, seed_value, ELEV_FREQ, ELEV_OCTAVES)
+	var ridge01 := 1.0 - absf(2.0 * value_fbm(warped, seed_value + RIDGE_SEED, RIDGE_FREQ, RIDGE_OCTAVES) - 1.0)
+	return clampf(0.55 * base01 + 0.55 * ridge01 * ridge01, 0.0, 1.0)
 
 
-## 海岸噪声工厂 (公共): 河流入海判定与表现层 sheet shader 的海岸线必须同源 —— 两边都从这里拿,
-## 保证"河流嘴长在海里"零漂移 (adr/0012 决定三配对点)。warp 开 + 5 octave: 提方差,
-## 否则 FBM 挤中间 → 海岸衰减距离趋同 → 轮廓贴成矩形 (shot 踩过)。
-static func make_coast_noise(seed_value: int) -> FastNoiseLite:
-	return _make_field_noise(seed_value + COAST_SEED_OFFSET, COAST_NOISE_FREQUENCY, 5, true)
+static func raw_moisture_at(warped: Vector2, seed_value: int) -> float:
+	return value_fbm(Vector2(warped.x * 0.95, warped.y), seed_value + MOIST_SEED, MOIST_FREQ, MOIST_OCTAVES)
 
 
-## 场噪声工厂: SIMPLEX_SMOOTH + FBM; warped = domain warp 开 (有机地貌边界)。
-static func _make_field_noise(seed_value: int, frequency: float, octaves: int, warped: bool) -> FastNoiseLite:
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.seed = seed_value
-	noise.frequency = frequency
-	noise.fractal_octaves = octaves
-	if warped:
-		noise.domain_warp_enabled = true
-		noise.domain_warp_type = FastNoiseLite.DOMAIN_WARP_SIMPLEX
-		noise.domain_warp_amplitude = WARP_AMPLITUDE
-		noise.domain_warp_frequency = WARP_FREQUENCY
-	return noise
+## 温度抖动场 (未 warp 坐标, mock 同款)。
+static func temperature_noise_at(plane: Vector2, seed_value: int) -> float:
+	return value_fbm(plane, seed_value + TEMP_SEED, TEMP_NOISE_FREQ, TEMP_NOISE_OCTAVES)
 
 
-## raw 高程 = FBM 底 + 山脊分量 (ridged: 1-|n| 平方 → 连绵山带而非圆包)。
-static func _raw_elevation(elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite, sample: Vector2) -> float:
-	var base01 := (elevation_noise.get_noise_2d(sample.x, sample.y) + 1.0) * 0.5
-	var ridge01 := 1.0 - absf(ridge_noise.get_noise_2d(sample.x, sample.y))
-	return 0.55 * base01 + 0.55 * ridge01 * ridge01
+## 陆地矩形 (mock PLANE_W = 宽+0.5): 格中心全在其内 → 可玩格恒陆地; 海岸衰减从矩形边起算。
+func land_plane_rect() -> Rect2:
+	return Rect2(0.0, 0.0, float(width) + 0.5, float(height - 1) * sqrt(3.0) / 2.0)
 
 
-## 纬度温度 (北冷南暖; 高地降温; 噪声抖动)。row 直接当纬度轴 (offset 行 = 屏幕南北);
-## 纬度重映射见 TEMP_LAT_LO/SPAN 注释 (mock 拍板占比, shot 对照校准)。
-static func _temperature(row: int, elevation01: float, jitter01: float) -> float:
-	var lat01 := TEMP_LAT_LO + TEMP_LAT_SPAN * float(row) / float(maxi(DEFAULT_HEIGHT - 1, 1))
+## 陆地系数 (mock 公式; 含离岸小岛): 1 = 腹地, <0.5 = 海。河流入海判定与渲染共用同一片海。
+func land_factor_at(plane: Vector2) -> float:
+	var rect := land_plane_rect()
+	var dx := maxf(maxf(rect.position.x - plane.x, plane.x - rect.end.x), 0.0)
+	var dy := maxf(maxf(rect.position.y - plane.y, plane.y - rect.end.y), 0.0)
+	var outside := sqrt(dx * dx + dy * dy)
+	if outside <= 0.0:
+		return 1.0
+	var warped := warp_plane(plane, generation_seed)
+	var coast_jit := COAST_JITTER_BASE + value_fbm(warped, generation_seed + COAST_SEED, COAST_FREQ, COAST_OCTAVES)
+	var land := 1.0 - smoothstep(COAST_FALL_START, OCEAN_MARGIN - 1.0, outside * coast_jit)
+	var isle01 := value_fbm(warped, generation_seed + ISLE_SEED, ISLE_FREQ, ISLE_OCTAVES)
+	if isle01 > ISLE_THRESHOLD and outside > ISLE_NEAR and outside < OCEAN_MARGIN - ISLE_FAR_INSET:
+		land = maxf(land, ISLE_LAND)
+	return land
+
+
+## 某平面点在视觉海岸线语义下是否为海 (smoke 锁河口↔海岸一致性用)。
+func is_visual_sea(plane: Vector2) -> bool:
+	return land_factor_at(plane) < 0.5
+
+
+## 纬度温度 (mock: lat 锚 (y+2)/(PLANE_H+4); 高地降温; 噪声抖动)。
+static func _temperature(plane_y: float, elevation01: float, jitter01: float) -> float:
+	var plane_h := float(DEFAULT_HEIGHT - 1) * sqrt(3.0) / 2.0
+	var lat01 := clampf((plane_y + TEMP_LAT_ANCHOR) / (plane_h + TEMP_LAT_ANCHOR * 2.0), 0.0, 1.0)
 	return clampf(lat01 * TEMP_LAT_SCALE + TEMP_LAT_BIAS - TEMP_ELEV_DROP * (elevation01 - 0.5)
 		+ (jitter01 - 0.5) * TEMP_JITTER, 0.0, 1.0)
 
@@ -447,25 +490,6 @@ static func _classify_biome(elevation01: float, moisture01: float, temperature: 
 	elif moisture01 < BIOME_DRY_MAX_M and temperature > BIOME_DRY_MIN_T:
 		biome = BIOME_DRY
 	return BIOME_ORDER.find(biome)
-
-
-## 秩归一量化: 值升序排名 (值相等按下标, 全确定性) → 0..QUANT_MAX 均匀铺开。
-## 覆盖率跨 seed 稳定 (根治 FBM 分布挤中间导致的"整图全山/全平原"漂移)。
-static func _rank_quantize(raw_values: PackedFloat64Array) -> PackedInt32Array:
-	var order: Array[int] = []
-	order.resize(raw_values.size())
-	for index in range(raw_values.size()):
-		order[index] = index
-	order.sort_custom(func(left: int, right: int) -> bool:
-		if raw_values[left] == raw_values[right]:
-			return left < right
-		return raw_values[left] < raw_values[right])
-	var quantized := PackedInt32Array()
-	quantized.resize(raw_values.size())
-	var denominator := float(maxi(raw_values.size() - 1, 1))
-	for rank in range(order.size()):
-		quantized[order[rank]] = roundi(float(rank) * float(QUANT_MAX) / denominator)
-	return quantized
 
 
 ## hex 邻域低通 (自权 3 + 六邻各 1): 只为 biome 分类场消秩跳变, 值域仍 0..QUANT_MAX 附近。
@@ -492,8 +516,7 @@ static func _hex_smooth(values: PackedInt32Array) -> PackedInt32Array:
 	return smoothed
 
 
-## min-max 量化: 线性拉满 0..QUANT_MAX, 保留场的空间平滑 (入档渲染场用;
-## 与秩归一分工见 generate 内注释)。
+## min-max 量化: 线性拉满 0..QUANT_MAX, 保留场的空间平滑 (入档渲染场用)。
 static func _minmax_quantize(raw_values: PackedFloat64Array) -> PackedInt32Array:
 	var lowest := INF
 	var highest := -INF
@@ -508,58 +531,28 @@ static func _minmax_quantize(raw_values: PackedFloat64Array) -> PackedInt32Array
 	return quantized
 
 
-## 可玩矩形的平面包围盒 (海岸衰减/河流入海判定共用)。
-func _playable_plane_rect() -> Rect2:
-	var max_x := float(width - 1) + 0.5
-	var max_y := float(height - 1) * sqrt(3.0) / 2.0
-	return Rect2(0.0, 0.0, max_x, max_y)
-
-
-## 某平面点在视觉海岸线语义下是否为海 (公共: smoke 锁河口↔海岸一致性用;
-## coast_noise 必须来自 make_coast_noise, 否则失去与 shader 的同源保证)。
-func is_visual_sea(plane: Vector2, coast_noise: FastNoiseLite) -> bool:
-	return _land_factor(plane, coast_noise) < 0.5
-
-
-## 陆地系数公共入口 (表现层烘焙/参照图用同一公式, 含 isle 项)。
-func land_factor_at(plane: Vector2, coast_noise: FastNoiseLite) -> float:
-	return _land_factor(plane, coast_noise)
-
-
-## 离岸小岛参数 (⚠ 与 shader land_factor 的 isle 项成对): 采样点 = sheet 矩形内的
-## 缩放偏移重映射 (与 coast 场解相关), 阈值/距离带/岛陆系数三常量两端同值。
-const ISLE_UV_SCALE := 0.53
-const ISLE_UV_OFFSET := Vector2(0.31, 0.17)
-const ISLE_THRESHOLD := 0.72
-const ISLE_NEAR := 1.8
-const ISLE_FAR_INSET := 0.8
-const ISLE_LAND := 0.75
-
-
-## 陆地系数 (与 shader 海岸公式成对, 见常量块注释): 1 = 腹地, <0.5 = 海。
-## 含离岸小岛项 (codex review: 岛若只在 shader, 河口可能撞上视觉岛) —— 河流/河口/smoke
-## 与渲染共用同一片海。
-func _land_factor(plane: Vector2, coast_noise: FastNoiseLite) -> float:
-	var rect := _playable_plane_rect()
-	var dx := maxf(maxf(rect.position.x - plane.x, plane.x - rect.end.x), 0.0)
-	var dy := maxf(maxf(rect.position.y - plane.y, plane.y - rect.end.y), 0.0)
-	var outside := sqrt(dx * dx + dy * dy)
-	if outside <= 0.0:
-		return 1.0
-	var coast01 := (coast_noise.get_noise_2d(plane.x, plane.y) + 1.0) * 0.5
-	var land := 1.0 - smoothstep(COAST_FALL_START, OCEAN_MARGIN - 1.0, outside * (COAST_JITTER_BASE + coast01))
-	var sheet := rect.grow(OCEAN_MARGIN)
-	var isle_plane := sheet.position + (plane - sheet.position) * ISLE_UV_SCALE \
-		+ ISLE_UV_OFFSET * sheet.size
-	var isle01 := (coast_noise.get_noise_2d(isle_plane.x, isle_plane.y) + 1.0) * 0.5
-	if isle01 > ISLE_THRESHOLD and outside >= ISLE_NEAR and outside <= OCEAN_MARGIN - ISLE_FAR_INSET:
-		land = maxf(land, ISLE_LAND)
-	return land
+## 秩归一量化: 值升序排名 (值相等按下标, 全确定性) → 0..QUANT_MAX 均匀铺开。
+## 覆盖率跨 seed 稳定 (根治 FBM 分布挤中间导致的"整图全山/全平原"漂移)。
+static func _rank_quantize(raw_values: PackedFloat64Array) -> PackedInt32Array:
+	var order: Array[int] = []
+	order.resize(raw_values.size())
+	for index in range(raw_values.size()):
+		order[index] = index
+	order.sort_custom(func(left: int, right: int) -> bool:
+		if raw_values[left] == raw_values[right]:
+			return left < right
+		return raw_values[left] < raw_values[right])
+	var quantized := PackedInt32Array()
+	quantized.resize(raw_values.size())
+	var denominator := float(maxi(raw_values.size() - 1, 1))
+	for rank in range(order.size()):
+		quantized[order[rank]] = roundi(float(rank) * float(QUANT_MAX) / denominator)
+	return quantized
 
 
 ## 河流追踪: 源头 = 高程秩降序、彼此 spacing 达标的格; 每步走最低势能未访邻格 (可爬坑),
 ## 入海 (land<0.5) 或汇入已成河即成功。全确定性 (排序 + 固定方向序), 不耗 rng。
-func _trace_rivers(elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite, coast_noise: FastNoiseLite) -> void:
+func _trace_rivers() -> void:
 	var order: Array[int] = []
 	order.resize(elevation_levels.size())
 	for index in range(elevation_levels.size()):
@@ -582,7 +575,7 @@ func _trace_rivers(elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite, c
 				break
 		if not spaced:
 			continue
-		var polyline := _walk_river(source, elevation_noise, ridge_noise, coast_noise, accepted_cells)
+		var polyline := _walk_river(source, accepted_cells)
 		sources.append(source)
 		if polyline.size() >= RIVER_MIN_POINTS:
 			rivers.append(polyline)
@@ -591,20 +584,21 @@ func _trace_rivers(elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite, c
 
 
 ## 单条河从 source 走到海/汇入。探索 = 逐格走最低势能未访邻格 (允许爬出局部坑);
-## 成河 = 在探索过的格集合上 BFS 取 source→终点最短链 —— 逃坑期的盆地漫游不进河道
-## (否则河变"电路板蛇形", shot 自验踩过)。失败 (步数耗尽/困死) 返回空。
-func _walk_river(source: Vector2i, elevation_noise: FastNoiseLite, ridge_noise: FastNoiseLite,
-		coast_noise: FastNoiseLite, accepted_cells: Dictionary) -> PackedVector2Array:
+## 成河 = 在探索过的格集合上 BFS 取 source→终点最短链。失败 (步数耗尽/困死) 返回空。
+## 势能 memo 按格缓存 (值噪声场每次采样 ~30 次 vnoise, 不缓存河流追踪会秒级)。
+func _walk_river(source: Vector2i, accepted_cells: Dictionary) -> PackedVector2Array:
 	var directions: Array[Vector2i] = [Vector2i(1, 0), Vector2i(1, -1), Vector2i(0, -1),
 		Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 1)]
-	var rect := _playable_plane_rect().grow(OCEAN_MARGIN + 1.0)
+	var rect := land_plane_rect().grow(OCEAN_MARGIN + 1.0)
 	var visited: Dictionary = {source: true}
+	var potential_memo: Dictionary = {}
+	var land_memo: Dictionary = {}
 	var current := source
 	var terminal := source
 	var reached := false
 	for _step in range(RIVER_MAX_STEPS):
 		var current_plane := axial_to_plane(current)
-		if _land_factor(current_plane, coast_noise) < 0.5 \
+		if _land_memoized(current, current_plane, land_memo) < 0.5 \
 				or (accepted_cells.has(current) and current != source):
 			terminal = current
 			reached = true
@@ -619,8 +613,13 @@ func _walk_river(source: Vector2i, elevation_noise: FastNoiseLite, ridge_noise: 
 			var neighbor_plane := axial_to_plane(neighbor)
 			if not rect.has_point(neighbor_plane):
 				continue
-			var potential := _raw_elevation(elevation_noise, ridge_noise, neighbor_plane) \
-				* _land_factor(neighbor_plane, coast_noise)
+			var potential: float
+			if potential_memo.has(neighbor):
+				potential = potential_memo[neighbor]
+			else:
+				potential = raw_elevation_at(warp_plane(neighbor_plane, generation_seed), generation_seed) \
+					* _land_memoized(neighbor, neighbor_plane, land_memo)
+				potential_memo[neighbor] = potential
 			if potential < best_potential:
 				best_potential = potential
 				best = neighbor
@@ -662,6 +661,14 @@ func _walk_river(source: Vector2i, elevation_noise: FastNoiseLite, ridge_noise: 
 	return path
 
 
+func _land_memoized(cell: Vector2i, plane: Vector2, memo: Dictionary) -> float:
+	if memo.has(cell):
+		return memo[cell]
+	var land := land_factor_at(plane)
+	memo[cell] = land
+	return land
+
+
 static func _read_int_array(source: Array) -> PackedInt32Array:
 	var result := PackedInt32Array()
 	if source == null:
@@ -689,7 +696,7 @@ static func axial_to_offset(cell: Vector2i) -> Vector2i:
 
 
 ## axial(pointy-top) → 未压扁平面 (hex 间距 = 1 单位)。方向/角度计算的几何真相 ——
-## axial 空间本身是斜坐标系, 直接在 (q,r) 上做角度/垂直会歪 30°; view 的 iso squish 是再上一层皮肤变换。
+## axial 空间本身是斜坐标系, 直接在 (q,r) 上做角度/垂直会歪 30°; view 的缩放是再上一层皮肤变换。
 static func axial_to_plane(cell: Vector2i) -> Vector2:
 	return Vector2(float(cell.x) + float(cell.y) * 0.5, float(cell.y) * sqrt(3.0) / 2.0)
 

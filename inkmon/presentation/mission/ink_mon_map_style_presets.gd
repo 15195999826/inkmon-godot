@@ -31,6 +31,9 @@ const _MOSS_COLORS := {
 	"col_shallow": Color(0.42, 0.50, 0.53),
 	"col_shore": Color(0.56, 0.51, 0.41),
 	"col_snowcap": Color(0.78, 0.79, 0.77),
+	"col_dense": Color(0.24, 0.29, 0.17),
+	"col_rock": Color(0.63, 0.62, 0.58),
+	"col_desert": Color(0.62, 0.57, 0.42),
 	"col_ink": Color(0.10, 0.11, 0.10),
 }
 
@@ -47,6 +50,9 @@ const _CODEX_COLORS := {
 	"col_shallow": Color(0.35, 0.48, 0.50),
 	"col_shore": Color(0.52, 0.47, 0.34),
 	"col_snowcap": Color(0.70, 0.72, 0.69),
+	"col_dense": Color(0.16, 0.24, 0.13),
+	"col_rock": Color(0.55, 0.56, 0.54),
+	"col_desert": Color(0.60, 0.48, 0.30),
 	"col_ink": Color(0.055, 0.060, 0.055),
 }
 
@@ -63,6 +69,9 @@ const _WASH_COLORS := {
 	"col_shallow": Color(0.38, 0.55, 0.57),
 	"col_shore": Color(0.80, 0.74, 0.58),
 	"col_snowcap": Color(0.92, 0.93, 0.94),
+	"col_dense": Color(0.22, 0.34, 0.23),
+	"col_rock": Color(0.60, 0.58, 0.56),
+	"col_desert": Color(0.79, 0.70, 0.50),
 	"col_ink": Color(0.09, 0.13, 0.15),
 }
 
@@ -79,6 +88,9 @@ const _FLAT_COLORS := {
 	"col_shallow": Color(0.30, 0.62, 0.72),
 	"col_shore": Color(0.93, 0.85, 0.58),
 	"col_snowcap": Color(0.97, 0.97, 0.98),
+	"col_dense": Color(0.09, 0.36, 0.15),
+	"col_rock": Color(0.68, 0.67, 0.66),
+	"col_desert": Color(0.91, 0.79, 0.46),
 	"col_ink": Color(0.05, 0.12, 0.20),
 }
 
@@ -94,10 +106,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0.13, 0.15, 0.15, 0.85),
 				"river_core": Color(0.36, 0.44, 0.47, 0.95),
 				"uniforms": _merge(_MOSS_COLORS, {
-					"facet_mix": 1.0, "facet_scale": 0.80, "sea_facet": 1.0,
+					"facet_mix": 1.0, "facet_scale": 0.80,
 					"ink_strength": 0.85, "hatch_strength": 0.22, "shade_k": 0.42,
 					"grain_amt": 0.05, "vignette_amt": 0.16, "shallow_steps": 0.0,
-					"mottle_amt": 0.16, "snowcap_amt": 1.0,
+					"mottle_amt": 0.16, "post_darken": 0.95,
 				}),
 			}
 		STYLE_MOSS:
@@ -107,10 +119,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0.16, 0.19, 0.20, 0.7),
 				"river_core": Color(0.34, 0.41, 0.45, 0.9),
 				"uniforms": _merge(_MOSS_COLORS, {
-					"facet_mix": 0.0, "facet_scale": 0.62, "sea_facet": 0.0,
-					"ink_strength": 0.55, "hatch_strength": 0.0, "shade_k": 0.40,
+					"facet_mix": 0.0, "facet_scale": 0.62,
+					"ink_strength": 0.75, "hatch_strength": 0.0, "shade_k": 0.40,
 					"grain_amt": 0.05, "vignette_amt": 0.16, "shallow_steps": 0.0,
-					"mottle_amt": 0.16, "snowcap_amt": 1.0,
+					"mottle_amt": 0.16, "post_darken": 0.95,
 				}),
 			}
 		STYLE_WATERCOLOR:
@@ -120,10 +132,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0.10, 0.18, 0.22, 0.6),
 				"river_core": Color(0.23, 0.38, 0.44, 0.9),
 				"uniforms": _merge(_WASH_COLORS, {
-					"facet_mix": 0.0, "facet_scale": 0.62, "sea_facet": 0.0,
-					"ink_strength": 0.6, "hatch_strength": 0.0, "shade_k": 0.40,
+					"facet_mix": 0.0, "facet_scale": 0.62,
+					"ink_strength": 0.75, "hatch_strength": 0.0, "shade_k": 0.40,
 					"grain_amt": 0.05, "vignette_amt": 0.10, "shallow_steps": 0.0,
-					"mottle_amt": 0.0, "snowcap_amt": 1.0,
+					"mottle_amt": 0.0, "post_darken": 1.0,
 				}),
 			}
 		STYLE_PLAIN_WC:
@@ -135,10 +147,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0, 0, 0, 0),
 				"river_core": Color(0, 0, 0, 0),
 				"uniforms": _merge(plain_colors, {
-					"facet_mix": 0.0, "facet_scale": 0.62, "sea_facet": 0.0,
-					"ink_strength": 0.6, "hatch_strength": 0.0, "shade_k": 0.40,
+					"facet_mix": 0.0, "facet_scale": 0.62,
+					"ink_strength": 0.75, "hatch_strength": 0.0, "shade_k": 0.40,
 					"grain_amt": 0.05, "vignette_amt": 0.10, "shallow_steps": 0.0,
-					"mottle_amt": 0.0, "snowcap_amt": 1.0,
+					"mottle_amt": 0.0, "post_darken": 1.0,
 				}),
 			}
 		STYLE_FLAT:
@@ -148,10 +160,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0.08, 0.22, 0.35, 0.7),
 				"river_core": Color(0.20, 0.45, 0.60, 0.95),
 				"uniforms": _merge(_FLAT_COLORS, {
-					"facet_mix": 0.0, "facet_scale": 0.62, "sea_facet": 0.0,
-					"ink_strength": 0.5, "hatch_strength": 0.0, "shade_k": 0.12,
+					"facet_mix": 0.0, "facet_scale": 0.62,
+					"ink_strength": 0.55, "hatch_strength": 0.0, "shade_k": 0.12,
 					"grain_amt": 0.0, "vignette_amt": 0.0, "shallow_steps": 2.0,
-					"mottle_amt": 0.0, "snowcap_amt": 1.0,
+					"mottle_amt": 0.0, "post_darken": 1.0,
 				}),
 			}
 		STYLE_CODEX:
@@ -161,10 +173,10 @@ static func preset(style_id: String) -> Dictionary:
 				"river_under": Color(0.055, 0.075, 0.080, 0.85),
 				"river_core": Color(0.32, 0.47, 0.50, 0.95),
 				"uniforms": _merge(_CODEX_COLORS, {
-					"facet_mix": 1.0, "facet_scale": 0.56, "sea_facet": 1.0,
+					"facet_mix": 1.0, "facet_scale": 0.56,
 					"ink_strength": 0.92, "hatch_strength": 0.30, "shade_k": 0.54,
 					"grain_amt": 0.07, "vignette_amt": 0.22, "shallow_steps": 3.0,
-					"mottle_amt": 0.20, "snowcap_amt": 0.85,
+					"mottle_amt": 0.20, "post_darken": 0.95,
 				}),
 			}
 	Log.assert_crash(false, "InkMonMapStylePresets", "unknown style id: %s" % style_id)

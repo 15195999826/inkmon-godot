@@ -45,8 +45,8 @@ signal mission_battle_triggered(node_id: int)
 const STEP_DURATION := 0.22
 
 ## 存档版本 (adr/0001 统一 live-actor 模型; v3 起含 world_map 世界地理; v4 起含 quest_board
-## 委托板, Phase 3; v5 起 world_map 为 biome+量化场+河流 v2 形状, adr/0012)。不符即丢弃重开。
-const SAVE_VERSION := 5
+## 委托板, Phase 3; v5 起 world_map v2 形状; v6 起生成噪声换 mock 值噪声 (A2, adr/0012 修订))。不符即丢弃重开。
+const SAVE_VERSION := 6
 ## 新游戏默认出战上限 (左队取 roster 前 N)。
 const MAX_BATTLE_UNITS := 4
 ## NPC 邻近判定半径 (axial 距离 ≤ 此值 = 相邻, 可交互)。
@@ -123,7 +123,9 @@ func new_game() -> void:
 	for unit_key in InkMonUnitConfig.get_default_roster(0):
 		InkMonRosterSetup.add_from_config(self, str(unit_key))
 	# 世界地理: 开档一次生成、此后永久固定 (P2; 真随机 seed —— 每个存档一个独特世界)。
-	world_map = InkMonWorldMapData.generate(randi())
+	# seed 掩 30 位正区间: GPU 场 shader 收 signed int, seed+offset 在 INT32_MAX 附近溢出
+	# 是 GLSL 规范级 UB (codex review High); 30 位空间足够 (10 亿世界)。
+	world_map = InkMonWorldMapData.generate(randi() & 0x3FFFFFFF)
 	# 委托板 (Phase 3): 开档首刷; 之后回城结算刷新。
 	quest_board = InkMonQuestGen.roll_board(world_map, randi())
 	_setup_overworld_runtime()
@@ -163,8 +165,8 @@ func from_dict(data: Dictionary) -> bool:
 	if map_data != null and not map_data.is_empty():
 		world_map = InkMonWorldMapData.from_dict(map_data)
 	else:
-		# v3 档理应携带; 字段缺失/损坏时重生成一张兜底 (地理换新, 好过弃档)。
-		world_map = InkMonWorldMapData.generate(randi())
+		# 档理应携带; 字段缺失/损坏时重生成一张兜底 (地理换新, 好过弃档)。
+		world_map = InkMonWorldMapData.generate(randi() & 0x3FFFFFFF)
 	quest_board.clear()
 	var board_data := data.get("quest_board", []) as Array
 	if board_data != null:

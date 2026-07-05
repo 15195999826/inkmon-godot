@@ -17,8 +17,10 @@ signal node_clicked(node_id: int)
 
 
 const HEX_SIZE := 20.0
-## 2:1 等轴纵向压扁 (对齐 render2d 字典: squish 0.5 ↔ pitch 30°)。
-const ISO_SQUISH := 0.5
+## 大地图不做等轴压扁 (A1 拍板 2026-07-05): 语义 = 摊开的"世界地图纸", 不迁就据点/战斗的
+## 2:1 等轴约定 —— 压扁会把山形/海湾压成横椭圆, 是"游戏内不如 mock"的最大单一因素
+## (证据 squish_evidence.png)。保留常数位以防未来要微调纵横比。
+const ISO_SQUISH := 1.0
 ## 迷雾遮罩烘焙分辨率 (px per view-plane px): 低分辨率 + LINEAR 放大 → 柔和雾缘。
 const FOG_BAKE_SCALE := 0.35
 ## 场纹理烘焙 (逐像素秩归一 / 真模糊着色场 / 参照图) 全部归 InkMonMapBakeMath
@@ -68,6 +70,8 @@ var _piece_placed := false
 var _sheet: InkMonMissionMapSheet = null
 var _sheet_view_rect := Rect2()
 var _map_bake_hash := 0
+## 异步烘焙代际 (烘焙中换档/换 seed 时丢弃陈旧结果)。
+var _bake_epoch := 0
 ## 当前风格 (adr/0012 决定五; root 从 user:// 偏好初始化)。
 var map_style_id := InkMonMapStylePresets.DEFAULT_STYLE
 var _style_preset: Dictionary = InkMonMapStylePresets.preset(InkMonMapStylePresets.DEFAULT_STYLE)
@@ -209,14 +213,14 @@ func _draw() -> void:
 # === 地图纸 (adr/0012 决定四): 数据纹理 + 辅助场纹理 + uniform 下发 ===
 
 
-## 可玩世界的平面矩形 (未压扁平面单位; 与 InkMonWorldMapData._playable_plane_rect 同几何)。
-func _playable_plane_rect() -> Rect2:
-	return Rect2(0.0, 0.0, float(_map_width - 1) + 0.5, float(_map_height - 1) * sqrt(3.0) / 2.0)
+## 陆地矩形 (mock PLANE_W = 宽+0.5, 与 InkMonWorldMapData.land_plane_rect 同几何)。
+func _land_plane_rect() -> Rect2:
+	return Rect2(0.0, 0.0, float(_map_width) + 0.5, float(_map_height - 1) * sqrt(3.0) / 2.0)
 
 
-## sheet 平面矩形 = 可玩矩形四周加海洋边框带 (决定三)。
+## sheet 平面矩形 = 陆地矩形四周加海洋边框带 (决定三; mock 画布同几何)。
 func _sheet_plane_rect() -> Rect2:
-	return _playable_plane_rect().grow(InkMonWorldMapData.OCEAN_MARGIN)
+	return _land_plane_rect().grow(InkMonWorldMapData.OCEAN_MARGIN)
 
 
 ## 平面单位 → view 坐标 (含 HEX 缩放 + iso squish)。与 _axial_to_plane 同一变换:
@@ -232,39 +236,44 @@ func _plane_rect_to_view(rect: Rect2) -> Rect2:
 	return Rect2(top_left, bottom_right - top_left)
 
 
-## 世界变化 (开档/换档) 时重烘连续场/着色场纹理 + 下发矩形/分类 uniform + 当前风格。
+## 世界变化 (开档/换档) 时重烘场纹理 (异步) + 下发矩形/seed uniform + 当前风格。
+## 烘焙归 InkMonMapBakeMath: 运行时 GPU 多 pass (40px/单位, ~1s); headless CPU 低密度保链路。
 func _rebuild_sheet(world_map_snapshot: Dictionary) -> void:
+	# 入口即递增 epoch: 空世界早退也要作废在途烘焙 (codex review: 旧 bake 不得写回新/空 sheet)。
+	_bake_epoch += 1
 	if _map_width <= 0 or _map_height <= 0 or _biome_codes.is_empty():
 		_sheet.set_sheet_rect(Rect2())
 		_sheet_view_rect = Rect2()
 		return
-	var play_rect := _playable_plane_rect()
 	var sheet_rect := _sheet_plane_rect()
 	_sheet_view_rect = _plane_rect_to_view(sheet_rect)
 	_sheet.set_sheet_rect(_sheet_view_rect)
-	# 场烘焙归 InkMonMapBakeMath (逐像素秩归一 + 真模糊, adr/0012 决定四修订):
-	# 快照即 to_dict, from_dict 得临时 map 实例喂噪声工厂/海岸公式。
-	var bake := InkMonMapBakeMath.bake_view_textures(InkMonWorldMapData.from_dict(world_map_snapshot))
-	_sheet.set_sheet_uniform("field_tex", bake.get("field_tex"))
-	_sheet.set_sheet_uniform("shade_tex", bake.get("shade_tex"))
 	_sheet.set_sheet_uniform("sheet_origin", sheet_rect.position)
 	_sheet.set_sheet_uniform("sheet_size", sheet_rect.size)
-	_sheet.set_sheet_uniform("play_origin", play_rect.position)
-	_sheet.set_sheet_uniform("play_size", play_rect.size)
-	_sheet.set_sheet_uniform("ocean_margin", InkMonWorldMapData.OCEAN_MARGIN)
-	# biome 阈值/纬度温度常量单一来源 = 数据类 (分类语义两端同域)。
-	_sheet.set_sheet_uniform("biome_mountain_min", InkMonWorldMapData.BIOME_MOUNTAIN_MIN)
-	_sheet.set_sheet_uniform("biome_hill_min", InkMonWorldMapData.BIOME_HILL_MIN)
-	_sheet.set_sheet_uniform("biome_tundra_max_t", InkMonWorldMapData.BIOME_TUNDRA_MAX_T)
-	_sheet.set_sheet_uniform("biome_forest_min_m", InkMonWorldMapData.BIOME_FOREST_MIN_M)
-	_sheet.set_sheet_uniform("biome_dry_max_m", InkMonWorldMapData.BIOME_DRY_MAX_M)
-	_sheet.set_sheet_uniform("biome_dry_min_t", InkMonWorldMapData.BIOME_DRY_MIN_T)
-	_sheet.set_sheet_uniform("temp_lat_lo", InkMonWorldMapData.TEMP_LAT_LO)
-	_sheet.set_sheet_uniform("temp_lat_span", InkMonWorldMapData.TEMP_LAT_SPAN)
-	_sheet.set_sheet_uniform("temp_lat_scale", InkMonWorldMapData.TEMP_LAT_SCALE)
-	_sheet.set_sheet_uniform("temp_lat_bias", InkMonWorldMapData.TEMP_LAT_BIAS)
-	_sheet.set_sheet_uniform("temp_elev_drop", InkMonWorldMapData.TEMP_ELEV_DROP)
+	_sheet.set_sheet_uniform("u_land_h", _land_plane_rect().size.y)
+	_sheet.set_sheet_uniform("u_seed", _generation_seed)
 	_apply_style_uniforms()
+	# 异步烘焙 (fire-and-forget 协程): 世界在烘焙期间保持上一张/空底, 完成后热替换;
+	# epoch 防陈旧应用 (烘焙中又换档/换 seed)。
+	_launch_bake(InkMonWorldMapData.from_dict(world_map_snapshot), _bake_epoch)
+
+
+func _launch_bake(map_for_bake: InkMonWorldMapData, epoch: int) -> void:
+	var bake: Dictionary
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		bake = InkMonMapBakeMath.bake_cpu(map_for_bake, InkMonMapBakeMath.CPU_PX_PER_UNIT)
+	else:
+		bake = await InkMonMapBakeMath.bake_gpu(self, map_for_bake)
+	if epoch != _bake_epoch or not is_instance_valid(_sheet):
+		return
+	_sheet.set_sheet_uniform("field_tex", bake.get("field_tex"))
+	_sheet.set_sheet_uniform("shade_tex", bake.get("shade_tex"))
+	_sheet.set_sheet_uniform("cdf_tex", bake.get("cdf_tex"))
+	_sheet.set_sheet_uniform("u_emin", bake.get("emin"))
+	_sheet.set_sheet_uniform("u_erange", bake.get("erange"))
+	_sheet.set_sheet_uniform("u_mmin", bake.get("mmin"))
+	_sheet.set_sheet_uniform("u_mrange", bake.get("mrange"))
+	queue_redraw()
 
 
 func _apply_style_uniforms() -> void:
@@ -505,7 +514,7 @@ static func _to_int_array(source: Array) -> PackedInt32Array:
 func _fit_to_viewport() -> void:
 	if _map_width <= 0 or _map_height <= 0:
 		return
-	var bounds := _plane_rect_to_view(_playable_plane_rect()).grow(HEX_SIZE * 2.0)
+	var bounds := _plane_rect_to_view(_land_plane_rect()).grow(HEX_SIZE * 2.0)
 	var min_pos := bounds.position
 	var content := bounds.size
 	# 用 viewport 原生尺寸: get_viewport_rect() 是 local 系(受本节点已设 transform 逆变换),

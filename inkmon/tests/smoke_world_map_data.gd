@@ -199,9 +199,8 @@ func _check_v2_shape(map: InkMonWorldMapData) -> String:
 	if map.rivers.size() > InkMonWorldMapData.RIVER_MAX_COUNT:
 		return "seed %d: too many rivers (%d)" % [map.generation_seed, map.rivers.size()]
 	var earlier_points: Dictionary = {}
-	# 河口↔海岸同源锁 (codex review Low): 用与 shader 完全同源的 coast field 判海,
-	# 任何一侧换噪声参数不换另一侧, 这里必挂。
-	var coast_noise := InkMonWorldMapData.make_coast_noise(map.generation_seed)
+	# 河口↔海岸同源锁 (codex review Low): is_visual_sea 与渲染场共用 land_factor_at,
+	# 任何一侧改海岸公式不改另一侧, 这里必挂。
 	for river_index in range(map.rivers.size()):
 		var polyline := map.rivers[river_index]
 		if polyline.size() < InkMonWorldMapData.RIVER_MIN_POINTS:
@@ -213,7 +212,7 @@ func _check_v2_shape(map: InkMonWorldMapData) -> String:
 				return "seed %d: river %d step discontinuous" % [map.generation_seed, river_index]
 		var mouth := polyline[polyline.size() - 1]
 		var joins_earlier: bool = earlier_points.has(InkMonWorldMapData.plane_to_axial(mouth))
-		if not joins_earlier and not map.is_visual_sea(mouth, coast_noise):
+		if not joins_earlier and not map.is_visual_sea(mouth):
 			return "seed %d: river %d mouth must land in visual sea or join an earlier river" % [
 				map.generation_seed, river_index]
 		for point in polyline:
