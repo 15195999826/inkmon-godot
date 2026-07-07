@@ -1,8 +1,8 @@
 {
   "schema": "inkmon-tileset/1",
   "set_id": "inkmon-tiles-hard",
-  "version": "1",
-  "hash": "b28a3a8a057cfb7f",
+  "version": "2",
+  "hash": "2051aeec0f07e4c7",
   "projection": {
     "contract": "hex-tile-v1",
     "hex_orientation": "flat_top",

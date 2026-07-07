@@ -233,7 +233,13 @@ func _build_scene() -> void:
 
 	_units_root = Node2D.new()
 	_units_root.name = "UnitsRoot"
+	# Y-sort（T6, adr/0006 + ysort-occluder-marking）：单位（脚点 y）与面片遮挡体
+	# （baseline_y）同场排序——单位在遮挡体基线之上（更远）时被重印像素盖住、
+	# 探出半身；之下（更近）时画在遮挡体之后。开启前单位间是树序，开启后按 y
+	# 排序（同为画家序正确方向）。
+	_units_root.y_sort_enabled = true
 	add_child(_units_root)
+	_grid.build_occluders(_units_root)
 
 	_driver = InkMonOverworldLiveDriver.new()
 	_driver.name = "OverworldDriver"

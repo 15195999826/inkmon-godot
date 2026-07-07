@@ -1,0 +1,128 @@
+{
+  "schema": "inkmon-patchset/1",
+  "set_id": "inkmon-patches-main",
+  "version": "1",
+  "hash": "6922278013d74567",
+  "projection": {
+    "contract": "hex-tile-v1",
+    "hex_orientation": "flat_top",
+    "pitch_deg": 35.26,
+    "yaw_deg": -15,
+    "hex_edge_world": 1,
+    "thickness_world": 0.55,
+    "elevation_step_world": 0.5,
+    "water_recess_world": 0.12,
+    "sun_elevation_deg": 50,
+    "sun_azimuth_deg": -45,
+    "material_mode_default": "emission",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512,
+    "runtime_target_max_opaque_px": 512,
+    "coordinate_convention": "axial flat-top; hex corner i at 60°·i; world cell center = hex_edge_world · (1.5·q, √3·(r + q/2)); screen = ground_basis(pitch, yaw), image y-down",
+    "anchor_semantics": "top-face center at the elevation-0 plane, in cropped-image pixel coords; consumer places centered sprite with offset = size_px/2 − anchor_px",
+    "elevation_lift": "height_to_screen(elevation · elevation_step_world · px_per_unit, pitch)",
+    "variant_pick": "explicit map-cell variant wins; otherwise posmod((q·73856093) XOR (r·19349663), variant_count)",
+    "material_mode": "emission",
+    "runtime_scale": 0.41552734375,
+    "runtime_px_per_unit": 212.75,
+    "px_per_hex_edge": 212.75
+  },
+  "patches": {
+    "terrace_stairs": {
+      "footprint": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "rel_elevation": 0,
+          "climb_edges": []
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "rel_elevation": 1,
+          "climb_edges": [
+            4
+          ]
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "rel_elevation": 2,
+          "climb_edges": [
+            4
+          ]
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "rel_elevation": 2,
+          "climb_edges": []
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "rel_elevation": 1,
+          "climb_edges": []
+        }
+      ],
+      "variants": [
+        {
+          "name": "type_1",
+          "file": "patch_terrace_stairs_type_1.png",
+          "size_px": [
+            1029,
+            907
+          ],
+          "anchor_px": [
+            661.05,
+            708.17
+          ],
+          "occluders": [
+            {
+              "polygon_px": [
+                [
+                  255.88,
+                  143.88
+                ],
+                [
+                  460.66,
+                  14.12
+                ],
+                [
+                  829.27,
+                  68.76
+                ],
+                [
+                  1016.99,
+                  225.84
+                ],
+                [
+                  1006.75,
+                  376.08
+                ],
+                [
+                  842.93,
+                  608.28
+                ],
+                [
+                  604.01,
+                  553.65
+                ],
+                [
+                  409.46,
+                  519.5
+                ],
+                [
+                  242.22,
+                  294.13
+                ]
+              ],
+              "baseline_y": 526.33
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "ext": {}
+}

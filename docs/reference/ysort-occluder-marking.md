@@ -2,6 +2,10 @@
 
 [adr/0008](../adr/0008-limited-angle-rotation-two-layer-projection.md) Decision 8 保守主案的配套技术：固定视角下，复杂场景元素用 AI 整图直出，遮挡关系靠手工描几何标注解决——整图不切碎、不出分层素材。
 
+> **落地注记（2026-07-07）**：本方案由 inkmon-lab T6 patch 工坊落地（生产管线 + 标注工具 +
+> `inkmon-patchset/1` 契约），裁定细节见 lab 仓 `docs/adr/0006` 与
+> `docs/architecture/godot-contract.md` patch_set 节。
+
 ## 机制
 
 - **整图永远垫底**：大图一张 `Sprite2D`，画在所有单位之下（它是地板，从不遮挡任何东西）。

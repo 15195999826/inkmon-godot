@@ -32,6 +32,10 @@ window/size/viewport_height=1080
 window/size/window_width_override=1920
 window/size/window_height_override=1080
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/sim-nav-map/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg", "res://inkmon/tools/editor_plugin/plugin.cfg")
+
 [gui]
 
 theme/custom_font="res://inkmon/presentation/text/font/noto_sans_sc_subset.otf"
@@ -39,11 +43,6 @@ theme/custom_font="res://inkmon/presentation/text/font/noto_sans_sc_subset.otf"
 [internationalization]
 
 locale/translations=PackedStringArray("res://inkmon/presentation/text/translations.en.translation", "res://inkmon/presentation/text/translations.zh.translation")
-locale/fallback="en"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/lomolib/plugin.cfg", "res://addons/sim-nav-map/plugin.cfg", "res://addons/ultra-grid-map/plugin.cfg", "res://addons/logic-game-framework/plugin.cfg", "res://inkmon/tools/editor_plugin/plugin.cfg")
 
 [logic_game_framework]
 

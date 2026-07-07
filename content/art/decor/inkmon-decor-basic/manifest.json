@@ -1,0 +1,84 @@
+{
+  "schema": "inkmon-decorset/1",
+  "set_id": "inkmon-decor-basic",
+  "version": "6",
+  "hash": "ca641cbab50cd48c",
+  "projection": {
+    "contract": "hex-tile-v1",
+    "hex_orientation": "flat_top",
+    "pitch_deg": 35.26,
+    "yaw_deg": -15,
+    "hex_edge_world": 1,
+    "thickness_world": 0.55,
+    "elevation_step_world": 0.5,
+    "water_recess_world": 0.12,
+    "sun_elevation_deg": 50,
+    "sun_azimuth_deg": -45,
+    "material_mode_default": "emission",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512,
+    "runtime_target_max_opaque_px": 512,
+    "coordinate_convention": "axial flat-top; hex corner i at 60°·i; world cell center = hex_edge_world · (1.5·q, √3·(r + q/2)); screen = ground_basis(pitch, yaw), image y-down",
+    "anchor_semantics": "top-face center at the elevation-0 plane, in cropped-image pixel coords; consumer places centered sprite with offset = size_px/2 − anchor_px",
+    "elevation_lift": "height_to_screen(elevation · elevation_step_world · px_per_unit, pitch)",
+    "variant_pick": "explicit map-cell variant wins; otherwise posmod((q·73856093) XOR (r·19349663), variant_count)",
+    "material_mode": "lit",
+    "runtime_scale": 0.41552734375,
+    "runtime_px_per_unit": 212.75,
+    "px_per_hex_edge": 212.75
+  },
+  "decors": {
+    "bush": {
+      "variants": [
+        {
+          "name": "type_3",
+          "file": "decor_bush_type_3.png",
+          "shadow_file": "decor_bush_type_3_shadow.png",
+          "size_px": [
+            254,
+            148
+          ],
+          "anchor_px": [
+            93,
+            143
+          ]
+        }
+      ]
+    },
+    "pine": {
+      "variants": [
+        {
+          "name": "type_3",
+          "file": "decor_pine_type_3.png",
+          "shadow_file": "decor_pine_type_3_shadow.png",
+          "size_px": [
+            586,
+            435
+          ],
+          "anchor_px": [
+            123,
+            430
+          ]
+        }
+      ]
+    },
+    "rocks": {
+      "variants": [
+        {
+          "name": "type_2",
+          "file": "decor_rocks_type_2.png",
+          "shadow_file": "decor_rocks_type_2_shadow.png",
+          "size_px": [
+            195,
+            117
+          ],
+          "anchor_px": [
+            64,
+            112
+          ]
+        }
+      ]
+    }
+  },
+  "ext": {}
+}

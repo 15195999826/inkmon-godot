@@ -1,0 +1,235 @@
+{
+  "schema": "inkmon-tileset/1",
+  "set_id": "inkmon-tiles-bevel",
+  "version": "1",
+  "hash": "06d34b69e3ab9761",
+  "projection": {
+    "contract": "hex-tile-v1",
+    "hex_orientation": "flat_top",
+    "pitch_deg": 35.26,
+    "yaw_deg": -15,
+    "hex_edge_world": 1,
+    "thickness_world": 0.55,
+    "elevation_step_world": 0.5,
+    "water_recess_world": 0.12,
+    "sun_elevation_deg": 50,
+    "sun_azimuth_deg": -45,
+    "material_mode_default": "emission",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512,
+    "runtime_target_max_opaque_px": 512,
+    "coordinate_convention": "axial flat-top; hex corner i at 60°·i; world cell center = hex_edge_world · (1.5·q, √3·(r + q/2)); screen = ground_basis(pitch, yaw), image y-down",
+    "anchor_semantics": "top-face center at the elevation-0 plane, in cropped-image pixel coords; consumer places centered sprite with offset = size_px/2 − anchor_px",
+    "elevation_lift": "height_to_screen(elevation · elevation_step_world · px_per_unit, pitch)",
+    "variant_pick": "explicit map-cell variant wins; otherwise posmod((q·73856093) XOR (r·19349663), variant_count)",
+    "pipeline": "mode3_top_edge_bevel",
+    "stroke": "none",
+    "material_mode": "emission",
+    "runtime_scale": 0.4228515625,
+    "runtime_px_per_unit": 216.5,
+    "px_per_hex_edge": 216.5
+  },
+  "families": {
+    "dirt": {
+      "e0": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_dirt_e0_type_1.png",
+            "size_px": [
+              428,
+              338
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e1": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_dirt_e1_type_1.png",
+            "size_px": [
+              428,
+              427
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e2": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_dirt_e2_type_1.png",
+            "size_px": [
+              428,
+              515
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      }
+    },
+    "grass": {
+      "e0": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_grass_e0_type_1.png",
+            "size_px": [
+              428,
+              338
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e1": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_grass_e1_type_1.png",
+            "size_px": [
+              428,
+              427
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e2": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_grass_e2_type_1.png",
+            "size_px": [
+              428,
+              515
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      }
+    },
+    "stone": {
+      "e0": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_stone_e0_type_1.png",
+            "size_px": [
+              428,
+              338
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e1": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_stone_e1_type_1.png",
+            "size_px": [
+              428,
+              427
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      },
+      "e2": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_stone_e2_type_1.png",
+            "size_px": [
+              428,
+              515
+            ],
+            "anchor_px": [
+              214,
+              116
+            ]
+          }
+        ]
+      }
+    },
+    "water": {
+      "e0": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_water_e0_type_1.png",
+            "size_px": [
+              428,
+              317
+            ],
+            "anchor_px": [
+              214,
+              95
+            ]
+          }
+        ]
+      },
+      "e1": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_water_e1_type_1.png",
+            "size_px": [
+              428,
+              406
+            ],
+            "anchor_px": [
+              214,
+              95
+            ]
+          }
+        ]
+      },
+      "e2": {
+        "variants": [
+          {
+            "name": "type_1",
+            "file": "tile_water_e2_type_1.png",
+            "size_px": [
+              428,
+              494
+            ],
+            "anchor_px": [
+              214,
+              95
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "ext": {}
+}

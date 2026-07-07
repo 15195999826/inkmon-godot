@@ -181,7 +181,12 @@ func find_path(actor_id: String, from_coord: Vector2i, to_coord: Vector2i) -> Ar
 
 	var passable := func(coord: HexCoord) -> bool:
 		return is_passable_for_actor(coord.to_axial(), actor_id)
-	var result := GridPathfinding.astar(model, _to_hex(from_coord), _to_hex(to_coord), passable)
+	# 高差通行规则（T6, adr/0006）：edge_check 走 model.can_traverse——
+	# max_height_step 由地图加载器启用；面片 climb_edges 是豁免边。occupant/
+	# reservation 语义仍归 passable 回调（can_traverse 内的 is_passable 只加不减）。
+	var edge_check := func(from: HexCoord, to: HexCoord) -> bool:
+		return model.can_traverse(from, to)
+	var result := GridPathfinding.astar(model, _to_hex(from_coord), _to_hex(to_coord), passable, Callable(), INF, edge_check)
 	if not result.found:
 		return []
 

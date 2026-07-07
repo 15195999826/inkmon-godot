@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon美术探索/fable-水shader-v1/water_scene_toon.gd" id="1_water_toon"]
+
+[node name="FableWaterShaderToonScene" type="Node2D"]
+script = ExtResource("1_water_toon")
+render_mode = 1
+scene_title = "fable-水shader-v1 water (toon)"
+ink_enabled = true
