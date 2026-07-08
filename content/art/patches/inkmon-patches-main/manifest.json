@@ -1,8 +1,8 @@
 {
   "schema": "inkmon-patchset/1",
   "set_id": "inkmon-patches-main",
-  "version": "1",
-  "hash": "6922278013d74567",
+  "version": "3",
+  "hash": "184d24ee25a29b49",
   "projection": {
     "contract": "hex-tile-v1",
     "hex_orientation": "flat_top",
@@ -65,59 +65,110 @@
           "climb_edges": []
         }
       ],
+      "edge_context": [
+        {
+          "dq": 1,
+          "dr": -1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": -1,
+          "dr": 0,
+          "rel_elevation": 0
+        },
+        {
+          "dq": -2,
+          "dr": 0,
+          "rel_elevation": 1
+        },
+        {
+          "dq": 1,
+          "dr": -3,
+          "rel_elevation": 1
+        },
+        {
+          "dq": 2,
+          "dr": -3,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "rel_elevation": 0
+        }
+      ],
       "variants": [
         {
-          "name": "type_1",
-          "file": "patch_terrace_stairs_type_1.png",
+          "name": "type_2",
+          "file": "patch_terrace_stairs_type_2.png",
           "size_px": [
-            1029,
-            907
+            1034,
+            876
           ],
           "anchor_px": [
-            661.05,
+            659.05,
             708.17
           ],
           "occluders": [
             {
               "polygon_px": [
                 [
-                  255.88,
-                  143.88
+                  517.23,
+                  -2.76
                 ],
                 [
-                  460.66,
-                  14.12
+                  308.86,
+                  33.22
                 ],
                 [
-                  829.27,
-                  68.76
+                  253.27,
+                  155.16
                 ],
                 [
-                  1016.99,
-                  225.84
+                  404.35,
+                  245.41
                 ],
                 [
-                  1006.75,
-                  376.08
+                  614.73,
+                  218.8
                 ],
                 [
-                  842.93,
-                  608.28
+                  775.33,
+                  304.33
                 ],
                 [
-                  604.01,
-                  553.65
+                  983.69,
+                  268.35
                 ],
                 [
-                  409.46,
-                  519.5
+                  1039.28,
+                  146.42
                 ],
                 [
-                  242.22,
-                  294.13
+                  888.2,
+                  56.16
+                ],
+                [
+                  677.83,
+                  82.77
                 ]
               ],
-              "baseline_y": 526.33
+              "baseline_y": 91.45
             }
           ]
         }

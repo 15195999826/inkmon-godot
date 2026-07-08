@@ -15,6 +15,10 @@ const WORLD_MAP_ID := "world_main"
 ## 视图显示密度（px/边）：素材原生 ~213px/边按此缩放，保住既有 avatar/marker/相机的像素尺度。
 const DISPLAY_EDGE_PX := 64.0
 const CAMERA_FOLLOW_SPEED := 5.0
+## 滚轮缩放（检查素材/层级细节用）：跟随玩家为中心，滚一格乘除一档。
+const CAMERA_ZOOM_MIN := 0.5
+const CAMERA_ZOOM_MAX := 4.0
+const CAMERA_ZOOM_STEP := 1.15
 const CLICK_PULSE_DURATION := 0.34
 const INVALID_COORD := Vector2i(-999999, -999999)
 ## 玩家在 driver 里的内部 actor id（view 私有,与逻辑层 PLAYER_ID 解耦）。
@@ -44,6 +48,21 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_update_camera_follow(delta)
 	_track_move_finished()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var wheel := event as InputEventMouseButton
+	if wheel == null or not wheel.pressed or _camera == null:
+		return
+	if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
+		_apply_camera_zoom(CAMERA_ZOOM_STEP)
+	elif wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_apply_camera_zoom(1.0 / CAMERA_ZOOM_STEP)
+
+
+func _apply_camera_zoom(factor: float) -> void:
+	var z := clampf(_camera.zoom.x * factor, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX)
+	_camera.zoom = Vector2(z, z)
 
 
 # ========== actor-state（经 driver） ==========

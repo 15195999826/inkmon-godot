@@ -155,6 +155,27 @@ static func apply_patches_to_model(model: GridMapModel, map_doc: Dictionary, pat
 					push_error("[InkMonMapLoader] %s: patch '%s' climb edge %d 的邻居 %s 没有 tile" % [map_id, patch_name, edge, str(neighbor)])
 					return false
 				model.set_edge_pass_override(hex, neighbor_hex, true)
+		# edge_context 放置校验（守则机器化）：面片图烘死的边缘假设（外邻相对海拔，
+		# 锚定格基准）必须与放置处地形一致——不一致 = 外缘墙/无墙收边与邻居 tile
+		# 顶面打架的视觉穿帮（资产层根源，绘制次序救不了）。未声明的外邻不校验
+		# （legacy void；旧 manifest 无此字段 = 全不校验，向后兼容）。
+		var edge_context := node.get("edge_context", []) as Array
+		if edge_context == null:
+			edge_context = []  # 字段存在但非 Array（null/坏类型）——按无声明处理
+		for ctx_value in edge_context:
+			var ctx := ctx_value as Dictionary
+			if ctx == null:
+				continue
+			var ctx_coord := anchor + Vector2i(int(ctx.get("dq", 0)), int(ctx.get("dr", 0)))
+			var ctx_hex := HexCoord.new(ctx_coord.x, ctx_coord.y)
+			if not model.has_tile(ctx_hex):
+				push_error("[InkMonMapLoader] %s: patch '%s' edge_context 格 %s 没有 tile —— 面片假设该邻居存在（rel %d），放置处却是地图外" % [map_id, patch_name, str(ctx_coord), int(ctx.get("rel_elevation", 0))])
+				return false
+			var ctx_expected := anchor_elevation + int(ctx.get("rel_elevation", 0))
+			var ctx_actual := int(model.get_tile_metadata(ctx_hex, "elevation", 0))
+			if ctx_actual != ctx_expected:
+				push_error("[InkMonMapLoader] %s: patch '%s' edge_context 格 %s elevation %d != 面片边缘假设 %d（锚定 %d + rel %d）—— 挪面片或改地形，否则边缘墙穿帮" % [map_id, patch_name, str(ctx_coord), ctx_actual, ctx_expected, anchor_elevation, int(ctx.get("rel_elevation", 0))])
+				return false
 	return true
 
 

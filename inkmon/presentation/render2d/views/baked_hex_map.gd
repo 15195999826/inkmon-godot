@@ -12,7 +12,10 @@ extends Node2D
 ##   - sprite centered，offset = size_px/2 − anchor_px（anchor = 顶面中心@海拔0平面）
 ##   - 变体：格子显式 variant 优先，否则 posmod((q·73856093) ^ (r·19349663), n) 确定性抽签
 ##   - 画家序：(screen_y, screen_x) 排序后按序 add_child（树序即绘制序，不用 z_index；
-##     decor 进场时沿同一排序列表插入）
+##     decor 影层沿同一排序列表插入；decor 本体在 build_occluders 时挪进 y-sort
+##     容器，与单位/遮挡体按脚点 y 同场排序；patch 整图垫底 + footprint 每格
+##     顶面 hex 以本格中心键重印 + 可见壁区（墙/台阶立面）以墙脚格键重印
+##     ——顶面像素归本格、立面像素归墙脚格，与 tile 同构互序）
 ##
 ## 坐标 API 与旧共享网格件同形（coord_to_world(_f) / world_to_coord_f / has_coord /
 ## get_all_coords），差异：返回的屏幕坐标**含海拔抬升**（单位站在顶面），拾取按画家序
@@ -20,7 +23,33 @@ extends Node2D
 
 const SQRT3 := sqrt(3.0)
 
+## flat-top: 壁 i（角点 i→i+1）对应的邻居位移——与 loader PATCH_WALL_NEIGHBOR /
+## Lab make_patch_scaffold.py WALL_NEIGHBOR 同表（契约几何 cross-ref）。
+const WALL_NEIGHBOR := {
+	0: Vector2i(1, -1), 1: Vector2i(0, -1), 2: Vector2i(-1, 0),
+	3: Vector2i(-1, 1), 4: Vector2i(0, 1), 5: Vector2i(1, 0),
+}
+## 壁区重印的外扩量（×edge）：台阶踏步/侧柱/墙底接地是"合法溢出"，会凸出壁面
+## 四边形一点（接地方向更多），margin 把它们兜进重印区（过大会把邻格上空的
+## 杂像素也提前）。
+const WALL_REPRINT_MARGIN := 0.25
+
 const WATER_FACE_SHADER := preload("res://inkmon/presentation/render2d/water/water_face.gdshader")
+
+## 重印像素的 alpha 阈值裁剪：patch 图在格边缘的 keying AA 半透明像素（含微量
+## 品红 unmix 残调）在垫底层会被邻居 tile 盖住不可见；重印若原样重画会把这些
+## 半透明边叠在邻居之上（细品红缝线）。discard 掉半透明边——AA 过渡仍由垫底层
+## 提供，重印只负责实心像素的次序修正。
+const REPRINT_SHADER_CODE := """
+shader_type canvas_item;
+void fragment() {
+	// COLOR 进入 fragment 时已 = 纹理采样 × 顶点色（内置行为）——只裁剪，
+	// 不要重新采样相乘（会乘两遍纹理变暗）。
+	if (COLOR.a < 0.7) {
+		discard;
+	}
+}
+"""
 
 var _model: GridMapModel = null
 var _ground := Transform2D.IDENTITY
@@ -55,6 +84,15 @@ var _patch_count := 0
 ## 容器里落成 Polygon2D——遮挡体必须与单位同场 Y-sort，不能进 _tiles_root 树序层）。
 var _occluder_specs: Array = []
 var _occluder_nodes: Array = []
+## patch 顶面重印用绘制基准（salt → {texture, topleft}；_make_patch_sprite 填，
+## 同帧 kind=2 重印 entry 消费）。
+var _patch_paint_specs: Dictionary = {}
+## decor 本体 sprite（影层留 _tiles_root 画家序——影子被更晚绘制的高地 tile 截断
+## 是 adr/0004 正确行为；本体在 build_occluders 时挪进同一 y-sort 容器，以脚点 y
+## 与单位/遮挡体同场排序——否则站在遮挡体基线之前的 decor 会被重印像素盖头）。
+var _decor_body_nodes: Array = []
+## patch 重印共享材质（REPRINT_SHADER_CODE，lazy 建一份全部重印 Polygon2D 共用）。
+var _reprint_material: ShaderMaterial = null
 ## water（inkmon-map/1 water_bodies 扩展）：shader 水面材质表（cell → ShaderMaterial，
 ## 岸线/flow/落水段已注入）。water 格出 shader 水面 Polygon2D 替代 baked 水 tile；未被任何
 ## water_body 收录的 water 格回退 baked sprite（合法 fallback）。
@@ -136,12 +174,25 @@ func setup_from_bundle(bundle: Dictionary, display_edge_px: float = 0.0) -> bool
 func _rebuild_sprites() -> void:
 	if _tiles_root != null:
 		_tiles_root.queue_free()
+	# build_occluders 可能已把 decor 本体/遮挡体挪进外部 y-sort 容器——它们不随
+	# 旧 _tiles_root 释放，rebuild 时显式清（对仍在旧 root 下的节点重复
+	# queue_free 无害）。
+	for body_value in _decor_body_nodes:
+		var body := body_value as Node
+		if body != null and is_instance_valid(body):
+			body.queue_free()
+	for occ_value in _occluder_nodes:
+		var occ := occ_value as Node
+		if occ != null and is_instance_valid(occ):
+			occ.queue_free()
+	_occluder_nodes = []
 	_tiles_root = Node2D.new()
 	_tiles_root.name = "TilesRoot"
 	add_child(_tiles_root)
 	_tile_count = 0
 	_decor_count = 0
 	_paint_order.clear()
+	_decor_body_nodes = []
 
 	# tile 与 decor 进同一画家序列表（T3 契约）：tile 排序键 = 格中心屏幕点；
 	# decor 排序键 = offset 后实际落点屏幕点，且被钳到不早于所在格 tile 的键
@@ -149,6 +200,7 @@ func _rebuild_sprites() -> void:
 	# 画到自家 tile 底下）；kind 位（tile=0 < decor=1）只破精确同键平局。
 	_patch_count = 0
 	_occluder_specs = []
+	_patch_paint_specs = {}
 	var entries: Array[Dictionary] = []
 	for coord in _model.get_all_coords():
 		var axial := coord.to_axial()
@@ -157,9 +209,14 @@ func _rebuild_sprites() -> void:
 		# 但仍进画家序列表 → _paint_order（拾取 lift-aware 命中不依赖 sprite）。
 		var suppressed := bool(_model.get_tile_metadata(coord, "patch_covered", false))
 		entries.append({"kind": 0, "axial": axial, "screen": screen, "sort": screen, "suppressed": suppressed})
-	# patch 整图垫底（T6, adr/0006 + ysort-occluder-marking）：一张 Sprite2D，
-	# 排序键 = footprint 各格里屏幕 y 最小者（最远格）——在它覆盖区域的所有常规
-	# 邻居 tile 之前画（kind=-1 破平局），身后高落差交界靠地图设计守则目检。
+	# patch 整图垫底 + footprint 顶面重印（T6, adr/0006 + ysort-occluder-marking）：
+	# 整图一张 Sprite2D，排序键 = footprint 最北格（kind=-1 垫底，先于覆盖区所有
+	# 常规邻居 tile）；随后**每个 footprint 格的顶面 hex（几何精确已知，含 lift）**
+	# 用 Polygon2D 引用同图像素重印一遍，排序键 = 本格中心——与普通 tile 完全同构
+	# （kind=2 只破同格平局）。效果：邻居 tile 的厚度侧壁压不到面片低格顶面
+	# （"南邻后画盖北侧壁"不变量对 footprint 格成立），而面片边缘的墙/裙像素
+	# 不重印、保持垫底——与放置处地形不符的外缘墙会被更近的邻居 tile 正常盖住，
+	# 不会悬空反盖（整图单键或横向条带都做不到这两点兼得）。
 	for i in _patch_entries.size():
 		var pentry := _patch_entries[i] as Dictionary
 		if pentry == null:
@@ -169,6 +226,12 @@ func _rebuild_sprites() -> void:
 		if node == null or node.is_empty():
 			push_error("baked_hex_map: patch set has no '%s'" % str(pentry.get("patch", "")))
 			continue
+		var fp_cells := {}
+		for cell_value in node.get("footprint", []) as Array:
+			var cell := cell_value as Dictionary
+			if cell == null:
+				continue
+			fp_cells[anchor + Vector2i(int(cell.get("dq", 0)), int(cell.get("dr", 0)))] = true
 		var min_sort := _ground * _plane_center(anchor)
 		for cell_value in node.get("footprint", []) as Array:
 			var cell := cell_value as Dictionary
@@ -178,6 +241,35 @@ func _rebuild_sprites() -> void:
 			var cell_screen := _ground * _plane_center(cell_axial)
 			if cell_screen.y < min_sort.y or (cell_screen.y == min_sort.y and cell_screen.x < min_sort.x):
 				min_sort = cell_screen
+			entries.append({
+				"kind": 2, "axial": cell_axial, "screen": cell_screen,
+				"sort": cell_screen, "salt": i,
+			})
+			# 立面（墙/台阶）像素的次序归属 = "墙脚所在的格"：AI 画的立面会带
+			# 有机"接地"溢出（石块/苔藓漫过理论墙脚线，伸进墙脚格 hex），只靠
+			# 顶面重印兜不住——先画的墙脚格 tile 会反过来把溢出段盖掉（墙悬空
+			# 截断/台阶柱被切）。对每面朝观众的可见壁（3/4/5，scaffold
+			# WALL_FILL 同表）生成"壁区重印"（壁面四边形 + margin），排序键 =
+			# 墙脚格中心——与墙脚格顶面同档晚画，立面完整盖住先画的邻居。
+			var climb_edges: Array[int] = []
+			for ce in cell.get("climb_edges", []) as Array:
+				climb_edges.append(int(ce))
+			for edge in [3, 4, 5]:
+				var low_axial := cell_axial + (WALL_NEIGHBOR[edge] as Vector2i)
+				if not climb_edges.has(edge):
+					# 非 climb 壁：footprint 内部交界由顶面重印覆盖（同图像素）；
+					# 外邻无 tile（地图外/void）则没有邻居会盖它，无需重印。
+					if fp_cells.has(low_axial) or not _model.has_tile(_to_hex(low_axial)):
+						continue
+				# sub=1：与墙脚格自己的顶面重印（同 sort 键、同 kind=2、sub=0）平局时
+				# 排在其后——壁自高格垂下落在墙脚格顶面上，下扩 margin 须盖住墙脚格
+				# 顶面的边（否则墙脚顶面若靠 sort_custom 不稳定排序排到壁后，会把
+				# 墙脚+接地溢出盖回去，破坏"立面随墙脚格晚画"）。
+				entries.append({
+					"kind": 2, "sub": 1, "axial": cell_axial, "screen": cell_screen,
+					"sort": _ground * _plane_center(low_axial), "salt": i,
+					"wall_edge": edge, "wall_low": low_axial,
+				})
 		entries.append({
 			"kind": -1, "axial": anchor, "screen": _ground * _plane_center(anchor),
 			"sort": min_sort, "patch": pentry, "salt": i,
@@ -209,7 +301,11 @@ func _rebuild_sprites() -> void:
 			return sa.y < sb.y
 		if sa.x != sb.x:
 			return sa.x < sb.x
-		return int(a["kind"]) < int(b["kind"])
+		if int(a["kind"]) != int(b["kind"]):
+			return int(a["kind"]) < int(b["kind"])
+		# 同 sort 键同 kind：sub 子序破平局（kind=2 内 顶面 sub=0 < 壁 sub=1，
+		# 壁后画盖顶面边）。sort_custom 非稳定排序——确定性子序不依赖它。
+		return int(a.get("sub", 0)) < int(b.get("sub", 0))
 	)
 
 	# 画家序 = 子节点树序（按排序键升序 add_child，后加的画在上面）。不用
@@ -224,6 +320,18 @@ func _rebuild_sprites() -> void:
 				continue
 			_tiles_root.add_child(patch_sprite)
 			_patch_count += 1
+		elif int(entry["kind"]) == 2:
+			# footprint 格顶面 / 壁区重印（同图像素 verbatim，只改相对邻居 tile
+			# 的次序）。整图 entry 键 ≤ 本格键（min 键 + kind=-1 破平）⇒ spec
+			# 必先就绪；缺席 = 整图建 sprite 失败，重印同跳。
+			var reprint: Polygon2D = null
+			if entry.has("wall_edge"):
+				reprint = _make_patch_wall_reprint(
+					int(entry["salt"]), axial, int(entry["wall_edge"]), entry["wall_low"] as Vector2i)
+			else:
+				reprint = _make_patch_top_reprint(int(entry["salt"]), axial)
+			if reprint != null:
+				_tiles_root.add_child(reprint)
 		elif int(entry["kind"]) == 0:
 			_paint_order.append(axial)
 			if bool(entry.get("suppressed", false)):
@@ -248,10 +356,16 @@ func _rebuild_sprites() -> void:
 			_tile_count += 1
 		else:
 			# 影层贴地先画、本体随后：两 sprite 同画布同锚点 ⇒ 同 position/offset。
+			# 本体先留 _tiles_root（未接 y-sort 容器的调用方维持旧画家序行为），
+			# build_occluders 时挪进 y-sort 容器与单位/遮挡体同场排序。
 			var pos := entry["screen"] as Vector2 - Vector2(0.0, _lift_of(axial))
-			for sprite in _make_decor_sprites(entry["decor"] as Dictionary, axial, int(entry["salt"])):
+			var decor_sprites := _make_decor_sprites(entry["decor"] as Dictionary, axial, int(entry["salt"]))
+			for i2 in decor_sprites.size():
+				var sprite := decor_sprites[i2]
 				sprite.position = pos
 				_tiles_root.add_child(sprite)
+				if i2 == 1:
+					_decor_body_nodes.append(sprite)
 			_decor_count += 1
 
 
@@ -415,7 +529,8 @@ func _pick_decor_variant(entry: Dictionary, axial: Vector2i, salt: int, variants
 
 ## patch 放置条目 → 整图垫底 Sprite2D（摆放公式与 tile 同构：anchor = 锚定格
 ## 顶面中心@海拔0平面，offset = size/2 − anchor_px，按锚定格海拔 lift）。同时把
-## variant 的遮挡体换算成屏幕系规格存入 _occluder_specs（build_occluders 消费）。
+## variant 的遮挡体换算成屏幕系规格存入 _occluder_specs（build_occluders 消费），
+## 并把 {texture, topleft} 存入 _patch_paint_specs 供 footprint 顶面重印引用。
 func _make_patch_sprite(entry: Dictionary, anchor_axial: Vector2i, salt: int) -> Sprite2D:
 	var patch_name := str(entry.get("patch", ""))
 	var node := _patches.get(patch_name, {}) as Dictionary
@@ -441,8 +556,9 @@ func _make_patch_sprite(entry: Dictionary, anchor_axial: Vector2i, salt: int) ->
 	var pos := _ground * _plane_center(anchor_axial) - Vector2(0.0, _lift_of(anchor_axial))
 	sprite.position = pos
 	# 贴图左上角屏幕坐标（centered sprite：position − size·s/2 + offset·s）——
-	# 遮挡体的像素→屏幕换算基准。
+	# 遮挡体与顶面重印的像素→屏幕换算基准。
 	var topleft := pos + (sprite.offset - Vector2(float(size[0]), float(size[1])) * 0.5) * _sprite_scale
+	_patch_paint_specs[salt] = {"texture": texture, "topleft": topleft}
 	for occ_value in (meta.get("occluders", []) as Array):
 		var occ := occ_value as Dictionary
 		if occ == null:
@@ -457,10 +573,114 @@ func _make_patch_sprite(entry: Dictionary, anchor_axial: Vector2i, salt: int) ->
 	return sprite
 
 
+## footprint 格顶面重印：该格顶面 hex（含海拔 lift）的 Polygon2D，uv 反算回
+## patch 纹理像素——与垫底整图逐像素重合（内容 verbatim），只是以本格中心键
+## 重新入画家序，让邻居 tile 的侧壁 overdraw 盖不到面片格顶面。顶点用绝对屏幕
+## 坐标、position 留零（瀑布面同款——画家序只看树序）。返回 null = 整图 sprite
+## 未就绪（load 失败等，已 push_error）。
+func _make_patch_top_reprint(salt: int, cell_axial: Vector2i) -> Polygon2D:
+	var spec := _patch_paint_specs.get(salt, {}) as Dictionary
+	if spec == null or spec.is_empty():
+		return null
+	var topleft := spec["topleft"] as Vector2
+	var lift := _lift_of(cell_axial)
+	var center_plane := _plane_center(cell_axial)
+	var poly := Polygon2D.new()
+	poly.name = "patch_top_%d_%d" % [cell_axial.x, cell_axial.y]
+	var points := PackedVector2Array()
+	var uvs := PackedVector2Array()
+	for i in 6:
+		var screen := _ground * (center_plane + _hex_corner(i)) - Vector2(0.0, lift)
+		points.append(screen)
+		uvs.append((screen - topleft) / _sprite_scale)
+	poly.polygon = points
+	poly.uv = uvs
+	poly.texture = spec["texture"] as Texture2D
+	poly.material = _reprint_mat()
+	return poly
+
+
+## 壁区重印：高格壁 edge 的立面四边形（上边贴高格顶面、下边贴墙脚格顶面，
+## 四周外扩 margin 兜住踏步/侧柱/墙底接地的合法溢出——溢出主要朝下），uv 反算
+## 同图像素 verbatim——排序键由 caller 给（墙脚格中心），让立面随墙脚格晚画、
+## 完整盖住先画的邻居 tile。返回 null = 整图 sprite 未就绪 / 无实际落差。
+func _make_patch_wall_reprint(salt: int, high_axial: Vector2i, edge: int, low_axial: Vector2i) -> Polygon2D:
+	var spec := _patch_paint_specs.get(salt, {}) as Dictionary
+	if spec == null or spec.is_empty():
+		return null
+	var topleft := spec["topleft"] as Vector2
+	var center_plane := _plane_center(high_axial)
+	var lift_high := _lift_of(high_axial)
+	var lift_low := _lift_of(low_axial)
+	if lift_high <= lift_low:
+		return null  # 无实际落差（坏标注/同高）——没有壁面可重印，quad 会退化
+	# 壁 edge → hex 角点：契约壁语义（scaffold/loader 的"壁 i = 角点 i→i+1"）定义在
+	# 世界平面系（y 向北），渲染平面系 y 向南（_plane_center 用 +√3）——角度取负
+	# 映射，壁 i 的两角 = 渲染 corner (6-i)%6 与 (5-i)%6（axial 邻居表 WALL_NEIGHBOR
+	# 不含像素角点、不受影响；debug 红块实验实锤过直接用 corner(i) 会画到对面）。
+	var a := _ground * (center_plane + _hex_corner((6 - edge) % 6)) - Vector2(0.0, lift_high)
+	var b := _ground * (center_plane + _hex_corner((5 - edge + 6) % 6)) - Vector2(0.0, lift_high)
+	var c := b + Vector2(0.0, lift_high - lift_low)
+	var d := a + Vector2(0.0, lift_high - lift_low)
+	var m := WALL_REPRINT_MARGIN * _edge_px
+	# 横向 margin 只朝"也有落差的邻壁"方向外扩：柱/踏步溢出只出现在有墙的壁端；
+	# 邻壁同高（无墙收边）的一端没有合法溢出——外扩反而会把 AI 违规画在同高边
+	# 上的"幽灵墙"像素捞出来重画在邻居 tile 之上（v3 中台西格西南边实测坑）。
+	# 壁 edge 的 a 端共享角 corner((6-e)%6)，邻壁 = edge-1；b 端邻壁 = edge+1。
+	var m_a := m if _wall_has_drop(high_axial, (edge + 5) % 6) else 0.0
+	var m_b := m if _wall_has_drop(high_axial, (edge + 1) % 6) else 0.0
+	var dir := (b - a).normalized()
+	var poly := Polygon2D.new()
+	poly.name = "patch_wall_%d_%d_e%d" % [high_axial.x, high_axial.y, edge]
+	var points := PackedVector2Array([
+		a - dir * m_a - Vector2(0.0, m * 0.6), b + dir * m_b - Vector2(0.0, m * 0.6),
+		c + dir * m_b + Vector2(0.0, m), d - dir * m_a + Vector2(0.0, m),
+	])
+	var uvs := PackedVector2Array()
+	for pt in points:
+		uvs.append((pt - topleft) / _sprite_scale)
+	poly.polygon = points
+	poly.uv = uvs
+	poly.texture = spec["texture"] as Texture2D
+	poly.material = _reprint_mat()
+	if OS.get_environment("INKMON_DEBUG_WALL_REPRINT") == "1":
+		poly.modulate = Color(1.0, 0.2, 0.2, 0.6)
+		poly.material = null
+	return poly
+
+
+## 该格的壁 e 是否有可见落差（邻居更低或地图外 void 全深墙）——壁区重印横向
+## margin 的外扩条件（同高邻壁 = 无墙收边，无合法溢出）。
+func _wall_has_drop(cell_axial: Vector2i, edge: int) -> bool:
+	var neighbor := cell_axial + (WALL_NEIGHBOR[edge] as Vector2i)
+	if not _model.has_tile(_to_hex(neighbor)):
+		return true  # void：全深墙存在
+	return _lift_of(neighbor) < _lift_of(cell_axial)
+
+
+func _reprint_mat() -> ShaderMaterial:
+	if _reprint_material == null:
+		var sh := Shader.new()
+		sh.code = REPRINT_SHADER_CODE
+		_reprint_material = ShaderMaterial.new()
+		_reprint_material.shader = sh
+	return _reprint_material
+
+
 ## 把遮挡体落成 Polygon2D 加进 view 提供的 y-sort 容器（父节点须开
 ## y_sort_enabled；单位以脚点 y、遮挡体以 baseline_y 换算的屏幕 y 同场排序——
-## ysort-occluder-marking 机制）。重复调用先清旧节点；setup 后调用一次即可。
+## ysort-occluder-marking 机制）。同时把 decor 本体 sprite 挪进同一容器（脚点 y
+## 同场排序；不挪则站在遮挡体基线之前的 decor 会被重印像素盖头）。parent 须与
+## 本节点同坐标系（兄弟节点、无额外变换——occluder position 直接用地图屏幕坐标）。
+## 重复调用先清旧遮挡体节点；setup 后调用一次即可。
 func build_occluders(parent: Node2D) -> int:
+	for body_value in _decor_body_nodes:
+		var body := body_value as Node2D
+		if body == null or not is_instance_valid(body) or body.get_parent() == parent:
+			continue
+		if body.get_parent() != null:
+			body.get_parent().remove_child(body)
+		parent.add_child(body)
 	for old_value in _occluder_nodes:
 		var old := old_value as Node
 		if old != null and is_instance_valid(old):
