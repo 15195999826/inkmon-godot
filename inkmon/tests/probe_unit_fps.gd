@@ -9,9 +9,15 @@ extends Node
 ## 跑法: godot --path . inkmon/tests/probe_unit_fps.tscn —— **不带 --headless**。
 ##   --frames-dir=<dir> 覆盖帧目录（默认 = 本机 Lab 仓探针产物，探针级 hardcode）
 ##   --shot-and-quit    截一张图退出（布局自检用）
-## 交互: 空格 = 移动/原地切换；←/→ = 走速调节；滚轮 = zoom。
+## 交互: 空格 = 移动/原地切换；←/→ = 走速调节；↑/↓ = stride 校准；滚轮 = zoom。
 ## 走线: 方向 3（前左，母版向）去 / 方向 0 回，回程 flip_h（契约 "0": mirror_of 3，
 ##   anchor_x' = size_x − anchor_x ⇒ centered offset.x 取反——消费端镜像规则同款）。
+##
+## 循环段 + 速度绑定（2026-07-09 fps 裁定现场实证，契约 unitset 章两新条款）:
+## 动画帧 = meta.loop [in,out) 循环段（视频起步 idle 段非循环，walk_loop_pick.py 量化
+## 挑选）；位移动作播放速率随移动速度调制 speed_scale = 走速 / 自然步速（= stride ×
+## fps / 档内循环帧数）——否则滑步。↑/↓ 微调 stride 目检校准（终值登记 manifest
+## stride_world）；原地模式 speed_scale = 1（素材原生踏步率）。
 
 const DEFAULT_FRAMES_DIR := "E:/the-seed-projects/inkmon-lab/docs/plan/current/unit-anim-probe/out/fps_probe"
 const DEFAULT_SHOT_DIR := "res://.claude/tmp/ui-shots"
@@ -32,7 +38,8 @@ var _map: InkMonRender2DBakedHexMap = null
 var _camera: Camera2D = null
 var _units: Array[Dictionary] = []
 var _moving := true
-var _speed := 0.8  # 格/s
+var _speed := 0.35  # 格/s（默认 ≈ stride 自然步速，speed_scale≈1 起步）
+var _stride := 0.382  # world units/循环（meta stride_world_est 覆盖；↑/↓ 校准）
 var _hud: Label = null
 
 
@@ -66,7 +73,17 @@ func _ready() -> void:
 	if textures.is_empty():
 		get_tree().quit(1)
 		return
-	var sprite_frames := _build_sprite_frames(textures)
+	# 循环段（缺 loop 字段 = 未跑 walk_loop_pick.py，退化全序列并告警——会滑步/跳变）。
+	var loop_in := 0
+	var loop_out := textures.size()
+	if meta.has("loop"):
+		var loop := meta["loop"] as Dictionary
+		loop_in = int(loop["in"])
+		loop_out = int(loop["out"])
+	else:
+		push_warning("[probe_unit_fps] meta.json 无 loop 字段——先跑 walk_loop_pick.py")
+	_stride = float(meta.get("stride_world_est", _stride))
+	var sprite_frames := _build_sprite_frames(textures, loop_in, loop_out)
 
 	# 素材 212.75 px/world-unit；显示密度 = edge_px()/hex_edge_world(=1.0 契约常量)。
 	var unit_scale: float = _map.edge_px() / float(meta["px_per_unit"])
@@ -99,6 +116,8 @@ func _ready() -> void:
 		_units.append({
 			"holder": holder, "sprite": sprite, "row": CORRIDOR_START + ROW_OFFSET * i,
 			"t": CORRIDOR_LEN * 0.5, "dir": 1.0, "base_offset": base_offset,
+			"fps": float(v["fps"]),
+			"loop_frames": int(ceilf(float(loop_out - loop_in) / float(v["step"]))),
 		})
 	_place_units()
 
@@ -156,25 +175,33 @@ func _load_textures(frames_dir: String, meta: Dictionary) -> Array[Texture2D]:
 	return out
 
 
-## 一份 SpriteFrames 三条动画（walk8/walk12/walk24），共享同一批纹理对象。
-func _build_sprite_frames(textures: Array[Texture2D]) -> SpriteFrames:
+## 一份 SpriteFrames 三条动画（walk8/walk12/walk24），共享同一批纹理对象；
+## 帧 = 循环段 [loop_in, loop_out) 内按档抽取。
+func _build_sprite_frames(textures: Array[Texture2D], loop_in: int, loop_out: int) -> SpriteFrames:
 	var sf := SpriteFrames.new()
 	for v in VARIANTS:
 		var anim := "walk%d" % int(v["fps"])
 		sf.add_animation(anim)
 		sf.set_animation_speed(anim, float(v["fps"]))
 		sf.set_animation_loop(anim, true)
-		var step := int(v["step"])
-		for i in range(0, textures.size(), step):
+		for i in range(loop_in, loop_out, int(v["step"])):
 			sf.add_frame(anim, textures[i])
 	sf.remove_animation("default")
 	return sf
 
 
+## 该单位所在档的自然步速（world units/s）= 一循环位移 / 一循环时长。
+func _nat_speed(u: Dictionary) -> float:
+	return _stride * float(u["fps"]) / float(u["loop_frames"])
+
+
 func _process(delta: float) -> void:
-	if not _moving:
-		return
 	for u in _units:
+		var sprite := u["sprite"] as AnimatedSprite2D
+		# 位移动作速度绑定（契约条款）: speed_scale = 走速/自然步速；原地 = 素材原生踏步率。
+		sprite.speed_scale = (_speed / _nat_speed(u)) if _moving else 1.0
+		if not _moving:
+			continue
 		var t := float(u["t"]) + float(u["dir"]) * _speed * delta
 		var dir := float(u["dir"])
 		if t >= CORRIDOR_LEN:
@@ -206,8 +233,13 @@ func _apply_unit(u: Dictionary) -> void:
 
 
 func _refresh_hud() -> void:
-	_hud.text = "T7 fps 裁定探针 — 空格: %s | ←/→ 走速 %.2f 格/s | 滚轮 zoom %.1fx" % [
-		"移动中" if _moving else "原地踏步", _speed, _camera.zoom.x if _camera != null else 1.0]
+	var scale12 := 0.0  # 12fps 档参考 speed_scale
+	for u in _units:
+		if int(u["fps"]) == 12:
+			scale12 = _speed / _nat_speed(u)
+	_hud.text = "T7 fps 探针 — 空格: %s | ←/→ 走速 %.2f 格/s | ↑/↓ stride %.3f (12fps 档 speed_scale %.2f) | 滚轮 zoom %.1fx" % [
+		"移动中" if _moving else "原地踏步", _speed, _stride, scale12,
+		_camera.zoom.x if _camera != null else 1.0]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -216,9 +248,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if key == KEY_SPACE:
 			_moving = not _moving
 		elif key == KEY_LEFT:
-			_speed = maxf(0.2, _speed / 1.25)
+			_speed = maxf(0.1, _speed / 1.25)
 		elif key == KEY_RIGHT:
 			_speed = minf(3.0, _speed * 1.25)
+		elif key == KEY_UP:
+			_stride = minf(1.0, _stride + 0.02)
+		elif key == KEY_DOWN:
+			_stride = maxf(0.1, _stride - 0.02)
 		_refresh_hud()
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var btn := (event as InputEventMouseButton).button_index
