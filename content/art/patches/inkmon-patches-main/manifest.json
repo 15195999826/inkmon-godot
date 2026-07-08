@@ -1,8 +1,8 @@
 {
   "schema": "inkmon-patchset/1",
   "set_id": "inkmon-patches-main",
-  "version": "3",
-  "hash": "184d24ee25a29b49",
+  "version": "4",
+  "hash": "5c7802150bb3c63e",
   "projection": {
     "contract": "hex-tile-v1",
     "hex_orientation": "flat_top",
@@ -22,6 +22,17 @@
     "anchor_semantics": "top-face center at the elevation-0 plane, in cropped-image pixel coords; consumer places centered sprite with offset = size_px/2 − anchor_px",
     "elevation_lift": "height_to_screen(elevation · elevation_step_world · px_per_unit, pitch)",
     "variant_pick": "explicit map-cell variant wins; otherwise posmod((q·73856093) XOR (r·19349663), variant_count)",
+    "unit": {
+      "comment": "unit（单位动画帧）契约标量（T7 定案；godot-contract.md unitset 章）。密度 = tile/decor/patch 同标量 212.75（不自动跟随，同 decor 节语义）；帧输出不透明高 = world_height（逐单位 Lab 生产参数，不入契约面）× 本值。unit_fps = 全项目单一动画标准，2026-07-09 实际游戏内 walk 8/12/24 三档 wall-clock 等速目检裁定（探针 = inkmon-godot inkmon/tests/probe_unit_fps）；语义 = speed_scale 1.0 时的标称刷新率——位移动作消费端按 移动速度/动作自然步速 调制 AnimatedSprite2D.speed_scale（否则滑步），动作条目可选 fps_override。shadow = Godot 程序影四参数快照（探针 make_shadow 同款数学：alpha 剪影→竖直压扁 squash→脚线翻转→向右斜切 shear→高斯 blur_px 软边→半透黑 alpha；影不随 sprite 镜像），随 projection 块 publish 盖章。",
+      "runtime_px_per_unit": 212.75,
+      "unit_fps": 12,
+      "shadow": {
+        "squash": 0.35,
+        "shear": 0.55,
+        "blur_px": 7,
+        "alpha": 0.33
+      }
+    },
     "material_mode": "emission",
     "runtime_scale": 0.41552734375,
     "runtime_px_per_unit": 212.75,
@@ -169,6 +180,136 @@
                 ]
               ],
               "baseline_y": 91.45
+            }
+          ]
+        }
+      ]
+    },
+    "town_house": {
+      "footprint": [
+        {
+          "dq": 0,
+          "dr": 0,
+          "rel_elevation": 0,
+          "climb_edges": []
+        },
+        {
+          "dq": 0,
+          "dr": -1,
+          "rel_elevation": 2,
+          "climb_edges": []
+        },
+        {
+          "dq": 1,
+          "dr": -1,
+          "rel_elevation": 2,
+          "climb_edges": []
+        }
+      ],
+      "edge_context": [
+        {
+          "dq": -1,
+          "dr": 0,
+          "rel_elevation": 0
+        },
+        {
+          "dq": -1,
+          "dr": 1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 0,
+          "dr": 1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 1,
+          "dr": 0,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 1,
+          "dr": -2,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 0,
+          "dr": -2,
+          "rel_elevation": 0
+        },
+        {
+          "dq": -1,
+          "dr": -1,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 2,
+          "dr": -2,
+          "rel_elevation": 0
+        },
+        {
+          "dq": 2,
+          "dr": -1,
+          "rel_elevation": 0
+        }
+      ],
+      "variants": [
+        {
+          "name": "type_1",
+          "file": "patch_town_house_type_1.png",
+          "size_px": [
+            826,
+            662
+          ],
+          "anchor_px": [
+            305.9,
+            538.87
+          ],
+          "occluders": [
+            {
+              "polygon_px": [
+                [
+                  87.05,
+                  355.66
+                ],
+                [
+                  87.05,
+                  175.48
+                ],
+                [
+                  158.57,
+                  45.64
+                ],
+                [
+                  243.34,
+                  45.64
+                ],
+                [
+                  381.08,
+                  88.04
+                ],
+                [
+                  608.89,
+                  106.59
+                ],
+                [
+                  736.04,
+                  215.23
+                ],
+                [
+                  725.44,
+                  339.77
+                ],
+                [
+                  381.08,
+                  400.71
+                ],
+                [
+                  238.04,
+                  403.36
+                ]
+              ],
+              "baseline_y": 384.81
             }
           ]
         }

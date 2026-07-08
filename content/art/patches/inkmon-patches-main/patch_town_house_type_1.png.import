@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3pt8uln6vkuq"
-path="res://.godot/imported/patch_terrace_stairs_type_2.png-10f856016566132846af322f46641160.ctex"
+uid="uid://dx3fgm1mba738"
+path="res://.godot/imported/patch_town_house_type_1.png-153347a4184e5ad694d2e725ef92928f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/art/patches/inkmon-patches-main/patch_terrace_stairs_type_2.png"
-dest_files=["res://.godot/imported/patch_terrace_stairs_type_2.png-10f856016566132846af322f46641160.ctex"]
+source_file="res://content/art/patches/inkmon-patches-main/patch_town_house_type_1.png"
+dest_files=["res://.godot/imported/patch_town_house_type_1.png-153347a4184e5ad694d2e725ef92928f.ctex"]
 
 [params]
 
