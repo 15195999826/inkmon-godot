@@ -9,7 +9,9 @@ extends Node
 ## 跑法: godot --path . inkmon/tests/probe_unit_fps.tscn —— **不带 --headless**。
 ##   --frames-dir=<dir> 覆盖帧目录（默认 = 本机 Lab 仓探针产物，探针级 hardcode）
 ##   --shot-and-quit    截一张图退出（布局自检用）
-## 交互: 空格 = 移动/原地切换；←/→ = 走速调节；↑/↓ = stride 校准；滚轮 = zoom。
+## 交互: 空格 = 移动/原地切换；←/→ = 走速调节；↑/↓ = stride 校准；M = 位移模式
+## （平滑 60fps ⇄ 步进跟动画帧——姿态定格期身体平移是烘帧滑步感的固有成分，
+## 步进 = 位移只在动画帧切换瞬间冲销累计量，脚地帧内完全锁定）；滚轮 = zoom。
 ## 走线: 方向 3（前左，母版向）去 / 方向 0 回，回程 flip_h（契约 "0": mirror_of 3，
 ##   anchor_x' = size_x − anchor_x ⇒ centered offset.x 取反——消费端镜像规则同款）。
 ##
@@ -40,6 +42,7 @@ var _units: Array[Dictionary] = []
 var _moving := true
 var _speed := 0.35  # 格/s（默认 ≈ stride 自然步速，speed_scale≈1 起步）
 var _stride := 0.382  # world units/循环（meta stride_world_est 覆盖；↑/↓ 校准）
+var _quantized := false  # M：位移步进跟动画帧
 var _hud: Label = null
 
 
@@ -113,12 +116,16 @@ func _ready() -> void:
 		tag.add_theme_color_override("font_outline_color", Color.BLACK)
 		tag.add_theme_constant_override("outline_size", 4)
 		holder.add_child(tag)
-		_units.append({
+		var unit := {
 			"holder": holder, "sprite": sprite, "row": CORRIDOR_START + ROW_OFFSET * i,
 			"t": CORRIDOR_LEN * 0.5, "dir": 1.0, "base_offset": base_offset,
+			"t_shown": CORRIDOR_LEN * 0.5, "dir_shown": 1.0,
 			"fps": float(v["fps"]),
 			"loop_frames": int(ceilf(float(loop_out - loop_in) / float(v["step"]))),
-		})
+		}
+		# 步进模式：位移只在动画帧切换瞬间应用（姿态与位移跳变同帧 ⇒ 帧内脚地锁定）。
+		sprite.frame_changed.connect(_on_frame_step.bind(unit))
+		_units.append(unit)
 	_place_units()
 
 	_camera = Camera2D.new()
@@ -212,6 +219,16 @@ func _process(delta: float) -> void:
 			dir = 1.0
 		u["t"] = t
 		u["dir"] = dir
+		if not _quantized:
+			u["t_shown"] = t
+			u["dir_shown"] = dir
+			_apply_unit(u)
+
+
+func _on_frame_step(u: Dictionary) -> void:
+	if _quantized and _moving:
+		u["t_shown"] = u["t"]
+		u["dir_shown"] = u["dir"]
 		_apply_unit(u)
 
 
@@ -222,11 +239,11 @@ func _place_units() -> void:
 
 func _apply_unit(u: Dictionary) -> void:
 	var row := u["row"] as Vector2i
-	var t := float(u["t"])
+	var t := float(u["t_shown"])
 	var holder := u["holder"] as Node2D
 	holder.position = _map.coord_to_world_f(float(row.x) - t, float(row.y) + t)
 	var sprite := u["sprite"] as AnimatedSprite2D
-	var mirrored := float(u["dir"]) < 0.0  # 回程 = 方向 0 = mirror_of 3
+	var mirrored := float(u["dir_shown"]) < 0.0  # 回程 = 方向 0 = mirror_of 3
 	sprite.flip_h = mirrored
 	var base := u["base_offset"] as Vector2
 	sprite.offset = Vector2(-base.x if mirrored else base.x, base.y)
@@ -237,8 +254,9 @@ func _refresh_hud() -> void:
 	for u in _units:
 		if int(u["fps"]) == 12:
 			scale12 = _speed / _nat_speed(u)
-	_hud.text = "T7 fps 探针 — 空格: %s | ←/→ 走速 %.2f 格/s | ↑/↓ stride %.3f (12fps 档 speed_scale %.2f) | 滚轮 zoom %.1fx" % [
+	_hud.text = "T7 fps 探针 — 空格: %s | ←/→ 走速 %.2f 格/s | ↑/↓ stride %.3f (12fps 档 speed_scale %.2f) | M 位移: %s | 滚轮 zoom %.1fx" % [
 		"移动中" if _moving else "原地踏步", _speed, _stride, scale12,
+		"步进跟帧" if _quantized else "平滑 60fps",
 		_camera.zoom.x if _camera != null else 1.0]
 
 
@@ -255,6 +273,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_stride = minf(1.0, _stride + 0.02)
 		elif key == KEY_DOWN:
 			_stride = maxf(0.1, _stride - 0.02)
+		elif key == KEY_M:
+			_quantized = not _quantized
 		_refresh_hud()
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var btn := (event as InputEventMouseButton).button_index
