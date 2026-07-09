@@ -2,7 +2,7 @@
   "schema": "inkmon-unitset/1",
   "set_id": "inkmon-units-main",
   "version": "1",
-  "hash": "1db2d7abaa61f4e9",
+  "hash": "15d3b73a6fe91308",
   "projection": {
     "contract": "hex-tile-v1",
     "hex_orientation": "flat_top",
@@ -104,16 +104,15 @@
               "mon_0001/unit_mon_0001_attack_d3_f17.png",
               "mon_0001/unit_mon_0001_attack_d3_f18.png",
               "mon_0001/unit_mon_0001_attack_d3_f19.png",
-              "mon_0001/unit_mon_0001_attack_d3_f20.png",
-              "mon_0001/unit_mon_0001_attack_d3_f21.png"
+              "mon_0001/unit_mon_0001_attack_d3_f20.png"
             ],
             "size_px": [
-              427,
-              369
+              407,
+              334
             ],
             "anchor_px": [
-              239.17,
-              298.38
+              218.32,
+              298.64
             ],
             "loop": false
           },
