@@ -6,3 +6,6 @@ __pycache__/
 # 线稿模板纳入 Git：template sets / placeholders 都作为可追踪资产。
 # 候选评估缓冲：烘焙试评用，永不 commit（lab=原始真相，git=批准品真相，缓冲不构成第三真相）
 textures/_candidates/
+# 本地 FBX 骨骼动画实验（2026-07-09 曾被误 commit，用户裁定不入仓）
+fbx-test.blend
+将军1.FBX
