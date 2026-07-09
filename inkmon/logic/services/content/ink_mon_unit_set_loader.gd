@@ -149,10 +149,11 @@ static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit
 			return null
 		visual._ring = ring_entry
 
-	# actions：6 向三形态展开。真帧向先装（alias/mirror 引用它的 entry）。
-	# v1 契约 = 每动作单真帧向；alias_of/mirror_of 的目标必须指向它（fail loud，
-	# 多真帧向是 v2 演进）。nested 节点全部形状校验后再用（坏 manifest 不得
-	# runtime error——codex M4 review medium）。
+	# actions：6 向三形态展开——**多真帧向**（逐向真生成 2026-07-09，取代 v1
+	# 「每动作单真帧向」约束）。两遍装配：先装全部真帧向（各自动画
+	# `<action>_d<dir>`、各自 fps_override/loop），再解析 alias/mirror（目标必须
+	# 是本动作内**有真帧**的方向——链式引用 fail loud）。nested 节点全部形状
+	# 校验后再用（坏 manifest 不得 runtime error——codex M4 review medium）。
 	if not (node.get("actions", {}) is Dictionary):
 		push_error("[InkMonUnitSetLoader] %s: actions is not an object" % unit_id)
 		return null
@@ -163,45 +164,45 @@ static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit
 			push_error("[InkMonUnitSetLoader] %s/%s: action node is not an object" % [unit_id, action])
 			return null
 		var dirs := actions[action_value] as Dictionary
-		var true_dir := ""
+		var table := {}
 		for dir_key in dirs.keys():
 			if not (dirs[dir_key] is Dictionary):
 				push_error("[InkMonUnitSetLoader] %s/%s d%s: direction node is not an object" % [unit_id, action, str(dir_key)])
 				return null
-			if (dirs[dir_key] as Dictionary).has("frames"):
-				true_dir = str(dir_key)
-				break
-		if true_dir.is_empty():
+			var dnode := dirs[dir_key] as Dictionary
+			if dnode.has("frames"):
+				var dir_str := str(dir_key)
+				var anim := "%s_d%s" % [action, dir_str]
+				var fps := float(dnode.get("fps_override", unit_fps))
+				var loop := bool(dnode.get("loop", false))
+				var entry := _add_sequence(visual, set_dir, unit_id, anim, dnode, fps, loop, shadow_params, with_shadows)
+				if entry.is_empty():
+					return null
+				table[dir_str] = entry
+		if table.is_empty():
 			push_error("[InkMonUnitSetLoader] %s/%s: no true-frame direction" % [unit_id, action])
 			return null
-		var true_node := dirs[true_dir] as Dictionary
-		var anim := "%s_d%s" % [action, true_dir]
-		var fps := float(true_node.get("fps_override", unit_fps))
-		var loop := bool(true_node.get("loop", false))
-		var true_entry := _add_sequence(visual, set_dir, unit_id, anim, true_node, fps, loop, shadow_params, with_shadows)
-		if true_entry.is_empty():
-			return null
-		var table := {}
-		table[true_dir] = true_entry
 		for dir_key in dirs.keys():
 			var dir_str := str(dir_key)
-			if dir_str == true_dir:
+			if table.has(dir_str):
 				continue
 			var fill := dirs[dir_key] as Dictionary
 			if fill.has("alias_of"):
-				if str(fill.get("alias_of")) != true_dir:
-					push_error("[InkMonUnitSetLoader] %s/%s d%s: alias_of %s ≠ true dir %s（v1 单真帧向）" % [unit_id, action, dir_str, str(fill.get("alias_of")), true_dir])
+				var alias_target := str(fill.get("alias_of"))
+				if not table.has(alias_target) or not (dirs.get(alias_target, {}) as Dictionary).has("frames"):
+					push_error("[InkMonUnitSetLoader] %s/%s d%s: alias_of %s 不是真帧向" % [unit_id, action, dir_str, alias_target])
 					return null
-				var alias_entry := true_entry.duplicate()
+				var alias_entry := (table[alias_target] as Dictionary).duplicate()
 				alias_entry["kind"] = "alias"
 				table[dir_str] = alias_entry
 			elif fill.has("mirror_of"):
-				if str(fill.get("mirror_of")) != true_dir:
-					push_error("[InkMonUnitSetLoader] %s/%s d%s: mirror_of %s ≠ true dir %s（v1 单真帧向）" % [unit_id, action, dir_str, str(fill.get("mirror_of")), true_dir])
+				var mirror_target := str(fill.get("mirror_of"))
+				if not table.has(mirror_target) or not (dirs.get(mirror_target, {}) as Dictionary).has("frames"):
+					push_error("[InkMonUnitSetLoader] %s/%s d%s: mirror_of %s 不是真帧向" % [unit_id, action, dir_str, mirror_target])
 					return null
 				# 契约镜像规则：flip_h + anchor_x' = size_x − anchor_x ⇒
 				# centered offset.x 取反。影不随镜像（shadow_offset 保持真帧向）。
-				var mirror_entry := true_entry.duplicate()
+				var mirror_entry := (table[mirror_target] as Dictionary).duplicate()
 				mirror_entry["kind"] = "mirror"
 				mirror_entry["mirrored"] = true
 				var off := mirror_entry["offset"] as Vector2
