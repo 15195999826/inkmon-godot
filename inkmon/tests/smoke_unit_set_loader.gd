@@ -36,16 +36,22 @@ func _run() -> String:
 	if visual.unit_fps != 12.0:
 		return "UnitVisual.unit_fps should be 12"
 
-	# (3) ring:12 帧 / loop / 契约 fps。
+	# (3) ring:全帧发布(契约 Q3)——121 源帧 / loop / fps_override=src 实值(24)
+	#     + entry 透传 src 映射(viewer 指认帧坐标系)。
 	if not visual.has_ring():
 		return "mon_0001 should have a ring"
 	var sf := visual.sprite_frames
-	if sf.get_frame_count("ring") != 12:
-		return "ring should have 12 frames, got %d" % sf.get_frame_count("ring")
+	if sf.get_frame_count("ring") != 121:
+		return "ring should have 121 frames (全帧发布), got %d" % sf.get_frame_count("ring")
 	if not sf.get_animation_loop("ring"):
 		return "ring should loop"
-	if absf(sf.get_animation_speed("ring") - 12.0) > EPS:
-		return "ring fps should be 12"
+	if absf(sf.get_animation_speed("ring") - 24.0) > EPS:
+		return "ring fps should be 24 (fps_override=src), got %f" % sf.get_animation_speed("ring")
+	var ring_entry := visual.ring_entry()
+	if (ring_entry.get("src_frames", []) as Array).size() != 121:
+		return "ring entry should expose 121 src_frames"
+	if int(ring_entry.get("src_frame_count", 0)) != 121:
+		return "ring entry src_frame_count should be 121"
 
 	# (4) 动作清单与真帧帧数(M1 发布定案:walk 12 / idle 24 / attack 20)。
 	var actions := visual.actions()
@@ -115,23 +121,38 @@ func _run() -> String:
 	var center_a := shadow_img.get_pixel(shadow_img.get_width() / 2, shadow_img.get_height() / 2).a
 	if center_a <= 0.0 or center_a > 0.5:
 		return "shadow center alpha should be in (0, 0.5] (契约 0.33 烧进像素), got %f" % center_a
-	# 影几何锁数值(walk 309px 高,squash 0.35,blur 7 → margin 14):
-	# out_h = round(309×0.35) + 2×margin = 136;feet.y = margin → offset.y = 68−14。
-	if shadow_img.get_height() != 136:
-		return "walk shadow out_h should be 136 (squash+margin), got %d" % shadow_img.get_height()
+	# 影几何锁数值(2026-07-09 首验收⑤修复:脚线基准=轴锚地线,非画布底):
+	# walk anchor_y 299.08 → ground_row 299 → gh 300 → sh = round(300×0.35) = 105
+	# → out_h = 105 + 2×margin(14) = 133;feet.y = margin → offset.y = 66.5−14。
+	if shadow_img.get_height() != 133:
+		return "walk shadow out_h should be 133 (anchor-line squash+margin), got %d" % shadow_img.get_height()
 	var walk_shadow_off := walk3.get("shadow_offset") as Vector2
-	if absf(walk_shadow_off.y - (136.0 * 0.5 - 14.0)) > EPS:
+	if absf(walk_shadow_off.y - (133.0 * 0.5 - 14.0)) > EPS:
 		return "walk shadow_offset.y should anchor feet at margin row, got %f" % walk_shadow_off.y
 	if (walk3.get("shadow_offset") as Vector2) == Vector2.ZERO:
 		return "walk d3 shadow_offset should be non-zero (feet anchored)"
 	var mirror_shadow := visual.entry("walk", 0).get("shadow_offset") as Vector2
 	if mirror_shadow.distance_to(walk3.get("shadow_offset") as Vector2) > EPS:
 		return "shadow must NOT mirror (d0 shadow_offset should equal d3's)"
+	# ring 触地归一(export v2)+ 锚线脚线:ring anchor_y ≈ 底行 → 影从脚线起。
+	var ring_shadow_tex := shadows.get_frame_texture("ring", 0)
+	if ring_shadow_tex == null:
+		return "ring shadow frame missing"
 
 	# (9) with_shadows=false:跳过预推(启动耗时口径)。
 	var bare := InkMonUnitSetLoader.load_set(SET_ID, false)
 	var bare_visual := bare[UNIT_ID] as InkMonUnitSetLoader.UnitVisual
 	if bare_visual.shadow_frames != null:
 		return "load_set(with_shadows=false) should skip shadow prebuild"
+
+	# (10) with_ring=false:world 装载免吃全帧 ring(契约 Q3 消费端条款)。
+	var ringless := InkMonUnitSetLoader.load_set(SET_ID, true, false)
+	var ringless_visual := ringless[UNIT_ID] as InkMonUnitSetLoader.UnitVisual
+	if ringless_visual.has_ring():
+		return "load_set(with_ring=false) should skip ring"
+	if ringless_visual.sprite_frames.has_animation("ring"):
+		return "load_set(with_ring=false) should not build the ring animation"
+	if ringless_visual.entry("walk", 3).is_empty():
+		return "load_set(with_ring=false) should still load actions"
 
 	return ""

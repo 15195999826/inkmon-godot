@@ -351,7 +351,8 @@ func _all_slots() -> Array:
 func _refresh_info() -> void:
 	var visual := _visual()
 	if _current_action == "ring":
-		_info.text = "fps %.0f · loop" % visual.unit_fps
+		var ring := visual.ring_entry()
+		_info.text = "fps %.0f · loop" % float(ring.get("fps", visual.unit_fps))
 		return
 	var entry := visual.entry(_current_action, 3)
 	var stride := float(entry.get("stride_world", 0.0))

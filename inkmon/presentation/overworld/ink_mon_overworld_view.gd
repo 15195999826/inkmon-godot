@@ -99,7 +99,9 @@ func _player_style() -> InkMonRender2DAvatar.Style:
 	var style := InkMonRender2DAvatar.Style.overworld_player()
 	if not _player_unit_tried:
 		_player_unit_tried = true
-		var units := InkMonUnitSetLoader.load_set(PLAYER_UNIT_SET_ID)
+		# with_ring=false:world 只消费动作;全帧 ring(121 帧)是图鉴/查看资产,
+		# 装进来 = 白吃 ≈66MB VRAM/单位(契约 Q3 消费端条款)。
+		var units := InkMonUnitSetLoader.load_set(PLAYER_UNIT_SET_ID, true, false)
 		if units.has(PLAYER_UNIT_ID):
 			_player_unit_visual = units[PLAYER_UNIT_ID] as InkMonUnitSetLoader.UnitVisual
 		else:

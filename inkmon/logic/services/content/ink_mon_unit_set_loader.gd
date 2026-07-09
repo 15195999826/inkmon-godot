@@ -103,7 +103,9 @@ static func load_set_manifest(set_id: String) -> Dictionary:
 
 ## 装载整个 set：unit_id → UnitVisual。失败（manifest 坏 / 帧缺）fail loud 返 {}。
 ## with_shadows=false 跳过程序影预推（影不需要的场合省启动耗时）。
-static func load_set(set_id: String, with_shadows := true) -> Dictionary:
+## with_ring=false 跳过 ring（契约 Q3 消费端条款：ring 是图鉴/查看资产，全帧
+## 发布后 121 帧 RGBA 常驻 ≈66MB VRAM/单位——world 装载免吃）。
+static func load_set(set_id: String, with_shadows := true, with_ring := true) -> Dictionary:
 	var manifest := load_set_manifest(set_id)
 	if manifest.is_empty():
 		return {}
@@ -116,7 +118,7 @@ static func load_set(set_id: String, with_shadows := true) -> Dictionary:
 	var units := manifest.get("units", {}) as Dictionary
 	for unit_id_value in units.keys():
 		var unit_id := str(unit_id_value)
-		var visual := _build_unit(set_dir, unit_id, units[unit_id] as Dictionary, unit_fps, shadow_params, with_shadows)
+		var visual := _build_unit(set_dir, unit_id, units[unit_id] as Dictionary, unit_fps, shadow_params, with_shadows, with_ring)
 		if visual == null:
 			return {}
 		visual.px_per_unit = px_per_unit
@@ -124,7 +126,7 @@ static func load_set(set_id: String, with_shadows := true) -> Dictionary:
 	return out
 
 
-static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit_fps: float, shadow_params: Dictionary, with_shadows: bool) -> UnitVisual:
+static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit_fps: float, shadow_params: Dictionary, with_shadows: bool, with_ring: bool) -> UnitVisual:
 	var visual := UnitVisual.new()
 	visual.unit_id = unit_id
 	visual.unit_fps = unit_fps
@@ -134,13 +136,15 @@ static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit
 		visual.shadow_frames = SpriteFrames.new()
 		visual.shadow_frames.remove_animation("default")
 
-	# ring（可选块）：单动画、恒 loop、契约 fps。
+	# ring（可选块）：单动画、恒 loop；fps = fps_override（全帧发布 = src 实值，
+	# 契约 Q3）缺省契约 unit_fps（legacy 抽样 ring）。
 	if node.has("ring") and not (node.get("ring") is Dictionary):
 		push_error("[InkMonUnitSetLoader] %s: ring is not an object" % unit_id)
 		return null
-	if node.get("ring") is Dictionary:
+	if with_ring and node.get("ring") is Dictionary:
 		var ring := node.get("ring") as Dictionary
-		var ring_entry := _add_sequence(visual, set_dir, unit_id, RING_ANIMATION, ring, unit_fps, true, shadow_params, with_shadows)
+		var ring_fps := float(ring.get("fps_override", unit_fps))
+		var ring_entry := _add_sequence(visual, set_dir, unit_id, RING_ANIMATION, ring, ring_fps, true, shadow_params, with_shadows)
 		if ring_entry.is_empty():
 			return null
 		visual._ring = ring_entry
@@ -240,7 +244,7 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 			return {}
 		visual.sprite_frames.add_frame(anim, tex)
 		if with_shadows:
-			var shadow := _make_shadow(tex.get_image(), anchor_px.x, shadow_params)
+			var shadow := _make_shadow(tex.get_image(), anchor_px.x, anchor_px.y, shadow_params)
 			if shadow.is_empty():
 				return {}
 			var shadow_img := shadow["image"] as Image
@@ -273,12 +277,17 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 ## 半透黑 alpha（烧进像素）；feet 锚点公式与 PIL 版同式。
 ## 返回 { image, feet: Vector2 }（feet = 影画布内脚线锚点，对齐 sprite 锚点）。
 ##
+## 脚线基准 = 序列轴锚地线 anchor_y（2026-07-09 首验收⑤修复：原实现拿画布底行
+## 当脚线——union 共享画布内逐帧触地 ≠ 画布底（a03 实测 ±10px 漂移），背身帧
+## 影上爬 ~11px、侧身帧影悬空 ~17px。地线以上剪影参与投影；低于中位地线的
+## 脚尖在地平面上，影在其正下被本体遮蔽，忽略）。
+##
 ## 与 PIL 原版的已知近似差（v1 预推，零逐像素路径；观感留验收任务复核，
 ## shader 实时是 v2 候选）：①剪影 mask = alpha>0（原版 α>40 二值阈，边缘略宽，
 ## blur 后柔化）②压扁重采样 bilinear（原版 LANCZOS）③模糊 = 双线性下采样↔
 ## 上采样近似（Godot Image 无内建高斯）④画布宽度含保守余量（margin 行参与
 ## shear 的上界，不裁影只多几像素透明边）。
-static func _make_shadow(src: Image, anchor_x: float, params: Dictionary) -> Dictionary:
+static func _make_shadow(src: Image, anchor_x: float, anchor_y: float, params: Dictionary) -> Dictionary:
 	if src == null or src.is_empty():
 		push_error("[InkMonUnitSetLoader] shadow source image is empty")
 		return {}
@@ -289,9 +298,11 @@ static func _make_shadow(src: Image, anchor_x: float, params: Dictionary) -> Dic
 
 	var w := src.get_width()
 	var h := src.get_height()
-	var sh := maxi(1, roundi(float(h) * squash))
-	# 压扁（先缩小再处理，后续行 blit 的量随之减少）+ 脚线翻转。
-	var squashed := src.duplicate() as Image
+	var ground_row := clampi(roundi(anchor_y), 0, h - 1)
+	var gh := ground_row + 1
+	var sh := maxi(1, roundi(float(gh) * squash))
+	# 地线以上区域压扁（先缩小再处理，后续行 blit 的量随之减少）+ 脚线翻转。
+	var squashed := src.get_region(Rect2i(0, 0, w, gh))
 	if squashed.get_format() != Image.FORMAT_RGBA8:
 		squashed.convert(Image.FORMAT_RGBA8)
 	squashed.resize(w, sh, Image.INTERPOLATE_BILINEAR)
