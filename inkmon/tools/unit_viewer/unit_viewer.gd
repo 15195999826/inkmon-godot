@@ -10,7 +10,9 @@ extends Node2D
 ## 跑法: godot --path . inkmon/tools/unit_viewer/unit_viewer.tscn
 ##   --unit-shot            全部动作各截一张退出(--shot 自验,存 SHOT_DIR)
 ##   --set-id=<id>          换 unit set(默认 inkmon-units-main)
-## 交互: 滚轮 = zoom;空格 = 播放/重播(单发动作播完停,空格重播)。
+## 交互: 滚轮 = zoom;空格 = 播放/重播(单发动作播完停,空格重播);
+##   P / ⏸ 钮 = 暂停/续播;←/→ = 逐帧步进(自动先暂停)。HUD 常显当前帧号,
+##   ring 附 src 源帧号 + 近似角度(验收指认帧用:「src #NNN 影子不对」)。
 
 const DEFAULT_SET_ID := "inkmon-units-main"
 const SHOT_DIR := "res://.claude/tmp/ui-shots"
@@ -32,14 +34,17 @@ var _ring_slot := {}
 var _zoom := 1.0
 var _speed := 1.0
 var _shadows_on := true
+var _paused := false
 
 var _unit_pick: OptionButton
 var _action_pick: OptionButton
 var _loop_check: CheckButton
 var _shadow_check: CheckButton
+var _pause_check: CheckButton
 var _speed_slider: HSlider
 var _speed_label: Label
 var _info: Label
+var _frame_label: Label
 
 
 func _ready() -> void:
@@ -175,6 +180,14 @@ func _build_control_bar() -> void:
 	replay.pressed.connect(_replay)
 	bar.add_child(replay)
 
+	_pause_check = CheckButton.new()
+	_pause_check.text = "⏸ 暂停"
+	_pause_check.toggled.connect(_set_paused)
+	bar.add_child(_pause_check)
+
+	_frame_label = _bar_label("")
+	bar.add_child(_frame_label)
+
 	_info = _bar_label("")
 	bar.add_child(_info)
 
@@ -228,7 +241,8 @@ func _apply_action() -> void:
 
 	if is_ring:
 		var entry := visual.ring_entry()
-		_apply_slot(_ring_slot, visual, entry, "ring · 12 帧转环")
+		var ring_count := visual.sprite_frames.get_frame_count(InkMonUnitSetLoader.RING_ANIMATION)
+		_apply_slot(_ring_slot, visual, entry, "ring · %d 帧转环" % ring_count)
 	else:
 		for dir in _slots.keys():
 			var entry := visual.entry(_current_action, int(dir))
@@ -236,6 +250,10 @@ func _apply_action() -> void:
 			var kind_label: String = {"true": "真帧", "alias": "alias", "mirror": "mirror"}.get(kind, kind)
 			_apply_slot(_slots[dir] as Dictionary, visual, entry, "d%d · %s" % [int(dir), kind_label])
 	_apply_speed()
+	# 切换选择即恢复播放（_apply_slot 已 play）,暂停态与按钮同步复位。
+	_paused = false
+	if _pause_check != null:
+		_pause_check.set_pressed_no_signal(false)
 	_refresh_info()
 
 
@@ -283,6 +301,8 @@ func _apply_speed() -> void:
 
 
 func _replay() -> void:
+	_paused = false
+	_pause_check.set_pressed_no_signal(false)
 	for slot_value in _all_slots():
 		var slot := slot_value as Dictionary
 		var body := slot["body"] as AnimatedSprite2D
@@ -292,6 +312,34 @@ func _replay() -> void:
 			var shadow := slot["shadow"] as AnimatedSprite2D
 			if shadow.visible:
 				shadow.frame = 0
+
+
+## 暂停/续播(P 键 / ⏸ 钮)。pause() 保留当前帧,play() 原位续播。
+func _set_paused(on: bool) -> void:
+	_paused = on
+	_pause_check.set_pressed_no_signal(on)
+	for slot_value in _all_slots():
+		var body := (slot_value as Dictionary)["body"] as AnimatedSprite2D
+		if not body.visible or body.sprite_frames == null:
+			continue
+		if on:
+			body.pause()
+		else:
+			body.play()
+
+
+## 逐帧步进(←/→;未暂停先自动暂停)。所有可见格同步步进,影帧经
+## frame_changed 跟随。
+func _step_frame(delta: int) -> void:
+	if not _paused:
+		_set_paused(true)
+	for slot_value in _all_slots():
+		var body := (slot_value as Dictionary)["body"] as AnimatedSprite2D
+		if not body.visible or body.sprite_frames == null:
+			continue
+		var count := body.sprite_frames.get_frame_count(body.animation)
+		if count > 0:
+			body.frame = posmod(body.frame + delta, count)
 
 
 func _all_slots() -> Array:
@@ -324,8 +372,52 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif btn == MOUSE_BUTTON_WHEEL_DOWN:
 			_zoom = maxf(0.3, _zoom / 1.1)
 			_apply_action()
-	elif event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_SPACE:
-		_replay()
+	elif event is InputEventKey and (event as InputEventKey).pressed:
+		match (event as InputEventKey).keycode:
+			KEY_SPACE:
+				_replay()
+			KEY_P:
+				_set_paused(not _paused)
+			KEY_LEFT:
+				_step_frame(-1)
+			KEY_RIGHT:
+				_step_frame(1)
+
+
+func _process(_delta: float) -> void:
+	_refresh_frame_label()
+
+
+## 帧号 HUD 参考体:ring = 独格;动作 = d3 真帧格(六格同拍,取一即可)。
+func _reference_body() -> AnimatedSprite2D:
+	var slot: Dictionary = _ring_slot if _current_action == "ring" else _slots.get(3, {}) as Dictionary
+	if slot.is_empty():
+		return null
+	return slot["body"] as AnimatedSprite2D
+
+
+## 常显帧号(f 序号 1-based,与发布帧文件名对齐);ring 附 src 源帧号 +
+## 近似角度(src/count×360,契约「匀速旋转近似」条款)——验收指认帧的坐标系。
+func _refresh_frame_label() -> void:
+	if _frame_label == null:
+		return
+	var body := _reference_body()
+	if body == null or not body.visible or body.sprite_frames == null or _current_action.is_empty():
+		_frame_label.text = ""
+		return
+	var count := body.sprite_frames.get_frame_count(body.animation)
+	if count <= 0:
+		_frame_label.text = ""
+		return
+	var text := "帧 f%02d/%d" % [body.frame + 1, count]
+	if _current_action == "ring":
+		var entry := _visual().ring_entry()
+		var srcs := entry.get("src_frames", []) as Array
+		var src_count := int(entry.get("src_frame_count", 0))
+		if body.frame < srcs.size() and src_count > 0:
+			var src := int(srcs[body.frame])
+			text += " · src #%03d · ≈%d°" % [src, roundi(float(src) / float(src_count) * 360.0)]
+	_frame_label.text = text
 
 
 ## --unit-shot:全部动作各截一张退出(逐向逐动作目检的存档载体)。

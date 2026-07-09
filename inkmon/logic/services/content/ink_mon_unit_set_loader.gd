@@ -50,7 +50,10 @@ class UnitVisual extends RefCounted:
 
 	## 方向条目：{ animation, mirrored, offset: Vector2, shadow_offset: Vector2,
 	##   size_px: Vector2, fps: float, loop: bool, stride_world: float,
-	##   kind: "true"|"alias"|"mirror" }。未知 action/dir 返回 {}。
+	##   kind: "true"|"alias"|"mirror", src_frames: Array, src_frame_count: int }。
+	## src_frames/src_frame_count = 发布帧 ↔ 源视频帧号映射（ring 必有——角度
+	## 真相 ≈ src/count×360；动作节点 manifest 无此字段时为 []/0）。
+	## 未知 action/dir 返回 {}。
 	func entry(action: String, dir: int) -> Dictionary:
 		var dirs: Dictionary = _actions.get(action, {})
 		return dirs.get(str(dir), {})
@@ -217,6 +220,8 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 		return {}
 	var size_px := Vector2(float(size_arr[0]), float(size_arr[1]))
 	var anchor_px := Vector2(float(anchor_arr[0]), float(anchor_arr[1]))
+	var src_frames_value: Variant = node.get("src_frames", [])
+	var src_frames: Array = src_frames_value if src_frames_value is Array else []
 
 	visual.sprite_frames.add_animation(anim)
 	visual.sprite_frames.set_animation_speed(anim, fps)
@@ -257,6 +262,8 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 		"loop": loop,
 		"stride_world": float(node.get("stride_world", 0.0)),
 		"kind": "true",
+		"src_frames": src_frames,
+		"src_frame_count": int(node.get("src_frame_count", 0)),
 	}
 
 
