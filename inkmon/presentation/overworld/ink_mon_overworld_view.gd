@@ -23,6 +23,9 @@ const CLICK_PULSE_DURATION := 0.34
 const INVALID_COORD := Vector2i(-999999, -999999)
 ## 玩家在 driver 里的内部 actor id（view 私有,与逻辑层 PLAYER_ID 解耦）。
 const PLAYER_ID := "player"
+## T7 M4:玩家单位动画素材(unit set + 单位;素材缺失 fail-soft 回退占位圆盘)。
+const PLAYER_UNIT_SET_ID := "inkmon-units-main"
+const PLAYER_UNIT_ID := "mon_0001"
 
 var player_coord := Vector2i.ZERO
 var near_npc_id := ""
@@ -30,6 +33,9 @@ var npc_defs: Dictionary = {}
 
 var _grid: InkMonRender2DBakedHexMap
 var _driver: InkMonOverworldLiveDriver
+## 玩家 UnitVisual（lazy 一次;null 且已尝试 = 素材缺,走占位盘）。
+var _player_unit_visual: InkMonUnitSetLoader.UnitVisual = null
+var _player_unit_tried := false
 var _camera: Camera2D
 var _units_root: Node2D
 var _feedback_root: Node2D
@@ -72,7 +78,7 @@ func set_player_coord(coord: Vector2i) -> void:
 	if _driver == null:
 		return
 	if _driver.get_avatar(PLAYER_ID) == null:
-		_driver.seed_actor(PLAYER_ID, "", HexCoord.new(coord.x, coord.y), InkMonRender2DAvatar.Style.overworld_player())
+		_driver.seed_actor(PLAYER_ID, "", HexCoord.new(coord.x, coord.y), _player_style())
 	elif not _driver.is_actor_moving(PLAYER_ID):
 		_driver.set_actor_position(PLAYER_ID, HexCoord.new(coord.x, coord.y))
 
@@ -82,9 +88,30 @@ func snap_player_coord(coord: Vector2i) -> void:
 	if _driver == null:
 		return
 	if _driver.get_avatar(PLAYER_ID) == null:
-		_driver.seed_actor(PLAYER_ID, "", HexCoord.new(coord.x, coord.y), InkMonRender2DAvatar.Style.overworld_player())
+		_driver.seed_actor(PLAYER_ID, "", HexCoord.new(coord.x, coord.y), _player_style())
 	else:
 		_driver.snap_actor(PLAYER_ID, HexCoord.new(coord.x, coord.y))
+
+
+## T7 M4:玩家 avatar 样式 = overworld_player + 单位动画注入（idle/walk 换装 +
+## 程序影;素材缺失回退占位圆盘,主世界不因资产缺失崩）。
+func _player_style() -> InkMonRender2DAvatar.Style:
+	var style := InkMonRender2DAvatar.Style.overworld_player()
+	if not _player_unit_tried:
+		_player_unit_tried = true
+		var units := InkMonUnitSetLoader.load_set(PLAYER_UNIT_SET_ID)
+		if units.has(PLAYER_UNIT_ID):
+			_player_unit_visual = units[PLAYER_UNIT_ID] as InkMonUnitSetLoader.UnitVisual
+		else:
+			push_warning("[InkMonOverworldView] unit set %s/%s 不可用 —— 玩家回退占位圆盘" % [PLAYER_UNIT_SET_ID, PLAYER_UNIT_ID])
+	if _player_unit_visual != null and _grid != null:
+		style.unit_visual = _player_unit_visual
+		# 显示密度换算:地图 edge_px / 素材 px_per_unit（manifest 盖章值;probe 同式）。
+		style.unit_scale = _grid.edge_px() / _player_unit_visual.px_per_unit
+		# 烘帧单位脚点即锚点,不需要占位盘的 lift/浮动(sprite 有自己的动画)。
+		style.lift = 0.0
+		style.idle_bob = false
+	return style
 
 
 ## P4 逐格补间:Logic 每跨一格 emit actor_position_changed → driver 在相邻两格间补一步（MoveAction）。

@@ -12,6 +12,12 @@ extends Node
 ## NPC 高亮缩放是 view-local，不走这里（view 拿 avatar 自己缩）。
 
 const OVERWORLD_MOVE_DURATION := 220.0
+## axial 位移 → 六向编号（契约六向,母版向 3 = (-1,+1);与 InkMonMapLoader
+## PATCH_WALL_NEIGHBOR 同表反查——smoke_overworld_unit_walk 覆盖口径）。
+const DIRECTION_OF_DELTA := {
+	Vector2i(1, -1): 0, Vector2i(0, -1): 1, Vector2i(-1, 0): 2,
+	Vector2i(-1, 1): 3, Vector2i(0, 1): 4, Vector2i(1, 0): 5,
+}
 
 signal avatar_spawned(actor_id: String, avatar: InkMonRender2DAvatar)
 
@@ -27,6 +33,8 @@ var _avatars: Dictionary = {}   # actor_id -> InkMonRender2DAvatar
 var _styles: Dictionary = {}    # actor_id -> InkMonRender2DAvatar.Style
 var _pending: Array[Dictionary] = []
 var _live := false              # _process 是否 pump（测试走 step()，不开 live）
+## T7 M4 走格动画:actor 最近一步的六向（enqueue_move 时按 axial 位移查表）。
+var _move_dirs: Dictionary = {}
 
 
 func setup(grid: InkMonRender2DBakedHexMap, units_root: Node2D, fx_root: Node2D) -> void:
@@ -68,6 +76,10 @@ func seed_actor(actor_id: String, display_name: String, hex: HexCoord, style: In
 func enqueue_move(actor_id: String, from_hex: HexCoord, to_hex: HexCoord) -> void:
 	if _scheduler != null:
 		_scheduler.cancel_for_actor(actor_id)
+	# 六向朝向（单位动画用;非相邻位移(跨格 snap 类)保持上一朝向）。
+	var delta := Vector2i(to_hex.q - from_hex.q, to_hex.r - from_hex.r)
+	if DIRECTION_OF_DELTA.has(delta):
+		_move_dirs[actor_id] = int(DIRECTION_OF_DELTA[delta])
 	_pending.append({
 		"kind": "inkmon_move_start",
 		"actor_id": actor_id,
@@ -117,6 +129,7 @@ func clear() -> void:
 	_avatars.clear()
 	_styles.clear()
 	_pending.clear()
+	_move_dirs.clear()
 	_rebuild_world()
 
 
@@ -177,6 +190,7 @@ func _on_actor_despawned(actor_id: String) -> void:
 		avatar.queue_free()
 	_avatars.erase(actor_id)
 	_styles.erase(actor_id)
+	_move_dirs.erase(actor_id)
 
 
 # ========== 坐标 / 同步（唯一 hex→像素边界） ==========
@@ -194,5 +208,20 @@ func _sync_positions() -> void:
 
 func _sync_one(actor_id: String) -> void:
 	var avatar := _avatars.get(actor_id, null) as InkMonRender2DAvatar
-	if avatar != null and _render_world != null:
-		avatar.set_world_pos(_axial_to_pixel(_render_world.get_actor_axial(actor_id)))
+	if avatar == null or _render_world == null:
+		return
+	avatar.set_world_pos(_axial_to_pixel(_render_world.get_actor_axial(actor_id)))
+	# T7 M4 走格动画状态（idle ↔ walk + 朝向 + 速度绑定）。物理事实（在不在
+	# 移动/朝向/走速 world/s）归 driver,表演策略（speed_scale 封顶）归 avatar。
+	if avatar.has_unit_visual():
+		avatar.sync_unit_locomotion(
+			is_actor_moving(actor_id),
+			int(_move_dirs.get(actor_id, 3)),
+			_walk_speed_world())
+
+
+## 走格线速度（world units/s）= 相邻格心距 / 补间时长。格心距用 world 平面值
+## √3 × hex_edge_world（契约 axial 六向恒等距;不能用 coord_to_world 的投影后
+## 屏幕距离——squish/海拔 lift 会让六向"不等距"——codex M4 review medium）。
+func _walk_speed_world() -> float:
+	return sqrt(3.0) / (OVERWORLD_MOVE_DURATION / 1000.0)

@@ -35,7 +35,8 @@
         "../../inkmon/tests/smoke_content_loader.tscn",
         "../../inkmon/tests/smoke_item_content.tscn",
         "../../inkmon/tests/smoke_evolution_item_condition.tscn",
-        "../../inkmon/tests/smoke_skill_metadata_upload.tscn"
+        "../../inkmon/tests/smoke_skill_metadata_upload.tscn",
+        "../../inkmon/tests/smoke_unit_set_loader.tscn"
       ]
     },
     "inspector": {
@@ -57,7 +58,8 @@
     },
     "overworld-live": {
       "scenes": [
-        "../../inkmon/tests/smoke_overworld_live.tscn"
+        "../../inkmon/tests/smoke_overworld_live.tscn",
+        "../../inkmon/tests/smoke_overworld_unit_walk.tscn"
       ]
     },
     "iso-sandbox": {
