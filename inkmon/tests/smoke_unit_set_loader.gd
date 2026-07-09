@@ -53,12 +53,12 @@ func _run() -> String:
 	if int(ring_entry.get("src_frame_count", 0)) != 121:
 		return "ring entry src_frame_count should be 121"
 
-	# (4) 动作清单与真帧帧数(M1 发布定案:walk 12 / idle 24 / attack 20)。
+	# (4) 动作清单与真帧帧数(批2 逐向真生成:walk d3=21 / idle d3=23 / attack d3=12)。
 	var actions := visual.actions()
 	for expected_action in ["walk", "idle", "attack"]:
 		if not expected_action in actions:
 			return "actions should include %s, got %s" % [expected_action, str(actions)]
-	var frame_expect := {"walk_d3": 12, "idle_d3": 24, "attack_d3": 20}
+	var frame_expect := {"walk_d3": 21, "idle_d3": 23, "attack_d3": 12}
 	for anim_value in frame_expect.keys():
 		var anim := str(anim_value)
 		if sf.get_frame_count(anim) != int(frame_expect[anim]):
@@ -70,39 +70,40 @@ func _run() -> String:
 	if sf.get_animation_loop("attack_d3"):
 		return "attack should NOT loop (单发)"
 
-	# (5) 6 向三形态:真帧 3 / alias 2,4 / mirror 5,0,1(契约 directionFill 定案)。
-	var walk3 := visual.entry("walk", 3)
-	if walk3.is_empty() or str(walk3.get("kind")) != "true" or bool(walk3.get("mirrored")):
-		return "walk d3 should be the true-frame direction"
-	for alias_dir in [2, 4]:
-		var e := visual.entry("walk", alias_dir)
-		if str(e.get("kind")) != "alias" or bool(e.get("mirrored")):
-			return "walk d%d should be alias (not mirrored)" % alias_dir
-		if str(e.get("animation")) != "walk_d3":
-			return "walk d%d alias should reuse walk_d3" % alias_dir
-	for mirror_dir in [5, 0, 1]:
-		var e := visual.entry("walk", mirror_dir)
-		if str(e.get("kind")) != "mirror" or not bool(e.get("mirrored")):
-			return "walk d%d should be mirrored" % mirror_dir
-		if str(e.get("animation")) != "walk_d3":
-			return "walk d%d mirror should reuse walk_d3 frames" % mirror_dir
+	# (5) 6 向逐向真生成(批2 首验收 Q1):真帧 3/4/1/2 各自动画 + 镜像 5←3、0←2。
+	#     每真帧向有独立动画 <action>_d<dir>;镜像向 flip + 复用目标真帧向动画。
+	for true_dir in [3, 4, 1, 2]:
+		var e := visual.entry("walk", true_dir)
+		if e.is_empty() or str(e.get("kind")) != "true" or bool(e.get("mirrored")):
+			return "walk d%d should be a true-frame direction" % true_dir
+		if str(e.get("animation")) != "walk_d%d" % true_dir:
+			return "walk d%d should have its own animation" % true_dir
+	# d5 镜像 d3、d0 镜像 d2(契约镜像对 3↔5、2↔0)。
+	var d5 := visual.entry("walk", 5)
+	if str(d5.get("kind")) != "mirror" or not bool(d5.get("mirrored")) or str(d5.get("animation")) != "walk_d3":
+		return "walk d5 should mirror walk_d3"
+	var d0 := visual.entry("walk", 0)
+	if str(d0.get("kind")) != "mirror" or not bool(d0.get("mirrored")) or str(d0.get("animation")) != "walk_d2":
+		return "walk d0 should mirror walk_d2"
 
-	# (6) 锚定公式(manifest walk d3: size [378,308] anchor [164.34,299.08];
-	#     批1 无损重封装还原真原帧后 union bbox 少一行边缘噪声,309→308)
-	#     offset = size/2 − anchor;mirror 向 offset.x 取反(probe 消费端镜像规则)。
-	var want_offset := Vector2(378.0 * 0.5 - 164.34, 308.0 * 0.5 - 299.08)
+	# (6) 锚定公式(manifest walk d3: size [308,314] anchor [115.16,299.58]);
+	#     offset = size/2 − anchor;镜像向 offset.x 取反(probe 消费端镜像规则)。
+	var walk3 := visual.entry("walk", 3)
+	var want_offset := Vector2(308.0 * 0.5 - 115.16, 314.0 * 0.5 - 299.58)
 	var got_offset := walk3.get("offset") as Vector2
 	if got_offset.distance_to(want_offset) > EPS:
 		return "walk d3 offset should be %s, got %s" % [str(want_offset), str(got_offset)]
-	var mirror_offset := visual.entry("walk", 0).get("offset") as Vector2
+	# d5 镜像 d3:offset.x 取反(相对 d3,非 d0——d0 镜像的是 d2)。
+	var mirror_offset := d5.get("offset") as Vector2
 	if mirror_offset.distance_to(Vector2(-want_offset.x, want_offset.y)) > EPS:
-		return "walk d0 mirror offset.x should flip sign, got %s" % str(mirror_offset)
+		return "walk d5 mirror offset.x should flip d3's sign, got %s" % str(mirror_offset)
 
-	# (7) 速度绑定数据:stride_world 透出 + 自然步速公式(0.382 × 12fps / 12 帧)。
-	if absf(visual.stride_of("walk") - 0.382) > EPS:
-		return "walk stride_world should be 0.382, got %f" % visual.stride_of("walk")
-	if absf(visual.natural_speed("walk") - 0.382) > EPS:
-		return "walk natural_speed should be 0.382 world/s, got %f" % visual.natural_speed("walk")
+	# (7) 速度绑定数据:stride_world 透出(批2 walk d3 = 0.467)+ 自然步速公式
+	#     (0.467 × 12fps / 21 帧 ≈ 0.267)。
+	if absf(visual.stride_of("walk") - 0.467) > EPS:
+		return "walk stride_world should be 0.467, got %f" % visual.stride_of("walk")
+	if absf(visual.natural_speed("walk") - (0.467 * 12.0 / 21.0)) > EPS:
+		return "walk natural_speed should be %f world/s, got %f" % [0.467 * 12.0 / 21.0, visual.natural_speed("walk")]
 	if visual.stride_of("idle") != 0.0:
 		return "idle should have no stride_world"
 
@@ -123,7 +124,7 @@ func _run() -> String:
 	if center_a <= 0.0 or center_a > 0.5:
 		return "shadow center alpha should be in (0, 0.5] (契约 0.33 烧进像素), got %f" % center_a
 	# 影几何锁数值(2026-07-09 首验收⑤修复:脚线基准=轴锚地线,非画布底):
-	# walk anchor_y 299.08 → ground_row 299 → gh 300 → sh = round(300×0.35) = 105
+	# walk d3 anchor_y 299.58 → ground_row 300 → gh 301 → sh = round(301×0.35) = 105
 	# → out_h = 105 + 2×margin(14) = 133;feet.y = margin → offset.y = 66.5−14。
 	if shadow_img.get_height() != 133:
 		return "walk shadow out_h should be 133 (anchor-line squash+margin), got %d" % shadow_img.get_height()
@@ -132,9 +133,10 @@ func _run() -> String:
 		return "walk shadow_offset.y should anchor feet at margin row, got %f" % walk_shadow_off.y
 	if (walk3.get("shadow_offset") as Vector2) == Vector2.ZERO:
 		return "walk d3 shadow_offset should be non-zero (feet anchored)"
-	var mirror_shadow := visual.entry("walk", 0).get("shadow_offset") as Vector2
+	# 影不随镜像:d5 镜像 d3 → d5 shadow_offset == d3's（逐向后 d0 镜像的是 d2）。
+	var mirror_shadow := d5.get("shadow_offset") as Vector2
 	if mirror_shadow.distance_to(walk3.get("shadow_offset") as Vector2) > EPS:
-		return "shadow must NOT mirror (d0 shadow_offset should equal d3's)"
+		return "shadow must NOT mirror (d5 shadow_offset should equal d3's)"
 	# ring 触地归一(export v2)+ 锚线脚线:ring anchor_y ≈ 底行 → 影从脚线起。
 	var ring_shadow_tex := shadows.get_frame_texture("ring", 0)
 	if ring_shadow_tex == null:
