@@ -8,7 +8,8 @@ extends Node2D
 ## **T7 M4 单位动画落地（唯一替换位兑现）**：Style 注入 `unit_visual`
 ## （InkMonUnitSetLoader.UnitVisual）时,Body = AnimatedSprite2D（6 向三形态:
 ## 真帧 / alias / mirror=flip_h+offset.x 取反）+ 程序影 AnimatedSprite2D
-## （loader 预推,影不随镜像,帧跟随本体）;未注入沿用占位 Polygon2D 圆盘
+## （loader 预推,影斜向不随镜像[mirror 向播翻转剪影影动画],帧跟随本体）;
+## 未注入沿用占位 Polygon2D 圆盘
 ## （渐进迁移:battle/NPC 未接单位素材前不变）。三处调用方共用此件,一次换全生效。
 ##
 ## 位移/血条/闪白/死亡由 RenderWorld 算好,driver 每帧 set_world_pos + update_from_state。
@@ -214,7 +215,8 @@ func has_unit_visual() -> bool:
 ## T7 M4:切单位动画（action × 六向 × speed_scale）。同动画重复调用只更新
 ## speed_scale（走格期间每帧喂不重启）;未知 action/向 保持现状（fail-soft:
 ## 素材没有该动作时不闪黑）。镜像规则 = flip_h + offset.x 取反（loader entry
-## 已算好);程序影不随镜像（恒不 flip,offset 恒真帧向）。
+## 已算好);程序影恒不 flip（世界光向恒定）——mirror 向播 loader 从翻转剪影
+## 重推的独立影动画（entry.shadow_animation,二轮验收修正）。
 func set_unit_animation(action: String, dir: int, speed_scale: float = 1.0) -> void:
 	if _body_sprite == null or _unit_visual == null:
 		return
@@ -229,7 +231,7 @@ func set_unit_animation(action: String, dir: int, speed_scale: float = 1.0) -> v
 	_body_sprite.flip_h = bool(entry["mirrored"])
 	_body_sprite.offset = entry["offset"] as Vector2
 	if _shadow_sprite != null:
-		_shadow_sprite.animation = StringName(anim)
+		_shadow_sprite.animation = StringName(str(entry.get("shadow_animation", anim)))
 		_shadow_sprite.flip_h = false
 		_shadow_sprite.offset = entry["shadow_offset"] as Vector2
 		_shadow_sprite.stop()

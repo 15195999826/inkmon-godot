@@ -3,7 +3,8 @@ extends Node
 ## 契约面程序化断言(T7 M4 验收):帧数 / fps(含契约 12)/ loop / stride_world /
 ## 6 向三形态展开(真帧 3、alias 2/4、mirror 5/0/1 —— mirror 的 flip 标记 +
 ## centered offset.x 取反)/ 锚定公式 offset = size/2 − anchor / 程序影预推
-## (帧数对齐 + 脚线锚点 offset)。数值基准 = mon_0001 v1 manifest(M1 发布)。
+## (帧数对齐 + 脚线锚点 offset + mirror 向翻转剪影独立影动画[斜向恒右不随
+## 镜像,二轮验收修正])。数值基准 = mon_0001 v2 manifest(批2 逐向真生成)。
 
 const SET_ID := "inkmon-units-main"
 const UNIT_ID := "mon_0001"
@@ -133,14 +134,49 @@ func _run() -> String:
 		return "walk shadow_offset.y should anchor feet at margin row, got %f" % walk_shadow_off.y
 	if (walk3.get("shadow_offset") as Vector2) == Vector2.ZERO:
 		return "walk d3 shadow_offset should be non-zero (feet anchored)"
-	# 影不随镜像:d5 镜像 d3 → d5 shadow_offset == d3's（逐向后 d0 镜像的是 d2）。
-	var mirror_shadow := d5.get("shadow_offset") as Vector2
-	if mirror_shadow.distance_to(walk3.get("shadow_offset") as Vector2) > EPS:
-		return "shadow must NOT mirror (d5 shadow_offset should equal d3's)"
+	# 影不随镜像 = **斜向不翻**;剪影随屏上身位(二轮验收修正 2026-07-09):
+	# d5 有独立影动画 walk_d5(翻转剪影重推),脚线锚用镜像锚 anchor_x' =
+	# size_x − anchor_x ⇒ 影画布同尺寸下 shadow_offset.x 差 = 2·anchor_x − size_x。
+	if str(walk3.get("shadow_animation", "")) != "walk_d3":
+		return "walk d3 shadow_animation should be walk_d3 (真帧向 = 本体同名)"
+	if str(d5.get("shadow_animation", "")) != "walk_d5":
+		return "walk d5 should carry its own mirrored-silhouette shadow animation walk_d5"
+	if not shadows.has_animation("walk_d5"):
+		return "shadow_frames should contain walk_d5 (mirror 向翻转剪影影)"
+	if shadows.get_frame_count("walk_d5") != sf.get_frame_count("walk_d3"):
+		return "walk_d5 shadow frame count should match walk_d3 body"
+	var d5_shadow_off := d5.get("shadow_offset") as Vector2
+	var want_d5_x := walk_shadow_off.x + (2.0 * 115.16 - 308.0)
+	if absf(d5_shadow_off.x - want_d5_x) > EPS or absf(d5_shadow_off.y - walk_shadow_off.y) > EPS:
+		return "walk d5 shadow_offset should use mirrored feet anchor (%f, %f), got %s" % [want_d5_x, walk_shadow_off.y, str(d5_shadow_off)]
+	# 剪影确实翻转(熊剪影非对称 ⇒ 像素数据必不同):
+	var d3_shadow_img := shadows.get_frame_texture("walk_d3", 0).get_image()
+	var d5_shadow_img := shadows.get_frame_texture("walk_d5", 0).get_image()
+	if d3_shadow_img.get_data() == d5_shadow_img.get_data():
+		return "walk_d5 shadow should be rebuilt from the flipped silhouette (identical to d3's)"
+	# 语义全等断言:d5 影 == _make_shadow(flip_x(源帧), 镜像锚) 逐字节——
+	# 剪影随屏上身位翻、斜切参数原样(shear>0 恒右,影斜向不随镜像)。
+	var shadow_params := (manifest.get("projection", {}) as Dictionary).get("unit_shadow", {}) as Dictionary
+	if float(shadow_params.get("shear", 0.0)) <= 0.0:
+		return "projection.unit_shadow.shear should stay positive (影斜向恒右的契约参数)"
+	var src_tex := load("res://content/art/units/%s/mon_0001/unit_mon_0001_walk_d3_f01.png" % SET_ID) as Texture2D
+	if src_tex == null:
+		return "walk_d3 f01 source frame should load"
+	# duplicate 后再 flip——get_image() 可能返回资源内部缓存引用(loader 同注记)。
+	var flipped := src_tex.get_image().duplicate() as Image
+	flipped.flip_x()
+	var expect := InkMonUnitSetLoader._make_shadow(flipped, 308.0 - 115.16, 299.58, shadow_params)
+	if expect.is_empty():
+		return "_make_shadow on flipped silhouette should succeed"
+	if (expect["image"] as Image).get_data() != d5_shadow_img.get_data():
+		return "walk_d5 shadow should equal shadow(flip_x(src), mirrored anchor) byte-for-byte"
 	# ring 触地归一(export v2)+ 锚线脚线:ring anchor_y ≈ 底行 → 影从脚线起。
 	var ring_shadow_tex := shadows.get_frame_texture("ring", 0)
 	if ring_shadow_tex == null:
 		return "ring shadow frame missing"
+
+	# (8b) mirror 影动画也吃 with_shadows 开关——见 (9) bare 断言(shadow_frames
+	#      整体为 null,mirror 向不预推)。
 
 	# (9) with_shadows=false:跳过预推(启动耗时口径)。
 	var bare := InkMonUnitSetLoader.load_set(SET_ID, false)

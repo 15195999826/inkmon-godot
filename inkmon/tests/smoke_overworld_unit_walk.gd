@@ -1,7 +1,8 @@
 extends Node
 ## 走格单位动画冒烟（T7 M4 接线验收）:overworld live driver + 注入 unit_visual
-## 的玩家 avatar —— 断言 idle ↔ walk 状态切换、六向朝向(mirror 向 flip_h)、
-## speed_scale 速度绑定(走格 220ms/格 vs 自然步速 0.382 w/s → raw ≈20×,
+## 的玩家 avatar —— 断言 idle ↔ walk 状态切换、六向朝向(mirror 向 flip_h +
+## 翻转剪影影动画)、speed_scale 速度绑定(走格 220ms/格 vs v2 walk d3 自然步速
+## 0.467×12/21 ≈ 0.267 w/s → raw ≈29×,
 ## v1 封顶 UNIT_WALK_SPEED_SCALE_CAP=3.0——观感终审留验收任务)。
 ## smoke_overworld_live 同款确定性 step() 驱动,不开 live。
 ##
@@ -101,7 +102,13 @@ func _run() -> String:
 		return "walk should reuse true-frame animation walk_d3, got %s" % str(body.animation)
 	if not body.flip_h:
 		return "direction 5 is mirror_of 3 → flip_h should be true"
-	# 速度绑定:raw = 走速/自然步速 ≈ (√3 / 0.22s) / 0.382 ≈ 20.6 → 封顶 3.0。
+	# 影:恒不 flip(世界光向恒定);mirror 向播翻转剪影影动画(二轮验收修正)。
+	if shadow.flip_h:
+		return "shadow sprite must never flip_h (影斜向不随镜像)"
+	if str(shadow.animation) != "walk_d5":
+		return "d5 shadow should play mirrored-silhouette animation walk_d5, got %s" % str(shadow.animation)
+	# 速度绑定:raw = 走速/自然步速 ≈ (√3 / 0.22s) / 0.267 ≈ 29.5 → 封顶 3.0
+	# (v2 walk d3 stride 0.467、21 帧;0.382 是 v1 canonical 旧值)。
 	if absf(body.speed_scale - 3.0) > 0.01:
 		return "walk speed_scale should be capped at 3.0, got %f" % body.speed_scale
 	if shadow.frame != body.frame:
@@ -115,6 +122,8 @@ func _run() -> String:
 		return "player should return to idle after the step, got %s" % str(body.animation)
 	if not body.flip_h:
 		return "idle should keep last facing (d5 mirror → flip_h stays true)"
+	if str(shadow.animation) != "idle_d5":
+		return "idle-after-d5 shadow should switch to idle_d5, got %s" % str(shadow.animation)
 	if absf(body.speed_scale - 1.0) > 0.01:
 		return "idle speed_scale should be 1.0 (素材原生踏步率), got %f" % body.speed_scale
 

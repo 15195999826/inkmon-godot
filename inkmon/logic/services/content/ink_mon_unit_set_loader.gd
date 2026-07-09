@@ -4,9 +4,10 @@ class_name InkMonUnitSetLoader
 ##
 ## 已发布 set manifest（6 向三形态：frames 真帧 / alias_of 直用 / mirror_of
 ## 运行时翻转）→ 每单位一个 UnitVisual：SpriteFrames（真帧动画 + ring）+
-## 方向表（animation / mirrored / offset）+ fps(含 fps_override) / loop /
-## stride_world 透出 + 程序影 SpriteFrames（loader 预推 ImageTexture 缓存，
-## 契约 projection.unit_shadow 四参；影不随镜像）。
+## 方向表（animation / shadow_animation / mirrored / offset）+ fps(含
+## fps_override) / loop / stride_world 透出 + 程序影 SpriteFrames（loader 预推
+## ImageTexture 缓存，契约 projection.unit_shadow 四参；影不随镜像 = **斜向**
+## 恒定，mirror 向剪影随屏上身位翻转重推——二轮验收修正 2026-07-09）。
 ##
 ## 锚定语义（契约 unitset 章）：centered sprite，offset = size_px/2 − anchor_px；
 ## mirror 向 anchor_x' = size_x − anchor_x ⇒ centered offset.x 取反
@@ -48,9 +49,11 @@ class UnitVisual extends RefCounted:
 	func ring_entry() -> Dictionary:
 		return _ring
 
-	## 方向条目：{ animation, mirrored, offset: Vector2, shadow_offset: Vector2,
-	##   size_px: Vector2, fps: float, loop: bool, stride_world: float,
-	##   kind: "true"|"alias"|"mirror", src_frames: Array, src_frame_count: int }。
+	## 方向条目：{ animation, shadow_animation, mirrored, offset: Vector2,
+	##   shadow_offset: Vector2, size_px: Vector2, fps: float, loop: bool,
+	##   stride_world: float, kind: "true"|"alias"|"mirror", src_frames: Array,
+	##   src_frame_count: int }。mirror 向 shadow_animation = 从翻转剪影重推的
+	##   独立影动画（本体动画仍复用真帧向 + flip_h）。
 	## src_frames/src_frame_count = 发布帧 ↔ 源视频帧号映射（ring 必有——角度
 	## 真相 ≈ src/count×360；动作节点 manifest 无此字段时为 []/0）。
 	## 未知 action/dir 返回 {}。
@@ -201,12 +204,22 @@ static func _build_unit(set_dir: String, unit_id: String, node: Dictionary, unit
 					push_error("[InkMonUnitSetLoader] %s/%s d%s: mirror_of %s 不是真帧向" % [unit_id, action, dir_str, mirror_target])
 					return null
 				# 契约镜像规则：flip_h + anchor_x' = size_x − anchor_x ⇒
-				# centered offset.x 取反。影不随镜像（shadow_offset 保持真帧向）。
+				# centered offset.x 取反。影不随镜像 = **斜向不翻**（世界光向
+				# 恒定）；但剪影必须跟随屏上翻转身位——mirror 向从翻转剪影重推
+				# 独立影动画（2026-07-09 二轮验收修正：复用真帧向影帧会让影瓣
+				# 长在翻转身位的错误一侧）。
 				var mirror_entry := (table[mirror_target] as Dictionary).duplicate()
 				mirror_entry["kind"] = "mirror"
 				mirror_entry["mirrored"] = true
 				var off := mirror_entry["offset"] as Vector2
 				mirror_entry["offset"] = Vector2(-off.x, off.y)
+				if visual.shadow_frames != null:
+					var shadow_anim := "%s_d%s" % [action, dir_str]
+					var mirror_shadow := _add_mirror_shadow(visual, set_dir, unit_id, shadow_anim, dirs.get(mirror_target, {}) as Dictionary, float(mirror_entry["fps"]), bool(mirror_entry["loop"]), shadow_params)
+					if mirror_shadow.is_empty():
+						return null
+					mirror_entry["shadow_animation"] = shadow_anim
+					mirror_entry["shadow_offset"] = mirror_shadow["shadow_offset"] as Vector2
 				table[dir_str] = mirror_entry
 			else:
 				push_error("[InkMonUnitSetLoader] %s/%s d%s: neither frames/alias_of/mirror_of" % [unit_id, action, dir_str])
@@ -258,6 +271,9 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 
 	return {
 		"animation": anim,
+		# 影动画名：真帧/alias = 本体动画同名；mirror 向在第二遍装配时改指
+		# 独立重推的翻转剪影影动画。
+		"shadow_animation": anim,
 		"mirrored": false,
 		# 契约锚定：centered sprite，offset = size/2 − anchor（probe 同公式）。
 		"offset": Vector2(size_px.x * 0.5 - anchor_px.x, size_px.y * 0.5 - anchor_px.y),
@@ -270,6 +286,48 @@ static func _add_sequence(visual: UnitVisual, set_dir: String, unit_id: String, 
 		"src_frames": src_frames,
 		"src_frame_count": int(node.get("src_frame_count", 0)),
 	}
+
+
+## mirror 向程序影：从真帧向源帧**翻转剪影**重推一套影动画（只进 shadow_frames，
+## 本体仍复用真帧向动画 + flip_h）。斜切仍恒向右——「影不随镜像」限定的是斜向
+## （世界光向恒定），剪影必须随屏上身位（二轮验收修正 2026-07-09）。
+## feet 锚点用镜像锚 anchor_x' = size_x − anchor_x（与本体 flip 后脚点对齐）。
+## 返回 { shadow_offset: Vector2 }；失败 push_error 返 {}。
+static func _add_mirror_shadow(visual: UnitVisual, set_dir: String, unit_id: String, shadow_anim: String, target_node: Dictionary, fps: float, loop: bool, shadow_params: Dictionary) -> Dictionary:
+	var frames := target_node.get("frames", []) as Array
+	var size_arr := target_node.get("size_px", []) as Array
+	var anchor_arr := target_node.get("anchor_px", []) as Array
+	if frames.is_empty() or size_arr.size() != 2 or anchor_arr.size() != 2:
+		push_error("[InkMonUnitSetLoader] %s/%s: malformed mirror target node" % [unit_id, shadow_anim])
+		return {}
+	var mirror_anchor_x := float(size_arr[0]) - float(anchor_arr[0])
+	var anchor_y := float(anchor_arr[1])
+	visual.shadow_frames.add_animation(shadow_anim)
+	visual.shadow_frames.set_animation_speed(shadow_anim, fps)
+	visual.shadow_frames.set_animation_loop(shadow_anim, loop)
+	var shadow_offset := Vector2.ZERO
+	for frame_value in frames:
+		var rel := str(frame_value)
+		# 真帧向已 load 过同名资源——资源缓存命中，代价只有 get_image + flip。
+		var tex := load("%s/%s" % [set_dir, rel]) as Texture2D
+		if tex == null:
+			push_error("[InkMonUnitSetLoader] %s: mirror shadow frame load failed: %s" % [unit_id, rel])
+			return {}
+		# get_image() 在部分渲染后端(headless dummy)返回资源内部缓存的引用——
+		# flip 前必须 duplicate,否则污染缓存(load_set 失幂等:同进程后续
+		# get_image 全被翻转;实测 smoke 重推对比踩中)。
+		var img := tex.get_image().duplicate() as Image
+		img.flip_x()
+		var shadow := _make_shadow(img, mirror_anchor_x, anchor_y, shadow_params)
+		if shadow.is_empty():
+			return {}
+		var shadow_img := shadow["image"] as Image
+		var feet := shadow["feet"] as Vector2
+		visual.shadow_frames.add_frame(shadow_anim, ImageTexture.create_from_image(shadow_img))
+		shadow_offset = Vector2(
+			float(shadow_img.get_width()) * 0.5 - feet.x,
+			float(shadow_img.get_height()) * 0.5 - feet.y)
+	return {"shadow_offset": shadow_offset}
 
 
 ## 程序影（契约 projection.unit_shadow 四参；Lab 探针 make_shadow 同流程的

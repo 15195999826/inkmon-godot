@@ -145,10 +145,14 @@ func _build_control_bar() -> void:
 		var visual := _visual()
 		if visual == null or _current_action.is_empty():
 			return
-		var anim := _anim_of(_current_action)
-		visual.sprite_frames.set_animation_loop(anim, on)
+		# 多真帧向后每真向独立动画——loop 覆盖须作用当前动作的全部动画
+		# (只改 d3 是单真向时代的旧假设,二轮验收修复:开 loop 只有 d3/d5 格循环)。
+		for anim_value in _current_body_anims():
+			visual.sprite_frames.set_animation_loop(str(anim_value), on)
 		if visual.shadow_frames != null:
-			visual.shadow_frames.set_animation_loop(anim, on)
+			for anim_value in _current_shadow_anims():
+				if visual.shadow_frames.has_animation(str(anim_value)):
+					visual.shadow_frames.set_animation_loop(str(anim_value), on)
 		_replay())
 	bar.add_child(_loop_check)
 
@@ -218,6 +222,39 @@ func _anim_of(action: String) -> String:
 	return str(_visual().entry(action, 3).get("animation", ""))
 
 
+## 当前动作涉及的全部本体动画名(去重)。多真帧向后逐向独立动画,loop 覆盖/
+## 批量操作不能只拿 d3。
+func _current_body_anims() -> Array:
+	var out := {}
+	var visual := _visual()
+	if visual == null or _current_action.is_empty():
+		return []
+	if _current_action == "ring":
+		out[InkMonUnitSetLoader.RING_ANIMATION] = true
+	else:
+		for dir in DIR_SLOTS.keys():
+			var entry := visual.entry(_current_action, int(dir))
+			if not entry.is_empty():
+				out[str(entry["animation"])] = true
+	return out.keys()
+
+
+## 当前动作涉及的全部影动画名(mirror 向有独立的翻转剪影影动画)。
+func _current_shadow_anims() -> Array:
+	var out := {}
+	var visual := _visual()
+	if visual == null or _current_action.is_empty():
+		return []
+	if _current_action == "ring":
+		out[InkMonUnitSetLoader.RING_ANIMATION] = true
+	else:
+		for dir in DIR_SLOTS.keys():
+			var entry := visual.entry(_current_action, int(dir))
+			if not entry.is_empty():
+				out[str(entry.get("shadow_animation", entry["animation"]))] = true
+	return out.keys()
+
+
 func _select_action(action: String) -> void:
 	_current_action = action
 	# 下拉与实际选择保持同步（shot 模式/程序调用也一致）。
@@ -275,10 +312,11 @@ func _apply_slot(slot: Dictionary, visual: InkMonUnitSetLoader.UnitVisual, entry
 	body.scale = Vector2(display_scale, display_scale)
 	body.visible = true
 	body.play(anim)
-	# 程序影:预推帧 + 脚线锚点;不随镜像(契约)—— flip_h 恒 false。
+	# 程序影:预推帧 + 脚线锚点;斜向不随镜像(契约)——flip_h 恒 false,
+	# mirror 向播 loader 从翻转剪影重推的独立影动画(entry.shadow_animation)。
 	if _shadows_on and visual.shadow_frames != null:
 		shadow.sprite_frames = visual.shadow_frames
-		shadow.animation = anim
+		shadow.animation = str(entry.get("shadow_animation", anim))
 		shadow.flip_h = false
 		shadow.offset = entry["shadow_offset"] as Vector2
 		shadow.scale = Vector2(display_scale, display_scale)
@@ -357,7 +395,8 @@ func _refresh_info() -> void:
 	var entry := visual.entry(_current_action, 3)
 	var stride := float(entry.get("stride_world", 0.0))
 	var stride_text := " · stride %.3f(自然步速 %.3f w/s)" % [stride, visual.natural_speed(_current_action)] if stride > 0.0 else ""
-	_info.text = "fps %.0f · %d 帧 · %s%s" % [
+	# 多真帧向后六格帧数/时长可不同(如 attack 12/18/19/22)——信息行只代表 d3。
+	_info.text = "d3:fps %.0f · %d 帧 · %s%s" % [
 		float(entry.get("fps", visual.unit_fps)),
 		visual.sprite_frames.get_frame_count(str(entry.get("animation", ""))),
 		"loop" if bool(entry.get("loop", false)) else "单发",
@@ -389,7 +428,8 @@ func _process(_delta: float) -> void:
 	_refresh_frame_label()
 
 
-## 帧号 HUD 参考体:ring = 独格;动作 = d3 真帧格(六格同拍,取一即可)。
+## 帧号 HUD 参考体:ring = 独格;动作 = d3 真帧格(多真帧向后六格帧数可不同,
+## HUD 只代表 d3,标注写明)。
 func _reference_body() -> AnimatedSprite2D:
 	var slot: Dictionary = _ring_slot if _current_action == "ring" else _slots.get(3, {}) as Dictionary
 	if slot.is_empty():
@@ -411,6 +451,8 @@ func _refresh_frame_label() -> void:
 		_frame_label.text = ""
 		return
 	var text := "帧 f%02d/%d" % [body.frame + 1, count]
+	if _current_action != "ring":
+		text = "d3 " + text
 	if _current_action == "ring":
 		var entry := _visual().ring_entry()
 		var srcs := entry.get("src_frames", []) as Array
