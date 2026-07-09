@@ -87,9 +87,10 @@ func _run() -> String:
 		if str(e.get("animation")) != "walk_d3":
 			return "walk d%d mirror should reuse walk_d3 frames" % mirror_dir
 
-	# (6) 锚定公式(manifest walk d3: size [378,309] anchor [164.34,299.08])
+	# (6) 锚定公式(manifest walk d3: size [378,308] anchor [164.34,299.08];
+	#     批1 无损重封装还原真原帧后 union bbox 少一行边缘噪声,309→308)
 	#     offset = size/2 − anchor;mirror 向 offset.x 取反(probe 消费端镜像规则)。
-	var want_offset := Vector2(378.0 * 0.5 - 164.34, 309.0 * 0.5 - 299.08)
+	var want_offset := Vector2(378.0 * 0.5 - 164.34, 308.0 * 0.5 - 299.08)
 	var got_offset := walk3.get("offset") as Vector2
 	if got_offset.distance_to(want_offset) > EPS:
 		return "walk d3 offset should be %s, got %s" % [str(want_offset), str(got_offset)]
