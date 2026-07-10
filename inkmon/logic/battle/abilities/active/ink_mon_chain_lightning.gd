@@ -25,7 +25,7 @@ static var ABILITY := (
 	.meta(InkMonSkillMetaKeys.RANGE, 5)
 	.active_use(
 		ActiveUseConfig.builder()
-		.timeline_id(TIMELINE_ID)
+		.timeline(CHAIN_LIGHTNING_TIMELINE)
 		.on_tag(TimelineTags.HIT, [InkMonChainLightningAction.new(
 			InkMonTargetSelectors.current_target(),
 			InkMonSkillHelpers.caster_ap_damage(0.75, 10.0),

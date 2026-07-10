@@ -26,7 +26,7 @@ static var ABILITY := (
 	.meta(InkMonSkillMetaKeys.RANGE, 1)
 	.active_use(
 		ActiveUseConfig.builder()
-		.timeline_id(TIMELINE_ID)
+		.timeline(STUN_TIMELINE)
 		.on_tag(TimelineTags.HIT, [InkMonApplyBuffAction.new(
 			InkMonTargetSelectors.current_target(),
 			InkMonStunBuff.create_config(STUN_DURATION_MS)

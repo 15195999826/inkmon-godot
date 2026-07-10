@@ -25,7 +25,7 @@ static var ABILITY := (
 	.meta(InkMonSkillMetaKeys.RANGE, 4)
 	.active_use(
 		ActiveUseConfig.builder()
-		.timeline_id(TIMELINE_ID)
+		.timeline(HOLY_HEAL_TIMELINE)
 		.on_tag(TimelineTags.HEAL, [InkMonHealAction.new(
 			InkMonTargetSelectors.current_target(),
 			InkMonSkillHelpers.caster_ap_heal(0.70, 18.0)

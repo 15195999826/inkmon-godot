@@ -1,35 +1,27 @@
 class_name InkMonAllSkills
 
 
-class _Entry:
-	extends RefCounted
-
-	var ability: AbilityConfig
-	var timelines: Array[TimelineData]
-
-	func _init(p_ability: AbilityConfig, p_timelines: Array[TimelineData]) -> void:
-		ability = p_ability
-		timelines = p_timelines
-
-
-static func _build_manifest() -> Array[_Entry]:
-	var arr: Array[_Entry] = []
-	arr.append(_Entry.new(InkMonMove.ABILITY, [InkMonMove.MOVE_TIMELINE]))
-	arr.append(_Entry.new(InkMonBasicAttack.ABILITY, [InkMonBasicAttack.BASIC_ATTACK_TIMELINE]))
-	arr.append(_Entry.new(InkMonFireball.ABILITY, [InkMonFireball.FIREBALL_TIMELINE]))
-	arr.append(_Entry.new(InkMonChainLightning.ABILITY, [InkMonChainLightning.CHAIN_LIGHTNING_TIMELINE]))
-	arr.append(_Entry.new(InkMonPoison.ABILITY, [InkMonPoison.POISON_TIMELINE]))
-	arr.append(_Entry.new(InkMonHolyHeal.ABILITY, [InkMonHolyHeal.HOLY_HEAL_TIMELINE]))
-	arr.append(_Entry.new(InkMonStun.ABILITY, [InkMonStun.STUN_TIMELINE]))
-	arr.append(_Entry.new(InkMonPoisonBuff.POISON_BUFF, [InkMonPoisonBuff.POISON_TICK_TIMELINE]))
-	arr.append(_Entry.new(InkMonStunBuff.create_config(InkMonStunBuff.DEFAULT_DURATION_MS), []))
-	arr.append(_Entry.new(InkMonDamageMathPassive.ABILITY, []))
+## 单列 manifest: timeline 经 builder.timeline(data) 挂在 config 树上,
+## register_all_timelines() 用 collect_timelines() 自动收集注册 —— 不手抄
+## timeline 列表(与 hex HexBattleAllSkills 同款, 见 LGF CHANGELOG timeline 一体化)。
+static func _build_manifest() -> Array[AbilityConfig]:
+	var arr: Array[AbilityConfig] = []
+	arr.append(InkMonMove.ABILITY)
+	arr.append(InkMonBasicAttack.ABILITY)
+	arr.append(InkMonFireball.ABILITY)
+	arr.append(InkMonChainLightning.ABILITY)
+	arr.append(InkMonPoison.ABILITY)
+	arr.append(InkMonHolyHeal.ABILITY)
+	arr.append(InkMonStun.ABILITY)
+	arr.append(InkMonPoisonBuff.POISON_BUFF)
+	arr.append(InkMonStunBuff.create_config(InkMonStunBuff.DEFAULT_DURATION_MS))
+	arr.append(InkMonDamageMathPassive.ABILITY)
 	return arr
 
 
 static func register_all_timelines() -> void:
-	for entry in _build_manifest():
-		for timeline in entry.timelines:
+	for cfg in _build_manifest():
+		for timeline in cfg.collect_timelines():
 			TimelineRegistry.register(timeline)
 
 
@@ -38,9 +30,9 @@ static func register_all_timelines() -> void:
 ## 刻意不用 static var 缓存: 脚本 static 容器持 AbilityConfig 在引擎退出清理时析构顺序不定,
 ## headless 下退出段错误 (signal 11, 实测); n≈10 且仅备战期调用, 线性扫无性能代价。
 static func _find_config(skill_id: String) -> AbilityConfig:
-	for entry in _build_manifest():
-		if entry.ability.config_id == skill_id:
-			return entry.ability
+	for cfg in _build_manifest():
+		if cfg.config_id == skill_id:
+			return cfg
 	return null
 
 

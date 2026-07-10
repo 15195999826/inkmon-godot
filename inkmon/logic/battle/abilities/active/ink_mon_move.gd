@@ -23,7 +23,7 @@ static var ABILITY := (
 	.ability_tags(["action", "move"])
 	.active_use(
 		ActiveUseConfig.builder()
-		.timeline_id(TIMELINE_ID)
+		.timeline(MOVE_TIMELINE)
 		.on_timeline_start([InkMonStartMoveAction.new(
 			InkMonTargetSelectors.ability_owner(),
 			InkMonSkillHelpers.target_coord_from_event()
