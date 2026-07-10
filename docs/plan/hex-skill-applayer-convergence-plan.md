@@ -55,7 +55,7 @@
 
 - **问题**：`lgf-new-logic-skill` SKILL.md 目录图/scenario 路径过时，Step 0 指向已不存在的 progress 文档。
 - **拍板**：P1-P8 完成后一次重写（目录图、路径、新增 preset/`.timeline()`/TARGETING/execution_state pattern/lint 说明）；progress 文档不复活——"已落地清单"职责交给 manifest+lint（机器不烂），"pattern 速查表"并入 SKILL.md。
-- **待确认小项**：该 skill 被 skillOverrides 禁用模型调用，是否有意？
+- **待确认小项已闭环**（2026-07-10）：skillOverrides 禁用是**有意封存**——短期不开发新技能；文档仍随本轮刷新保持与代码同步，恢复开发时删 override 即可启用。
 
 ## 实施顺序（波次间跑 `hex/all` + submodule 阶段性 commit）
 

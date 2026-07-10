@@ -5,6 +5,10 @@ description: Use when implementing any skill/ability/buff/passive from the inkmo
 
 # 新增 inkmon 逻辑层技能（taxonomy 16 技能实现指南）
 
+> ⚠️ 本 skill 当前被 skillOverrides **有意禁用**模型调用（2026-07-10 确认：短期不开发新技能）。
+> 文档已随技能应用层收敛轮（docs/plan/hex-skill-applayer-convergence-plan.md）刷新对齐现实；
+> 恢复技能开发时删除 override 即可直接启用。
+
 读完本 skill 就能动手。**不要**用你的先验写"该怎么做一个技能"——本项目有明确的设计源和工作流,必须照做。
 
 ---
