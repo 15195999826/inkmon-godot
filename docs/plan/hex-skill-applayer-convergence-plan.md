@@ -75,6 +75,14 @@
 
 **W7 codex 审查**：范围 = submodule 基线 `ec4d592`→HEAD 全 diff + 主仓侧改动；`codex exec` headless / read-only / xhigh；findings triage→确认项修复→重跑受影响组→commit；退出判据 = 无未处置确认级 finding；设计分歧类 finding 呈报用户裁决不擅自改。
 
+**W7 执行结果（2026-07-10，codex-cli 0.144 xhigh，197k tokens）**：5 findings（1P1/2P2/2P3），**全部确认、全部修复**：
+1. [P1] 主游戏 `inkmon/` 8 处调用已删除的 `.timeline_id()`——W2 迁移只扫了 `addons/`，漏了主游戏也建在 LGF builder 上（类加载即炸）。修：8 处迁 `.timeline()` + InkMonAllSkills 单列化。
+2. [P2] InspireBuff 漏 manifest+BUFF_REGISTRY（demo 实际 grant 的 buff 对 lint 假绿、图标永不显示）。修：三件补齐。
+3. [P2] TARGETING 双入口未真接线（`can_use_skill_at` 零消费者、`can_use_skill_on` 不拒 COORD）。修：on 拒 COORD、AI 候选按协议分流、新增 `smoke_targeting_protocol` 六用例挂 `hex/skills`。
+4. [P3] lint cue walker 不递归 FlowAction 分支。修：改 `Action.get_child_actions()` 通用 DFS，DamageAction 回调暴露迁标准 child API。
+5. [P3] StringResolver 元数据公有可写（lint/运行时可脱钩）。修：构造期绑定+私有+`try_get_fixed_value()`。
+codex 同时确认无问题面：preset 等价性 / std timeline 逐字段一致 / chain_lightning 便签无污染 / registry 三态与 reset 兼容 / 新增 Action 无状态 / PreEvent Intent 完备。修复后 hex/all+core/unit+dota2/regression+inkmon/all 69 场全绿。
+
 ## 偏离记录
 
 W6 验收（2026-07-10）逐 P 判据核对结果——全部达标，偏离与处置如下：
