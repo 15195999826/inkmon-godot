@@ -12,8 +12,15 @@ extends RefCounted
 ##           flat DamageAction (float_val 50.0) 应在 validation summary 中可见
 
 const CONFIG_ID := "skill_test_projectile"
-const CAST_TIMELINE := "skill_test_projectile"
-const HIT_TIMELINE := "skill_test_projectile_hit"
+const CAST_TIMELINE_ID := "skill_test_projectile"
+const HIT_TIMELINE_ID := "skill_test_projectile_hit"
+
+static var CAST_TIMELINE := TimelineData.new(
+	CAST_TIMELINE_ID,
+	600.0,
+	{TimelineTags.HIT: 400.0}
+)
+static var HIT_TIMELINE := TimelineData.new(HIT_TIMELINE_ID, 1.0)
 
 
 static var ABILITY := (
@@ -25,7 +32,7 @@ static var ABILITY := (
 	.meta(HexBattleSkillMetaKeys.RANGE, 5)
 	.active_use(
 		ActiveUseConfig.builder()
-		.timeline_id(CAST_TIMELINE)
+		.timeline(CAST_TIMELINE)
 		.on_timeline_start([StageCueAction.new(
 			HexBattleTargetSelectors.current_target(),
 			Resolvers.str_val("test_cue")
@@ -40,7 +47,7 @@ static var ABILITY := (
 	.component_config(
 		ActivateInstanceConfig.builder()
 		.trigger(TriggerConfig.new(ProjectileEvents.PROJECTILE_HIT_EVENT, Callable()))
-		.timeline_id(HIT_TIMELINE)
+		.timeline(HIT_TIMELINE)
 		.on_timeline_start([HexBattleDamageAction.new(
 			HexBattleTargetSelectors.current_target(),
 			Resolvers.float_val(50.0),

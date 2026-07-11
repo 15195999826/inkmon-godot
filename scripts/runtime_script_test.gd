@@ -235,7 +235,7 @@ static func _level_3_source() -> String:
 	lines.append('\t\t.meta("range", 4) \\')
 	lines.append("\t\t.active_use( \\")
 	lines.append("\t\t\tActiveUseConfig.builder() \\")
-	lines.append('\t\t\t.timeline_id("skill_ice_bolt") \\')
+	lines.append("\t\t\t.timeline(timeline) \\")
 	lines.append("\t\t\t.on_timeline_start([StageCueAction.new( \\")
 	lines.append("\t\t\t\tHexBattleTargetSelectors.current_target(), \\")
 	lines.append('\t\t\t\tResolvers.str_val("magic_ice") \\')

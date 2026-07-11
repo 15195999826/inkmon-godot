@@ -121,6 +121,8 @@ func _part_c_advisory_stage5() -> void:
 	# 合成一个会通过前 4 阶段、但 resolver 里用 randf() 且缺 cant_act/silence 门控的技能。
 	# Stage5 应在 advisory.warnings 标出 determinism + gating, 但 success 仍 true (warn 不 fail)。
 	var src := "\n".join([
+		'static var ADVISORY_TIMELINE := TimelineData.new("skill_test_advisory", 500.0, {TimelineTags.HIT: 250.0})',
+		'',
 		'static var ABILITY := (',
 		'	AbilityConfig.builder()',
 		'	.config_id("skill_test_advisory")',
@@ -129,7 +131,7 @@ func _part_c_advisory_stage5() -> void:
 		'	.meta(HexBattleSkillMetaKeys.RANGE, 1)',
 		'	.active_use(',
 		'		ActiveUseConfig.builder()',
-		'		.timeline_id("skill_test_advisory")',
+		'		.timeline(ADVISORY_TIMELINE)',
 		'		.on_tag(TimelineTags.HIT, [HexBattleDamageAction.new(',
 		'			HexBattleTargetSelectors.current_target(),',
 		'			Resolvers.float_fn(func(_c): return randf() * 10.0),',
