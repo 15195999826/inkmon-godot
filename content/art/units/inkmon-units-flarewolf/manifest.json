@@ -1,0 +1,112 @@
+{
+  "schema": "inkmon-unitset/1",
+  "set_id": "inkmon-units-flarewolf",
+  "version": "1",
+  "hash": "11592d4164744e5b",
+  "projection": {
+    "contract": "hex-tile-v1",
+    "hex_orientation": "flat_top",
+    "pitch_deg": 35.26,
+    "yaw_deg": -15,
+    "hex_edge_world": 1,
+    "thickness_world": 0.55,
+    "elevation_step_world": 0.5,
+    "water_recess_world": 0.12,
+    "sun_elevation_deg": 50,
+    "sun_azimuth_deg": -45,
+    "material_mode_default": "emission",
+    "source_canvas_px": 2048,
+    "source_px_per_unit": 512,
+    "runtime_target_max_opaque_px": 512,
+    "coordinate_convention": "axial flat-top; hex corner i at 60°·i; world cell center = hex_edge_world · (1.5·q, √3·(r + q/2)); screen = ground_basis(pitch, yaw), image y-down",
+    "anchor_semantics": "top-face center at the elevation-0 plane, in cropped-image pixel coords; consumer places centered sprite with offset = size_px/2 − anchor_px",
+    "elevation_lift": "height_to_screen(elevation · elevation_step_world · px_per_unit, pitch)",
+    "variant_pick": "explicit map-cell variant wins; otherwise posmod((q·73856093) XOR (r·19349663), variant_count)",
+    "unit_px_per_unit": 212.75,
+    "unit_fps": 12,
+    "unit_shadow": {
+      "squash": 0.35,
+      "shear": 0.55,
+      "blur_px": 7,
+      "alpha": 0.33
+    }
+  },
+  "units": {
+    "mon_0003": {
+      "ring": {
+        "frames": [
+          "mon_0003/unit_mon_0003_ring_f01.png",
+          "mon_0003/unit_mon_0003_ring_f02.png",
+          "mon_0003/unit_mon_0003_ring_f03.png",
+          "mon_0003/unit_mon_0003_ring_f04.png",
+          "mon_0003/unit_mon_0003_ring_f05.png",
+          "mon_0003/unit_mon_0003_ring_f06.png"
+        ],
+        "size_px": [
+          384,
+          317
+        ],
+        "anchor_px": [
+          172.47,
+          316.17
+        ],
+        "src_frames": [
+          0,
+          20,
+          40,
+          61,
+          81,
+          101
+        ],
+        "src_frame_count": 121
+      },
+      "actions": {
+        "idle": {
+          "0": {
+            "mirror_of": "3"
+          },
+          "1": {
+            "mirror_of": "3"
+          },
+          "2": {
+            "alias_of": "3"
+          },
+          "3": {
+            "frames": [
+              "mon_0003/unit_mon_0003_idle_d3_f01.png",
+              "mon_0003/unit_mon_0003_idle_d3_f02.png",
+              "mon_0003/unit_mon_0003_idle_d3_f03.png",
+              "mon_0003/unit_mon_0003_idle_d3_f04.png",
+              "mon_0003/unit_mon_0003_idle_d3_f05.png",
+              "mon_0003/unit_mon_0003_idle_d3_f06.png",
+              "mon_0003/unit_mon_0003_idle_d3_f07.png",
+              "mon_0003/unit_mon_0003_idle_d3_f08.png",
+              "mon_0003/unit_mon_0003_idle_d3_f09.png",
+              "mon_0003/unit_mon_0003_idle_d3_f10.png",
+              "mon_0003/unit_mon_0003_idle_d3_f11.png",
+              "mon_0003/unit_mon_0003_idle_d3_f12.png",
+              "mon_0003/unit_mon_0003_idle_d3_f13.png",
+              "mon_0003/unit_mon_0003_idle_d3_f14.png"
+            ],
+            "size_px": [
+              309,
+              299
+            ],
+            "anchor_px": [
+              123.59,
+              298.73
+            ],
+            "loop": true
+          },
+          "4": {
+            "alias_of": "3"
+          },
+          "5": {
+            "mirror_of": "3"
+          }
+        }
+      }
+    }
+  },
+  "ext": {}
+}
