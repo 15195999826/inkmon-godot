@@ -361,7 +361,7 @@ P2 及之后：
 | 阶段 | 状态 | submodule SHA | 主仓 SHA | 备注 |
 |---|---|---|---|---|
 | P1 减法热身 | 已完成 2026-09-10 | `f1d132f` | `cdcc871f` | 基线 8e56bba 非 a4730a1，见偏离记录 ①；主仓先单独 `chore` bump 到 8e56bba（`bbe5d9a7`）再 P1。验收：86 scene 全 PASS / 释放测试绿 / 四份泄漏直方图与基线逐字节一致 / `/code-review max` 十角度已修 |
-| P2 BattleActor | 已完成 2026-09-10 | `ec72e5a` | `MAIN_SHA` | 验收：86 scene 全 PASS（core 单测 173→187）/ 释放测试绿 / 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **下降** 590→170 RefCounted（关掉本就播不了的 dota2 录像，基线已棘轮）/ `/code-review max` 十角度 + 修复后二次复审已合入。偏离见 ⑧–⑭ |
+| P2 BattleActor | 已完成 2026-09-10 | `ec72e5a` | `cd0633ec` | 验收：86 scene 全 PASS（core 单测 173→187）/ 释放测试绿 / 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **下降** 590→170 RefCounted（关掉本就播不了的 dota2 录像，基线已棘轮）/ `/code-review max` 十角度 + 修复后二次复审已合入。偏离见 ⑧–⑭ |
 | P3 typed instance | 未开始 | | | |
 | P4 instance 级事件设施 | 未开始 | | | |
 | P5 Post 订阅制 | 未开始 | | | |
