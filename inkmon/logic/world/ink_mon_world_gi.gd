@@ -721,7 +721,6 @@ func _begin_battle_with_current_teams() -> void:
 	InkMonBattleSetup.place_team_fixed(self, right_team, [
 		HexCoord.new(3, -1), HexCoord.new(3, 0), HexCoord.new(3, 1), HexCoord.new(2, 0),
 	])
-	InkMonAllSkills.register_all_timelines()
 	var participants: Array[Actor] = []
 	for actor in get_all_units():
 		participants.append(actor)

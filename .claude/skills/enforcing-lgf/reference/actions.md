@@ -8,7 +8,7 @@
 - [FlowAction](#flowaction-extends-refcounted)
 - [LooseTagAction](#loosetagaction-extends-refcounted)
 - [TagAction](#tagaction-extends-refcounted) (deprecated)
-- [Resolvers](#resolvers)
+- [Resolvers](#resolvers) (+ static probe ports for lint)
 - [Supporting Classes](#supporting-classes) (AbilityRef, AbilityExecutionInfo)
 
 ## Action (extends RefCounted)
@@ -190,6 +190,13 @@ Dynamic resolvers accept `Callable` with signature `func(ctx: ExecutionContext) 
 
 - `static resolve_param(resolver: Variant, ctx: ExecutionContext) -> Variant` — If resolver is Callable, calls it with ctx; otherwise returns as-is
 - `static resolve_optional_param(resolver: Variant, default_value: Variant, ctx: ExecutionContext) -> Variant` — Returns default_value if resolver is null
+
+### Static probe ports (lint reads, no ExecutionContext)
+
+Tooling — chiefly hex `smoke_manifest_lint` — needs to read a declared parameter *without* building an `ExecutionContext`. Two read-only ports exist for that; neither is for runtime use.
+
+- `StringResolver.try_get_fixed_value() -> String` — Returns the value bound at construction when the resolver came from `Resolvers.str_val(v)`; returns `""` for a dynamic `Resolvers.str_fn(fn)`. The backing metadata (`_is_fixed` / `_fixed_value`) is **private and bound once in `_init` together with the callable** — never expose or rewrite it, or lint reads A while runtime resolves B and the check goes green on a lie
+- `StageCueAction.get_fixed_cue() -> String` — Thin passthrough to the above on the action's `cue_id` resolver, so lint can statically collect every declared cue id and assert it exists in the frontend registry (`stdlib/actions/stage_cue_action.gd:25`)
 
 ---
 

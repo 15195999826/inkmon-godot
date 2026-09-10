@@ -377,6 +377,8 @@ All extend `FrontendVisualAction` (base: `type`, `actor_id`, `duration`, `delay`
 
 One event can trigger multiple Visualizers (many-to-many) — e.g. a `damage` event is independently picked up by `DamageVisualizer`, `BuffVisualizer` (shield consumption), and `ShieldBarVisualizer`.
 
+**Whitelist registries fail silently — so they are lint-gated.** `StageCueVisualizer` skips an unknown cue id without an error, and a buff missing from `BUFF_REGISTRY` simply never gets a head icon. Both registries therefore reference the logic-side constants (`StageCueVisualizer`'s cue sets are built from `HexBattleCues`), and `tests/battle/smoke_manifest_lint.gd` asserts coverage in both directions (assertions 2 and 3 — see [example-app-game-logic.md](example-app-game-logic.md#skill-declaration-conventions)). Adding a cue or a buff means touching the constant file, the visualizer registry, and nothing else — the lint tells you which half you forgot.
+
 ### Data Types
 
 #### FrontendActorRenderState (extends RefCounted)

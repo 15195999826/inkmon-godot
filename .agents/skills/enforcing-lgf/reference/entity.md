@@ -23,9 +23,8 @@ Base entity class. All game entities extend Actor.
 
 **Lifecycle:**
 - `is_pre_event_responsive() -> bool` — Default `true`; override so an actor in an unresponsive state (dead/silenced/stunned) opts out of PreEvent handler dispatch for this instant. Other dispatch paths (POST event / tick / receive_event) are unaffected (Actor.gd:58-59)
-- `on_spawn() -> void` — Called when actor is added to instance
+- `on_spawn() -> void` — Empty virtual hook called at the end of `add_actor()`; override in subclasses
 - `on_despawn() -> void` — Called when actor is removed
-- `add_spawn_listener(callback: Callable) -> Callable` — Returns unsubscribe function
 - `add_despawn_listener(callback: Callable) -> Callable` — Returns unsubscribe function
 
 **ID & Instance:**
@@ -55,6 +54,7 @@ Base class for game logic systems (ECS-style). Registered on GameplayInstance, t
 **Properties:**
 - `type: String` — System type identifier
 - `priority: int` — Tick order (lower = earlier)
+- `_registration_seq: int` — Tie-breaker inside one priority band, stamped by the owning instance at `add_system()` time (`-1` = not registered). Not serialized and never emitted into the event stream — it is a runtime ordering contract, not save semantics. Do not set it yourself
 
 **Lifecycle:**
 - `on_register(instance: GameplayInstance) -> void`
@@ -125,10 +125,12 @@ Individual gameplay session containing actors and systems.
 - `get_actor_count() -> int`
 
 **System Management:**
-- `add_system(system: System) -> void`
+- `add_system(system: System) -> void` — Rejects a duplicate `type` with a warning (no replace). Stamps `system._registration_seq` from the instance's counter, then re-sorts the table by the **two-key order `(priority, _registration_seq)`**, then calls `system.on_register(self)`
 - `remove_system(system_type: String) -> bool`
 - `get_system(system_type: String) -> System`
 - `get_systems() -> Array[System]`
+
+**Tick order is a declared fact, not luck** (`core/world/gameplay_instance.gd:136-169`): `sort_custom` is unstable, so under a single `priority` key the relative order inside one band had no contract and any mid-flight `add_system` (e.g. hanging a BattleSystem on at battle start) could reshuffle the whole table — a determinism hazard. The two keys form a total order: "systems in the same band must not depend on each other" is still the design contract, but a bug that violates it now reproduces deterministically instead of flapping. Every table change logs one `Log.info` line with the full tick order (`type(priority)` list) — debug logging only, it never reaches the event stream / recording / save.
 
 ---
 
@@ -186,7 +188,7 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 
 **Lifecycle:**
 - `start() -> void` — Tags participants `in_combat`; when `_recording_enabled` (base-class field, subclasses set it from opts in `_init`), constructs a `BattleRecorder` and calls `_start_recorder()`
-- `_start_recorder() -> void` — Base implementation is the standard path: asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (disconnected in `finish()` — procedures are short-lived while worlds persist)
+- `_start_recorder() -> void` — Base implementation is the standard path: asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (the handler re-checks `world.should_record_actor()`, and `register_actor` de-dupes internally). The connection is dropped in `finish()` — procedures are short-lived while worlds persist, so leaving it attached would accumulate stale listeners across battles and keep dead procedures alive
 - `tick_once() -> void` — Virtual; base only advances `_current_tick` and calls `record_current_frame_events()`. Subclasses override for ATB/timeline advancement, typically calling `super.tick_once()` or `record_current_frame_events()` themselves
 - `should_end() -> bool` — Virtual; base returns `_finished`. Subclasses override with win/loss conditions
 - `finish(result: String = "battle_complete") -> Dictionary` — Disconnects the `actor_added` hookup, un-tags `in_combat`, stops the recorder, returns the timeline

@@ -10,6 +10,7 @@
 - [Action Implementation Patterns](#action-implementation-patterns)
 - [PreEvent Pattern](#preevent-pattern)
 - [Ability Configuration Patterns](#ability-configuration-patterns)
+- [Skill Declaration Conventions](#skill-declaration-conventions)
 - [AI Strategy Pattern](#ai-strategy-pattern)
 - [Target Selectors](#target-selectors)
 - [Utility Patterns](#utility-patterns)
@@ -30,13 +31,16 @@ hex-atb-battle/
   logic/
     abilities/
       active/                   # Skill impls: strike.gd, fireball.gd, move.gd, holy_heal.gd, ... (~30 files)
-      buffs/                    # Buff configs: stun_buff.gd, silence_buff.gd, shield_buffs.gd, ...
+      buffs/                    # Buff configs: stun_buff.gd, silence_buff.gd, shield_buffs.gd, buff_tags.gd
       passives/                 # Passive impls: thorn.gd, vitality.gd, general_passive.gd, ...
-      shared/                   # cooldown_system.gd, skill_helpers.gd, all_skills.gd (single manifest)
-    actions/                    # damage_action.gd, heal_action.gd, start/apply_move_action.gd, push_action.gd, ...
+      shared/                   # cooldown_system.gd, skill_helpers.gd, skill_tags.gd, std_timelines.gd,
+                                #   skill_presets.gd, all_skills.gd (single manifest)
+    actions/                    # damage_action.gd, heal_action.gd, start/apply_move_action.gd, push_action.gd,
+                                #   cancel_move_action.gd (move execution on_cancel cleanup), ...
     ai/                         # ai_strategy.gd (base) + melee/ranged_attack/ranged_support strategies
+    attributes/                 # attributes_config.gd + generated/ (example-local AttributeSets)
     components/                 # shield_component.gd (AbilityComponent subclass)
-    config/                     # class_config.gd, skill_config.gd, skill_meta_keys.gd
+    config/                     # class_config.gd, skill_config.gd, skill_meta_keys.gd, hex_battle_cues.gd
     docs/                       # logic-to-presentation-guide.md
     environment/                # Concrete EnvironmentActor kinds: stone_wall.gd, fire_tile.gd, collision_profile.gd
     item/                       # hex_item_domain.gd, hex_item_catalog.gd, hex_actor_equipment_container.gd, ...
@@ -57,6 +61,7 @@ hex-atb-battle/
   frontend/                     # See example-app-presentation.md
   skill-preview/                # Editor skill-preview sandbox tool + presets/*.json
   tests/
+    battle/smoke_manifest_lint.gd  # Four manifest assertions, on the required hex/regression group
     battle/skill_scenarios/     # Per-skill scenario contract tests (30+ files)
     frontend/                   # Frontend smoke tests
     skill-preview/              # Skill preview smoke tests
@@ -234,6 +239,12 @@ HexBattleDamageAction.new(
 
 `on_hit` always fires on a landed hit; `on_critical` only when `is_critical` ended up true; `on_kill` only when the target died from this hit.
 
+#### Derived Data: Compute Once Into `execution_state`
+
+When several downstream pieces (a predicate, a selector, a handful of resolvers) all need the same derived fact, compute it **once** at the head of the tag's action list, write it into `ExecutionContext.execution_state` under a namespaced key, and let everyone else read it. `chain_lightning` (`logic/abilities/active/chain_lightning.gd`) does exactly that: an `on_hit` chain-head action writes `execution_state["chain_lightning.next"]`, and the predicate/selector/resolvers downstream are read-only. Before, the "next hop" was recomputed six times (each an O(whole battlefield) scan) and correctness rested on the implicit invariant that the world does not change across those six calls. `shadow_step`'s `"shadow_step.teleport_success"` is the same pattern.
+
+Remember the key must be namespaced with a `.` (`set_execution_state` asserts), and the written value must be deterministic — no wall clock, no randomness, no mutable singleton (playback re-derives it by re-executing, the event stream does not record `execution_state`).
+
 #### Two-Phase Movement
 
 `HexBattleStartMoveAction` (`logic/actions/start_move_action.gd`) reserves the tile, pushes `MoveStartEvent`, and (for `CharacterActor` targets) turns the mover to face the destination via `HexFacing.face_actor_toward()`. `HexBattleApplyMoveAction` (`logic/actions/apply_move_action.gd`), on a later timeline tag, performs the actual `grid.move_occupant()`, updates `actor.hex_position`, and pushes `MoveCompleteEvent` — no facing update here, it already happened in phase 1:
@@ -296,7 +307,7 @@ static var ABILITY := (
     .meta(HexBattleSkillMetaKeys.RANGE, 1)
     .active_use(
         HexBattleCooldownSystem.apply_basic_attack_gating(ActiveUseConfig.builder(), COOLDOWN_MS)
-        .timeline_id(TIMELINE_ID)
+        .timeline(TIMELINE)
         .on_timeline_start([StageCueAction.new(
             HexBattleTargetSelectors.current_target(), Resolvers.str_val("melee_slash")
         )])
@@ -342,7 +353,7 @@ static var ABILITY := (
     .meta(HexBattleSkillMetaKeys.RANGE, 5)
     .active_use(                                    # ① launch: fires the projectile
         HexBattleCooldownSystem.apply_standard_active_gating(ActiveUseConfig.builder(), COOLDOWN_MS)
-        .timeline_id(TIMELINE_ID_CAST)               # ② separate cast timeline
+        .timeline(CAST_TIMELINE)                     # ② separate cast timeline (static TimelineData)
         .on_tag(TimelineTags.LAUNCH, [LaunchProjectileAction.new(
             HexBattleTargetSelectors.current_target(),
             Resolvers.dict_val({ ... }),              # ProjectileActor.CFG_* keys — VFX/replay metadata only
@@ -353,7 +364,7 @@ static var ABILITY := (
     .component_config(                               # ③ separate hit-reaction component
         ActivateInstanceConfig.builder()
         .trigger(TriggerConfig.new(ProjectileEvents.PROJECTILE_HIT_EVENT, HexBattleSkillHelpers.projectile_hit_filter))
-        .timeline_id(TIMELINE_ID_HIT)                 # its own hit timeline
+        .timeline(HIT_TIMELINE)                       # its own hit timeline
         .on_timeline_start([HexBattleDamageAction.new(...)])   # ④ actual damage happens here
         .build()
     )
@@ -362,6 +373,71 @@ static var ABILITY := (
 ```
 
 The real damage happens only in step ④, triggered by the projectile's own `PROJECTILE_HIT_EVENT`, once it lands.
+
+### Skill Declaration Conventions
+
+The July 2026 convergence pass turned four classes of "silently wrong" declaration into single sources plus a lint gate. Follow these when adding or editing a skill/buff/passive.
+
+#### `ability_tags` — two orthogonal axes, two constant files
+
+- **Carrier axis (mutually exclusive, exactly one required)**: `skill` (+ `active`) / `passive` / `buff` / `intrinsic` / `status` / `lifetime`. `buff` means specifically **a grantable state instance** (shows in the buff bar, cleanse can act on it, SkillPreview's picker excludes it). A passive is *never* `buff` — "beneficial passive" is expressed on the polarity axis.
+- **Polarity axis (orthogonal, any carrier; a buff instance must carry one)**: `negative` / `positive`. "Is this beneficial?" is always answered by the polarity tag, never by the carrier (demon_form = `passive` + `positive`, a shield = `buff` + `positive`, poison = `buff` + `negative`).
+- `control` (hard CC: stun/silence/break) and `passive_break` are cleanse-priority tags.
+
+| Constants file | Class | Holds |
+|---|---|---|
+| `logic/abilities/shared/skill_tags.gd` | `HexBattleSkillTags` | Carrier: `TAG_SKILL` / `TAG_ACTIVE` / `TAG_PASSIVE` / `TAG_INTRINSIC` / `TAG_STATUS` / `TAG_LIFETIME`; targeting legality: `TAG_ENEMY` / `TAG_ALLY` / `TAG_SELF`; AI branch: `TAG_HEAL`; descriptive-only `TAG_CONE` |
+| `logic/abilities/buffs/buff_tags.gd` | `HexBattleBuffTags` | `TAG_BUFF` / `TAG_NEGATIVE` / `TAG_POSITIVE` / `TAG_CONTROL` / `TAG_PASSIVE_BREAK` |
+
+**Rule: a tag with a code consumer gets a const** — declaring side and consuming side reference the same symbol, so a typo becomes a compile error. Purely descriptive tags (`melee` / `ranged` / `magic` / `aoe` / `line` / flavour words) stay string literals and are covered by lint assertion 4's vocabulary list instead.
+
+#### `HexBattleCues` — the official cue menu
+
+`logic/config/hex_battle_cues.gd`. The frontend **silently skips** an unregistered cue id (no error, no visual), which is exactly why the menu exists: both the declaring side (`StageCueAction`, and the few direct `GameEvent.StageCue.create` call sites) and the frontend registry (`stage_cue_visualizer`) must reference these constants. Wanting a new cue means adding a line here first, so the change is visible. Groups are annotated as *has visuals* / *deliberately no visuals* (carried by the projectile animation) / *no visuals yet* (logic emits, art not wired — mirrored in the lint exemption list).
+
+#### `HexBattleStdTimelines` — shared standard rhythms
+
+`logic/abilities/shared/std_timelines.gd` — `MELEE_500` (HIT@300 / END@500), `CAST_LAUNCH_600` (CAST@200 / LAUNCH@400 / END@600), `HIT_RESPONSE_100` (END@100). "500ms with HIT at 300" is a global convention, not a per-skill personality, so it is one shared `static var TimelineData`; skills with genuine rhythm personality (charge-up, multi-hit, two-phase displacement, summon, buff tick, `precise_shot`) keep custom timelines.
+
+Sharing is safe because `TimelineData` is pure data with no write points after construction (the execution cursor lives in `AbilityExecutionInstance`, new per cast) and `.timeline(data)` freezes `tags` at declaration. **Replay note:** the recorded `timeline_id` then reads `std_*` rather than a skill name — identify the skill through the event's ability `config_id`.
+
+#### `HexBattleSkillPresets.buff_applier(...)` — the zero-difference family
+
+`logic/abilities/shared/skill_presets.gd`. Eight "pick a target → apply a buff/shield" skills (stun / silence / break / expose / ward / both shields / surge) had byte-identical skeletons with ~8 informative lines each, so they collapsed into one preset:
+
+```gdscript
+static func buff_applier(
+    config_id: String, display_name: String, description: String,
+    ability_tags: Array[String], skill_range: int, targeting: String, cooldown_ms: float,
+    buff_config: AbilityConfig, cue_id: String = "",
+    use_shield_action: bool = false, extra_meta: Dictionary = {},
+) -> AbilityConfig
+```
+
+It builds `apply_standard_active_gating` + `MELEE_500` + an optional `on_timeline_start` StageCue + `on_tag(HIT, [ApplyBuff | ApplyShield])`, and asserts `targeting` is `ACTOR` or `SELF`. **`poison.gd` deliberately stays fully explicit** as the family's teaching sample — read it to see what the preset expands into. Boundary: presets only absorb zero-variation boilerplate; anything with its own mechanic (execute's conditional damage, shadow_step's displacement, lifesteal's `on_hit` callback) keeps an explicit builder chain.
+
+#### `TARGETING` — the cast-input protocol
+
+`HexBattleSkillMetaKeys.TARGETING` is **required on every active skill** (lint assertion 4), with values `TARGETING_ACTOR` (`"actor"`) / `TARGETING_COORD` (`"coord"`) / `TARGETING_SELF` (`"self"`). It is what AI reads to decide whether the activate event carries `target_actor_id` or `target_coord` — the old heuristic of sniffing for a `"cone"` tag is gone.
+
+Two legality entry points on `HexWorldGameplayInstance`, and they do **not** overlap:
+- `can_use_skill_on(actor, skill, target) -> bool` — ACTOR/SELF only; a `COORD` skill returns `false` here immediately (letting it through would bypass the coord path's `grid.has_tile` check)
+- `can_use_skill_at(actor, skill, coord) -> bool` — COORD only; requires a valid coord, `grid.has_tile(coord)`, and distance ≤ `RANGE`
+
+Targeting splits into three layers, and mixing them is the mistake to avoid: **legality → metadata** (queryable without running anything) · **shape geometry → shared static pure functions** (AI preview and execution must share the same function) · **execution-time resolution → `TargetSelector`**. Regression coverage: `tests/battle/smoke_targeting_protocol.tscn` (`hex/skills` group).
+
+#### Manifest lint (`tests/battle/smoke_manifest_lint.gd`)
+
+Walks `HexBattleAllSkills.all_abilities()` and makes four assertions, one per silent-failure class. It is on the required `hex/regression` group.
+
+| # | Assertion | The silent failure it replaces |
+|---|---|---|
+| 1 | Every timeline reachable via `AbilityConfig.collect_timelines()` has an empty `validate()`, has **frozen** `tags` (`tags.is_read_only()`, i.e. it went through `builder.timeline(data)`), and **the same id always means the same instance** across the whole manifest | Two places declaring same-named timelines that clobber each other, or a factory doing an inline `TimelineData.new()` |
+| 2 | Every `config_id` carrying `HexBattleBuffTags.TAG_BUFF` is in `FrontendBuffVisualizer.BUFF_REGISTRY` (or the explicitly-reasoned exemption list) | A buff with no head-icon entry simply never displays, with no error |
+| 3 | Every statically declared cue (top-level actions plus a generic DFS through `Action.get_child_actions()`, so FlowAction branches and DamageAction callback chains are covered) is in `FrontendStageCueVisualizer`'s registries ∪ the two exemption lists | `stage_cue_visualizer` silently skips an unknown cue |
+| 4 | Every tag is in the vocabulary (the two constant classes + the descriptive word list), and every config with an `active_use` component declares `RANGE` plus a `TARGETING` that is one of the three legal values | A tag typo silently drops behaviour; a missing `RANGE` is silently read as `1` (the `stance` bug) |
+
+Direct `GameEvent.StageCue.create` call sites (demon_form / totem_attack) cannot be collected statically — they are covered by the convention that they must reference `HexBattleCues` constants.
 
 ### AI Strategy Pattern
 
@@ -406,6 +482,7 @@ Project-specific selectors in `logic/target_selectors.gd` (`class_name HexBattle
 - **Shared flow extraction**: `HexBattleDamageUtils` (`logic/utils/hex_battle_damage_utils.gd`, all-static) extracts the shield-resolve → push → deduct-HP → log → broken-shield-callbacks → death-check flow shared by `DamageAction` and `ReflectDamageAction`
 - **Separated broadcast**: `broadcast_post_damage()` is a separate static call so the caller controls timing — `DamageAction` needs on_hit/on_critical/on_kill callbacks to run *before* the post-damage broadcast; `ReflectDamageAction` posts immediately
 - **Type-safe state access**: `HexBattleGameStateUtils` (`logic/utils/hex_battle_game_state_utils.gd`) wraps actor/display-name/death lookups with typed methods
+- **Shared skill helpers** (`logic/abilities/shared/skill_helpers.gd`, `class_name HexBattleSkillHelpers`): pass `ability_activate_filter` / `projectile_hit_filter` as **function references** (no parentheses) to `TriggerConfig`; **call** `target_coord_from_event()` / `owner_position_resolver()` / `target_position_resolver()` / `caster_atk_damage(mult)` (each returns a fresh Resolver). `caster(ctx) -> CharacterActor` replaces the five-line "owner_id → null check → get_actor → is CharacterActor → cast" boilerplate that used to be copied into every resolver/action — note it deliberately does **not** check `is_dead()`, since some call sites only want the coordinate
 
 ### Config / Data Organization
 
@@ -413,8 +490,12 @@ Project-specific selectors in `logic/target_selectors.gd` (`class_name HexBattle
 |------|---------|---------|
 | `config/class_config.gd` | `class_name HexBattleClassConfig`, enum + per-class `ClassConfigItem{name, stats}` | 7 character classes (Priest/Warrior/Archer/Mage/Berserker/Assassin/Totem) → base stats |
 | `config/skill_config.gd` | `class_name HexBattleSkillConfig`, `get_class_skill(char_class) -> AbilityConfig` | Which class gets which skill — returns the `AbilityConfig` directly, no enum indirection |
-| `config/skill_meta_keys.gd` | `class_name HexBattleSkillMetaKeys`, string constants | `RANGE` (int, cast distance), `ALLOWED_TARGET_KINDS` (Array[String], default `["Character"]`) |
-| `abilities/shared/all_skills.gd` | `class_name HexBattleAllSkills`, single manifest | One entry (`AbilityConfig` + its Timeline data) per skill/passive/buff drives both `register_all_timelines()` and `all_abilities()` — adding a skill means one new line here |
+| `config/skill_meta_keys.gd` | `class_name HexBattleSkillMetaKeys`, string constants | `RANGE` (int, cast distance), `ALLOWED_TARGET_KINDS` (Array[String], default `["Character"]`), `TARGETING` (String, required on active skills; `TARGETING_ACTOR` / `TARGETING_COORD` / `TARGETING_SELF`) |
+| `config/hex_battle_cues.gd` | `class_name HexBattleCues`, string constants | The official StageCue menu — see [Skill Declaration Conventions](#skill-declaration-conventions) |
+| `abilities/shared/skill_tags.gd` + `abilities/buffs/buff_tags.gd` | `HexBattleSkillTags` / `HexBattleBuffTags` | Load-bearing `ability_tags` constants, two-axis model — same section |
+| `abilities/shared/std_timelines.gd` | `class_name HexBattleStdTimelines`, `static var TimelineData` | `MELEE_500` / `CAST_LAUNCH_600` / `HIT_RESPONSE_100` shared rhythms |
+| `abilities/shared/skill_presets.gd` | `class_name HexBattleSkillPresets`, static factories | `buff_applier(...)` — the 8-skill zero-difference family skeleton |
+| `abilities/shared/all_skills.gd` | `class_name HexBattleAllSkills`, single manifest | One `AbilityConfig` entry per skill/passive/buff feeds `all_abilities()` (SkillPreview / tools / `smoke_manifest_lint`, which asserts every carried timeline is valid, frozen and unique per id) — adding a skill means one new line here; timelines ride on the config tree via `.timeline(data)`, nothing to register |
 | `attributes_config.gd` (`logic/attributes/`) | Dictionary config, example-local (auto-discovered by `AttributeSetGeneratorScript`, one per example; generated sets in sibling `generated/`) | Attribute base values and constraints |
 
 ### Logging

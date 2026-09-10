@@ -1,0 +1,4 @@
+     20 Leaked instance: RefCounted
+     10 Leaked instance: Node
+      6 Leaked instance: GDScript
+      2 Leaked instance: GDScriptNativeClass

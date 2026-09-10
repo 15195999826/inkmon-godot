@@ -25,7 +25,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 
 	# 1. to_dict 幂等。
 	var gi := _new_gi()

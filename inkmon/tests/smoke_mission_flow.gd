@@ -22,7 +22,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	var gi := _new_gi()
 	gi.new_game()
 	gi.mission_ended.connect(_on_mission_ended)

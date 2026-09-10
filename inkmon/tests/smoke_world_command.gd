@@ -27,7 +27,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	# adr/0003: load fixture items (item_NNNN) so BuyCommand resolves item_0002
 	# (stub fallback was removed; _make_gi's new_game reads this static cache).
 	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)

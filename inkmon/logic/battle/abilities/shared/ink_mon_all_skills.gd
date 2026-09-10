@@ -1,9 +1,8 @@
 class_name InkMonAllSkills
 
 
-## 单列 manifest: timeline 经 builder.timeline(data) 挂在 config 树上,
-## register_all_timelines() 用 collect_timelines() 自动收集注册 —— 不手抄
-## timeline 列表(与 hex HexBattleAllSkills 同款, 见 LGF CHANGELOG timeline 一体化)。
+## 单列 manifest: timeline 经 builder.timeline(data) 挂在 config 树上直传执行期,
+## 不手抄 timeline 列表(与 hex HexBattleAllSkills 同款)。
 static func _build_manifest() -> Array[AbilityConfig]:
 	var arr: Array[AbilityConfig] = []
 	arr.append(InkMonMove.ABILITY)
@@ -19,10 +18,10 @@ static func _build_manifest() -> Array[AbilityConfig]:
 	return arr
 
 
-static func register_all_timelines() -> void:
-	for cfg in _build_manifest():
-		for timeline in cfg.collect_timelines():
-			TimelineRegistry.register(timeline)
+## 返回 manifest 里所有 AbilityConfig(含 skill / buff / passive)。
+## 供 manifest lint 等工具层枚举, 与 hex HexBattleAllSkills.all_abilities() 对称。
+static func all_abilities() -> Array[AbilityConfig]:
+	return _build_manifest()
 
 
 ## 查询从 _build_manifest() 单一清单线性扫描派生 —— 加技能只 append manifest 一行,

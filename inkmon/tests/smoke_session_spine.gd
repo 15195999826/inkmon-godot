@@ -19,7 +19,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	# adr/0003: load fixture items (item_NNNN) so new_game's catalog has real configs to equip/buy
 	# (stub fallback was removed; new_game's configure_domain reads this static cache).
 	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)

@@ -62,7 +62,6 @@ func _run() -> String:
 
 	# 5. GI 集成。
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	var gi := _new_gi()
 	gi.new_game()
 	if gi.world_map == null:

@@ -34,7 +34,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()

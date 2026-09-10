@@ -45,7 +45,6 @@ var _dev_agent_bridge: Node = null
 func _ready() -> void:
 	name = "WorldHost"
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	_create_world_gi()
 	_world_gi.new_game()
 	_presentation = InkMonWorldPresentation.new()
@@ -350,7 +349,6 @@ func reset_session() -> Dictionary:
 	_replay_active = false
 	_mission_battle_lost = false
 	GameWorld.destroy_all_instances()
-	TimelineRegistry.reset()
 	_create_world_gi()
 	_world_gi.new_game()
 	_presentation.reset_ui_state(true)
@@ -406,7 +404,6 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_replay_active = false
 	_mission_battle_lost = false
 	GameWorld.destroy_all_instances()
-	TimelineRegistry.reset()
 	_create_world_gi()
 	var save_loaded := _world_gi.from_dict(data if data != null else {})
 	# load 读档:轻清 UI(保留 move_result/ui_message/events,对齐重构前 load 行为)。

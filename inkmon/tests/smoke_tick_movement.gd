@@ -25,7 +25,6 @@ func _ready() -> void:
 
 func _run() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 
 	var run_a := _run_scenario()
 	var run_b := _run_scenario()

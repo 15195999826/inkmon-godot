@@ -132,8 +132,8 @@ Event type constants and inner class factories.
 
 Collects events during action execution.
 
-- `push(event_dict: Dictionary) -> Dictionary`
-- `collect() -> Array[Dictionary]` — Returns copy, does not clear
+- `push(event_dict: Dictionary) -> Dictionary` — Stores a **deep copy** (`duplicate(true)`) in the buffer and returns the **original** dict. The copy is what recording keeps, so a post-listener mutating the event it received can no longer retroactively rewrite the replay; the returned original is still the live object the pushing Action keeps working with
+- `collect() -> Array[Dictionary]` — Returns a deep copy, does not clear
 - `flush() -> Array[Dictionary]` — Returns and clears
 - `clear() -> void`
 - `get_count() -> int` / `has_events() -> bool`
@@ -165,4 +165,4 @@ Registration data for pre-event handlers.
 ### EventProcessorConfig (extends RefCounted)
 
 - `max_depth: int` (default 10) — Max recursion depth
-- `trace_level: int` (default 1) — 0=none, 1=basic, 2=detailed
+- `trace_level: int` (default 0) — 0=none (traces are not accumulated), 1=basic, 2=detailed; pass explicitly when debugging

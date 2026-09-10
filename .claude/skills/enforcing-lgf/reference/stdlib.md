@@ -114,7 +114,10 @@ Records battle events for replay.
 - `stop_recording(result = "") -> Dictionary`
 - `export_json(result = "", pretty = true) -> String`
 - `get_timeline() -> Array[Dictionary]` — Returns frames recorded so far (`FrameData.to_dict()` each), without stopping the recording
-- `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void` — Mid-battle spawns/despawns; pushes `ActorSpawned`/`ActorDestroyed` events and (de)subscribes
+- `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void` — Mid-battle spawns/despawns; pushes `ActorSpawned`/`ActorDestroyed` events and (de)subscribes. `register_actor` de-dupes against its own subscription table, so re-registering an already-recorded actor is a no-op
+- `get_is_recording() -> bool` / `get_current_frame() -> int`
+
+The recorder holds **no event buffer** — every event goes through `GameWorld.event_collector`, so the recorded order is the real call-stack order.
 
 ### PlaybackData
 
@@ -140,23 +143,21 @@ Each has `to_dict()` and `static from_dict()`.
 
 ## Timeline
 
-*Location: `core/timeline/` (not `stdlib/`).*
-
-### Timeline (extends Node) — Autoload registry
-
-- `register(timeline: TimelineData) -> void` / `register_all(timelines: Array[TimelineData]) -> void`
-- `get_timeline(timeline_id: String) -> TimelineData` / `has(timeline_id: String) -> bool`
-- `get_all_ids() -> Array[String]` / `reset() -> void`
+*Location: `core/timeline/` (not `stdlib/`). There is no registry: a `TimelineData` is declared as a `static var`, bound with builder `.timeline(data)` (which freezes `tags`), and passed by reference down to `AbilityExecutionInstance`. Id uniqueness across a manifest is a static lint concern (hex `smoke_manifest_lint`).*
 
 ### TimelineData (extends RefCounted)
 
-**Properties:** `id: String` / `total_duration: float` / `tags: Dictionary`
+**Properties:** `id: String` / `total_duration: float` / `tags: Dictionary` (tag name → time; frozen by `.timeline(data)`) / `loop: bool` (default `false`) / `max_loops: int` (default `-1` = unlimited)
 
 **Methods:**
-- `get_tag_time(tag_name: String) -> float`
+- `static periodic(p_id: String, p_interval_ms: float, p_tick_tag: String = "tick") -> TimelineData` — DOT/HOT helper: `total_duration = interval_ms`, `tags = {tick_tag: 0.0}`, `loop = true`
+- `get_tag_time(tag_name: String) -> float` — `-1.0` when absent
 - `get_tag_names() -> Array[String]`
-- `get_sorted_tags() -> Array[Dictionary]`
-- `validate() -> Array[String]`
+- `get_sorted_tags() -> Array[Dictionary]` — Entries `{name, time, definitionIndex}`, sorted by `(time, definitionIndex)`. The definition-order tie-break exists because `sort_custom` is unstable — without it, tags at the same instant come back in an order that depends on the sort implementation. Same rule as `AbilityExecutionInstance`'s firing order, so a declared order *is* the executed order
+- `validate() -> Array[String]` — Empty array = valid; flags missing id, non-positive `total_duration`, and negative / past-the-end tag times
+- `to_dict()` / `static from_dict(data: Dictionary)`
+
+Loop timelines carry the per-cycle time remainder over into the next round rather than zeroing it — see "Timeline behaviour" in [`abilities.md`](abilities.md#abilityexecutioninstance-extends-refcounted).
 
 ---
 

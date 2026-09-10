@@ -28,11 +28,29 @@ Condition 是**事件到达时的 reactive 判断**, 适合"该不该响应这�
 
 ✅ **已对的 metadata 路径**:
 - `range` 走 ability metadata (`HexBattleSkillMetaKeys.RANGE`), `can_use_skill_on()` 消费
-- `enemy / ally` 走 ability tag, `can_use_skill_on()` 消费
+- `enemy / ally / self` 走 ability tag (`HexBattleSkillTags.TAG_ENEMY` / `TAG_ALLY` / `TAG_SELF`), `can_use_skill_on()` 消费
 - `allowedTargetKinds` 走 ability metadata (`HexBattleSkillMetaKeys.ALLOWED_TARGET_KINDS`, default `[HexBattleActor.KIND_CHARACTER]`), `can_use_skill_on()` 消费
+- `targeting` 走 ability metadata (`HexBattleSkillMetaKeys.TARGETING`, 取值 `TARGETING_ACTOR` / `TARGETING_COORD` / `TARGETING_SELF`, active 技能必填、manifest lint 强制) —— **施法输入协议**: AI 据它决定 activate 事件附 `target_actor_id` 还是 `target_coord`(不再嗅探 `"cone"` tag)。双入口分工: `can_use_skill_on()` 只裁决 ACTOR/SELF (遇 COORD 直接 `false`), coord 型走 `can_use_skill_at(actor, skill, coord)`
 
 ✅ **已对的 Condition 路径**:
 - `HasTagCondition` / `NoTagCondition` / `TagStacksCondition` — 都是 trigger 命中后的"我该不该执行"判断, 是 condition 的本职舞台
+
+---
+
+## 补充: 已配置门控的无副作用复核 (`can_activate`)
+
+metadata 回答"这个技能能不能对这个目标用", **不**回答"冷却好了没 / 资源够不够 / 被沉默了没"—— 后者是已经配好的 Condition/Cost 门控。这份运行时真相以前 UI / AI / tooltip 拿不到: 要么带副作用地 dry-run 整套 cast 流程, 要么在业务层复刻一遍冷却/资源规则形成双源漂移。
+
+`AbilitySet.can_activate(ability, event_dict := {}, game_state_provider := null) -> Dictionary` 补上这个缺口: 零副作用、可重入的干跑 —— 不扣资源、不 push `AbilityActivateFailed`、不创建 execution, 按激活路径同序评估 `Condition.check` → `Cost.can_pay`, 返回 `{allowed, reason, failed_component_type}` (键与常量见 `AbilityActivationQuery`, 详见 [abilities.md](abilities.md#abilityactivationquery-static-utility))。
+
+**两条路各管各的, 不要混**:
+
+| 问题 | 入口 |
+|---|---|
+| 这技能能不能打这个目标 / 这个格子 (range / faction / target kind / targeting 协议) | metadata + `can_use_skill_on()` / `can_use_skill_at()` |
+| 已配置的门控现在拦不拦我 (冷却 / 沉默 / cant_act / 资源) | `AbilitySet.can_activate()` |
+
+**不要因为有了 `can_activate` 就把 cast eligibility 塞回 Condition** —— 本文的原则没有变: `can_activate` 只复核"已经声明在 Condition/Cost 里的门控", 它需要 `AbilityLifecycleContext`, 依旧不是给 AI 过滤候选目标用的。目标合法性仍然走 metadata。
 
 ---
 

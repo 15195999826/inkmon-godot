@@ -55,6 +55,12 @@ func _part_a_end_to_end() -> void:
 		_fail("Part A: validate() success != true -> %s" % str(res))
 		return
 
+	# timeline 直传后, 有 active_use 的技能 result.timeline 恒有值 (id / duration / tags)
+	var tl_value: Variant = res.get("timeline")
+	if not (tl_value is Dictionary) or str(tl_value.get("id", "")) == "" \
+			or float(tl_value.get("duration", 0.0)) <= 0.0:
+		_fail("Part A: result.timeline 应带 id / duration -> %s" % str(tl_value))
+
 	var actions: Array = res.get("ability_config", {}).get("actions", [])
 
 	# 新-1: active_use HIT 的 DamageAction 被正确提取 (读 _damage_resolver/_damage_type,

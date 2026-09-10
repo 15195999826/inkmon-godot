@@ -33,6 +33,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 - **Events**: See [reference/events.md](reference/events.md) — EventProcessor, MutableEvent, Intent, Modification
 - **Attributes**: See [reference/attributes.md](reference/attributes.md) — RawAttributeSet, AttributeModifier, Calculator, TagContainer
 - **Stdlib**: See [reference/stdlib.md](reference/stdlib.md) — Components (StatModifier, DynamicStatModifier, TimeDuration), Projectile
+- **AI Decision**: See [reference/ai-decision.md](reference/ai-decision.md) — `core/ai_decision/` pipeline (DecisionSnapshot / DecisionOption / OptionProvider / Reasoner / DecisionResult / DecisionOutcome / DecisionPipeline, plus the optional GOAP-lite `GoalBacktrackReasoner`). Read before writing any AI that picks between candidate actions.
 - **Example App**:
   - [reference/example-app-overview.md](reference/example-app-overview.md) — Three-layer architecture, Core Events, cross-layer data flow
   - [reference/example-app-game-logic.md](reference/example-app-game-logic.md) — Actor/Ability/Action patterns, AI strategy, config organization

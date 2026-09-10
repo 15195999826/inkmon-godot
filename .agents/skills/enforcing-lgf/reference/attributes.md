@@ -109,6 +109,8 @@ Calculation result with all intermediate values.
 
 Base class for code-generated typed attribute sets. Subclasses provide typed property accessors (e.g. `.hp`, `.attack`).
 
+**Where configs live / how to regenerate** (`scripts/attribute_set_generator_script.gd`): config paths are **discovered by convention, so adding an example never touches the generator** — ① the project-level `res://logic-game-framework-config/attributes/attributes_config.gd`, ② the shared demo config `example/attributes/attributes_config.gd` (generator demo sets only — do not add new sets here), ③ each example's own `example/<name>/logic/attributes/attributes_config.gd`. Output always lands in a `generated/` folder beside its config. Set names must be globally unique (a set name becomes a `class_name`); a cross-config collision aborts the whole run and writes nothing. Run it from the editor menu `Tools > LGFramework > 生成属性集`, or headless via `godot --headless --path . addons/logic-game-framework/scripts/generate_attribute_sets.tscn` (exit code 0/1, agent- and CI-runnable).
+
 **Properties:**
 - `_raw: RawAttributeSet` — Underlying raw storage
 - `actor_id: String`

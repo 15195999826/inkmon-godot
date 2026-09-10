@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inkmon/tests/smoke_skill_manifest_lint.gd" id="1_smoke_skill_manifest_lint"]
+
+[node name="SmokeSkillManifestLint" type="Node"]
+script = ExtResource("1_smoke_skill_manifest_lint")

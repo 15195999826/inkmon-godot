@@ -47,7 +47,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架。Hex grid + Timeline 技能系统�
 ## Autoload 单例
 
 见 `project.godot` 的 `[autoload]`：
-`Log` / `IdGenerator` / `GameWorld` / `TimelineRegistry` / `WaitGroupManager` / `ItemSystem` / `UGridMap`
+`Log` / `IdGenerator` / `GameWorld` / `WaitGroupManager` / `ItemSystem` / `UGridMap`
 
 全局名可直接调用（如 `Log.info(...)`、`GameWorld.get_actor(id)`）。
 

@@ -86,7 +86,6 @@ func _test_stat_gate_pure_growth() -> String:
 ## armor=mr=100 → 100/(100+100)=0.5; pure + element 空 → fallback 攻击者主元素后仍吃克制乘子。
 func _test_mitigation_formula() -> String:
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	var gi := GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()
 	) as InkMonWorldGI

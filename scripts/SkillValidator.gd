@@ -125,14 +125,9 @@ func _check_runtime(script: GDScript) -> AbilityConfig:
 	var config := config_value as AbilityConfig
 	result.stages.runtime = { "passed": true }
 
-	# 尝试获取 timeline（可选, best-effort）。
-	# 技能 timeline 是独立 static var,经 all_skills.gd 注册到 TimelineRegistry;
-	# AI 新技能若未注册则查不到,留空不报错。
-	var tl_id := ""
+	# 导出首个 active_use 的 timeline（builder.timeline(data) 直接挂在 config 上）。
 	if config.active_use_components.size() > 0:
-		tl_id = config.active_use_components[0].timeline_id
-	if tl_id != "":
-		var timeline: TimelineData = TimelineRegistry.get_timeline(tl_id)
+		var timeline: TimelineData = config.active_use_components[0].timeline_data
 		if timeline != null:
 			result.timeline = {
 				"id": timeline.id,
@@ -192,8 +187,8 @@ func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 	var first_active: ActiveUseConfig = config.active_use_components[0] if config.active_use_components.size() > 0 else null
 
 	var tl_id: Variant = null
-	if first_active != null:
-		tl_id = first_active.timeline_id
+	if first_active != null and first_active.timeline_data != null:
+		tl_id = first_active.timeline_data.id
 
 	var data := {
 		"config_id": config.config_id,

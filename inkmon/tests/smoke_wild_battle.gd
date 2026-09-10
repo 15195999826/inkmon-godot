@@ -34,7 +34,6 @@ func _run() -> String:
 		return gen_status
 
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 	var gi := _new_gi()
 	gi.new_game()
 	gi.mission_battle_triggered.connect(func(node_id: int) -> void:

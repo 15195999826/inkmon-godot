@@ -43,7 +43,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架 + 在其上自建的养成主游戏
 
 ## 5. Autoload 单例(见 `project.godot` `[autoload]`)
 
-`Log` / `IdGenerator` / `GameWorld` / `TimelineRegistry` / `WaitGroupManager` / `ItemSystem` / `UGridMap` — 全局名直接调用(如 `Log.info(...)`、`GameWorld.get_actor(id)`)。
+`Log` / `IdGenerator` / `GameWorld` / `WaitGroupManager` / `ItemSystem` / `UGridMap` — 全局名直接调用(如 `Log.info(...)`、`GameWorld.get_actor(id)`)。
 
 ## 6. 文档与规范的家(本 docs/ 之外)
 

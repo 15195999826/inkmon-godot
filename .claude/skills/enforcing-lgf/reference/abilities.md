@@ -9,7 +9,7 @@
 - [AbilityLifecycleContext](#abilitylifecyclecontext-extends-refcounted)
 - [AbilityExecutionInstance](#abilityexecutioninstance-extends-refcounted)
 - [Core Components](#core-components) (ActiveUseConfig, ActivateInstanceConfig, NoInstanceConfig, PreEventConfig, TagComponent)
-- [Supporting Classes](#supporting-classes) (TriggerConfig, Condition, Cost, IAbilitySetOwner)
+- [Supporting Classes](#supporting-classes) (TriggerConfig, Condition, Cost, AbilityActivationQuery, IAbilitySetOwner)
 
 ## Ability (extends RefCounted)
 
@@ -42,7 +42,7 @@ Runtime ability instance with lifecycle management and component execution.
 - `tick(dt: float) -> void`
 - `apply_effects(context: AbilityLifecycleContext) -> void`
 - `remove_effects() -> void`
-- `expire(reason: String) -> void`
+- `expire(reason: String) -> void` — Idempotent (a second call on an already-expired ability returns early); order is `cancel_all_executions()` → `remove_effects()` → state becomes `STATE_EXPIRED`, so a revoked/expired buff's in-flight executions still run their `on_cancel` cleanup
 
 **Stacks** (`core/abilities/core/ability.gd:285-341`):
 - `get_stacks() -> int`
@@ -59,11 +59,14 @@ Runtime ability instance with lifecycle management and component execution.
 
 While disabled, `receive_event()` and `tick_executions()` short-circuit at the top of `Ability` — `NoInstanceComponent`/`ActivateInstanceComponent` must **not** implement `on_passive_disabled`/`on_passive_enabled` themselves (event dispatch and timeline ticking already stop above them). Only externally-registered components (`StatModifierComponent`, `DynamicStatModifierComponent`) implement the two hooks, to retract/rebuild attribute modifiers.
 
+**Activation gate query** (`core/abilities/core/ability.gd:190`):
+- `can_activate(context: AbilityLifecycleContext, event_dict: Dictionary = {}, game_state_provider: Variant = null) -> Dictionary` — Zero-side-effect dry run of the activation gate. Mirrors `receive_event`'s top-level short-circuits first (not `STATE_GRANTED` → denied `FAILED_ABILITY`; `is_disabled()` → denied `FAILED_ABILITY`), then evaluates every active `ActiveUseComponent`'s gate and returns the first failure. An ability with no `ActiveUseComponent` passes vacuously — the query answers "will the gate stop me", not "is this a castable skill" (that stays a declarative `metadata` question, see [cast-eligibility-vs-condition.md](cast-eligibility-vs-condition.md)). Result shape: [`AbilityActivationQuery`](#abilityactivationquery-static-utility). Normally reached through `AbilitySet.can_activate`, which builds the lifecycle context
+
 **Execution:**
-- `activate_new_execution_instance(...) -> AbilityExecutionInstance`
+- `activate_new_execution_instance(p_timeline: TimelineData, p_tag_actions, p_on_timeline_start_actions, p_on_timeline_end_actions, p_trigger_event_dict, p_game_state_provider, p_on_cancel_actions: Array[Action.BaseAction] = []) -> AbilityExecutionInstance` — timeline is passed by reference (no registry lookup). `p_game_state_provider` is kept by the execution only as a `WeakRef`, so revoke/expire paths without an explicit provider can still run `on_cancel` cleanup without forming a battle ↔ execution reference cycle. An `on_execution_activated` listener may cancel the instance synchronously; the `on_timeline_start` actions are then skipped
 - `get_executing_instances() -> Array[AbilityExecutionInstance]`
 - `get_all_execution_instances() -> Array[AbilityExecutionInstance]`
-- `cancel_all_executions() -> void`
+- `cancel_all_executions(game_state_provider: Variant = null) -> void` — Cancels every instance (running their `on_cancel` actions) and clears the list; omitting the provider falls back to each instance's stored `WeakRef`
 - `tick_executions(dt: float, game_state_provider: Variant) -> Array[String]`
 
 **Events:**
@@ -103,6 +106,9 @@ AbilityConfig.builder()
 
 `.stacks(initial, max_val, policy = Ability.OVERFLOW_CAP)` — Not calling it leaves the ability at the safe non-stacking default (1/1/CAP). See `core/abilities/core/ability_config.gd:146-154`.
 
+**Methods:**
+- `collect_timelines() -> Array[TimelineData]` — Every `TimelineData` carried by this config tree (each `ActiveUseConfig.timeline_data` + each `ActivateInstanceConfig.timeline_data`). **Static-check entry point only** — the runtime never goes through it (components hand their timeline straight to `AbilityExecutionInstance`). Its one consumer is hex `smoke_manifest_lint` assertion 1
+
 ---
 
 ## AbilitySet (extends RefCounted)
@@ -132,6 +138,7 @@ Container for Abilities with tag management and grant/revoke operations.
 - `find_abilities_by_ability_tag(tag: String) -> Array[Ability]`
 - `has_ability(config_id: String) -> bool`
 - `get_ability_count() -> int`
+- `can_activate(ability: Ability, event_dict: Dictionary = {}, game_state_provider: Variant = null) -> Dictionary` — The entry point UI / AI / tooltip should use for "can this be cast right now": builds the same lifecycle context `receive_event` dispatch uses, then delegates to `Ability.can_activate`. `ability` must belong to this AbilitySet (a cross-set query would lie about the owner — it crashes instead). `event_dict` is only a simulated input forwarded to `Condition.check` / `Cost.can_pay` (e.g. a preset `target_actor_id`); pass `{}` when there is no target context
 
 **Tags (delegates to TagContainer):**
 - `add_loose_tag(tag: String, stacks: int = 1) -> void`
@@ -204,14 +211,19 @@ Timeline-based execution instance for ability effects.
 **States:** `STATE_EXECUTING`, `STATE_COMPLETED`, `STATE_CANCELLED`
 
 **Properties:**
-- `id: String` / `timeline_id: String`
+- `id: String` / `timeline_id: String` (derived from the `TimelineData` passed at construction; read by playback/events)
 
 **Methods:**
 - `get_elapsed() -> float` / `get_state() -> String`
 - `is_executing() -> bool` / `is_completed() -> bool` / `is_cancelled() -> bool`
 - `get_trigger_event() -> Dictionary`
-- `tick(dt: float) -> Array[String]` — Returns completed tag names
-- `cancel() -> void`
+- `tick(dt: float, game_state_provider: Variant) -> Array[String]` — Returns completed tag names
+- `cancel(game_state_provider: Variant = null) -> void` — No-op unless still `STATE_EXECUTING`; sets `STATE_CANCELLED`, then synchronously runs the config's `on_cancel` actions. When no provider is passed it falls back to the `WeakRef` captured at construction, so revoke/expire cleanup still resolves the world
+
+**Timeline behaviour** (`core/abilities/core/ability_execution_instance.gd`):
+- **Same-timestamp tags fire in definition order** — tags due in one tick are sorted by `(tag_time, definition index in TimelineData.tags)`. `Array.sort_custom` is unstable, so without the tie-break the execution order of same-instant tags depended on the sort implementation and broke replay determinism. Author order = execution order
+- **Loop timelines carry the overflow across cycles** — when `_elapsed` passes `total_duration`, the remainder becomes the next round's starting `_elapsed` instead of being zeroed, and the carried window `(0, carry]` is re-scanned in the *same* tick so tags inside it are not skipped by the next tick's window start. The final round (once `max_loops` is reached) does not carry over. Zeroing used to stretch every cycle to the tick boundary, making DOT/HOT cadence drift with the caller's `dt`
+- Loop mode asserts `dt <= total_duration` (a single tick may not straddle a whole cycle)
 
 ---
 
@@ -223,15 +235,20 @@ Active skill with triggers, conditions, costs, and timeline execution.
 
 ```gdscript
 ActiveUseConfig.builder()
-    .timeline_id("slash_timeline")       # required
+    .timeline(SLASH_TIMELINE)            # required: a static TimelineData; tags frozen on declaration
     .trigger(TriggerConfig.ABILITY_ACTIVATE)
     .on_timeline_start([StageCueAction.new(...)])
     .on_tag(TimelineTags.HIT, [DamageAction.new(...)])
     .on_timeline_end([...])
+    .on_cancel([ReleaseReservationAction.new(...)])   # cleanup that MUST run if the execution is cancelled
     .condition(my_condition)
     .cost(my_cost)
     .build()
 ```
+
+`.timeline(data)` asserts `data != null and data.id != ""` and calls `data.tags.make_read_only()` (idempotent — shared standard timelines pass through it many times); `build()` asserts a timeline was bound, so a missing timeline is a **build-time crash**, not a runtime surprise.
+
+**`.on_cancel(actions)`** (`core/abilities/components/active_use_config.gd`): actions that run synchronously when the execution is *cancelled* — not the same as finishing. Cancellation happens on stun/interrupt (hex `HexBattleCancelActiveExecutionsAction`), on `Ability.expire()` (revoke/dispel), and on `Ability.cancel_all_executions()`. Put resource releases here — the canonical case is hex `move.gd`'s `.on_cancel([HexBattleCancelMoveAction.new(...)])`, releasing the destination tile reserved by phase 1. `ActivateInstanceConfig` exposes the same builder method.
 
 **`on_timeline_start`/`on_timeline_end` vs `on_tag`** (`core/abilities/components/active_use_config.gd`): `on_tag` actions fire *asynchronously*, ticked at their timeline `tag_time`. `on_timeline_start`/`on_timeline_end` actions fire *synchronously*, inline with the `activate`/`tick` call chain — `on_timeline_start` the instant the execution instance activates (or a loop restarts), `on_timeline_end` when a timeline round completes. Use them where an effect needs an atomic/immediate guarantee (e.g. `grid.reserve_tile`, `StageCueAction`). In loop mode both fire on every iteration. `ActivateInstanceConfig` exposes the same two builder methods.
 
@@ -241,7 +258,7 @@ Timeline execution without conditions/costs (for passive triggers).
 
 ```gdscript
 ActivateInstanceConfig.builder()
-    .timeline_id("counter_timeline")     # required
+    .timeline(COUNTER_TIMELINE)          # required: a static TimelineData; tags frozen on declaration
     .trigger(TriggerConfig.new("damage", filter_fn))
     .on_tag("hit", [CounterAction.new(...)])
     .build()
@@ -327,6 +344,18 @@ Shared objects — MUST NOT store mutable state. See conventions §3.
 - `get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> String`
 
 **Built-in:** `ConsumeTagCost`, `RemoveTagCost`, `AddTagCost`
+
+### AbilityActivationQuery (static utility)
+
+`core/abilities/shared/ability_activation_query.gd` — the single source for the result shape shared by `AbilitySet.can_activate` / `Ability.can_activate` / `ActiveUseComponent.can_activate`. An in-process `Dictionary` (not a serialization boundary), so the keys are snake_case.
+
+**Result keys:** `KEY_ALLOWED` = `"allowed"` (bool) / `KEY_REASON` = `"reason"` (String) / `KEY_FAILED_COMPONENT_TYPE` = `"failed_component_type"` (String)
+
+**`failed_component_type` values:** `FAILED_ABILITY` = `"ability"` (ability-level short-circuit: not granted / disabled) · `FAILED_CONDITION` = `"condition"` (a `Condition.check` said no) · `FAILED_COST` = `"cost"` (a `Cost.can_pay` said no). The last two use the same vocabulary as `GameEvent.AbilityActivateFailed`, so the query and the real activation path attribute the same failure the same way.
+
+**Builders:** `static allowed() -> Dictionary` / `static denied(reason: String, failed_component_type: String) -> Dictionary` / `static is_allowed(result: Dictionary) -> bool`
+
+`ActiveUseComponent.can_activate(context, event_dict = {}, game_state_provider = null)` evaluates the gate in the same order the activation path does — all `Condition.check` first, then all `Cost.can_pay` — returning on the first failure with `get_fail_reason()` as `reason` (falling back to `condition.get_condition_type()` / `cost.type` when the reason is empty). It deliberately does **not** match triggers: a trigger says *when to dispatch an event to this component*, and a pre-cast query has no event to match; `event_dict` is only a simulated input. It pays nothing, pushes no `AbilityActivateFailed`, creates no execution, and is re-entrant.
 
 ### IAbilitySetOwner (static utility)
 

@@ -17,7 +17,6 @@ func _run() -> String:
 		return gate_status
 
 	GameWorld.init(EventProcessorConfig.new(20, 1))
-	TimelineRegistry.reset()
 
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
 		return InkMonWorldGI.new()

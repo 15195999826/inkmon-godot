@@ -29,6 +29,11 @@
         "../../inkmon/tests/smoke_replay_freeze.tscn"
       ]
     },
+    "skills": {
+      "scenes": [
+        "../../inkmon/tests/smoke_skill_manifest_lint.tscn"
+      ]
+    },
     "content": {
       "scenes": [
         "../../inkmon/tests/smoke_content_contract.tscn",
