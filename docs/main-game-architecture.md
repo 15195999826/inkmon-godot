@@ -86,7 +86,7 @@
 - **`overworld_grid` 必留**:GI 持两套 grid(主世界 grid vs 战斗翻转 grid,§2②),`overworld_grid` 这名字正是区分二者的关键(`ink_mon_world_gi.gd` 主世界 movement 只读它,绝不读战斗期翻转的基类 `grid`)。**不做 overworld→world 全局 sed**。
 - 主世界**容器层**代码前缀统一 `InkMonWorld*`。
 - **物理目录 = 三层对齐(2026-06 重构)**:主游戏住顶层模块 `inkmon/` —— `inkmon/host`(composition root + 入口场景)/ `inkmon/logic`(`world` 容器层 · `battle` 域 · `services` = npc/content/item/save)/ `inkmon/presentation`(overworld view + UI)+ `inkmon/tools` · `inkmon/tests`;app shell `InkMonMain.tscn` + `ink_mon_main.gd` 提到 repo 根;`scenes/` 仅余 Web 桥 `Simulation.tscn`。⇒ "概念分层(overworld vs battle)" = 命名审计轴,"物理三层(logic/presentation/host)" = 目录轴,两轴正交并存(目录不再按历史 battle/main 二分)。
-- World actor 层级:`InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(+ 死亡 / ability)→ `InkMonUnitActor`。玩家/NPC = `InkMonWorldActor`(直接,无 ability/timeline);`hex_position` 住基类(三者共有,也是 GI `actor_position_changed` 报告的东西)。
+- World actor 层级:LGF `BattleActor`(core,死亡锁存 + 两个默认返回 null 的 set getter + 录像默认订阅)→ `InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(钉住强类型 `ability_set` 字段 + `get_attribute_set()` 抽象桩)→ `InkMonUnitActor`(持 `attribute_set` 实体)。玩家/NPC = `InkMonWorldActor`(直接,无 ability/timeline —— 继承来的两个 getter 恒 null、`is_dead()` 恒 false);`hex_position` 住 `InkMonWorldActor`(三者共有,也是 GI `actor_position_changed` 报告的东西)。
 - Host = `InkMonWorldHost`(composition root,非表演层);Presentation 根 = `InkMonWorldPresentation`(节点,持全部 UI 子树)。
 
 ---

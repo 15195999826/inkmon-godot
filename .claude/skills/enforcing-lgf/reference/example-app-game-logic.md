@@ -137,7 +137,7 @@ func tick_once() -> void:
 
     # ATB freezes during execution — classic ATB, no accumulation while casting.
     for actor in get_alive_characters():
-        if HexBattleProcedure.tick_actor_ability_runtime(actor, _tick_interval, cur_logic_time, world):
+        if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time, world):
             continue
         actor.accumulate_atb(_tick_interval)
         if actor.can_act():
@@ -156,7 +156,7 @@ func tick_once() -> void:
 **Design decisions:**
 - **Atomic state sync**: an Action does push-event + apply-state as one unit, no split phases
 - **`EventCollector` is read-only**: only for replay/presentation, never drives logic state
-- **ATB freezes during execution**: `tick_actor_ability_runtime()` returning `true` (a blocking, non-`"intrinsic"`-tagged execution in flight) skips ATB accumulation for that actor entirely that tick
+- **ATB freezes during execution**: `AbilitySet.tick_runtime()` returning `true` (a blocking, non-`"intrinsic"`-tagged execution in flight — `BattleAbilitySet` decides which via `_is_blocking_execution`) skips ATB accumulation for that actor entirely that tick
 - **Mid-battle spawns** (totems, fire tiles) are ticked in a second pass separate from the initial `left_team`/`right_team` roster, so periodic/lifetime timelines on spawned actors still fire
 - **`battle_final_state_ready`** (debug-build only, on the world instance) fires right after `battle_finished` with a full actor snapshot for view-logic reconciliation tooling
 

@@ -45,7 +45,6 @@ var _skill_ability_id := ""
 ## 加成层 modifier 的 source = 这些 ability id; 重建装备时按 id 精确清旧 (remove_modifiers_by_source) 再重 grant,
 ## 故跨战斗 (reset_battle_runtime 换 ability_set) 与多次 apply_derived_stats 都幂等、不累加。
 var _equipment_ability_ids: Array[String] = []
-var _team_id := -1
 var _atb_gauge := 0.0
 
 
@@ -226,13 +225,13 @@ func get_attribute_set() -> InkMonUnitAttributeSet:
 	return attribute_set
 
 
-func set_team_id(id: int) -> void:
-	_team_id = id
-	_team = str(id)
-
-
-func get_team_id() -> int:
-	return _team_id
+## 按当前 HP 重建 downed 真相 (adr/0001: 死单位留 registry/HP=0 须跨存档 + 跨战斗保留)。
+## 读档 (set_current_hp) / 战斗复用 (reset_battle_runtime) 时调 —— 否则 from_dict 新建的 actor
+## _is_dead 默认 false, 一只 0-HP 单位会被 is_dead() 误判为"活着" (与 carryover HP 不一致, 违 P017)。
+## 战斗内死亡仍走 check_death 的一次性闩 (触发死亡事件); 本方法只在 battle 外按 HP 对齐标记,
+## 是唯一允许把 _is_dead 从 true 拨回 false 的地方 (从 HP 复活是主游戏规则, 不是 core 语义)。
+func sync_downed_state() -> void:
+	set_death_latch(attribute_set.hp <= 0.0)
 
 
 func get_primary_element() -> String:
@@ -430,10 +429,6 @@ static func _dup_dict_array(source: Array[Dictionary]) -> Array[Dictionary]:
 
 func _get_config_id() -> String:
 	return unit_key
-
-
-func _get_team_int() -> int:
-	return _team_id
 
 
 func get_attribute_snapshot() -> Dictionary:

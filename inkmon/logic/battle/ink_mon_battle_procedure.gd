@@ -41,7 +41,7 @@ func tick_once() -> void:
 	var cur_logic_time := world.get_logic_time() if world != null else float(_current_tick) * _tick_interval
 
 	for actor in get_alive_units():
-		if InkMonBattleProcedure.tick_actor_ability_runtime(actor, _tick_interval, cur_logic_time, world):
+		if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time, world):
 			continue
 		actor.accumulate_atb(_tick_interval)
 		if actor.can_act():
@@ -95,36 +95,6 @@ func get_alive_units() -> Array[InkMonUnitActor]:
 
 func get_result() -> String:
 	return _result
-
-
-static func actor_has_executing_ability(actor: InkMonUnitActor) -> bool:
-	for ability in actor.ability_set.get_abilities():
-		if ability.get_executing_instances().size() > 0:
-			return true
-	return false
-
-
-static func actor_has_blocking_execution(actor: InkMonUnitActor) -> bool:
-	for ability in actor.ability_set.get_abilities():
-		if ability.has_ability_tag("intrinsic"):
-			continue
-		if ability.get_executing_instances().size() > 0:
-			return true
-	return false
-
-
-static func tick_actor_ability_runtime(
-	actor: InkMonUnitActor,
-	tick_interval: float,
-	logic_time: float,
-	world: InkMonWorldGI
-) -> bool:
-	actor.ability_set.tick(tick_interval, logic_time)
-	var has_any_execution := InkMonBattleProcedure.actor_has_executing_ability(actor)
-	var has_blocking_execution := InkMonBattleProcedure.actor_has_blocking_execution(actor)
-	if has_any_execution:
-		actor.ability_set.tick_executions(tick_interval, world)
-	return has_blocking_execution
 
 
 func _start_actor_action(actor: InkMonUnitActor, logic_time: float) -> void:

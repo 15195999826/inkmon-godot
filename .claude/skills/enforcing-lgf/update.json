@@ -1,5 +1,5 @@
 {
-  "last_commit": "8d5dd95e4a708c68294192bd825f771beb6de796",
-  "last_update": "2026-07-03",
-  "note": "Full recalibration after 5-month drift (old baseline unreachable: addons repos consolidated into godot-addons.git on 2026-03-15). 12 docs, +807/-328 via 2 audit agents + 3 fix agents. Removed hallucinated APIs (get_game_state, set_pre_change, skill.get_meta); synced line-3 restructure (core/playback, stdlib/projectile, PlaybackData, gating helpers, kind constants); added World-owns-Battle (WorldGameplayInstance/BattleProcedure), ActorId, stacks-as-first-class, Break mechanism, Action 4-layer contract, cross-attr clamp, new GameEvents; rewrote example docs to current builder API."
+  "last_commit": "ec72e5a",
+  "last_update": "2026-09-10",
+  "note": "LGF core 重构 P2（BattleActor）手动增量：last_commit 自本次起记 addons SHA 而非主仓 SHA（主仓 SHA 对应的 gitlink 经历史清理会失联，见 docs/plan/lgf-core-refactor-2026-09.md §6 后续观察）。本轮更新 reference/{entity,abilities,attributes,stdlib,conventions-detail,example-app-game-logic}.md 与 gdscript-coding/SKILL.md：新增 BattleActor 协议节、AbilitySet.tick_runtime / bind_owner / _is_blocking_execution、Ability.has_executing_instance、GameWorld.get_instance_of_actor、RawAttributeSet.snapshot_current_values；删除 IAbilitySetOwner 与 HexBattleProcedure.tick_actor_ability_runtime 的全部引用。/update-lgf-skill 命令本机仍不可用（grep -P + gitlink diff 路径），此处为手动等价执行。"
 }

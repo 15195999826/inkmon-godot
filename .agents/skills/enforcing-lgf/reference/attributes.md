@@ -25,6 +25,7 @@ Core attribute storage with modifier system and 4-layer calculation formula.
 - `get_body_value(attr_name: String) -> float` — (base + addBase) * mulBase
 - `get_current_value(attr_name: String) -> float` — Value after all modifiers, then static min/max clamp, then cross-attribute clamp (raw_attribute_set.gd:192-200)
 - `get_breakdown(attr_name: String) -> AttributeBreakdown` — Full calculation breakdown
+- `snapshot_current_values() -> Dictionary` — `{name: current_value}` for every attribute. The single definition of "attribute snapshot" — `BattleActor.get_attribute_snapshot()` and the internal before/after change diffing both use it
 - `get_add_base_sum(attr_name: String) -> float` / `get_mul_base_product(attr_name: String) -> float`
 - `get_add_final_sum(attr_name: String) -> float` / `get_mul_final_product(attr_name: String) -> float`
 

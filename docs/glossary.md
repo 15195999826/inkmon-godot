@@ -33,7 +33,7 @@
 
 ## 4. 主游戏概念(详见 `main-game-architecture.md`)
 
-**4.1 World Actor 层级** — 主游戏一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`,与玩家级 `InkMonPlayerActor`(亦 extends `InkMonWorldActor`)。一切实体 = 常驻 `InkMonWorldGI` registry 的活 actor(adr/0001)。玩家走路 avatar = `InkMonPlayerActor`(揣 gold/progression/medals/bag,无 ability/timeline);NPC = 直接 `InkMonWorldActor`;出战 InkMon = `InkMonUnitActor`(常驻 registry、跨战斗复用、自序列化)。`get_actor(id)` 取回任意 registry actor(广义 `InkMonWorldActor`);`get_battle_actor(id)` 窄化取战斗 actor。
+**4.1 World Actor 层级** — 主游戏一切有位置的实体都是 `InkMonWorldActor`(持 `hex_position`);层级 `BattleActor`(LGF core) `→ InkMonWorldActor → InkMonBattleActor → InkMonUnitActor`,与玩家级 `InkMonPlayerActor`(亦 extends `InkMonWorldActor`)。一切实体 = 常驻 `InkMonWorldGI` registry 的活 actor(adr/0001)。玩家走路 avatar = `InkMonPlayerActor`(揣 gold/progression/medals/bag,无 ability/timeline);NPC = 直接 `InkMonWorldActor`;出战 InkMon = `InkMonUnitActor`(常驻 registry、跨战斗复用、自序列化)。`get_actor(id)` 取回任意 registry actor(广义 `InkMonWorldActor`);`get_battle_actor(id)` 窄化取战斗 actor。
 
 **4.2 主世界 CQRS 三通道** — 表演↔逻辑三条路。**① Query(读)**= 表演经窄 `IWorldQuery` facade **同步**读**值拷贝 snapshot**(hud-summary(gold+progression)/roster-snapshot/bag-snapshot/npc-defs-snapshot/near-npc/player-coord/npc-actions;2026-07-02 起不外递活 actor / 内部 Dict 引用)。**② Command(写)**= 表演改任何游戏/世界/存档态的**唯一入口**,异步:`submit(InkMonWorldCommand)` 入队 → Host tick drain `cmd.apply(gi)` 应用 → event 回流 → 表演被动刷(不读返回值)。**③ Event(上行)**= Logic mutation signal 上行,表演被动刷新。纯 UI 态(tab/抽屉/modal/相机)不算 command。⚠️ 此 "Command" ≠ 战斗层 LGF `Action` / `ABILITY_ACTIVATE_EVENT`,两层独立。
 

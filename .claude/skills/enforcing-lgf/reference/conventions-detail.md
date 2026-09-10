@@ -50,6 +50,17 @@ func take_damage(amount: float) -> void:
 
 ## 2. Actor 创建与注册规范
 
+### 选基类：`Actor` 还是 `BattleActor`
+
+`Actor` 是中性基类（id / team / 位置 / 录像钩子），不假设任何玩法。**只要 actor 持有
+AbilitySet，就继承 `BattleActor`**（`core/entity/battle_actor.gd`）：死亡锁存、`_on_id_assigned`
+的 id 同步、录像默认订阅、`serialize()` 全都现成，框架层也才能用 `BattleActor.ability_set_of(actor)`
+真类型拿到它。
+
+基类**不**声明 `ability_set` / `attribute_set` 字段——子类各持强类型字段，用协变返回覆盖
+`get_ability_set()` / `get_attribute_set()` 两个虚函数（默认返回 null）。只想共享位置与录像
+形状的纯数据 actor（overworld 玩家 / NPC）直接继承、两个 getter 不覆盖即可。
+
 ### 核心流程
 
 1. **构造**：`SomeActor.new(...)` 创建实例，尚未分配完整 ID
@@ -79,9 +90,11 @@ instance.add_actor(projectile)
 
 ```gdscript
 func _on_id_assigned() -> void:
-    ability_set.owner_actor_id = get_id()
+    ability_set.bind_owner(get_id())   # owner_actor_id + tag_container.owner_id 一起换
     attribute_set.actor_id = get_id()
 ```
+
+`BattleActor` 已经实现了这个默认版本（对两个 set 为 null 做真实分支），战斗 actor 通常不必再写。
 
 ### `get_owner_gameplay_instance()`
 

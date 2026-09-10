@@ -7,7 +7,7 @@ Only [Components](#components) and [Systems](#systems) genuinely live under `std
 - [Systems](#systems) (ProjectileSystem, CollisionDetector)
 - [Replay](#replay) (BattleRecorder, PlaybackData, RecordingUtils)
 - [Timeline](#timeline) (Timeline Autoload, TimelineData)
-- [Interfaces](#interfaces) (IAbilitySetOwner, IGameStateProvider)
+- [Interfaces](#interfaces) (IGameStateProvider)
 - [Utils](#utils) (Log, IdGenerator, StateCheck)
 
 ## Components
@@ -164,11 +164,6 @@ Loop timelines carry the per-cycle time remainder over into the next round rathe
 ## Interfaces
 
 *Location: `core/interfaces/` (not `stdlib/`).*
-
-### IAbilitySetOwner (static utility)
-
-- `static get_ability_set(owner: Object) -> AbilitySet`
-- `static is_implemented(owner: Object) -> bool`
 
 ### IGameStateProvider (static utility)
 

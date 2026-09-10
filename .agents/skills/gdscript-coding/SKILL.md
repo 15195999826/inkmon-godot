@@ -131,32 +131,40 @@ func _check_conditions(ctx: Dictionary) -> bool:
 ### Pattern
 
 ```gdscript
-class_name IAbilitySetOwner
-## Protocol: get_ability_set() -> AbilitySet
+class_name IGameStateProvider
+## Protocol: get_logic_time() -> float
 
-static func get_ability_set(owner: Object) -> AbilitySet:
-    if owner == null or not owner.has_method("get_ability_set"):
-        return null
-    return owner.get_ability_set()
+static func get_logic_time(provider: Variant) -> float:
+    if provider != null and provider is Object and provider.has_method("get_logic_time"):
+        return float(provider.get_logic_time())
+    return float(Time.get_ticks_msec())
 
-static func is_implemented(owner: Object) -> bool:
-    return owner != null and owner.has_method("get_ability_set")
+static func is_implemented(provider: Variant) -> bool:
+    return provider != null and provider is Object and provider.has_method("get_logic_time")
 ```
 
-Usage:
+Note the `provider is Object` guard: the parameter is `Variant`, and `has_method` on a
+non-Object is a runtime error. The fallback returns a real clock, not `0.0` — logic time
+going backwards would break every auto-duration tag and cooldown comparison.
+
+**Naming**: `I` + protocol name (e.g. `IGameStateProvider`). No `extends RefCounted` — static-only classes omit `extends`.
+
+### When a base class shows up, the `I*` class goes away
+
+Once every implementer shares a base class, the protocol probe is dead weight — put the static
+query on the base class and delete the `I*`. `IAbilitySetOwner` was retired this way when
+`BattleActor` landed:
 
 ```gdscript
-# BAD: scattered has_method
+# BAD: has_method probing, or an I* class whose implementers all share a base
 if actor.has_method("get_ability_set"):
     var ability_set = actor.get_ability_set()
 
-# GOOD: centralized via utility class
-var ability_set := IAbilitySetOwner.get_ability_set(actor)
+# GOOD: static query on the shared base — returns null for non-BattleActor
+var ability_set := BattleActor.ability_set_of(actor)
 if ability_set != null:
-    ability_set.apply_tag(...)
+    ability_set.add_loose_tag("buff", 1)
 ```
-
-**Naming**: `I` + protocol name (e.g. `IAbilitySetOwner`). No `extends RefCounted` — static-only classes omit `extends`.
 
 ---
 

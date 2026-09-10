@@ -9,7 +9,7 @@
 - [AbilityLifecycleContext](#abilitylifecyclecontext-extends-refcounted)
 - [AbilityExecutionInstance](#abilityexecutioninstance-extends-refcounted)
 - [Core Components](#core-components) (ActiveUseConfig, ActivateInstanceConfig, NoInstanceConfig, PreEventConfig, TagComponent)
-- [Supporting Classes](#supporting-classes) (TriggerConfig, Condition, Cost, AbilityActivationQuery, IAbilitySetOwner)
+- [Supporting Classes](#supporting-classes) (TriggerConfig, Condition, Cost, AbilityActivationQuery)
 
 ## Ability (extends RefCounted)
 
@@ -65,6 +65,7 @@ While disabled, `receive_event()` and `tick_executions()` short-circuit at the t
 **Execution:**
 - `activate_new_execution_instance(p_timeline: TimelineData, p_tag_actions, p_on_timeline_start_actions, p_on_timeline_end_actions, p_trigger_event_dict, p_game_state_provider, p_on_cancel_actions: Array[Action.BaseAction] = []) -> AbilityExecutionInstance` — timeline is passed by reference (no registry lookup). `p_game_state_provider` is kept by the execution only as a `WeakRef`, so revoke/expire paths without an explicit provider can still run `on_cancel` cleanup without forming a battle ↔ execution reference cycle. An `on_execution_activated` listener may cancel the instance synchronously; the `on_timeline_start` actions are then skipped
 - `get_executing_instances() -> Array[AbilityExecutionInstance]`
+- `has_executing_instance() -> bool` — Same answer as `get_executing_instances().size() > 0` without building the intermediate array (the battle loop asks once per actor per tick)
 - `get_all_execution_instances() -> Array[AbilityExecutionInstance]`
 - `cancel_all_executions(game_state_provider: Variant = null) -> void` — Cancels every instance (running their `on_cancel` actions) and clears the list; omitting the provider falls back to each instance's stored `WeakRef`
 - `tick_executions(dt: float, game_state_provider: Variant) -> Array[String]`
@@ -124,6 +125,9 @@ Container for Abilities with tag management and grant/revoke operations.
 **Factory:**
 - `static create(p_owner_actor_id: String, p_attribute_set: BaseGeneratedAttributeSet = null) -> AbilitySet`
 
+**Owner binding:**
+- `bind_owner(actor_id: String) -> void` — Sets `owner_actor_id` **and** `tag_container.owner_id` together. The AbilitySet is built before the actor has an id, so both copies start out empty and must be re-pointed at once or they drift. (`tag_container.owner_id` currently has no readers — it is the container's own record of whose it is, not a bug this method fixes.) `BattleActor._on_id_assigned()` calls it
+
 **Grant/Revoke:**
 - `grant_ability(ability: Ability, game_state_provider: Variant = null) -> void` — Passing a non-null `game_state_provider` synchronously broadcasts `AbilityGranted` to this ability_set's own abilities after grant (not the global event processor), so `TriggerConfig.GRANTED_SELF` can fire self-activating buffs
 - `revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, expire_reason: String = "") -> bool`
@@ -149,6 +153,9 @@ Container for Abilities with tag management and grant/revoke operations.
 - `has_loose_tag(tag: String) -> bool` / `get_loose_tag_stacks(tag: String) -> int`
 
 **Tick & Events:**
+- `tick_runtime(dt: float, logic_time: float, game_state_provider: Variant) -> bool` — One frame of ability runtime, and the shape every turn/ATB battle loop should use: `tick` → compute blocking → `tick_executions` (skipped when nothing is executing). Returns whether a blocking execution occupied this frame. **Blocking is computed before `tick_executions` on purpose**: an execution that finishes inside this frame still owned it, and asking afterwards would let an actor both cast and charge ATB on its recovery frame. A real-time example that sequences its own phases (dota2) skips it and calls `has_executing_instances()` + `tick_executions()` directly
+- `has_executing_instances() -> bool` — Any ability currently executing (blocking or not)
+- `_is_blocking_execution(ability: Ability) -> bool` — Virtual, default `true` (everything blocks). Projects override it to express "always-on abilities don't freeze action" (both `BattleAbilitySet` and `InkMonBattleAbilitySet` use `not ability.has_ability_tag("intrinsic")`)
 - `tick(dt: float, logic_time: float = -1.0) -> void`
 - `tick_executions(dt: float, game_state_provider: Variant) -> Array[String]`
 - `receive_event(event_dict: Dictionary, game_state_provider: Variant) -> void`
@@ -357,7 +364,7 @@ Shared objects — MUST NOT store mutable state. See conventions §3.
 
 `ActiveUseComponent.can_activate(context, event_dict = {}, game_state_provider = null)` evaluates the gate in the same order the activation path does — all `Condition.check` first, then all `Cost.can_pay` — returning on the first failure with `get_fail_reason()` as `reason` (falling back to `condition.get_condition_type()` / `cost.type` when the reason is empty). It deliberately does **not** match triggers: a trigger says *when to dispatch an event to this component*, and a pre-cast query has no event to match; `event_dict` is only a simulated input. It pays nothing, pushes no `AbilityActivateFailed`, creates no execution, and is re-entrant.
 
-### IAbilitySetOwner (static utility)
+### Getting an AbilitySet from an Actor
 
-- `static get_ability_set(owner: Object) -> AbilitySet`
-- `static is_implemented(owner: Object) -> bool`
+Use `BattleActor.ability_set_of(actor) -> AbilitySet` (see [entity.md](entity.md#battleactor-extends-actor)).
+Returns `null` for a non-BattleActor or a data-only one.

@@ -2,6 +2,7 @@
 
 ## Contents
 - [Actor](#actor-extends-refcounted)
+- [BattleActor](#battleactor-extends-actor)
 - [System](#system-extends-refcounted)
 - [GameWorld — Autoload](#gameworld-extends-node--autoload)
 - [GameplayInstance](#gameplayinstance-extends-refcounted)
@@ -18,7 +19,7 @@ Base entity class. All game entities extend Actor.
 - `id: String` — Assigned by framework after `add_actor()`
 - `config_id: String` — Read-only; override `_get_config_id() -> String` in subclasses (default returns `type`)
 - `display_name: String` — Get: `_display_name` if set, else auto `"%s_%s" % [type, get_id()]`; set via `set_display_name()`
-- `team: int` — **Read-only** BattleRecorder-compat int view of `_team` (via `_get_team_int()`); use `get_team() -> String` / `set_team(value: String) -> void` for the real team identifier (Actor.gd:62-66)
+- `team: int` — **Read-only** BattleRecorder-compat int view, produced by `_get_team_int()`. `Actor`'s default parses the string `_team` (unparseable → `0`); `BattleActor` overrides it to return `team_id` (unassigned → `-1`). Use `get_team() -> String` / `set_team(value: String) -> void` for the real team identifier (Actor.gd:62-66)
 - `position: Vector3` — Read-only; override `_get_position() -> Vector3` in subclasses (default `Vector3.ZERO`)
 
 **Lifecycle:**
@@ -41,6 +42,46 @@ Base entity class. All game entities extend Actor.
 - `get_tag_snapshot() -> Dictionary`
 - `get_position_snapshot() -> Array[float]`
 - `serialize_base() -> Dictionary`
+
+---
+
+## BattleActor (extends Actor)
+
+`core/entity/battle_actor.gd`. Opt-in skeleton for actors that take part in the combat
+pipeline. `Actor` stays neutral; anything holding an `AbilitySet` extends this instead.
+
+The base class deliberately declares **no** `ability_set` / `attribute_set` field — subclasses
+keep their own strongly typed fields and override the two virtuals with covariant returns, so
+project code can still write `actor.attribute_set.atk` without the base shadowing it.
+
+**Virtuals (default `null` — a plain data actor just inherits them):**
+- `get_ability_set() -> AbilitySet`
+- `get_attribute_set() -> BaseGeneratedAttributeSet`
+
+**Death latch:**
+- `_hp_source() -> RawAttributeSet` — Virtual. The set that actually holds hp, or `null` when there is none. Override it when hp lives somewhere other than `get_attribute_set()`'s raw
+- `has_hp() -> bool` — Whether a readable `hp` attribute exists (`HP_ATTRIBUTE := "hp"`); keeps "no health bar" distinct from "health bar at 0"
+- `get_current_hp() -> float` — `0.0` when there is no hp attribute. Override this **together with** `has_hp()` to use a different attribute name — `check_death()` reads hp only through those two virtuals
+- `check_death() -> bool` — Latches once when hp reaches 0; returns `true` only the first time. Never latches an actor without hp
+- `mark_dead() -> bool` — Explicit latch (damage settled outside the hp read); returns whether it was the first time
+- `set_death_latch(value: bool) -> void` — The **only** way to unlatch. "Revive from hp" / "rebuild downed state on load" are project rules core does not define — but the project shouldn't have to poke the base class's private field either (inkmon's `sync_downed_state()` calls this)
+- `is_dead() -> bool`
+- `is_pre_event_responsive() -> bool` — `not _is_dead`; still a project-overridable hook (a death-rattle passive that must fire after death overrides it back to `true`)
+
+**Team:** `team_id: int` (-1 = unassigned), `set_team_id(id)` (also syncs the string `_team`),
+`get_team_id()`, and `_get_team_int() -> team_id` for recording. A BattleActor that never calls
+`set_team_id` therefore records `-1`, not `Actor`'s `0` — an actor that wants `0` (hex's
+`EnvironmentActor`, which has no side) says so with its own `_get_team_int()` override.
+
+**Defaults inherited by every subclass:** `_on_id_assigned()` (binds the id into ability_set +
+attribute_set), `get_attribute_snapshot()` (all attributes), `get_ability_snapshot()`,
+`get_tag_snapshot()`, `setup_recording()` (attribute + ability_set + lifecycle subscriptions),
+`serialize()` (`serialize_base()` + attribute raw + `is_dead`; position stays project-side).
+Every one of them takes a real null branch rather than an assertion — `Log.assert_crash` only
+aborts its own frame in debug builds, so a half-built object would sail straight past it.
+
+**Protocol query:**
+- `static ability_set_of(actor: Actor) -> AbilitySet` — `null` for a non-BattleActor or a data-only one. Framework code holding an `Actor` reference uses this instead of `has_method` probing
 
 ---
 
@@ -93,6 +134,7 @@ Global singleton managing all gameplay instances.
 - `has_running_instances() -> bool`
 - `get_debug_info() -> Dictionary` — `{ initialized, instanceCount, instances: [{id, type, state, actorCount}] }` (game_world.gd:95-108)
 - `get_actor(actor_id: String) -> Actor` — Global actor lookup by full ID
+- `get_instance_of_actor(actor_id: String) -> GameplayInstance` — Reverse lookup from a full actor ID to its owning instance (same "id describes ownership" mechanism as `Actor.get_owner_gameplay_instance()`, without needing the Actor)
 
 ---
 
