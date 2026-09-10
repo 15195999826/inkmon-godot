@@ -360,7 +360,7 @@ P2 及之后：
 
 | 阶段 | 状态 | submodule SHA | 主仓 SHA | 备注 |
 |---|---|---|---|---|
-| P1 减法热身 | 已完成 2026-09-10 | `__ADDONS_SHA__` | `__MAIN_SHA__`（P1）+ `__MAIN_S6_SHA__`（§6 状态） | 基线 8e56bba 非 a4730a1，见偏离记录 ①；主仓先单独 `chore` bump 到 8e56bba（`bbe5d9a7`）再 P1 |
+| P1 减法热身 | 已完成 2026-09-10 | `f1d132f` | `cdcc871f` | 基线 8e56bba 非 a4730a1，见偏离记录 ①；主仓先单独 `chore` bump 到 8e56bba（`bbe5d9a7`）再 P1。验收：86 scene 全 PASS / 释放测试绿 / 四份泄漏直方图与基线逐字节一致 / `/code-review max` 十角度已修 |
 | P2 BattleActor | 未开始 | | | |
 | P3 typed instance | 未开始 | | | |
 | P4 instance 级事件设施 | 未开始 | | | |
