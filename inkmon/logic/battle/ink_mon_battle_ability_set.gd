@@ -19,7 +19,7 @@ func get_cooldown_remaining(ability_config_id: String) -> float:
 	for entry in tag_container._auto_duration_tags:
 		if str(entry.get("tag", "")) != tag:
 			continue
-		remaining = maxf(remaining, float(entry.get("expiresAt", now)) - now)
+		remaining = maxf(remaining, float(entry.get("expires_at", now)) - now)
 	return maxf(remaining, 0.0)
 
 

@@ -96,10 +96,10 @@ func _fake_record() -> Dictionary:
 		{"kind": "inkmon_death", "actor_id": "wild_0", "killer_actor_id": "u_l"},
 	]
 	return {
-		"meta": {"tickInterval": 100, "totalFrames": 5},
+		"meta": {"tick_interval": 100, "total_frames": 5},
 		"world_snapshot": {"actors": [
-			{"id": "u_l", "team": 0, "displayName": "L", "position": [-3, 0, 0], "attributes": {"hp": 30, "max_hp": 30}},
-			{"id": "wild_0", "team": 1, "displayName": "Wild Kit", "position": [3, 0, 0], "attributes": {"hp": 20, "max_hp": 20}},
+			{"id": "u_l", "team": 0, "display_name": "L", "position": [-3, 0, 0], "attributes": {"hp": 30, "max_hp": 30}},
+			{"id": "wild_0", "team": 1, "display_name": "Wild Kit", "position": [3, 0, 0], "attributes": {"hp": 20, "max_hp": 20}},
 		]},
 		"timeline": [
 			{"frame": 2, "events": death_events},

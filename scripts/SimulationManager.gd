@@ -60,8 +60,9 @@ func greet(name_arg: String) -> String:
 
 
 ## 已知欠账（2026-07-03 拍板延后）: 返回的录像 JSON 已是 v3 形状
-## （meta + world_snapshot{actors,mapConfig,positionFormats} + timeline, 无 version 字段）,
-## web 端 JS 解析器（外部仓）尚未同步 —— 启用 web 发布时须一并升级。
+## （meta + world_snapshot{actors,map_config,position_formats} + timeline, 无 version 字段）,
+## 且事件 dict key 与 kind 字面量一律 snake_case（如 actor_id / ability_activate）;
+## web 端 JS 解析器（外部仓）两者都尚未同步 —— 启用 web 发布时须一并升级（v3 形状 + snake_case）。
 func run_battle() -> String:
 	print("\n[Godot] Starting battle simulation...")
 	

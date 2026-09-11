@@ -2,7 +2,7 @@ extends Node
 ## 主游戏技能 manifest lint smoke
 ##
 ## 「同 id 异实例」没有运行时守卫：timeline id 只剩录像标签用途，两份不同节奏顶着同一个
-## id 会让回放里的 timelineId 静默串味（复制技能文件忘改 TIMELINE_ID 就是这个形状）。
+## id 会让回放里的 timeline_id 静默串味（复制技能文件忘改 TIMELINE_ID 就是这个形状）。
 ## 这道闸由静态检查把守，hex 与主游戏各自守自己的 manifest。
 ##
 ## 断言（全部走 core 的 AbilityConfig.lint_timelines）：

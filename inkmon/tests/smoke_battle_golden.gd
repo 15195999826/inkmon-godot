@@ -16,7 +16,9 @@ extends Node
 ## 金样基线 (2026-07-03 录制; 行为有意变更时按 GOLDEN_ACTUAL 日志回填)。
 ## 2026-07-07 hash 回填: T6 高差通行规则 (max_height_step=0 进 grid config 序列化) 改变
 ## snapshot 指纹; 行为面不变 (result/ticks/frames 与旧金样全等, 已用地图改动回滚实验归因)。
-const GOLDEN_HASH := 638978954
+## 2026-09-12 hash 回填: LGF P7 事件 dict key / kind 字面量改 snake_case 改变 JSON 文本;
+## 行为面不变 (改前 JSON 递归套 key 映射后与改后 JSON 逐字段相等, result/ticks/frames 全等)。
+const GOLDEN_HASH := 3014638374
 const GOLDEN_RESULT := "left_win"
 const GOLDEN_TICKS := 159
 const GOLDEN_EVENT_FRAMES := 78

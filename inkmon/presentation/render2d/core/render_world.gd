@@ -114,7 +114,7 @@ func despawn_actor(id: String) -> void:
 	actor_despawned.emit(id)
 
 
-## 应用 replay 生命周期事件副作用（actorSpawned / actorDestroyed / attributeChanged）。
+## 应用 replay 生命周期事件副作用（actor_spawned / actor_destroyed / attribute_changed）。
 ## inkmon active 路径暂不发这些；保留以支持日后中途 spawn / max_hp 变化。
 func apply_event_side_effects(event: Dictionary) -> void:
 	var kind := str(event.get("kind", ""))
@@ -136,7 +136,7 @@ func _apply_actor_spawned_event(event: Dictionary) -> void:
 		return
 	var actor_init := PlaybackData.ActorInitData.from_dict(actor_data)
 	if actor_init.id.is_empty():
-		actor_init.id = str(event.get("actorId", ""))
+		actor_init.id = str(event.get("actor_id", ""))
 	if actor_init.id.is_empty() or _actors.has(actor_init.id):
 		return
 
@@ -149,7 +149,7 @@ func _apply_actor_spawned_event(event: Dictionary) -> void:
 
 
 func _apply_actor_destroyed_event(event: Dictionary) -> void:
-	var actor_id := str(event.get("actorId", ""))
+	var actor_id := str(event.get("actor_id", ""))
 	if actor_id.is_empty():
 		return
 	var actor: InkMonRender2DActorRenderState = _actors.get(actor_id)
@@ -165,13 +165,13 @@ func _apply_attribute_changed_event(event: Dictionary) -> void:
 	var attribute := str(event.get("attribute", ""))
 	if attribute != "max_hp" and attribute != "maxHp":
 		return
-	var actor_id := str(event.get("actorId", ""))
+	var actor_id := str(event.get("actor_id", ""))
 	if actor_id.is_empty():
 		return
 	var actor: InkMonRender2DActorRenderState = _actors.get(actor_id)
 	if actor == null:
 		return
-	var new_max_hp := float(event.get("newValue", actor.max_hp))
+	var new_max_hp := float(event.get("new_value", actor.max_hp))
 	actor.max_hp = maxf(0.0, new_max_hp)
 	actor.visual_hp = clampf(actor.visual_hp, 0.0, actor.max_hp)
 	actor.target_hp = clampf(actor.target_hp, 0.0, actor.max_hp)

@@ -81,6 +81,16 @@
 - P6-7 / 源码注释 / `Action.gd` 头改两类表并指 SKILL.md §8；`execution_context.gd` 对 `docs/reference/action-architecture.md` 的引用改指规则之家；`loose_tag_action.gd` 头删「旧 TagAction」历史叙述；`hex_facing.gd` 注释去 PrimitiveAction 字样。/ 为什么：后续观察「.gd 注释指向已删文档」点名 P6 触及时改。
 - P6-8 / 两问自查 / ① 无新表 / 注册 / 缓存：builder 的 `_active_use_count` 随 builder 销毁，`get_active_use_configs()` 每次新建数组；② 新增或改动的循环（`collect_timelines` / `get_active_use_configs` / `_resolve_components` / lint `_collect_actions`）遍历的都是 config 期后不再改动的 `components` 列表，无遍历中改集合。
 
+## P7 key snake_case
+
+- P7-1 / 改法 1 / 改名范围 = core+stdlib 全部 camelCase dict key（除计划清单外还有 registration / HandlerContext / trace / MutableEvent 记录 / 组件与 execution `serialize()` / TimelineData / ProjectileActor 配置与 launch_params / debug info，映射 116 条），另加 hex `shield_component` 的 `damageTypes` / `stackingPolicy`。/ 为什么：完成定义 grep 只认零命中，计划清单未列全。
+- P7-2 / 改法 1 / 不动：action / condition / cost 的 `TYPE` 类型 id（`stageCue` / `launchProjectile` / `looseTagApply` / `hasTag` / `consumeTag` 等）、attribute config schema（`baseValue` / `minValue` / `maxValue` / `maxRef` / `minRef`）、前端 animation config key、`TestFramework` 内部 dict、hex meta `allowedTargetKinds`、`maxHp` 属性名兜底。/ 为什么：都不是事件 dict key / kind；schema 由 P8 沿用；改了不保今日行为。[假设]
+- P7-3 / 改法 2 / 批量 = 两遍 `perl -i -p`：先带引号字面量（含 `\"…\"` 转义形，覆盖生成器模板），再 `\b` 词边界（注释 / 断言文案 / `launch_projectile_action` 两处 `event.targetPosition` 点访问）；11 份生成 attribute set 经 headless 生成器重生成（10 份有 diff，environment set 无 wrapper）。/ 为什么：点访问与转义模板是引号正则抓不到的读取点。
+- P7-4 / 钉子 / golden 落盘走 `smoke_battle_golden.gd` 临时 env 分支，改前 JSON 递归套映射表（key + kind 值）与改后 JSON 逐字段相等、result / ticks / frames 全等后回填 `GOLDEN_HASH`；临时分支已删，脚本与两份 JSON 在 `.claude/tmp/p7/` 不入库；本阶段无 submodule 钉子 commit。/ 为什么：计划把 P7 钉子只定义为这份比对。
+- P7-5 / 改法 4 / casing 测试除 GameEvent / ProjectileEvents 外还钉 18 个 kind 常量、PlaybackData 五个内部类与 RawAttributeSet 监听 dict（共 5 例）；hex `smoke_manifest_lint` 的可选 BattleEvents 断言未加。/ 为什么：D5 点名的四家都要机器守门；BattleEvents 本就 snake_case。[假设]
+- P7-6 / 规则之家 / SKILL.md §4 加一条 bullet 并把 `abilityActivate` / `abilityGranted` 改新拼写；`scripts/CLAUDE.md` 加协议一段；hex frontend README 的录像 JSON 示例与两行 wire 说明同改（示例属性名 `maxHp` 改 hex 真实的 `max_hp`）。/ 为什么：README 示例是消费方会照抄的形状。
+- P7-7 / 两问自查 / ① 无新增表 / 注册 / 缓存（只改 key 拼写；inkmon `_create_action_use_event` 改用栈作用域的 `GameEvent.AbilityActivate`）；② 无新增或改动的循环遍历被改集合（casing 测试只遍历本地新建 dict）。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。

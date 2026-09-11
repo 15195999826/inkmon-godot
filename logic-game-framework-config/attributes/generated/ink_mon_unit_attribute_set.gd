@@ -32,12 +32,12 @@ func set_ad_base(value: float) -> void:
 	_raw.set_base("ad", value)
 func on_ad_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "ad":
+		if raw_event.get("attribute_name", "") == "ad":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -56,12 +56,12 @@ func set_ap_base(value: float) -> void:
 	_raw.set_base("ap", value)
 func on_ap_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "ap":
+		if raw_event.get("attribute_name", "") == "ap":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -80,12 +80,12 @@ func set_armor_base(value: float) -> void:
 	_raw.set_base("armor", value)
 func on_armor_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "armor":
+		if raw_event.get("attribute_name", "") == "armor":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -104,12 +104,12 @@ func set_hp_base(value: float) -> void:
 	_raw.set_base("hp", value)
 func on_hp_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "hp":
+		if raw_event.get("attribute_name", "") == "hp":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -128,12 +128,12 @@ func set_max_hp_base(value: float) -> void:
 	_raw.set_base("max_hp", value)
 func on_max_hp_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "max_hp":
+		if raw_event.get("attribute_name", "") == "max_hp":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -152,12 +152,12 @@ func set_mr_base(value: float) -> void:
 	_raw.set_base("mr", value)
 func on_mr_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "mr":
+		if raw_event.get("attribute_name", "") == "mr":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
@@ -176,12 +176,12 @@ func set_speed_base(value: float) -> void:
 	_raw.set_base("speed", value)
 func on_speed_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
-		if raw_event.get("attributeName", "") == "speed":
+		if raw_event.get("attribute_name", "") == "speed":
 			callback.call(GameEvent.AttributeChanged.create(
 				actor_id,
-				raw_event.get("attributeName", ""),
-				raw_event.get("oldValue", 0.0),
-				raw_event.get("newValue", 0.0),
+				raw_event.get("attribute_name", ""),
+				raw_event.get("old_value", 0.0),
+				raw_event.get("new_value", 0.0),
 			))
 	_raw.add_change_listener(wrapper)
 	return func() -> void:
