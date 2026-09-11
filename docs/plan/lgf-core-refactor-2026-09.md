@@ -2,7 +2,7 @@
 
 > 2026-09-10 锐评定稿。范围：`addons/logic-game-framework/`（core / stdlib / hex / dota2 示例）+ 主仓 `inkmon/`（第三消费者）+ `scripts/SkillValidator.gd` + 相关文档/skill。
 > 背景：通读 LGF 后的十刀锐评，用户确认三句话心智模型不变（所有能力基于 ability；action 是原子能力；timeline 是逻辑动画）。刀 9（表演管线上提）另开计划，本轮不做。
-> 状态：**P4 已完成（2026-09-11）**，下一阶段 P5。每阶段完成后在 §6 填 submodule / 主仓 SHA。
+> 状态：**P5 已完成（2026-09-12）**，下一阶段 P6。每阶段完成后在 §6 填 submodule / 主仓 SHA。
 > 执行方式：**每阶段开新会话（clear context）**。本文件是仓内唯一真相（规划会话从 `~/.claude/plans/indexed-bubbling-raccoon.md` 复制而来，seed 不再更新）；P1 随主仓 commit 首次提交它。
 
 ---
@@ -364,7 +364,7 @@ P2 及之后：
 | P2 BattleActor | 已完成 2026-09-10 | `ec72e5a` | `cd0633ec` | 验收：86 scene 全 PASS（core 单测 173→187）/ 释放测试绿 / 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **下降** 590→170 RefCounted（关掉本就播不了的 dota2 录像，基线已棘轮）/ `/code-review max` 十角度 + 修复后二次复审已合入。偏离见 ⑧–⑭ |
 | P3 typed instance | 已完成 2026-09-11 | `0e54dfd` | `703b6efc` | 验收：86 scene 全 PASS（core 单测 187→193）/ 释放测试绿（含 context 释放探针）/ 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **清零**（P2 后 170 RefCounted / 61 GDScript / 15 WeakRef / 1 GDScriptNativeClass → 0，根因是 world ↔ procedure 强引用环，基线已棘轮）/ `/code-review max` 十角度首审 + 六轮复审已合入。偏离见 ⑮–㉖ |
 | P4 instance 级事件设施 | 已完成 2026-09-11 | `8af9821` | `c78aa66c` | 验收：86 scene 全 PASS（core 单测 193→199）/ 释放测试绿（4 例依次 41 / 74 / 53 / 92 条断言，含 procedure 子类直接 `finish()` 与录像战斗 tick 内结束 world）/ 四份直方图与基线逐字节一致 / `/code-review max` 十角度首审 + 三轮复审已合入（最后一轮只剩文字修正）。偏离见 ㉗–㊳ |
-| P5 Post 订阅制 | 未开始 | | | |
+| P5 Post 订阅制 | 已完成 2026-09-12 | `78f8cc5` | `d0cfec19` | 验收：86 scene 全 PASS（core 单测 199→218，hex scenario 68→69）/ 释放测试绿（5 例依次 44 / 80 / 59 / 104 / 34 条断言，含 registration 在 revoke / `remove_actor` / 整个换掉 AbilitySet 三种退场下的释放）/ 四份直方图与基线逐字节一致 / inkmon golden 指纹不变 / `/code-review max` 十角度首审（15 条：13 修、2 记入 ㊿）+ 一轮四角度复审（全为 low：修 9 条，owner 双来源记入 ㊿⑦），复审第 1 轮后未再开下一轮（用户要求本轮后暂停）。偏离见 ㊴–㊿ |
 | P6 Action/Config 收口 | 未开始 | | | |
 | P7 key snake_case | 未开始 | | | |
 | P8 资源型属性 | 未开始 | | | |
