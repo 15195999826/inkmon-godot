@@ -91,6 +91,16 @@
 - P7-6 / 规则之家 / SKILL.md §4 加一条 bullet 并把 `abilityActivate` / `abilityGranted` 改新拼写；`scripts/CLAUDE.md` 加协议一段；hex frontend README 的录像 JSON 示例与两行 wire 说明同改（示例属性名 `maxHp` 改 hex 真实的 `max_hp`）。/ 为什么：README 示例是消费方会照抄的形状。
 - P7-7 / 两问自查 / ① 无新增表 / 注册 / 缓存（只改 key 拼写；inkmon `_create_action_use_event` 改用栈作用域的 `GameEvent.AbilityActivate`）；② 无新增或改动的循环遍历被改集合（casing 测试只遍历本地新建 dict）。
 
+## P8 资源型属性
+
+- P8-1 / 改法 2、3 / 资源在生成 set 的 `apply_config` 字典里以 `"kind": "resource"` + `maxRef` 定义（内部走 `define_resource`），不另生成独立 `define_resource` 行；`max_ref` 允许晚于资源定义，写入 / 重 clamp 时才解析。/ 为什么：定义顺序 = 通知 / 快照 / 序列化顺序，hp 按字典序排在 max_hp 前才与今日一致，独立语句会把它排到末位。[假设]
+- P8-2 / 改法 2「沿用 register_cross_attr_clamp 语义，改为资源专用实现」/ 通用跨属性 clamp 整条退役：`register_cross_attr_clamp` / `clear_cross_attr_clamps` / `_apply_cross_attr_clamps` / `_computing_set` 循环检测与 `BaseGeneratedAttributeSet` 包装都删；`maxRef` 只属于资源，stat 的 `maxRef`、任何 `minRef`、资源的 `maxValue` 生成器拒绝（`_validate_attr_kinds`）、`apply_config` assert。/ 为什么：唯一用户 hp ≤ max_hp 改走资源后它是零用户的双路径。[假设]
+- P8-3 / 改法 2「add_modifier / update_modifier 指向资源 → assert_crash」/ assert 加在 `add_modifier` / `set_base` / `get_base` / `register_dynamic_dep`（源为资源）；`update_modifier` 不加。拒绝路径不写单测。/ 为什么：`update_modifier` 按 id 找 modifier，资源没有 modifier，路径不可达；`assert(false)` 打 SCRIPT ERROR，launcher 判 FAIL（同 `flow_action_test` 约定）。
+- P8-4 / 测试 / 新行为测试分两次红：既有 API 能表达的（资源随 max_hp 下降不回升、serialize 形状、生成器产物与拒绝字段）按断言红；`set_resource` / `add_resource` / `define_resource` 用例在旧代码上是运行期 Nonexistent function（零断言判 FAIL）。/ 为什么：新方法不存在时无法按断言红。
+- P8-5 / 改法 4 / hex / inkmon 扣血改 `add_hp(-x)`，其余 `set_hp`；inkmon `apply_derived_stats` 收尾的 `set_current_hp(minf(hp, max_hp))` 改 `sync_downed_state()`；`battle_actor_test` 的 `ProbeAttributeSet` 把 hp 改成资源，序列化断言改读 `value`；dota2 README 一句同改。/ 为什么：max_hp 重算时 attribute_set 已把 hp 拉低，剩下的只有 downed 对齐，行为相同。
+- P8-6 / 改法 2 / `serialize` 资源形状 `{ "kind": "resource", "value" }`，`deserialize` 按 kind 还原成无上限资源（与 stat 一样不还原约束）。/ 为什么：计划只写「含资源值」，全仓无生产消费者。[假设]
+- P8-7 / 两问自查 / ① 新增 `_attribute_names` / `_resource_values` / `_resource_max_refs` 都是 RawAttributeSet 私有表，随 set 释放，不涉及 revoke / remove_actor / reset / shutdown / 换 AbilitySet 五个出口；② `_reclamp_resources` 遍历 `keys()` 副本且只改既有键的值，`snapshot_current_values` / `serialize` 遍历定义期后不变的 `_attribute_names`，生成器循环遍历 config 快照。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。

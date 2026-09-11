@@ -23,7 +23,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			continue
 		var old_hp := target_actor.attribute_set.hp
 		var new_hp := minf(old_hp + heal_amount, target_actor.attribute_set.max_hp)
-		target_actor.attribute_set.set_hp_base(new_hp)
+		target_actor.attribute_set.set_hp(new_hp)
 		var event := InkMonBattleEvents.HealEvent.create(target_id, new_hp - old_hp, source_actor_id)
 		var event_dict: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(event_dict)

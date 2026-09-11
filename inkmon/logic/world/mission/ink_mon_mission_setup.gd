@@ -94,7 +94,7 @@ static func apply_starvation(world: InkMonWorldGI) -> bool:
 		if actor.attribute_set.hp <= 0.0:
 			continue
 		var loss := maxf(1.0, ceilf(actor.attribute_set.max_hp * STARVATION_HP_RATIO))
-		# ⚠ 写 HP 必须走 set_current_hp (set_hp_base + sync_downed_state):
+		# ⚠ 写 HP 必须走 set_current_hp (set_hp + sync_downed_state):
 		# attribute_set.hp 是只读投影 property, 直接赋值会被 GDScript 静默丢弃。
 		actor.set_current_hp(maxf(0.0, actor.attribute_set.hp - loss))
 	for actor in world.roster:

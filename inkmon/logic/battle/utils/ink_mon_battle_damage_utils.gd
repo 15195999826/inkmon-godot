@@ -26,7 +26,7 @@ static func apply_damage(
 
 	var target_attrs := target_actor.get_attribute_set()
 	var old_hp := target_attrs.hp
-	target_attrs.set_hp_base(old_hp - damage_event.actual_life_damage)
+	target_attrs.add_hp(-damage_event.actual_life_damage)
 
 	var target_name := InkMonBattleGameStateUtils.get_actor_display_name(target_id, battle)
 	print("  [InkMonDamage] %s HP %.1f -> %.1f" % [target_name, old_hp, target_attrs.hp])

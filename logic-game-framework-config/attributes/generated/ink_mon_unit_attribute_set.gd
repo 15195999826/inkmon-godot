@@ -11,12 +11,11 @@ func _init(p_actor_id: String = "") -> void:
 		"ad": { "baseValue": 35.0, "minValue": 0.0 },
 		"ap": { "baseValue": 35.0, "minValue": 0.0 },
 		"armor": { "baseValue": 20.0, "minValue": 0.0 },
-		"hp": { "baseValue": 100.0, "minValue": 0.0 },
+		"hp": { "kind": "resource", "baseValue": 100.0, "minValue": 0.0, "maxRef": "max_hp" },
 		"max_hp": { "baseValue": 100.0, "minValue": 1.0 },
 		"mr": { "baseValue": 20.0, "minValue": 0.0 },
 		"speed": { "baseValue": 100.0, "minValue": 0.0 },
 	})
-	_raw.register_cross_attr_clamp("hp", "max", "max_hp")
 
 
 var ad: float:
@@ -94,14 +93,11 @@ func on_armor_changed(callback: Callable) -> Callable:
 var hp: float:
 	get:
 		return _raw.get_current_value("hp")
-var hp_breakdown: AttributeBreakdown:
-	get:
-		return _raw.get_breakdown("hp")
-func get_hp_breakdown() -> AttributeBreakdown:
-	return _raw.get_breakdown("hp")
 const hp_attribute := "hp"
-func set_hp_base(value: float) -> void:
-	_raw.set_base("hp", value)
+func set_hp(value: float) -> void:
+	_raw.set_resource("hp", value)
+func add_hp(delta: float) -> void:
+	_raw.add_resource("hp", delta)
 func on_hp_changed(callback: Callable) -> Callable:
 	var wrapper := func(raw_event: Dictionary) -> void:
 		if raw_event.get("attribute_name", "") == "hp":

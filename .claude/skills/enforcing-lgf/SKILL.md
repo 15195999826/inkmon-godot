@@ -52,14 +52,18 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 
 ### 1. Attribute Access
 
-Direct access, no getter/setter wrappers. Methods with business logic are fine.
+Direct access for reads, no getter/setter wrappers. Methods with business logic are fine.
+
+`hp` is a **resource** (`"kind": "resource"` in the attribute config): write it with `set_hp` / `add_hp` — there is no `set_hp_base`, the value is clamped to `[minValue, max_hp]` on write. Stat attributes keep `set_*_base` + modifiers. The generated properties are read-only projections: `attribute_set.hp = x` is silently dropped.
 
 ```gdscript
 # DO
 var hp := actor.attribute_set.hp
-actor.attribute_set.hp -= damage
+actor.attribute_set.add_hp(-damage)      # resource write
+actor.attribute_set.set_atk_base(value)  # stat write
 
 # DON'T
+actor.attribute_set.hp -= damage         # read-only projection, write is lost
 func get_hp() -> float:
     return attribute_set.hp
 

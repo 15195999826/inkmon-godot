@@ -11,7 +11,7 @@ const SETS := {
 		"range": { "baseValue": 5.0 },
 	},
 	"InkMonUnit": {
-		"hp": { "baseValue": 100.0, "minValue": 0.0, "maxRef": "max_hp" },
+		"hp": { "kind": "resource", "baseValue": 100.0, "minValue": 0.0, "maxRef": "max_hp" },
 		"max_hp": { "baseValue": 100.0, "minValue": 1.0 },
 		"ad": { "baseValue": 35.0, "minValue": 0.0 },
 		"ap": { "baseValue": 35.0, "minValue": 0.0 },

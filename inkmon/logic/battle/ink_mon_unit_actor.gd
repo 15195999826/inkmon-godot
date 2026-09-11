@@ -90,7 +90,7 @@ func _setup_from_unit_config(p_unit_key: String) -> void:
 
 	var stats := cfg.stats
 	attribute_set.set_max_hp_base(stats["max_hp"])
-	attribute_set.set_hp_base(stats["hp"])
+	attribute_set.set_hp(stats["hp"])
 	attribute_set.set_ad_base(stats["ad"])
 	attribute_set.set_ap_base(stats["ap"])
 	attribute_set.set_armor_base(stats["armor"])
@@ -125,7 +125,7 @@ func _setup_combat_unit(combat_data: Dictionary) -> void:
 		Log.assert_crash(stats.has(key), "InkMonUnitActor", "combat unit stats missing key: %s" % key)
 	var max_hp := float(stats["max_hp"])
 	attribute_set.set_max_hp_base(max_hp)
-	attribute_set.set_hp_base(max_hp)
+	attribute_set.set_hp(max_hp)
 	attribute_set.set_ad_base(float(stats["ad"]))
 	attribute_set.set_ap_base(float(stats["ap"]))
 	attribute_set.set_armor_base(float(stats["armor"]))
@@ -324,9 +324,9 @@ func apply_derived_stats(species_base: Dictionary) -> void:
 	attribute_set.set_speed_base(float(species_base.get("speed", 0.0)) * scale)
 	# 装备数值进加成层 (modifier): base 设好后重建装备 ability, 这样 max_hp 已含装备再做 HP 钳制。
 	_refresh_equipment_abilities()
-	# set_max_hp_base 只改上限、不回钳已有 hp (cross-attr clamp 仅在 set hp 时触发); max 下调后 hp 可能越界。
-	# 重算后把当前 HP 钳回 [0, max_hp] 保派生幂等 (set_current_hp 经 set_hp_base 触发 clamp + 同步 downed)。
-	set_current_hp(minf(attribute_set.hp, attribute_set.max_hp))
+	# max_hp 重算后 attribute_set 已按新上限把 hp 钳回 (hp 是资源, 上限下降即拉低);
+	# 这里只按当前 HP 重新对齐 downed 标记, 保派生幂等。
+	sync_downed_state()
 
 
 ## 设置当前 HP (carryover)。value < 0 = 满血 (= max_hp);否则按值设 (attribute_set 对 hp>max_hp 自动 clamp)。
@@ -334,7 +334,7 @@ func set_current_hp(value: float) -> void:
 	var hp := value
 	if hp < 0.0:
 		hp = attribute_set.max_hp
-	attribute_set.set_hp_base(hp)
+	attribute_set.set_hp(hp)
 	# 读档/还原后按 carryover HP 对齐 downed 标记 (0 血 → is_dead, 否则活)。
 	sync_downed_state()
 

@@ -48,7 +48,7 @@ func _run() -> String:
 func _assert_attribute_gate() -> String:
 	var attrs := InkMonUnitAttributeSet.new("gate")
 	attrs.set_max_hp_base(80.0)
-	attrs.set_hp_base(120.0)
+	attrs.set_hp(120.0)
 	if absf(attrs.hp - 80.0) > 0.01:
 		return "hp did not clamp to max_hp"
 	attrs.set_ad_base(11.0)

@@ -100,7 +100,7 @@ grep -o "Leaked instance: [A-Za-z0-9_]*" ".claude/tmp/leak/$s.txt" | sort | uniq
 - **并行 tool call 一个 errored 全批取消**：测试 runner、可能 0 命中的 grep、探查性 python 单独发。
 - GDScript `static var` 持含 Callable 的 RefCounted → headless 退出段错误（PASS 打印后才崩）；新增静态缓存用 `static func` 线性扫。
 - 引用 LGF 字段/方法前先 grep/read 真实定义；改完必跑 `.tscn` smoke。
-- `attribute_set.hp = x` 无 setter 静默吞（P8 之前仍如此）；写属性走 `set_*_base`。
+- `attribute_set.hp = x` 无 setter 静默吞；资源写 `set_hp` / `add_hp`，stat 写 `set_*_base`。
 - `Log.assert_crash` 在 debug 下只中止自己那一帧，调用方继续跑；「降级不报错」类合同要挂 `tests/log_counter.gd` 断言零错误。
 - 改 `.gd` 时 `enforcing-lgf` / `gdscript-coding` skill 会自动触发，遵守其 14 条规范（类型标注、`_` 前缀未用参数、`Log.assert_crash`）。
 
