@@ -445,7 +445,7 @@ grep -o "Leaked instance: [A-Za-z0-9_]*" ".claude/tmp/leak/$s.txt" | sort | uniq
 | P5 Post 订阅制 | 已完成 2026-09-12 | `78f8cc5` | `d0cfec19` | 验收：86 scene 全 PASS（core 单测 199→218，hex scenario 68→69）/ 释放测试绿（5 例依次 44 / 80 / 59 / 104 / 34 条断言，含 registration 在 revoke / `remove_actor` / 整个换掉 AbilitySet 三种退场下的释放）/ 四份直方图与基线逐字节一致 / inkmon golden 指纹不变 / `/code-review max` 十角度首审（15 条：13 修、2 记入 ㊿）+ 一轮四角度复审（全为 low：修 9 条，owner 双来源记入 ㊿⑦），复审第 1 轮后未再开下一轮（用户要求本轮后暂停）。偏离见 ㊴–㊿ |
 | P5.5 文档清场 | 已完成 2026-09-12 | `dc6da26` | `d8574859` | 验收：86 scene 全 PASS（launcher 已判 SCRIPT ERROR，人工 grep 日志只剩 core 单测两条既知基线）/ 处置表逐行落地 / 释放测试 · 直方图不适用。偏离见 deviations 文件 P5.5-1–8 |
 | P6 Action/Config 收口 | 已完成 2026-09-12 | `6daabbc` | `f67c010b` | 验收：86 scene 全 PASS（core 单测 218→209：删 tag_action / validator 两套 11 例，加钉子 1 例 + ActiveUseConfig 层级 1 例；hex scenario 69 不变）/ 释放测试绿 / 四份直方图与基线逐字节一致 / inkmon golden 指纹不变 / 钉子未重烤（hex stance 是先 component_config 后 active_use 的写法，builder `active_use` 恒前置）。钉子 commit `f2c71b9`。偏离见 deviations 文件 P6-1–8 |
-| P7 key snake_case | 未开始 | | | |
+| P7 key snake_case | 已完成 2026-09-12 | `a9f4b50` | `abbe892f` | 验收：86 scene 全 PASS（core 单测 209→214：casing 守门 5 例；hex scenario 69 不变）/ 释放测试绿 / 四份直方图与基线逐字节一致 / 完成定义 grep 零命中 / inkmon golden 按「改前 JSON 递归套 key 映射 == 改后 JSON」比对相等后重烤（hash 638978954→3014638374，result / ticks / frames 全等）/ 钉子即这份比对（脚本与两份 JSON 在 `.claude/tmp/p7/` 不入库，无 submodule 钉子 commit）。偏离见 deviations 文件 P7-1–7 |
 | P8 资源型属性 | 未开始 | | | |
 | P9 grid 出 core | 未开始 | | | |
 | P10 整体审与收口 | 未开始 | | | 2026-09-12 新增；四条设计题留用户拍板 |
