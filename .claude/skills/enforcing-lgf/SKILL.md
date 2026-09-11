@@ -5,7 +5,7 @@ description: Enforces Logic Game Framework conventions for inkmon-godot GDScript
 
 # Logic Game Framework Conventions
 
-> **LGF core 重构进行中（P6–P9）**：API 以 `docs/plan/lgf-core-refactor-2026-09.md` 与代码为准。本文件与 addon `addons/logic-game-framework/CLAUDE.md` 是仅有的两个规则之家；API 细节看源码，不另写参考文档。
+> 本文件与 addon `addons/logic-game-framework/CLAUDE.md` 是仅有的两个规则之家；API 细节看源码，不另写参考文档。
 
 ## Contents
 - [When to use](#when-to-use)
@@ -54,7 +54,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 
 Direct access for reads, no getter/setter wrappers. Methods with business logic are fine.
 
-`hp` is a **resource** (`"kind": "resource"` in the attribute config): write it with `set_hp` / `add_hp` — there is no `set_hp_base`, the value is clamped to `[minValue, max_hp]` on write. Stat attributes keep `set_*_base` + modifiers. The generated properties are read-only projections: `attribute_set.hp = x` is silently dropped.
+`hp` is a **resource** (`"kind": "resource"` in the attribute config): write it with `set_hp` / `add_hp` — there is no `set_hp_base`, the value is clamped to `[minValue, max_hp]` on write, and reads are capped by the current `max_hp` without touching the stored value (a transient `max_hp` drop — re-equip, Break — lowers `hp` only while it lasts). Stat attributes keep `set_*_base` + modifiers. The generated properties are read-only projections: `attribute_set.hp = x` is silently dropped.
 
 ```gdscript
 # DO

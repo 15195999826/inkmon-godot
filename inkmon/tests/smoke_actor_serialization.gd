@@ -50,6 +50,9 @@ func _run() -> String:
 	var s6 := _check_apply_derived_stats_clamps_hp()
 	if s6 != "":
 		return s6
+	var s7 := _check_equipment_max_hp_refresh_keeps_hp()
+	if s7 != "":
+		return s7
 	return ""
 
 
@@ -199,6 +202,70 @@ func _check_player_actor_round_trip() -> String:
 	if restored.hex_position.to_axial() != Vector2i(2, -1):
 		return "PlayerActor coord round-trip lost: %s" % str(restored.hex_position.to_axial())
 	return ""
+
+
+## 回归守卫: 装备 stat_mods 带 max_hp 时, 装备重建 (apply_derived_stats / equip_abilities 的 clear-then-grant)
+## 让 max_hp 先降后升; hp 是资源, 读取按上限封顶但存值不被暂降改写 —— 满血单位重算后仍满血 (幂等契约)。
+## 今日内容没有带 max_hp 的物品, 用本 smoke 私有目录注入一件。
+func _check_equipment_max_hp_refresh_keeps_hp() -> String:
+	ItemSystem.reset_session()
+	ItemSystem.configure_domain(InkMonItemDomain.new(), _MaxHpGearCatalog.new())
+	var actor := InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)
+	var base := InkMonSpeciesCatalog.get_base_stats(actor.species)
+	var geared_max := float(base["max_hp"]) * InkMonUnitActor.growth_scale(actor.level) + _MaxHpGearCatalog.GEAR_MAX_HP
+
+	var container := BaseContainer.new()
+	container.container_name = &"equip:test_max_hp"
+	container.space_config = ContainerSpaceConfig.create_unordered(-1)
+	var cid := ItemSystem.register_container(container)
+	if cid <= 0:
+		return "failed to register equipment container (max_hp gear)"
+	var create_result := ItemSystem.create_item(cid, _MaxHpGearCatalog.GEAR_ID, 1, -1)
+	if not create_result.success:
+		return "failed to create max_hp gear: %s" % create_result.error_message
+	actor.equipment_container_id = cid
+
+	actor.apply_derived_stats(base)
+	if absf(actor.attribute_set.max_hp - geared_max) > 0.01:
+		return "max_hp gear should raise max_hp to %.2f (got %.2f)" % [geared_max, actor.attribute_set.max_hp]
+	actor.set_current_hp(-1.0)
+	if absf(actor.attribute_set.hp - geared_max) > 0.01:
+		return "full heal should reach the geared max_hp (hp=%.2f max=%.2f)" % [actor.attribute_set.hp, geared_max]
+
+	actor.apply_derived_stats(base)
+	if absf(actor.attribute_set.hp - geared_max) > 0.01:
+		return "apply_derived_stats must keep a full unit full when gear carries max_hp (hp=%.2f max=%.2f)" % [actor.attribute_set.hp, actor.attribute_set.max_hp]
+	if absf(actor.attribute_set.max_hp - geared_max) > 0.01:
+		return "repeated apply_derived_stats must not stack or drop the gear max_hp (got %.2f expected %.2f)" % [actor.attribute_set.max_hp, geared_max]
+	_reset_item_runtime()
+	return ""
+
+
+## 只给本 smoke 用的物品目录: 真实 fixture 目录之外再加一件 max_hp 装备。
+class _MaxHpGearCatalog:
+	extends ItemCatalog
+
+	const GEAR_ID := &"item_9001"
+	const GEAR_MAX_HP := 50.0
+
+	var _inner := InkMonItemCatalog.new()
+
+	func has_config(config_id: StringName) -> bool:
+		return config_id == GEAR_ID or _inner.has_config(config_id)
+
+	func get_config(config_id: StringName) -> Dictionary:
+		if config_id == GEAR_ID:
+			return {
+				"id": String(GEAR_ID), "display_name": "Heart Plate", "item_tags": ["equipment", "armor"],
+				"stat_mods": {"max_hp": GEAR_MAX_HP}, "price": 30, "item_type": "equipment", "max_stack": 1,
+				"icon_key": "plate", "granted_abilities": [],
+			}
+		return _inner.get_config(config_id)
+
+	func list_config_ids() -> Array[StringName]:
+		var ids := _inner.list_config_ids()
+		ids.append(GEAR_ID)
+		return ids
 
 
 func _reset_item_runtime() -> void:

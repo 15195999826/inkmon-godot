@@ -324,7 +324,7 @@ func apply_derived_stats(species_base: Dictionary) -> void:
 	attribute_set.set_speed_base(float(species_base.get("speed", 0.0)) * scale)
 	# 装备数值进加成层 (modifier): base 设好后重建装备 ability, 这样 max_hp 已含装备再做 HP 钳制。
 	_refresh_equipment_abilities()
-	# max_hp 重算后 attribute_set 已按新上限把 hp 钳回 (hp 是资源, 上限下降即拉低);
+	# hp 是资源: 读取按新上限封顶 (上限下降即拉低), 装备重建的上限暂降不改存值 (满血单位重算后仍满血);
 	# 这里只按当前 HP 重新对齐 downed 标记, 保派生幂等。
 	sync_downed_state()
 
