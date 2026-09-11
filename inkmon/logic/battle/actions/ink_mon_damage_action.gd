@@ -1,5 +1,5 @@
 class_name InkMonDamageAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 var _damage_resolver: FloatResolver

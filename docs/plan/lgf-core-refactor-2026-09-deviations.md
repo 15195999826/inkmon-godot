@@ -70,6 +70,17 @@
 - P5.5-7 / 完成定义 grep / `docs/reference` 命中 `sim-nav-map*` 两个 skill 的 `addons/sim-nav-map/docs/references/0ad-source`（另一 addon 真实存在的目录），与 LGF 无关，视为零命中。/ 为什么：不在处置表，不动。[假设]
 - P5.5-8 / 两问自查 / ① 本阶段无新表 / 注册 / 缓存（launcher 只多一条判定分支）；② 无新增或改动的循环。
 
+## P6 Action/Config 收口
+
+- P6-1 / 钉子 / hex `stance.gd` 是「先 `component_config` 后 `active_use`」的写法，按计划让 `AbilityConfigBuilder.active_use()` 插到普通 component 之前（`_active_use_count` 定位，active_use 之间保持调用顺序），钉子不重烤。/ 为什么：component 顺序 = 同 ability 内响应顺序，改成调用顺序会翻转 stance 的解析序。
+- P6-2 / 改法 4 / `ActiveUseConfig._init` 形参 = 父类七参在前、`conditions` / `costs` 在后；`active_use_query_test` 收成一个 `_active_use()` 助手。`ActiveUseComponent._init` 不动，仍为默认 trigger 另建一份父配置。/ 为什么：计划只写「新构造顺序」，镜像层级最直接；组件层不在本阶段范围。[假设]
+- P6-3 / 改法 1、4 清单差异 / `extends Action.PrimitiveAction` 实为 17 处（hex 多一处 `hex_facing._FaceTargetAction`）+ 1 处返回类型标注；builder 协变覆盖多一个 `on_cancel`（计划列 6 个）。/ 为什么：漏 `on_cancel` 会让链上 `.on_cancel(...)` 之后接不上 `.condition()`。
+- P6-4 / 改法 4 / `SkillValidator`：`has_passive` = components 数 > active_use 数；components 循环跳过 `ActiveUseConfig`；`_check_structure` 判 `components.is_empty()`；lint `_collect_actions` 收成单循环。/ 为什么：`ActiveUseConfig` 现在也是 `ActivateInstanceConfig`，不跳过会把 active_use 的 actions 提两遍、主动技能误判带被动。
+- P6-5 / 完成定义 grep / 计划正则 `TagAction\.` 也命中保留类 `LooseTagAction.`（32 处），按 `\bTagAction\.` 判零命中。/ 为什么：`LooseTagAction` 在 SKILL.md 指针表内，是现役公共原语。[假设]
+- P6-6 / 测试 / 新行为测试的 `is ActivateInstanceConfig` 经 `Object` 变量查：对 `ActiveUseConfig` 变量直接写 `is` 在旧层级下是 analyzer 编译错误（parse error 不算红）。另补断言 timeline / tag_actions / conditions 原样落到 config。/ 为什么：§2 要求红的原因是断言。
+- P6-7 / 源码注释 / `Action.gd` 头改两类表并指 SKILL.md §8；`execution_context.gd` 对 `docs/reference/action-architecture.md` 的引用改指规则之家；`loose_tag_action.gd` 头删「旧 TagAction」历史叙述；`hex_facing.gd` 注释去 PrimitiveAction 字样。/ 为什么：后续观察「.gd 注释指向已删文档」点名 P6 触及时改。
+- P6-8 / 两问自查 / ① 无新表 / 注册 / 缓存：builder 的 `_active_use_count` 随 builder 销毁，`get_active_use_configs()` 每次新建数组；② 新增或改动的循环（`collect_timelines` / `get_active_use_configs` / `_resolve_components` / lint `_collect_actions`）遍历的都是 config 期后不再改动的 `components` 列表，无遍历中改集合。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。
@@ -85,3 +96,4 @@
 - **开着录像的战斗中途 destroy 仍泄漏 recorder 与它订阅的全部 actor**（P3 复审第三轮发现，既有；第四轮更正范围与拆环点）：`BattleRecorder.actor_subscriptions` 里的退订闭包读 actor 成员（强持 actor），actor 上的监听闭包捕获 `RecordingContext → _recorder`。订阅范围不是 `_participant_ids`，而是开战时 `world.get_recordable_actors()` 全体（`battle_procedure.gd:60`）加战斗中经 `actor_added` 补录的 spawn：hex 不覆盖 `should_record_actor`，中途召唤的图腾 / 火焰地形也在内；inkmon 录全部 `InkMonUnitActor`，含出战队（`battle_roster_slice`）之外的 roster；`ProjectileActor` 的 `setup_recording` 返回空，不被钉住。拆环点是一次退订全部的 `stop_recording`（调用方为 `procedure.finish()` 与 hex demo / inkmon GI 的 `get_replay_data()`，后者在战斗中调用会提前停录像）和逐 actor 的 `unregister_actor`（全仓零调用），而 `GameplayInstance.end()` / `destroy_instance` / `shutdown` 都不终止进行中的战斗（实例：inkmon `smoke_world_command` 的 `request_training_battle` → `tick_once` → `destroy_all_instances`）。修向：`WorldGameplayInstance.on_end()` 在 despawn 之前做**不发信号**的 abort（`get_is_recording()` 为真才停 recorder——`get_replay_data()` 可能已停过，无守卫再调会 push_error "Not recording"；按订阅表退订全部，不按 `_participant_ids`；断开 `actor_added`、清 `_active_battle`）——不能直接 `finish()`，那会存日志、写回放、改 inkmon 任务状态。挂 P4 C2（`shutdown()` 统一后中途拆除会变成常规路径），释放用例形状见 P4 循环引用要点。（P4 已修，见 ㉙，本条关闭。）
 - **`GameWorld.create_instance(factory)` 的回调间接层已无用处**（P3 复审第三轮发现）：全仓 factory 只有「`return X.new()`」「配好 grid 就返回」「把早已建好的实例原样返回」三种，都不需要延迟构造，却留着「注册前干活」的位置，契约只能靠注释守。P4 C2 重写 `GameWorld` 生命周期时顺手改成 `create_instance(instance)`（注册后返回）。（P4 已改，见 ㉛，本条关闭。）
 - **测试入口不因 SCRIPT ERROR 判负**（P4 复审第 2 轮发现）：`TestFramework` 只数断言失败与零断言，`tools/run_tests.ps1` 只看退出码、超时与 `SMOKE_TEST_RESULT`；GDScript 运行期错误（含 `Log.assert_crash` 的断言）只中止出错那一帧、调用方照常往下走——「降级不报错」「断言不触发」这类合同在全仓测试里都可能假绿。P4 只在 `instance_context_test` 与释放测试用例 4 用本地 `Logger` 计数器（`tests/log_counter.gd`）补了断言；验收第 1 关靠人工扫日志兜底（当前 86 scene 零 SCRIPT ERROR）。修向：launcher 的 Finish-Scene 在日志含 `SCRIPT ERROR:` 时判 FAIL，或 `TestFramework._run_test` 逐用例挂计数器——两者都波及全部测试组，需要单独一轮评估。（P5.5 已落地：`tools/run_tests.ps1` 的 `Finish-Scene` 遇 `SCRIPT ERROR:` 判 FAIL、reason 带首条匹配行，先红后绿验证过，86 scene 零 SCRIPT ERROR 基线成立，本条关闭。）
+- `AbilityConfig.collect_timelines()` 只认 `components` 里的 `ActivateInstanceConfig`，而 `ActiveUseConfig extends AbilityComponentConfig`（**不**继承前者）——技能若写成 `.component_config(ActiveUseConfig.builder()…build())` 而非 `.active_use(…)`，其 timeline 对 lint 完全隐形。仓内当前无此写法；P6「`ActiveUseConfig extends ActivateInstanceConfig`」落地后自动消解。（P6 已落地：`ActiveUseConfig extends ActivateInstanceConfig`，两种写法都进同一个 `components` 列表、都被 `collect_timelines` 认到，本条关闭。）

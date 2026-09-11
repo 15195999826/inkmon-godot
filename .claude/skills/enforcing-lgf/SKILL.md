@@ -223,6 +223,7 @@ When implementing new game logic that touches the framework, follow these steps:
 1. **Identify scope** → Is this an Actor, Ability, Action, PreEvent, or System?
    - **New Actor**: Follow §2 (construct → register → `_on_id_assigned`)
    - **New Ability**: Use `AbilityConfig.builder()` (`core/abilities/core/ability_config.gd`); copy a real one such as `example/hex-atb-battle/logic/abilities/active/poison.gd`
+     - `AbilityConfig` keeps one `components` list: `.active_use(cfg)` entries always sort ahead of `.component_config(cfg)` entries regardless of call order (component order is the dispatch order inside the ability). `ActiveUseConfig` **is an** `ActivateInstanceConfig` — a type switch on `is ActivateInstanceConfig` also matches active-use configs; use `get_active_use_configs()` when you mean only those.
    - **New Action**: pick the kind and location per §8, ensure statelessness (§3)
    - **New PreEvent handler**: Follow §6 (every path returns Intent)
 2. **Check shared vs owned** → Refer to §3 ownership table. If shared (`static var`), MUST NOT store mutable state in `self`.

@@ -126,8 +126,9 @@ func _check_runtime(script: GDScript) -> AbilityConfig:
 	result.stages.runtime = { "passed": true }
 
 	# 导出首个 active_use 的 timeline（builder.timeline(data) 直接挂在 config 上）。
-	if config.active_use_components.size() > 0:
-		var timeline: TimelineData = config.active_use_components[0].timeline_data
+	var active_uses := config.get_active_use_configs()
+	if active_uses.size() > 0:
+		var timeline: TimelineData = active_uses[0].timeline_data
 		if timeline != null:
 			result.timeline = {
 				"id": timeline.id,
@@ -150,11 +151,8 @@ func _check_structure(config: AbilityConfig) -> void:
 	if config.display_name.is_empty():
 		errors.append("display_name is required and cannot be empty")
 	
-	# 检查是否至少有一个 active_use 或其他组件
-	var has_active: bool = config.active_use_components.size() > 0
-	var has_components: bool = config.components.size() > 0
-	
-	if not has_active and not has_components:
+	# 检查是否至少有一个 active_use 或其他组件（两者同住 components）
+	if config.components.is_empty():
 		errors.append("AbilityConfig must have at least one active_use or component")
 	
 	# 警告检查
@@ -184,7 +182,8 @@ func _check_structure(config: AbilityConfig) -> void:
 
 ## 提取 AbilityConfig 结构为可序列化字典
 func _extract_ability_config(config: AbilityConfig) -> Dictionary:
-	var first_active: ActiveUseConfig = config.active_use_components[0] if config.active_use_components.size() > 0 else null
+	var active_uses := config.get_active_use_configs()
+	var first_active: ActiveUseConfig = active_uses[0] if not active_uses.is_empty() else null
 
 	var tl_id: Variant = null
 	if first_active != null and first_active.timeline_data != null:
@@ -196,7 +195,7 @@ func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 		"description": config.description,
 		"tags": config.ability_tags,
 		"has_active_use": first_active != null,
-		"has_passive": config.components.size() > 0,
+		"has_passive": config.components.size() > active_uses.size(),
 		"timeline_id": tl_id,
 		"actions": [],
 	}
@@ -214,7 +213,10 @@ func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 	# 投射物技能 (fireball / precise_shot / chain_lightning) 的真实命中伤害住在这里
 	# (component_config(ActivateInstanceConfig).trigger(PROJECTILE_HIT_EVENT,...).on_timeline_start([DamageAction])),
 	# 不在 active_use 里。不提取这层就会让 validation summary 完全看不到投射物伤害。
+	# ActiveUseConfig 也是 ActivateInstanceConfig，它的 actions 已在上面按 tag 名提取，这里跳过。
 	for comp in config.components:
+		if comp is ActiveUseConfig:
+			continue
 		if comp is ActivateInstanceConfig:
 			# 触发事件类型住在 comp.triggers[i].event_kind (TriggerConfig.event_kind)
 			var evt_kind := ""
@@ -285,7 +287,7 @@ func _check_advisory(config: AbilityConfig, source_code: String) -> void:
 
 	var exempt_cant_act: bool = config.config_id in ADVISORY_CANT_ACT_EXEMPT
 	var exempt_silence: bool = config.config_id in ADVISORY_SILENCE_EXEMPT
-	for au in config.active_use_components:
+	for au in config.get_active_use_configs():
 		# balance: cooldown (仅检查已声明的 timed_cooldown cost)
 		for cost in au.costs:
 			if cost != null and ("type" in cost) and cost.type == "timed_cooldown" and ("_duration" in cost):

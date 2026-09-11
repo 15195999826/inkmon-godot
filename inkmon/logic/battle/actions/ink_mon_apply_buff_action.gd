@@ -1,5 +1,5 @@
 class_name InkMonApplyBuffAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 var _buff_config: AbilityConfig

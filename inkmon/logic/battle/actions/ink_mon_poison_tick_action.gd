@@ -1,5 +1,5 @@
 class_name InkMonPoisonTickAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 func _init() -> void:

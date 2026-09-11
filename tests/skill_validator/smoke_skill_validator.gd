@@ -91,7 +91,7 @@ func _part_b_all_builtin_skills() -> void:
 	var projectile_expected := ["skill_fireball", "skill_precise_shot", "skill_chain_lightning"]
 
 	for ability: AbilityConfig in abilities:
-		if ability.active_use_components.is_empty():
+		if ability.get_active_use_configs().is_empty():
 			continue  # 纯被动 / buff 不走 active-skill validator 路径
 		active_count += 1
 

@@ -1,5 +1,5 @@
 class_name InkMonStartMoveAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 var _target_coord: DictResolver

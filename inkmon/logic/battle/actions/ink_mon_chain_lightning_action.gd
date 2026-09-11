@@ -1,5 +1,5 @@
 class_name InkMonChainLightningAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 var _base_damage: FloatResolver

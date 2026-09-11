@@ -1,5 +1,5 @@
 class_name InkMonHealAction
-extends Action.PrimitiveAction
+extends Action.BaseAction
 
 
 var _heal_amount: FloatResolver
