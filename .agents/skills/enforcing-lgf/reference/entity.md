@@ -23,7 +23,7 @@ Base entity class. All game entities extend Actor.
 - `position: Vector3` — Read-only; override `_get_position() -> Vector3` in subclasses (default `Vector3.ZERO`)
 
 **Lifecycle:**
-- `is_pre_event_responsive() -> bool` — Default `true`; override so an actor in an unresponsive state (dead/silenced/stunned) opts out of PreEvent handler dispatch for this instant. Other dispatch paths (POST event / tick / receive_event) are unaffected (Actor.gd:58-59)
+- `is_event_responsive(event_dict: Dictionary, phase: String) -> bool` — Default `true`. Asked before a pre / post handler registered for this actor rebuilds its context (`phase` is `EventPhase.PHASE_PRE` / `PHASE_POST`); `false` skips that handler for this event. Override so an unresponsive actor (dead / silenced / stunned) opts out, optionally per event (hex keeps a dead actor responsive to its own `death` and to `damage` targeting it). Ticks and `AbilitySet.receive_event` directed deliveries don't ask it — the audience is decided by registration, liveness by this hook
 - `on_spawn() -> void` — Empty virtual hook called at the end of `add_actor()`; override in subclasses
 - `on_despawn() -> void` — Called when actor is removed
 - `add_despawn_listener(callback: Callable) -> Callable` — Returns unsubscribe function
@@ -66,7 +66,7 @@ project code can still write `actor.attribute_set.atk` without the base shadowin
 - `mark_dead() -> bool` — Explicit latch (damage settled outside the hp read); returns whether it was the first time
 - `set_death_latch(value: bool) -> void` — The **only** way to unlatch. "Revive from hp" / "rebuild downed state on load" are project rules core does not define — but the project shouldn't have to poke the base class's private field either (inkmon's `sync_downed_state()` calls this)
 - `is_dead() -> bool`
-- `is_pre_event_responsive() -> bool` — `not _is_dead`; still a project-overridable hook (a death-rattle passive that must fire after death overrides it back to `true`)
+- `is_event_responsive(event_dict: Dictionary, phase: String) -> bool` — `not _is_dead`; still a project-overridable hook (hex's `HexBattleActor` lets a dead actor answer its own `death` and `damage` targeting it — death rattles, and thorns on the killing blow)
 
 **Team:** `team_id: int` (-1 = unassigned), `set_team_id(id)` (also syncs the string `_team`),
 `get_team_id()`, and `_get_team_int() -> team_id` for recording. A BattleActor that never calls
@@ -140,7 +140,7 @@ Individual gameplay session containing actors and systems.
 **Properties:**
 - `id: String`
 - `type: String` — Instance type (default "instance")
-- `event_processor: EventProcessor` — This instance's pre-handler registry, recursion depth and traces
+- `event_processor: EventProcessor` — This instance's pre / post handler registries, recursion depth and traces
 - `event_collector: EventCollector` — This instance's recording queue; actions push through `ctx.event_collector`, the battle procedure flushes it once per frame
 
 **Construction:**
@@ -152,14 +152,14 @@ Individual gameplay session containing actors and systems.
 - `is_running() -> bool`
 
 **Lifecycle:**
-- `start() -> void` / `pause() -> void` / `resume() -> void` / `end() -> void`
+- `start() -> void` / `pause() -> void` / `resume() -> void` / `end() -> void` — `end()` runs `on_end()`, despawns actors, unregisters systems, then clears the processor's pre / post handler tables (`remove_all_handlers`; abilities are not revoked)
 - `tick(_dt: float) -> void` — Override for custom tick logic
 - `base_tick(dt: float) -> void` — Ticks registered systems only (gameplay_instance.gd:30-36). Does NOT tick abilities — `ability_set.tick()` / `tick_executions()` are called per-actor by example-layer `BattleProcedure` subclasses (e.g. `HexBattleProcedure`), not by this base class
 - `on_start()` / `on_pause()` / `on_resume()` / `on_end()` — Override hooks
 
 **Actor Management:**
-- `add_actor(actor: Actor) -> Actor`
-- `remove_actor(actor_id: String) -> bool`
+- `add_actor(actor: Actor) -> Actor` — Assigns the id, records the actor's post-dispatch order (`event_processor.note_actor_added`), then `_on_id_assigned()` / `on_spawn()`
+- `remove_actor(actor_id: String) -> bool` — `on_despawn()`, drops it from the registry, then unregisters its pre / post handlers (`event_processor.note_actor_removed`)
 - `get_actor(actor_id: String) -> Actor`
 - `get_actors() -> Array[Actor]`
 - `get_actors_by_type(actor_type: String) -> Array[Actor]`

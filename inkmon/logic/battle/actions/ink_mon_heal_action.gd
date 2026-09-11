@@ -16,7 +16,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: InkMonWorldGI = ctx.instance
 	var heal_amount := _heal_amount.resolve(ctx)
 	var all_events: Array[Dictionary] = []
-	var alive_actor_ids := battle.get_alive_actor_ids() if battle != null else [] as Array[String]
 
 	for target_id in get_targets(ctx):
 		var target_actor := battle.get_unit_actor(target_id) if battle != null else null
@@ -29,7 +28,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var event_dict: Dictionary = ctx.event_collector.push(event.to_dict())
 		all_events.append(event_dict)
 		print("  [InkMonHeal] %s HP %.1f -> %.1f" % [target_actor.get_display_name(), old_hp, new_hp])
-		if alive_actor_ids.size() > 0:
-			battle.event_processor.process_post_event(event_dict, alive_actor_ids)
+		battle.event_processor.process_post_event(event_dict)
 
 	return ActionResult.create_success_result(all_events, { "heal_amount": heal_amount })

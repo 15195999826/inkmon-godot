@@ -293,7 +293,7 @@ func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 
 `GameWorld`（Autoload）只是 instance 注册表：`create_instance(instance)` 注册并原样返回、`get_instance_of_actor` / `get_actor` 按 id 反查、`tick_all`，唯一生命周期动词是幂等的 `shutdown()`（场景 / 测试两端各调一次）。框架按 owner id 反查 instance 时直接引用这个 Autoload，是合理的设计权衡，不要尝试解耦。
 
-事件设施归 `GameplayInstance`：`instance.event_processor`（pre handler 注册表 / 递归深度 / trace）与 `instance.event_collector`（录像事件队列）随 instance 生灭，两个 instance 互不可见；`ExecutionContext.event_collector` 与 `AbilityLifecycleContext.event_processor` 是从 `instance` 派生的只读属性；`BattleRecorder` 构造时注入 world 的 collector。world 结束时仍在进行的战斗由 `WorldGameplayInstance.end()` 中止（不发信号、不产出录像）；`finish()` / `abort()` 都交还 world 的战斗槽位。
+事件设施归 `GameplayInstance`：`instance.event_processor`（pre / post handler 注册表 / 递归深度 / trace）与 `instance.event_collector`（录像事件队列）随 instance 生灭，两个 instance 互不可见；`ExecutionContext.event_collector` 与 `AbilityLifecycleContext.event_processor` 是从 `instance` 派生的只读属性；`BattleRecorder` 构造时注入 world 的 collector。world 结束时仍在进行的战斗由 `WorldGameplayInstance.end()` 中止（不发信号、不产出录像）；`finish()` / `abort()` 都交还 world 的战斗槽位。
 
 ```gdscript
 # ✅ 构造 → 注册 → start / add_actor / grant（context 按 owner id 反查 instance，注册前为 null）
@@ -398,7 +398,7 @@ EventProcessor.process_pre_event()
 MutableEvent 返回
     ↓ Action 检查是否取消
 EventProcessor.process_post_event()
-    ↓ 广播给所有存活 Actor
+    ↓ 派发给订阅了该 kind 的 ability handler（owner 的 is_event_responsive 放行才执行）
     ↓ 触发被动技能
 instance.event_collector.push()
 ```

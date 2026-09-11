@@ -785,13 +785,6 @@ func get_all_units() -> Array[InkMonUnitActor]:
 	return result
 
 
-func get_alive_actor_ids() -> Array[String]:
-	var result: Array[String] = []
-	for actor in get_alive_actors():
-		result.append(actor.get_id())
-	return result
-
-
 func get_alive_actors() -> Array[InkMonUnitActor]:
 	var result: Array[InkMonUnitActor] = []
 	for actor in get_all_units():
@@ -894,7 +887,7 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 func _reset_battle_state() -> void:
 	for actor in get_all_units():
 		var aid := actor.get_id()
-		event_processor.remove_handlers_by_owner_id(aid)
+		# handler 注销在 reset_battle_runtime (换 ability_set 前) 与 remove_actor 里各做一次, 这里不重复。
 		if roster.has(actor):
 			InkMonBattleSetup.clear_actor_footprint(self, actor)
 			actor.reset_battle_runtime()

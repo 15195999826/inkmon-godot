@@ -15,7 +15,7 @@ Condition 是**事件到达时的 reactive 判断**, 适合"该不该响应这�
 | 配置语义 | 时机 | 放哪 |
 |---|---|---|
 | Cast 前过滤候选 (range / faction / 目标种类 / LOS / min_range) | cast 前, 由 AI/UI 查询 | **ability metadata** 或 ability tag |
-| 事件到达时是否响应 (反伤是否触发 / buff 是否叠层 / 伤害类型筛选) | 事件 broadcast 时 reactive 判断 | **Condition** |
+| 事件到达时是否响应 (反伤是否触发 / buff 是否叠层 / 伤害类型筛选) | 事件派发时 reactive 判断 | **Condition** |
 | 物理参数 (push 阻挡 / blocks_path / 撞击伤害) | 系统查询时 | **plain data 字段** (如 `CollisionProfile`) |
 | Action 行为 (打谁 / 打多少 / 谁受益) | 执行时 | **Action 子类** |
 | 资源消耗 (mp / cd / 消耗物) | cast 时 | **Cost** |

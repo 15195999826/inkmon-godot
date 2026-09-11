@@ -25,7 +25,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 	var battle: InkMonWorldGI = ctx.instance
 	var targets := get_targets(ctx)
 	var all_events: Array[Dictionary] = []
-	var alive_actor_ids := battle.get_alive_actor_ids() if battle != null else [] as Array[String]
 	var base_damage := _damage_resolver.resolve(ctx)
 	var element := _element_resolver.resolve(ctx)
 	var damage_type_str := InkMonBattleEvents.damage_type_to_string(_damage_type)
@@ -61,8 +60,8 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			source_actor_id
 		)
 		event.actual_life_damage = final_damage
-		var damage_result := InkMonBattleDamageUtils.apply_damage(event, alive_actor_ids, ctx, battle)
+		var damage_result := InkMonBattleDamageUtils.apply_damage(event, ctx, battle)
 		all_events.append_array(damage_result.all_events)
-		InkMonBattleDamageUtils.broadcast_post_damage(damage_result.damage_event_dict, alive_actor_ids, battle)
+		InkMonBattleDamageUtils.broadcast_post_damage(damage_result.damage_event_dict, battle)
 
 	return ActionResult.create_success_result(all_events, { "base_damage": base_damage })

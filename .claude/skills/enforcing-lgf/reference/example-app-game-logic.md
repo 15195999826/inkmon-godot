@@ -215,13 +215,14 @@ All Actions are **stateless shared instances** — state lives in `ExecutionCont
      b. push DamageEvent
      c. deduct HP by actual_life_damage (not the raw damage value)
      d. log via battle.logger
-     e. broken-shield callbacks (ShieldBrokenEvent + on_break + ability.expire) —
+     e. broken-shield callbacks (ShieldBrokenEvent + on_break + immediate revoke_ability) —
         BEFORE death check, so exploding-shield callbacks still see live owner context
      f. death check → DeathEvent → process_post_event → clear grid footprint
         (actor stays in world dead; "dead" != "removed", so death VFX can still play)
 4. on_hit / on_critical / on_kill callbacks fire (see Callback Chain Pattern below)
-5. HexBattleDamageUtils.broadcast_post_damage() — separate call so the caller
-   controls timing relative to the callbacks in step 4
+5. HexBattleDamageUtils.broadcast_post_damage(damage_event_dict, battle) — separate call so the caller
+   controls timing relative to the callbacks in step 4 (post dispatch to abilities subscribed to
+   `damage`; the killed target still answers — HexBattleActor.is_event_responsive)
 ```
 
 **There is no random crit roll.** `is_critical` is decided entirely by the PreBasicAttackEvent pipeline (step 1, basic-attack-only) and defaults to `false` for every other damage source (skills, DOTs, reflect, fire tile, totem) — straight from the source docstring:
@@ -487,7 +488,7 @@ Project-specific selectors in `logic/target_selectors.gd` (`class_name HexBattle
 ### Utility Patterns
 
 - **Shared flow extraction**: `HexBattleDamageUtils` (`logic/utils/hex_battle_damage_utils.gd`, all-static) extracts the shield-resolve → push → deduct-HP → log → broken-shield-callbacks → death-check flow shared by `DamageAction` and `ReflectDamageAction`
-- **Separated broadcast**: `broadcast_post_damage()` is a separate static call so the caller controls timing — `DamageAction` needs on_hit/on_critical/on_kill callbacks to run *before* the post-damage broadcast; `ReflectDamageAction` posts immediately
+- **Separated post dispatch**: `broadcast_post_damage(damage_event_dict, battle)` is a separate static call so the caller controls timing — `DamageAction` needs on_hit/on_critical/on_kill callbacks to run *before* the post-damage dispatch; `ReflectDamageAction` posts immediately
 - **Type-safe state access**: `HexBattleGameStateUtils` (`logic/utils/hex_battle_game_state_utils.gd`) — `world(ctx)` narrows `ctx.instance` to `HexWorldGameplayInstance` (asserts on mismatch), plus a display-name lookup
 - **Shared skill helpers** (`logic/abilities/shared/skill_helpers.gd`, `class_name HexBattleSkillHelpers`): pass `ability_activate_filter` / `projectile_hit_filter` as **function references** (no parentheses) to `TriggerConfig`; **call** `target_coord_from_event()` / `owner_position_resolver()` / `target_position_resolver()` / `caster_atk_damage(mult)` (each returns a fresh Resolver). `caster(ctx) -> CharacterActor` replaces the five-line "owner_id → null check → get_actor → is CharacterActor → cast" boilerplate that used to be copied into every resolver/action — note it deliberately does **not** check `is_dead()`, since some call sites only want the coordinate
 

@@ -1,5 +1,5 @@
 {
-  "last_commit": "8af9821",
-  "last_update": "2026-09-11",
-  "note": "LGF core 重构 P4（事件设施归 GameplayInstance）手动增量：last_commit 记 addons SHA。本轮更新 SKILL.md §4 与 reference/{abilities,actions,conventions-detail,entity,events,stdlib,example-app-game-logic}.md：GameplayInstance 自持 event_processor / event_collector，ExecutionContext.event_collector 与 AbilityLifecycleContext.event_processor 为派生只读属性；GameWorld 收成注册表（shutdown / create_instance(instance)）；BattleRecorder 注入 collector + get_event_collector、RecordingContext 两参、ProjectileSystem 从 get_instance() 取 collector；WorldGameplayInstance.end() 中止进行中的战斗、finish() / abort() 交还战斗槽位、BattleProcedure.abort() / BattleRecorder.abort_recording()；context 存活计数 get_live_count()；EventProcessor.set_trace_level()。/update-lgf-skill 命令本机仍不可用，此处为手动等价执行。"
+  "last_commit": "78f8cc5",
+  "last_update": "2026-09-12",
+  "note": "LGF core 重构 P5（Post 事件订阅制）手动增量：last_commit 记 addons SHA。本轮更新 SKILL.md §4（Post events are subscriptions 与检查清单）与 reference/{events,entity,abilities,conventions-detail,example-app-game-logic,cast-eligibility-vs-condition}.md：process_post_event 无观众参数，Ability 按 component 声明的 kind 注册 PostHandlerRegistration、remove_effects 注销；DIRECT_DELIVERY_KINDS（abilityActivate / abilityGranted）只走 AbilitySet.receive_event；派发顺序 = owner 进 registry 的顺序 → 注册顺序，pre / post 派发都遍历快照，注销闭包只捕获注册表与 id；Actor.is_event_responsive(event_dict, phase) 取代 is_pre_event_responsive；AbilityLifecycleContext.rebuild_for_handler / for_ability；EventProcessor.note_actor_added / note_actor_removed / remove_all_handlers。/update-lgf-skill 命令本机仍不可用，此处为手动等价执行。"
 }

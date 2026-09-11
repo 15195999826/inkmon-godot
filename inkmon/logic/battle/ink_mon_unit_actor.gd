@@ -275,7 +275,11 @@ func reset_atb() -> void:
 ## 持久 roster actor 跨战斗复用前的战斗运行时重置: 全新 ability_set (避免上一场授予残留导致重复 grant) +
 ## 清 ability 引用 + 归零 ATB。**不动** attribute_set (HP carryover) / 持久切片 (level/exp/装备)。
 ## 调用方 (GI) 须在 actor 已注册 (get_id 有效) 后调, 随后 equip_abilities 重新授予。
+## 旧集的 ability 不经 revoke 直接丢弃, 它们注册在 processor 上的 pre / post handler 不会自己注销 —— 换集前按 owner 清掉。
 func reset_battle_runtime() -> void:
+	var owner_instance := get_owner_gameplay_instance()
+	if owner_instance != null:
+		owner_instance.event_processor.remove_handlers_by_owner_id(get_id())
 	ability_set = InkMonBattleAbilitySet.create_battle_ability_set(get_id(), attribute_set)
 	_move_ability_id = ""
 	_basic_attack_ability_id = ""

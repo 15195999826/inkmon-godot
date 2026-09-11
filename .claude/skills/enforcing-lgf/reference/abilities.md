@@ -40,8 +40,8 @@ Runtime ability instance with lifecycle management and component execution.
 **Components:**
 - `get_all_components() -> Array[AbilityComponent]`
 - `tick(dt: float) -> void`
-- `apply_effects(context: AbilityLifecycleContext) -> void`
-- `remove_effects() -> void`
+- `apply_effects(context: AbilityLifecycleContext) -> void` — Runs every component's `on_apply`, then registers one post handler per kind its components declare (`get_post_event_kinds()`, directed-delivery kinds excluded) on `context.event_processor`, owned by `context.owner_actor_id` (the AbilitySet's owner, same as `PreEventComponent`); no processor (owner not registered) → nothing is registered. An `on_apply` that expires the ability stops it there: later components don't apply and nothing is registered
+- `remove_effects() -> void` — Unregisters those post handlers first, then runs `on_remove` with a context from `AbilityLifecycleContext.for_ability(self)`
 - `expire(reason: String) -> void` — Idempotent (a second call on an already-expired ability returns early); order is `cancel_all_executions()` → `remove_effects()` → state becomes `STATE_EXPIRED`, so a revoked/expired buff's in-flight executions still run their `on_cancel` cleanup
 
 **Stacks** (`core/abilities/core/ability.gd:285-341`):
@@ -71,7 +71,7 @@ While disabled, `receive_event()` and `tick_executions()` short-circuit at the t
 - `tick_executions(dt: float) -> Array[String]`
 
 **Events:**
-- `receive_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> void`
+- `receive_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool` — Hands the event to every active component and returns whether any triggered. Reached from the ability's own post handlers (post dispatch) and from `AbilitySet.receive_event` (directed delivery)
 - `add_triggered_listener(callback: Callable) -> Callable`
 - `add_execution_activated_listener(callback: Callable) -> Callable`
 
@@ -129,7 +129,7 @@ Container for Abilities with tag management and grant/revoke operations.
 - `bind_owner(actor_id: String) -> void` — Sets `owner_actor_id` **and** `tag_container.owner_id` together. The AbilitySet is built before the actor has an id, so both copies start out empty and must be re-pointed at once or they drift. (`tag_container.owner_id` currently has no readers — it is the container's own record of whose it is, not a bug this method fixes.) `BattleActor._on_id_assigned()` calls it
 
 **Grant/Revoke:**
-- `grant_ability(ability: Ability) -> void` — Always delivers `AbilityGranted` synchronously to this ability_set's own abilities after grant (not the global event processor). Whether anything self-activates is declared by the ability's own triggers (`TriggerConfig.GRANTED_SELF`), never by the call site
+- `grant_ability(ability: Ability) -> void` — Always delivers `AbilityGranted` synchronously to this ability_set's own abilities after grant (a directed delivery, `EventProcessor.DIRECT_DELIVERY_KINDS` — never through `process_post_event`). Whether anything self-activates is declared by the ability's own triggers (`TriggerConfig.GRANTED_SELF`), never by the call site
 - `revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, expire_reason: String = "") -> bool`
 - `revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_REASON_MANUAL) -> int`
 - `revoke_abilities_by_ability_tag(tag: String, reason: String = REVOKE_REASON_MANUAL) -> int`
@@ -158,7 +158,7 @@ Container for Abilities with tag management and grant/revoke operations.
 - `_is_blocking_execution(ability: Ability) -> bool` — Virtual, default `true` (everything blocks). Projects override it to express "always-on abilities don't freeze action" (both `BattleAbilitySet` and `InkMonBattleAbilitySet` use `not ability.has_ability_tag("intrinsic")`)
 - `tick(dt: float, logic_time: float = -1.0) -> void`
 - `tick_executions(dt: float) -> Array[String]`
-- `receive_event(event_dict: Dictionary) -> void` — One lifecycle context per ability; the owner instance is looked up once per call
+- `receive_event(event_dict: Dictionary) -> void` — **Directed delivery** to every ability in this set (activation requests, the grant's `AbilityGranted`); it doesn't ask `is_event_responsive`, and cross-actor reactions go through `EventProcessor.process_post_event` instead. One lifecycle context per ability; the owner instance is looked up once per call. Like `tick` / `tick_executions` it walks a snapshot of the abilities: a revoke inside the pass doesn't skip the next ability, and an ability granted inside it is processed from the next pass on
 - `get_owner_instance() -> GameplayInstance` — `GameWorld.get_instance_of_actor(owner_actor_id)`, re-resolved on every call (`null` when the owner isn't registered). Deliberately not cached or bound: the set is built before the actor has an id and projects rebuild it wholesale (inkmon `reset_battle_runtime`), so a bind-once reference would be missed on those paths
 - `get_logic_time() -> float`
 
@@ -180,6 +180,7 @@ Base class for all ability components with lifecycle hooks.
 - `on_remove(context: AbilityLifecycleContext) -> void`
 - `on_tick(dt: float) -> void`
 - `on_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool`
+- `get_post_event_kinds() -> Array[String]` — Kinds this component wants from post dispatch (default `[]`; `NoInstanceComponent` / `ActivateInstanceComponent` return their triggers' kinds, deduped by `static trigger_event_kinds(triggers)`). A component that overrides `on_event` without declaring kinds only receives directed deliveries
 - `on_stacks_changed(context: AbilityLifecycleContext, old_stacks: int, new_stacks: int) -> void` — Fires after `Ability.add_stacks`/`remove_stacks`/`set_stacks` actually changes `stacks` (no-op call if clamped to the same value). Must not call those methods again from inside the hook — `Ability` asserts against re-entrant nesting.
 - `on_ability_stack_refreshed() -> void` — Fires when `OVERFLOW_REFRESH` caps a stack add; duration-based components use it to reset their remaining time atomically with the stack refresh
 - `on_passive_disabled(context: AbilityLifecycleContext) -> void` — Phase B2 Break: fires once when the ability transitions into disabled (its first `add_disabled_source`). Only externally-registered components implement this (e.g. `StatModifierComponent` retracts its attribute modifiers); `NoInstanceComponent`/`ActivateInstanceComponent` must not, since `Ability` already short-circuits their dispatch
@@ -208,9 +209,13 @@ Context passed through ability lifecycle methods. **Stack-scoped**: never store 
 - `ability: Ability`
 - `ability_set: AbilitySet`
 - `instance: GameplayInstance` — The owner's instance, looked up by `owner_actor_id` (5th and last constructor argument); `null` when the owner isn't registered in `GameWorld`
-- `event_processor: EventProcessor` — Derived read-only: `instance.event_processor`, `null` when `instance` is `null`; assigning to it asserts. Every construction point (dispatch, grant, `can_activate`, on_remove / stacks / Break hooks, PreEvent rebuild) therefore gets the same processor
+- `event_processor: EventProcessor` — Derived read-only: `instance.event_processor`, `null` when `instance` is `null`; assigning to it asserts. Every construction point (directed delivery, grant, `can_activate`, on_remove / stacks / Break hooks, pre / post handler rebuild) therefore gets the same processor
 
 **Live count:** `static get_live_count() -> int` — Live instances, counted in every build (`_init` increments, `NOTIFICATION_PREDELETE` decrements). Contexts are stack-scoped, so tests assert the count is back to its baseline once the call returns (release test per case, hex `smoke_skill_scenarios` and inkmon `smoke_m1_battle` at the end)
+
+**Factories** (registry lookups by owner id; `AbilitySet` builds its own contexts directly — it is the set, so only the instance is looked up):
+- `static rebuild_for_handler(owner_id: String, ability_id: String, event_dict: Dictionary, phase: String) -> AbilityLifecycleContext` — Pre / post handler rebuild: instance → actor → `actor.is_event_responsive(event_dict, phase)` → AbilitySet → ability (not expired); `null` if any step fails, and the handler skips
+- `static for_ability(ability: Ability) -> AbilityLifecycleContext` — on_remove / stacks / Break hooks: never `null`; `instance` is `null` when the owner id resolves to no registered instance, `attribute_set` / `ability_set` are `null` when the owner isn't in that instance or isn't a `BattleActor`
 
 ---
 

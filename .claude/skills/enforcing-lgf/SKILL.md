@@ -135,6 +135,7 @@ Debug: `logic_game_framework/debug/action_state_check = true` in Project Setting
 - **Contexts are stack-scoped**: never store a context (or `context.instance`) in a Component / Ability / Action / ExecutionInstance field, and never put an instance or actor into `execution_state`. `instance` is a strong reference — caching it closes a cycle RefCounted can't collect.
 - **Self-activation is declared, not passed**: `grant_ability(ability)` always delivers `AbilityGranted` to the owner's set; whether an ability self-activates is decided by its own trigger (`TriggerConfig.GRANTED_SELF`).
 - **Event infrastructure lives on the instance**: `instance.event_processor` / `instance.event_collector`; `ctx.event_collector` and `context.event_processor` are read-only views derived from `instance`. `GameWorld` is only the instance registry (no `event_processor` / `event_collector` / `init` / `destroy`; its single lifecycle verb is the idempotent `shutdown()`).
+- **Post events are subscriptions**: `process_post_event(event_dict)` takes no audience. An ability subscribes in `apply_effects` for every kind its components' triggers name (`get_post_event_kinds()`) and unsubscribes in `remove_effects`; a component that overrides `on_event` without declaring kinds only gets directed deliveries. Whether a dead / stunned owner still reacts is the actor's `is_event_responsive(event_dict, phase)` (pre and post), never a list the caller builds. `abilityActivate` / `abilityGranted` are directed (`EventProcessor.DIRECT_DELIVERY_KINDS`): deliver them with `ability_set.receive_event`, never `process_post_event`.
 
 ---
 
@@ -216,3 +217,4 @@ Before considering implementation complete, verify:
 - [ ] No attempts to decouple `GameWorld` Autoload dependency
 - [ ] `ctx.instance` narrowed through the project's `world(ctx)` for `ExecutionContext` must-have reads (lifecycle contexts and may-be-absent reads: typed assign + null check); no context / `instance` cached in fields or `execution_state`
 - [ ] Self-activation on grant is declared with `TriggerConfig.GRANTED_SELF`, not by how `grant_ability` is called
+- [ ] Post events go through `process_post_event(event_dict)` with no audience list; death policy lives in the actor's `is_event_responsive`; activation requests go through `ability_set.receive_event`

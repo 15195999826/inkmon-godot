@@ -228,6 +228,10 @@ func _assert_battle_on_live_roster() -> String:
 		return "battle win did not award gold to player_actor"
 	if lead.exp <= exp_before:
 		return "battle did not grant exp to live roster actor"
+	# lead 的伤害公式 / 刻印被动注册在 world 的 event_processor 上; 换集前按 owner 注销, 跨场不累积。
+	var lead_registrations := _registration_count(gi.event_processor, lead.get_id())
+	if lead_registrations == 0:
+		return "lead should hold event handler registrations after a battle"
 
 	# 持久 world GI 复用跑第二场 (reset-on-start; roster 留 registry + HP carryover)。
 	gi.request_training_battle()
@@ -236,6 +240,9 @@ func _assert_battle_on_live_roster() -> String:
 		return "reused world GI: second live-roster battle did not finish"
 	if str(gi.get_result_summary().get("winner_team", "")) != "left":
 		return "reused world GI: second battle expected left winner"
+	var reused_registrations := _registration_count(gi.event_processor, lead.get_id())
+	if reused_registrations != lead_registrations:
+		return "reused world GI: lead's handler registrations accumulated across battles (%d -> %d)" % [lead_registrations, reused_registrations]
 	return ""
 
 
@@ -346,6 +353,17 @@ func _assert_in_session_evolution_equips_upgraded_skill() -> String:
 
 func _new_gi() -> InkMonWorldGI:
 	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
+
+
+## processor 的 pre / post 两张注册表里属于 owner_id 的注册条数。
+static func _registration_count(processor: EventProcessor, owner_id: String) -> int:
+	var count := 0
+	for table: Dictionary in [processor._pre_handlers, processor._post_handlers]:
+		for handlers: Array in table.values():
+			for registration: RefCounted in handlers:
+				if registration.get("owner_id") == owner_id:
+					count += 1
+	return count
 
 
 func _has_key_recursive(value: Variant, key: String) -> bool:
