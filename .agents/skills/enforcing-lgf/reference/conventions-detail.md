@@ -289,9 +289,24 @@ func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 
 ---
 
-## 7. GameWorld 硬依赖
+## 7. GameWorld 与 instance 的分工
 
-框架内多处直接引用 `GameWorld` Autoload。这是合理的设计权衡，不视为缺陷，不要尝试解耦。
+`GameWorld`（Autoload）只是 instance 注册表：`create_instance(instance)` 注册并原样返回、`get_instance_of_actor` / `get_actor` 按 id 反查、`tick_all`，唯一生命周期动词是幂等的 `shutdown()`（场景 / 测试两端各调一次）。框架按 owner id 反查 instance 时直接引用这个 Autoload，是合理的设计权衡，不要尝试解耦。
+
+事件设施归 `GameplayInstance`：`instance.event_processor`（pre handler 注册表 / 递归深度 / trace）与 `instance.event_collector`（录像事件队列）随 instance 生灭，两个 instance 互不可见；`ExecutionContext.event_collector` 与 `AbilityLifecycleContext.event_processor` 是从 `instance` 派生的只读属性；`BattleRecorder` 构造时注入 world 的 collector。world 结束时仍在进行的战斗由 `WorldGameplayInstance.end()` 中止（不发信号、不产出录像）；`finish()` / `abort()` 都交还 world 的战斗槽位。
+
+```gdscript
+# ✅ 构造 → 注册 → start / add_actor / grant（context 按 owner id 反查 instance，注册前为 null）
+var world := GameWorld.create_instance(HexWorldGameplayInstance.new()) as HexWorldGameplayInstance
+world.start()
+
+# ✅ 事件设施经 instance 拿
+var battle := HexBattleGameStateUtils.world(ctx)
+var mutable := battle.event_processor.process_pre_event(pre_event.to_dict())
+ctx.event_collector.push(event.to_dict())  # 派生自 ctx.instance
+
+# ❌ GameWorld.event_processor / GameWorld.event_collector / GameWorld.init() / GameWorld.destroy()（已删除）
+```
 
 ---
 
@@ -302,7 +317,8 @@ func(mutable: MutableEvent, ctx: AbilityLifecycleContext) -> Intent:
 ```mermaid
 graph TB
     subgraph "Core"
-        World[GameWorld<br/>Autoload]
+        World[GameWorld<br/>Autoload registry]
+        Instance[GameplayInstance<br/>owns EventProcessor/EventCollector]
         Entity[Entity System<br/>Actor/System]
         Attributes[Attribute System<br/>RawAttributeSet]
         Abilities[Ability System<br/>Ability/AbilitySet]
@@ -324,8 +340,9 @@ graph TB
         Frontend[hex-atb-battle/frontend<br/>Presentation Layer]
     end
 
-    World --> Entity
-    World --> Events
+    World --> Instance
+    Instance --> Entity
+    Instance --> Events
     Entity --> Abilities
     Abilities --> Attributes
     Abilities --> Tags
@@ -354,7 +371,7 @@ Action.execute()
     ↓ Pre-Event 处理（减伤/免疫）
 原子操作（push事件 + 应用状态）
     ↓ Post-Event 处理（反伤/吸血）
-EventCollector 收集（录像）
+instance.event_collector 收集（录像）
 ```
 
 **属性修改流程：**
@@ -383,5 +400,5 @@ MutableEvent 返回
 EventProcessor.process_post_event()
     ↓ 广播给所有存活 Actor
     ↓ 触发被动技能
-EventCollector.push()
+instance.event_collector.push()
 ```

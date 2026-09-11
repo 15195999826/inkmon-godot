@@ -33,7 +33,7 @@ func _run() -> String:
 	if gen_status != "":
 		return gen_status
 
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	gi.mission_battle_triggered.connect(func(node_id: int) -> void:
@@ -333,6 +333,4 @@ func _fail(message: String) -> String:
 
 
 func _new_gi() -> InkMonWorldGI:
-	return GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI

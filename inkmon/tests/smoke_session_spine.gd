@@ -18,7 +18,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	# adr/0003: load fixture items (item_NNNN) so new_game's catalog has real configs to equip/buy
 	# (stub fallback was removed; new_game's configure_domain reads this static cache).
 	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)
@@ -345,9 +345,7 @@ func _assert_in_session_evolution_equips_upgraded_skill() -> String:
 
 
 func _new_gi() -> InkMonWorldGI:
-	return GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 
 
 func _has_key_recursive(value: Variant, key: String) -> bool:

@@ -70,14 +70,14 @@ Modifier that dynamically tracks another attribute value.
 
 Projectile simulation with pluggable collision detection.
 
+**Construction:** `_init(detector: CollisionDetector = null, auto_remove_val: bool = true)` — No collector: projectile events go to the owning instance's collector (`get_instance().event_collector`), and nothing is pushed while the system isn't registered or its instance is gone
+
 **Properties:**
 - `collision_detector: CollisionDetector`
-- `event_collector: EventCollector`
 - `pending_removal: Dictionary` — Projectile ids marked for removal this tick; flushed (actors removed from the instance) at the end of `tick()` when `auto_remove` is true
 - `auto_remove: bool`
 
 **Methods:**
-- `set_event_collector(collector: EventCollector) -> void`
 - `tick(actors: Array[Actor], dt: float) -> void`
 - `get_active_projectiles(actors: Array[Actor]) -> Array[ProjectileActor]`
 - `get_pending_removal_ids() -> Dictionary` — Duplicate of `pending_removal`
@@ -107,16 +107,20 @@ Records battle events for replay.
 
 **Properties:** `is_recording: bool` / `current_frame: int`
 
+**Construction:** `_init(recorder_config: Dictionary, event_collector: EventCollector)` — `event_collector` is required: the owning world's collector (`BattleProcedure._start_recorder` passes `world.event_collector`)
+
 **Methods:**
 - `start_recording(world_snapshot: PlaybackData.WorldSnapshot, actors: Array[Actor]) -> void` — The single recording path. `world_snapshot` (the opening state playback starts from) is produced by the world side (`WorldGameplayInstance.capture_world_snapshot()`) and injected — the recorder never captures it itself. `actors` = the actors to subscribe change callbacks on (normally `world.get_recordable_actors()`); subscriptions turn attribute/tag/ability changes into events for replay consumers
 - `record_frame(frame: int, events: Array[Dictionary]) -> void`
 - `stop_recording(result = "") -> Dictionary`
+- `abort_recording() -> void` — Unsubscribes every actor subscription and drops the record without serializing it; no-op when not recording. Used when a world ends mid-battle (`BattleProcedure.abort`)
 - `export_json(result = "", pretty = true) -> String`
 - `get_timeline() -> Array[Dictionary]` — Returns frames recorded so far (`FrameData.to_dict()` each), without stopping the recording
 - `register_actor(actor: Actor) -> void` / `unregister_actor(actor_id, reason = "") -> void` — Mid-battle spawns/despawns; pushes `ActorSpawned`/`ActorDestroyed` events and (de)subscribes. `register_actor` de-dupes against its own subscription table, so re-registering an already-recorded actor is a no-op
 - `get_is_recording() -> bool` / `get_current_frame() -> int`
+- `get_event_collector() -> EventCollector` — The injected collector
 
-The recorder holds **no event buffer** — every event goes through `GameWorld.event_collector`, so the recorded order is the real call-stack order.
+The recorder holds **no event buffer** — every event goes through the injected `event_collector` (the same queue actions push to via `ctx.event_collector`), so the recorded order is the real call-stack order. `RecordingContext._init(actor_id, recorder)` reads that collector once from `recorder.get_event_collector()`, so high-frequency attribute callbacks push without a registry lookup.
 
 ### PlaybackData
 

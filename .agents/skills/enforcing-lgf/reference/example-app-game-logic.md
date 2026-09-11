@@ -153,7 +153,7 @@ func tick_once() -> void:
         _check_battle_end()
 
 # Covariant narrowing over the base class's WeakRef. A stored world field would cycle with
-# world._active_battle and leak the whole world when the battle ends outside world.tick().
+# world._active_battle while the battle runs, leaking the whole world on any exit that skips finish() / abort().
 func _get_world() -> HexWorldGameplayInstance:
     return super._get_world() as HexWorldGameplayInstance
 ```

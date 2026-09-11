@@ -107,7 +107,7 @@ var _wild_battle := false
 
 
 func _init(id_value: String = "") -> void:
-	super._init(id_value if id_value != "" else IdGenerator.generate("inkmon_world"))
+	super._init(id_value if id_value != "" else IdGenerator.generate("inkmon_world"), EventProcessorConfig.new(20))
 	type = "inkmon_world"
 	battle_finished.connect(_on_battle_finished)
 
@@ -894,8 +894,7 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 func _reset_battle_state() -> void:
 	for actor in get_all_units():
 		var aid := actor.get_id()
-		if GameWorld.event_processor != null:
-			GameWorld.event_processor.remove_handlers_by_owner_id(aid)
+		event_processor.remove_handlers_by_owner_id(aid)
 		if roster.has(actor):
 			InkMonBattleSetup.clear_actor_footprint(self, actor)
 			actor.reset_battle_runtime()

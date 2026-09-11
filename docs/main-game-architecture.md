@@ -172,7 +172,7 @@
 
 ## 6b. 场景入口 / 接线层
 
-- **薄场景 Node = 接线员**,不是 God object:只做 ① 开机(`GameWorld.init` + 建 world GI)② 接线(GI signal → UI view;玩家输入 → command)③ 切台(主世界 ↔ 战斗 ↔ NPC ↔ save)。
+- **薄场景 Node = 接线员**,不是 God object:只做 ① 开机(`GameWorld.shutdown()` 清空注册表 + 建 world GI 并 `create_instance` 注册)② 接线(GI signal → UI view;玩家输入 → command)③ 切台(主世界 ↔ 战斗 ↔ NPC ↔ save)。
 - **场景分层 = 两层**:外层 screen 路由 `InkMonMain`(主菜单:New Game / Continue 读最近档 / 出发档恢复"Return to Departure";`--dev-agent` 跳菜单直进;Host `_ready` 恒 new_game,continue/recover 由外层进游戏后再 load 覆盖);内层游戏导播 `InkMonWorldHost`(游戏内组装 + lifecycle),场景文件在 `inkmon/host/ink_mon_game.tscn`,由 repo 根的 `InkMonMain.tscn` instantiate。
 - `project.godot run/main_scene` = `res://InkMonMain.tscn`(repo 根);`scenes/Simulation.tscn` 退成纯 web 桥。
 

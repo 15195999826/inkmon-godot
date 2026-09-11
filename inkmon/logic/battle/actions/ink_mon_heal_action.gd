@@ -30,6 +30,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		all_events.append(event_dict)
 		print("  [InkMonHeal] %s HP %.1f -> %.1f" % [target_actor.get_display_name(), old_hp, new_hp])
 		if alive_actor_ids.size() > 0:
-			GameWorld.event_processor.process_post_event(event_dict, alive_actor_ids)
+			battle.event_processor.process_post_event(event_dict, alive_actor_ids)
 
 	return ActionResult.create_success_result(all_events, { "heal_amount": heal_amount })

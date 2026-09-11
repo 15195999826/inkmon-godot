@@ -65,13 +65,11 @@ func greet(name_arg: String) -> String:
 func run_battle() -> String:
 	print("\n[Godot] Starting battle simulation...")
 	
-	# 初始化 GameWorld
-	GameWorld.init()
+	# 清空 GameWorld 注册表（结束上一轮留下的 instance）
+	GameWorld.shutdown()
 	
-	# 使用 GameWorld 创建 HexDemoWorldGameplayInstance 实例
-	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		return HexDemoWorldGameplayInstance.new()
-	) as HexDemoWorldGameplayInstance
+	# 创建 HexDemoWorldGameplayInstance 并注册进 GameWorld
+	var battle := GameWorld.create_instance(HexDemoWorldGameplayInstance.new()) as HexDemoWorldGameplayInstance
 	battle.start({
 		"logging": false,  # 不保存日志文件
 		"recording": true,  # 启用录像

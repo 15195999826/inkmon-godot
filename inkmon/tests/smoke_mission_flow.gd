@@ -21,7 +21,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	gi.mission_ended.connect(_on_mission_ended)
@@ -124,6 +124,4 @@ func _fail(message: String) -> String:
 
 
 func _new_gi() -> InkMonWorldGI:
-	return GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI

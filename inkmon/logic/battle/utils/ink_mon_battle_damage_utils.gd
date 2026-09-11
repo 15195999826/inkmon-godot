@@ -16,7 +16,7 @@ static func apply_damage(
 	var result := DamageResult.new()
 	var target_id := damage_event.target_actor_id
 	var source_actor_id := damage_event.source_actor_id
-	var target_actor := battle.get_battle_actor(target_id) if battle != null else null
+	var target_actor := battle.get_battle_actor(target_id)
 
 	var damage_dict: Dictionary = ctx.event_collector.push(damage_event.to_dict())
 	result.damage_event_dict = damage_dict
@@ -39,9 +39,8 @@ static func apply_damage(
 		result.all_events.append(death_dict)
 		result.target_killed = true
 		if alive_actor_ids.size() > 0:
-			GameWorld.event_processor.process_post_event(death_dict, alive_actor_ids)
-		if battle != null:
-			InkMonBattleSetup.clear_actor_footprint(battle, target_actor)
+			battle.event_processor.process_post_event(death_dict, alive_actor_ids)
+		InkMonBattleSetup.clear_actor_footprint(battle, target_actor)
 
 	return result
 
@@ -52,4 +51,4 @@ static func broadcast_post_damage(
 	battle: InkMonWorldGI
 ) -> void:
 	if alive_actor_ids.size() > 0:
-		GameWorld.event_processor.process_post_event(damage_event_dict, alive_actor_ids)
+		battle.event_processor.process_post_event(damage_event_dict, alive_actor_ids)

@@ -85,10 +85,8 @@ func _test_stat_gate_pure_growth() -> String:
 ## 减伤公式精确值 (真实 pre-event 链路): physical 用 armor / magical 用 mr / pure 无减伤;
 ## armor=mr=100 → 100/(100+100)=0.5; pure + element 空 → fallback 攻击者主元素后仍吃克制乘子。
 func _test_mitigation_formula() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
-	var gi := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	GameWorld.shutdown()
+	var gi := GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 	gi.new_game()
 
 	var attacker := _make_combat_unit("math_probe_atk", [InkMonElementChart.FIRE], 0.0, 0.0)
@@ -113,7 +111,7 @@ func _test_mitigation_formula() -> String:
 		var case := case_value as Array
 		var pre := InkMonBattlePreEvents.PreDamageEvent.create(
 			attacker.get_id(), defender.get_id(), BASE_DAMAGE, str(case[0]), str(case[1]))
-		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre.to_dict())
+		var mutable: MutableEvent = gi.event_processor.process_pre_event(pre.to_dict())
 		var final_damage: float = mutable.get_current_value("damage")
 		var expected: float = BASE_DAMAGE * float(case[2])
 		if absf(final_damage - expected) > EPS:

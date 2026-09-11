@@ -58,12 +58,10 @@ func finish(result: String = "") -> Dictionary:
 	var effective := result if result != "" else _result
 	if effective.is_empty():
 		effective = "battle_complete"
+	var replay := super.finish(effective)
 	if not _recording_enabled:
-		for pid in _participant_ids:
-			_mark_in_combat(pid, false)
-		_finished = true
 		return { "result": effective }
-	return super.finish(effective)
+	return replay
 
 
 ## 协变收窄基类的 WeakRef 回指：world._active_battle 强持本 procedure，子类只经本方法触达 world，不另存 world 字段（会成环）。

@@ -26,7 +26,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	# adr/0003: load fixture items (item_NNNN) before resetting the item runtime
 	# (stub fallback was removed; _reset_item_runtime's catalog reads this static cache).
 	InkMonItemCatalog.reload_static_items_for_tests(FIXTURE_PATH)

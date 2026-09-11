@@ -61,7 +61,7 @@ func _run() -> String:
 		return "unrevealed cell must stay unrevealed"
 
 	# 5. GI 集成。
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	if gi.world_map == null:
@@ -220,6 +220,4 @@ func _check_v2_shape(map: InkMonWorldMapData) -> String:
 
 
 func _new_gi() -> InkMonWorldGI:
-	return GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI

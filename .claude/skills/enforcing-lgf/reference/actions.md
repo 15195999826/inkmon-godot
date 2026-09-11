@@ -69,7 +69,7 @@ Runtime context passed to `Action.execute()`.
 **Properties:**
 - `event_dict_chain: Array[Dictionary]` — Trigger event chain
 - `instance: GameplayInstance` — The owning instance, looked up from the ability owner's id (`null` when the owner isn't registered). Reads that must have a world narrow it through the project's `world(ctx)` helper (hex only today); reads that may run without one use a typed assign + null check (see SKILL.md §4). Stack-scoped: never cache the context or `instance` in a field or in `execution_state`
-- `event_collector: EventCollector` — For recording events
+- `event_collector: EventCollector` — Derived read-only: `instance.event_collector` (`null` when `instance` is `null`; assigning to it asserts). The factory takes no collector. Actions that only emit presentation cues (e.g. `StageCueAction`) skip the push when it's `null`
 - `ability_ref: AbilityRef` — Reference to owning ability
 - `execution_info: AbilityExecutionInfo` — Timeline execution metadata
 - `execution_state: Dictionary` — §0.4 transient scratchpad shared by every `ExecutionContext` created for the same `AbilityExecutionInstance` (e.g. CAST-tag write, HIT-tag read). `ExecutionContext` doesn't own it, only holds the reference; `create_callback_context` carries the same reference forward.
@@ -77,13 +77,14 @@ Runtime context passed to `Action.execute()`.
 **Methods:**
 - `get_current_event() -> Dictionary` — Last event in chain (most recent trigger)
 - `get_original_event() -> Dictionary` — First event in chain (root trigger)
-- `push_event(event_dict: Dictionary) -> Dictionary` — Forwards straight to `event_collector.push(event_dict)`; no pre/post processing happens here (that already ran earlier, in `EventProcessor`)
 - `set_execution_state(key: String, value: Variant) -> void` — Writes to `execution_state`; `key` must be namespaced with a `"."` (asserts otherwise, e.g. `"shadow_step.teleport_success"`)
 - `get_execution_state(key: String, fallback: Variant = null) -> Variant` — Reads from `execution_state`; same namespace requirement
 
 **Factory:**
-- `static create(...) -> ExecutionContext`
+- `static create(event_dict_chain, instance, ability_ref = null, execution_info = null, execution_state = {}) -> ExecutionContext`
 - `static create_callback_context(ctx: ExecutionContext, callback_event_dict: Dictionary) -> ExecutionContext`
+
+**Live count:** `static get_live_count() -> int` — Same stack-scope guard as `AbilityLifecycleContext.get_live_count()`
 
 ---
 

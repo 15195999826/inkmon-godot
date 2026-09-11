@@ -33,13 +33,9 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 
-	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
-	if battle == null:
-		return "failed to create InkMonWorldGI"
+	var battle := GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 
 	battle.start_battle_procedure({})
 	GameWorld.tick_all(BattleProcedure.DEFAULT_TICK_INTERVAL)

@@ -1,5 +1,5 @@
 {
-  "last_commit": "0e54dfd",
+  "last_commit": "8af9821",
   "last_update": "2026-09-11",
-  "note": "LGF core 重构 P3（typed instance）手动增量：last_commit 记 addons SHA。本轮更新 SKILL.md §4（改写为 GameplayInstance Context，去掉「Variant 是有意的鸭子类型、不要 fix」）/ §7 / 检查清单末条，reference/{abilities,events,actions,conventions-detail,entity,stdlib,cast-eligibility-vs-condition,example-app-game-logic}.md：ExecutionContext.instance / AbilityLifecycleContext.instance、core 签名去 provider 参数、grant_ability 恒投递 AbilityGranted、IGameStateProvider 与 HandlerContext.game_state 删除、项目 world(ctx) helper 约定；gdscript-coding/SKILL.md 的 I* 范例改为 ISaveable 模板。/update-lgf-skill 命令本机仍不可用，此处为手动等价执行。"
+  "note": "LGF core 重构 P4（事件设施归 GameplayInstance）手动增量：last_commit 记 addons SHA。本轮更新 SKILL.md §4 与 reference/{abilities,actions,conventions-detail,entity,events,stdlib,example-app-game-logic}.md：GameplayInstance 自持 event_processor / event_collector，ExecutionContext.event_collector 与 AbilityLifecycleContext.event_processor 为派生只读属性；GameWorld 收成注册表（shutdown / create_instance(instance)）；BattleRecorder 注入 collector + get_event_collector、RecordingContext 两参、ProjectileSystem 从 get_instance() 取 collector；WorldGameplayInstance.end() 中止进行中的战斗、finish() / abort() 交还战斗槽位、BattleProcedure.abort() / BattleRecorder.abort_recording()；context 存活计数 get_live_count()；EventProcessor.set_trace_level()。/update-lgf-skill 命令本机仍不可用，此处为手动等价执行。"
 }

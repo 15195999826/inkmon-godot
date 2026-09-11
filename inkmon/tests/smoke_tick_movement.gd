@@ -24,7 +24,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 
 	var run_a := _run_scenario()
 	var run_b := _run_scenario()
@@ -83,9 +83,7 @@ func _run() -> String:
 
 
 func _run_scenario() -> Dictionary:
-	var gi := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	var gi := GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 	gi.new_game()
 
 	var start_cell := gi.get_player_coord()

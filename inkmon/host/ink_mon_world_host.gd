@@ -44,7 +44,7 @@ var _dev_agent_bridge: Node = null
 
 func _ready() -> void:
 	name = "WorldHost"
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 	_create_world_gi()
 	_world_gi.new_game()
 	_presentation = InkMonWorldPresentation.new()
@@ -423,10 +423,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 func _create_world_gi() -> void:
 	# 世界(重)建的唯一入口:自增代际 → 作废任何指向旧世界的 in-flight deferred flow(stale-intent guard)。
 	_world_generation += 1
-	_world_gi = GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
-	Log.assert_crash(_world_gi != null, "InkMonWorldHost", "failed to create InkMonWorldGI")
+	_world_gi = GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 
 
 ## 把当前 world GI 接到 Presentation:造 IWorldQuery facade 交给它(read+submit),并由 Host 连 GI 的 3 个

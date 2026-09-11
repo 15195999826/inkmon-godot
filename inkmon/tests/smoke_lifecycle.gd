@@ -24,7 +24,7 @@ func _ready() -> void:
 
 
 func _run() -> String:
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 
 	# 1. to_dict 幂等。
 	var gi := _new_gi()
@@ -82,9 +82,7 @@ func _run() -> String:
 
 
 func _new_gi() -> InkMonWorldGI:
-	return GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
+	return GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 
 
 func _save_coord(data: Dictionary) -> Vector2i:

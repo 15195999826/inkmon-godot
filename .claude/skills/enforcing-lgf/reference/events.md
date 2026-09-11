@@ -13,10 +13,10 @@
 
 ## EventProcessor (extends RefCounted)
 
-Dual-phase event processing: Pre (modify/cancel) and Post (broadcast).
+Dual-phase event processing: Pre (modify/cancel) and Post (broadcast). **Owned per instance**: `GameplayInstance._init(id, processor_config)` builds one (`instance.event_processor`), so pre-handler registrations, recursion depth and traces are instance-scoped — handlers registered on one instance never see another instance's events. It holds no reference to the instance, abilities or components (handler closures capture ids only). Reach it through the instance (`battle.event_processor`) or a lifecycle context (`context.event_processor`, derived from `context.instance`); `GameWorld` has no processor.
 
 **Constructor:**
-- `_init(config: EventProcessorConfig = null)`
+- `_init(config: EventProcessorConfig = null)` — Normally called for you by `GameplayInstance._init`; construct one directly only in isolated unit tests
 
 **Pre-Event (modify/cancel before execution):**
 - `register_pre_handler(registration: PreHandlerRegistration) -> Callable` — Returns unsubscribe function
@@ -29,6 +29,7 @@ Dual-phase event processing: Pre (modify/cancel) and Post (broadcast).
 - `process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary) -> void`
 
 **Tracing:**
+- `set_trace_level(level: int) -> void` — Switches this processor's trace level at runtime (the recursion-depth error's "no trace available" hint points here)
 - `get_traces() -> Array[Dictionary]` / `clear_traces() -> void`
 - `get_current_depth() -> int` / `get_current_trace_id() -> String`
 - `export_trace_log() -> String`
@@ -130,7 +131,7 @@ Event type constants and inner class factories.
 
 ## EventCollector (extends RefCounted)
 
-Collects events during action execution.
+Collects events during action execution. **Owned per instance** (`instance.event_collector`): actions push through `ctx.event_collector` (derived from `ctx.instance`), recording callbacks through the same collector injected into `BattleRecorder` / `RecordingContext`, and the battle procedure flushes it once per frame — one queue, so the recorded order is the real call-stack order.
 
 - `push(event_dict: Dictionary) -> Dictionary` — Stores a **deep copy** (`duplicate(true)`) in the buffer and returns the **original** dict. The copy is what recording keeps, so a post-listener mutating the event it received can no longer retroactively rewrite the replay; the returned original is still the live object the pushing Action keeps working with
 - `collect() -> Array[Dictionary]` — Returns a deep copy, does not clear
@@ -165,4 +166,4 @@ Registration data for pre-event handlers.
 ### EventProcessorConfig (extends RefCounted)
 
 - `max_depth: int` (default 10) — Max recursion depth
-- `trace_level: int` (default 0) — 0=none (traces are not accumulated), 1=basic, 2=detailed; pass explicitly when debugging
+- `trace_level: int` (default 0) — 0=none (traces are not accumulated), 1=basic, 2=detailed. The config is handed to the instance at construction (`GameplayInstance._init(id, config)`); to debug an existing instance call `instance.event_processor.set_trace_level(1)` instead

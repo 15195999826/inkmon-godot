@@ -113,18 +113,13 @@ Base class for game logic systems (ECS-style). Registered on GameplayInstance, t
 
 ## GameWorld (extends Node) — Autoload
 
-Global singleton managing all gameplay instances.
-
-**Properties:**
-- `event_processor: EventProcessor`
-- `event_collector: EventCollector`
+Instance registry: registers, looks up and ends gameplay instances, and reverse-resolves full actor ids. It owns no event infrastructure — each `GameplayInstance` carries its own `event_processor` / `event_collector`.
 
 **Lifecycle:**
-- `init(config: EventProcessorConfig = null) -> void`
-- `destroy() -> void`
+- `shutdown() -> void` — Ends every registered instance and clears the registry. The only lifecycle verb (there is no `init` / `destroy`); idempotent, so scenes and tests call it at both ends to get a clean registry
 
 **Instance Management:**
-- `create_instance(factory: Callable) -> GameplayInstance` — The factory only constructs; the instance is registered after it returns, so `start()` / `add_actor` / grants go after this call (contexts resolve their instance by owner id through the registry and see `null` before registration)
+- `create_instance(instance: GameplayInstance) -> GameplayInstance` — Registers the instance and returns it (a duplicate id logs a warning and returns the already-registered one). Construct → register → `start()` / `add_actor` / grants: contexts resolve their instance by owner id through the registry and see `null` before registration
 - `get_instance_by_id(id_value: String) -> GameplayInstance`
 - `get_instances_by_type(type_value: String) -> Array[GameplayInstance]`
 - `destroy_instance(id_value: String) -> bool`
@@ -132,7 +127,7 @@ Global singleton managing all gameplay instances.
 - `tick_all(dt: float) -> void`
 - `get_instance_count() -> int`
 - `has_running_instances() -> bool`
-- `get_debug_info() -> Dictionary` — `{ initialized, instanceCount, instances: [{id, type, state, actorCount}] }` (game_world.gd:95-108)
+- `get_debug_info() -> Dictionary` — `{ instanceCount, instances: [{id, type, state, actorCount}] }`
 - `get_actor(actor_id: String) -> Actor` — Global actor lookup by full ID
 - `get_instance_of_actor(actor_id: String) -> GameplayInstance` — Reverse lookup from a full actor ID to its owning instance (same "id describes ownership" mechanism as `Actor.get_owner_gameplay_instance()`, without needing the Actor)
 
@@ -145,6 +140,11 @@ Individual gameplay session containing actors and systems.
 **Properties:**
 - `id: String`
 - `type: String` — Instance type (default "instance")
+- `event_processor: EventProcessor` — This instance's pre-handler registry, recursion depth and traces
+- `event_collector: EventCollector` — This instance's recording queue; actions push through `ctx.event_collector`, the battle procedure flushes it once per frame
+
+**Construction:**
+- `_init(id_value: String = "", processor_config: EventProcessorConfig = null)` — `id_value` defaults to `IdGenerator.generate("instance")`; builds the processor (from `processor_config`) and collector. They are per instance, so two instances never see each other's handlers or events, and neither refers back to the instance (instance → processor / collector is the only edge)
 
 **State:**
 - `get_logic_time() -> float`
@@ -193,7 +193,7 @@ World-owns-Battle architecture: the long-lived world instance that owns the acto
 - `grid: GridMapModel`
 
 **Construction:**
-- `_init(id_value: String = "") -> void` — `id_value` defaults to `IdGenerator.generate("world")`; sets `type = "world"`
+- `_init(id_value: String = "", processor_config: EventProcessorConfig = null) -> void` — `id_value` defaults to `IdGenerator.generate("world")`; sets `type = "world"`; `processor_config` goes to `GameplayInstance` (inkmon's `InkMonWorldGI` passes `EventProcessorConfig.new(20)`)
 
 **Mutation API** (fires the signals above):
 - `add_actor(actor: Actor, after_id_assigned: Callable = Callable()) -> Actor` — `after_id_assigned` runs after ID assignment but before `actor_added` fires, so spawn code can init position/team/abilities before observers can snapshot the actor
@@ -203,7 +203,8 @@ World-owns-Battle architecture: the long-lived world instance that owns the acto
 **Battle Scheduling:**
 - `start_battle(participants: Array[Actor]) -> BattleProcedure` — Asserts no battle already active (MVP: one battle at a time); delegates construction to `_create_battle_procedure()`
 - `_create_battle_procedure(participants: Array[Actor]) -> BattleProcedure` — Factory hook; override to return a concrete subclass (e.g. `HexBattleProcedure`)
-- `has_active_battle() -> bool` / `get_active_battle() -> BattleProcedure`
+- `has_active_battle() -> bool` / `get_active_battle() -> BattleProcedure` — The procedure releases the slot itself in `finish()` / `abort()` (`_release_battle`, only while the slot still points at it), so a caller driving `finish()` directly (dota2) leaves no stale battle behind
+- `end() -> void` — Overrides the base `end()`: a battle still active is aborted (`_active_battle.abort()`, which releases the slot; the world asserts it did) before `super.end()` despawns actors (no `battle_finished`, no record). With recording on, the recorder's subscription closures and every recorded actor hold each other strongly, so skipping this leaks the recorder together with all recorded actors (bystanders and mid-battle spawns included). It sits in `end()` rather than the `on_end()` hook so a subclass overriding `on_end()` can't drop it by forgetting `super`
 
 **Replay Snapshot (world side produces, recorder only receives):**
 - `capture_world_snapshot() -> PlaybackData.WorldSnapshot` — The opening state playback starts from: recordable registry actors + `grid.to_config_dict()` + `_get_position_formats()`
@@ -212,7 +213,7 @@ World-owns-Battle architecture: the long-lived world instance that owns the acto
 - `_get_position_formats() -> Dictionary` — Coordinate-format declaration hook for replay consumers (e.g. hex returns `{KIND_CHARACTER: "hex", KIND_ENVIRONMENT: "hex"}`); base returns `{}`
 
 **Tick:**
-- `tick(dt: float) -> void` — With no active battle, delegates to `base_tick()`. With an active battle, this frame is spent exclusively on `_active_battle.tick_once()` (world systems do NOT tick) up to `BATTLE_TICKS_PER_WORLD_FRAME` times or until `should_end()`; on end, `_active_battle` is nulled *before* `battle_finished` emits, so a handler may safely call `start_battle()` again re-entrantly (world_gameplay_instance.gd:106-119)
+- `tick(dt: float) -> void` — With no active battle, delegates to `base_tick()`. With an active battle, this frame is spent exclusively on `_active_battle.tick_once()` (world systems do NOT tick) up to `BATTLE_TICKS_PER_WORLD_FRAME` times or until `should_end()`; on end, `finish()` has already released the slot when `battle_finished` emits (the world asserts it and clears as a fallback — subclass `finish()` overrides must call `super.finish()`), so a handler may safely call `start_battle()` again re-entrantly. If the slot was released during that `tick_once()` (the world was ended and aborted the battle, or the procedure called `finish()` itself), the world stops advancing it with no wrap-up and no signal — the rest of that `tick_once()` still runs; procedures end a battle with `mark_finished()`
 
 ---
 
@@ -229,11 +230,12 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 - `_init(world: WorldGameplayInstance, participants: Array[Actor])` — Stores `world` as a `WeakRef`; snapshots participant IDs
 
 **Lifecycle:**
-- `start() -> void` — Tags participants `in_combat`; when `_recording_enabled` (base-class field, subclasses set it from opts in `_init`), constructs a `BattleRecorder` and calls `_start_recorder()`
-- `_start_recorder() -> void` — Base implementation is the standard path: asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (the handler re-checks `world.should_record_actor()`, and `register_actor` de-dupes internally). The connection is dropped in `finish()` — procedures are short-lived while worlds persist, so leaving it attached would accumulate stale listeners across battles and keep dead procedures alive
+- `start() -> void` — Tags participants `in_combat`; when `_recording_enabled` (base-class field, subclasses set it from opts in `_init`), calls `_start_recorder()`
+- `_start_recorder() -> void` — Base implementation is the standard path: constructs the `BattleRecorder` with the world's `event_collector` injected, asks the world for `capture_world_snapshot()` + `get_recordable_actors()`, injects both into `recorder.start_recording()`, and connects `world.actor_added` so mid-battle spawns auto-register into the recording (the handler re-checks `world.should_record_actor()`, and `register_actor` de-dupes internally). The connection is dropped in `finish()` / `abort()` — procedures are short-lived while worlds persist, so leaving it attached would accumulate stale listeners across battles and keep dead procedures alive
 - `tick_once() -> void` — Virtual; base only advances `_current_tick` and calls `record_current_frame_events()`. Subclasses override for ATB/timeline advancement, typically calling `super.tick_once()` or `record_current_frame_events()` themselves
 - `should_end() -> bool` — Virtual; base returns `_finished`. Subclasses override with win/loss conditions
-- `finish(result: String = "battle_complete") -> Dictionary` — Disconnects the `actor_added` hookup, un-tags `in_combat`, stops the recorder, returns the timeline
+- `finish(result: String = "battle_complete") -> Dictionary` — Disconnects the `actor_added` hookup, releases the world's battle slot, un-tags `in_combat`, stops the recorder, returns the timeline
+- `abort() -> void` — Tear-down for a battle still running when its world ends (called by `WorldGameplayInstance.end`): disconnects `actor_added`, releases the world's battle slot, aborts the recording (`recorder.abort_recording()` unsubscribes every closure and produces no record), marks finished. Unlike `finish()` it doesn't un-tag `in_combat`, emit signals, or run subclass wrap-up (logs / replay writes / mission state) — the world is going away. No-op on a battle that already finished
 
 **Query:**
 - `get_participant_ids() -> Array[String]`
@@ -243,12 +245,12 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 - `get_tick_interval() -> float`
 
 **Protected Utilities:**
-- `record_current_frame_events() -> void` — Flushes `GameWorld.event_collector` into the recorder for the current tick
+- `record_current_frame_events() -> void` — Flushes the world's `event_collector` into the recorder for the current tick (flushes even without a recorder so events never pile up across frames; no-op once the world is gone)
 - `mark_finished() -> void` — Subclasses call after determining a winner, so `should_end()` returns `true`
 
 **Virtual Hooks:**
 - `_mark_in_combat(actor_id: String, active: bool) -> void` — No-op in base (plain `Actor` has no tag container); override per actor's actual tag API
-- `_get_world() -> WorldGameplayInstance` — Resolves the `WeakRef`; `null` if world was freed. Subclasses that need the concrete world type override it covariantly (`func _get_world() -> MyWorld: return super._get_world() as MyWorld`) and never store the world in a field: `world._active_battle` holds the procedure strongly, so a strong back-reference is a cycle that leaks the whole world whenever the battle ends outside `world.tick()`. Objects the procedure holds (controllers, loggers) take `world` as a call argument instead of storing it or the procedure
+- `_get_world() -> WorldGameplayInstance` — Resolves the `WeakRef`; `null` if world was freed. Subclasses that need the concrete world type override it covariantly (`func _get_world() -> MyWorld: return super._get_world() as MyWorld`) and never store the world in a field: `world._active_battle` holds the procedure strongly while the battle runs, so a strong back-reference is a cycle for that whole span, and any exit that skips `finish()` / `abort()` leaks the whole world. Objects the procedure holds (controllers, loggers) take `world` as a call argument instead of storing it or the procedure
 - `_get_actor(actor_id: String) -> Actor` — `null` if world is gone or actor not found
 
 ---

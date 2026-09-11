@@ -129,11 +129,12 @@ Debug: `logic_game_framework/debug/action_state_check = true` in Project Setting
 
 ### 4. GameplayInstance Context
 
-`ExecutionContext.instance` and `AbilityLifecycleContext.instance` are typed `GameplayInstance`. There is exactly one way the framework finds it: reverse lookup by the owner's actor id (`GameWorld.get_instance_of_actor`). No provider is threaded through call chains (`IGameStateProvider` and every trailing `game_state_provider` parameter are gone); an unregistered owner yields `null` — including grants made before `GameWorld.create_instance` has registered the instance, so a factory only constructs and `start()` / grants come after registration.
+`ExecutionContext.instance` and `AbilityLifecycleContext.instance` are typed `GameplayInstance`. There is exactly one way the framework finds it: reverse lookup by the owner's actor id (`GameWorld.get_instance_of_actor`). No provider is threaded through call chains (`IGameStateProvider` and every trailing `game_state_provider` parameter are gone); an unregistered owner yields `null` — including grants made before `GameWorld.create_instance(instance)` has registered the instance, so construct → register → `start()` / grants.
 
 - **Narrow in project code**: reads that require a world go through the project's `world(ctx)` helper (`as` + `Log.assert_crash` on mismatch, e.g. `HexBattleGameStateUtils.world`; a project adds one with its first must-have-world read — inkmon and dota2 have none yet). Lifecycle-context reads (Condition / Cost / trigger filter / PreEvent handler get an `AbilityLifecycleContext`, which the helper doesn't take) typed-assign and null-check, asserting in the null branch when the world is required. Reads that may legitimately run without a world use `var battle: HexWorldGameplayInstance = ctx.instance` and null-check (that implicit downcast is type-checked only in debug builds).
 - **Contexts are stack-scoped**: never store a context (or `context.instance`) in a Component / Ability / Action / ExecutionInstance field, and never put an instance or actor into `execution_state`. `instance` is a strong reference — caching it closes a cycle RefCounted can't collect.
 - **Self-activation is declared, not passed**: `grant_ability(ability)` always delivers `AbilityGranted` to the owner's set; whether an ability self-activates is decided by its own trigger (`TriggerConfig.GRANTED_SELF`).
+- **Event infrastructure lives on the instance**: `instance.event_processor` / `instance.event_collector`; `ctx.event_collector` and `context.event_processor` are read-only views derived from `instance`. `GameWorld` is only the instance registry (no `event_processor` / `event_collector` / `init` / `destroy`; its single lifecycle verb is the idempotent `shutdown()`).
 
 ---
 

@@ -42,7 +42,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			damage_type_str,
 			element
 		)
-		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre_event.to_dict())
+		var mutable: MutableEvent = battle.event_processor.process_pre_event(pre_event.to_dict())
 		if mutable.cancelled:
 			continue
 

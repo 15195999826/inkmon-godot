@@ -159,7 +159,6 @@ Container for Abilities with tag management and grant/revoke operations.
 - `tick(dt: float, logic_time: float = -1.0) -> void`
 - `tick_executions(dt: float) -> Array[String]`
 - `receive_event(event_dict: Dictionary) -> void` — One lifecycle context per ability; the owner instance is looked up once per call
-- `get_event_processor() -> EventProcessor`
 - `get_owner_instance() -> GameplayInstance` — `GameWorld.get_instance_of_actor(owner_actor_id)`, re-resolved on every call (`null` when the owner isn't registered). Deliberately not cached or bound: the set is built before the actor has an id and projects rebuild it wholesale (inkmon `reset_battle_runtime`), so a bind-once reference would be missed on those paths
 - `get_logic_time() -> float`
 
@@ -208,8 +207,10 @@ Context passed through ability lifecycle methods. **Stack-scoped**: never store 
 - `attribute_set: BaseGeneratedAttributeSet`
 - `ability: Ability`
 - `ability_set: AbilitySet`
-- `event_processor: EventProcessor`
-- `instance: GameplayInstance` — The owner's instance, looked up by `owner_actor_id` (required 6th constructor argument); `null` when the owner isn't registered in `GameWorld`
+- `instance: GameplayInstance` — The owner's instance, looked up by `owner_actor_id` (5th and last constructor argument); `null` when the owner isn't registered in `GameWorld`
+- `event_processor: EventProcessor` — Derived read-only: `instance.event_processor`, `null` when `instance` is `null`; assigning to it asserts. Every construction point (dispatch, grant, `can_activate`, on_remove / stacks / Break hooks, PreEvent rebuild) therefore gets the same processor
+
+**Live count:** `static get_live_count() -> int` — Live instances, counted in every build (`_init` increments, `NOTIFICATION_PREDELETE` decrements). Contexts are stack-scoped, so tests assert the count is back to its baseline once the call returns (release test per case, hex `smoke_skill_scenarios` and inkmon `smoke_m1_battle` at the end)
 
 ---
 

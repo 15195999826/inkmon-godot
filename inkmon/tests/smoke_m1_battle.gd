@@ -16,13 +16,9 @@ func _run() -> String:
 	if gate_status != "":
 		return gate_status
 
-	GameWorld.init(EventProcessorConfig.new(20, 1))
+	GameWorld.shutdown()
 
-	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		return InkMonWorldGI.new()
-	) as InkMonWorldGI
-	if battle == null:
-		return "failed to create InkMonWorldGI"
+	var battle := GameWorld.create_instance(InkMonWorldGI.new()) as InkMonWorldGI
 
 	battle.start_battle_procedure({
 		"recording": false,
@@ -39,6 +35,11 @@ func _run() -> String:
 	var losing_alive := _count_alive(battle.right_team if result == "left_win" else battle.left_team)
 	if losing_alive != 0:
 		return "losing side still has %d alive units" % losing_alive
+
+	# context 只许活在调用栈上: 整场战斗跑完, 两类 context 的存活数必须归零。
+	var live_contexts := ExecutionContext.get_live_count() + AbilityLifecycleContext.get_live_count()
+	if live_contexts != 0:
+		return "%d contexts outlived their call stack" % live_contexts
 
 	# 数值层精确断言在 smoke_battle_math (原 damage_mod_seen 生产探针已删)。
 	return ""
