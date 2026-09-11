@@ -362,7 +362,7 @@ P2 及之后：
 |---|---|---|---|---|
 | P1 减法热身 | 已完成 2026-09-10 | `f1d132f` | `cdcc871f` | 基线 8e56bba 非 a4730a1，见偏离记录 ①；主仓先单独 `chore` bump 到 8e56bba（`bbe5d9a7`）再 P1。验收：86 scene 全 PASS / 释放测试绿 / 四份泄漏直方图与基线逐字节一致 / `/code-review max` 十角度已修 |
 | P2 BattleActor | 已完成 2026-09-10 | `ec72e5a` | `cd0633ec` | 验收：86 scene 全 PASS（core 单测 173→187）/ 释放测试绿 / 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **下降** 590→170 RefCounted（关掉本就播不了的 dota2 录像，基线已棘轮）/ `/code-review max` 十角度 + 修复后二次复审已合入。偏离见 ⑧–⑭ |
-| P3 typed instance | 未开始 | | | |
+| P3 typed instance | 已完成 2026-09-11 | `0e54dfd` | `703b6efc` | 验收：86 scene 全 PASS（core 单测 187→193）/ 释放测试绿（含 context 释放探针）/ 直方图 core·hex·inkmon 与基线逐字节一致、dota2 **清零**（P2 后 170 RefCounted / 61 GDScript / 15 WeakRef / 1 GDScriptNativeClass → 0，根因是 world ↔ procedure 强引用环，基线已棘轮）/ `/code-review max` 十角度首审 + 六轮复审已合入。偏离见 ⑮–㉖ |
 | P4 instance 级事件设施 | 未开始 | | | |
 | P5 Post 订阅制 | 未开始 | | | |
 | P6 Action/Config 收口 | 未开始 | | | |
