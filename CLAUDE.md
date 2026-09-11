@@ -71,6 +71,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架。Hex grid + Timeline 技能系统�
 - **JSON manifest 自动发现** —— `addons/.../tests/test_groups.json`，加 example 不动 launcher
 - **真并行 + 独立 timeout** —— 每个 scene 单独跑、单独计时、单独写 `.claude/tmp/test-runs/<key>.log`
 - **退出码** = 0 全 PASS / 1 有 FAIL/TIMEOUT；FAIL 时自动打印末 30 行
+- **日志含 `SCRIPT ERROR:` 判 FAIL**（GDScript 运行期错误 / 失败断言只中止那一帧、不改退出码，launcher 兜住；reason 带首条匹配行）
 - 单条 Bash call 拿全部结果，不用拆多个 Bash 并行
 
 新增 group → 编辑对应 example 的 `tests/test_groups.json`（在 submodule 内，按惯例 submodule commit 后主仓 bump pointer）。
@@ -135,15 +136,14 @@ Headless 单 smoke 包含 Godot 启动 + scene 加载 + sim 跑完 + ObjectDB cl
 项目自带三个 Claude Skill（`.claude/skills/`，按需加载，不常驻 context）：
 
 - **`gdscript-coding`** — 通用 GDScript 编码规范（类型、shadowing、I* pattern、`Log.assert_crash` 等 14 条）；踩坑见同目录 `reference/troubleshooting.md`
-- **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver 等）；详细 API 在 `reference/*.md`
+- **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver、Action 目录规则等）；API 看源码，SKILL.md 有「Where to look」指针表
 - **`lgf-new-logic-skill`** — 实现新 skill / ability / buff / passive 时的 "去哪写、怎么 wire 进 submodule、怎么测" 指南（搭配上面两个使用）
 
 配套 slash command（`.claude/commands/`）：
 
 - `/review-gdscript <path>` — 按 14 条规范批量审 `.gd` 文件
-- `/update-lgf-skill` — 根据 LGF addon 新提交增量更新 `enforcing-lgf` 文档
 
-LGF 原始架构文档：`addons/logic-game-framework/CLAUDE.md` 和同级 `docs/`。
+LGF 架构与设计铁律：`addons/logic-game-framework/CLAUDE.md`（与 `enforcing-lgf` skill 并列的两个规则之家，无其他 LGF 文档）。
 
 修改 `.gd` 文件 / 接触 LGF 类时 skill 会自动触发，不要在此文件复述规范内容。
 

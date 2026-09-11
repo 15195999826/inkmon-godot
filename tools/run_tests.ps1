@@ -247,6 +247,12 @@ function Finish-Scene($r) {
         $status = "TIMEOUT"; $reason = "exceeded $($r.TimeoutMs)ms"
     } elseif ($log -match "SMOKE_TEST_RESULT:\s*FAIL\s*-?\s*(.*)") {
         $status = "FAIL"; $reason = $matches[1].Trim()
+    } elseif ($log -match "SCRIPT ERROR:[^\r\n]*") {
+        # A GDScript runtime error (including a failed assert) only aborts the
+        # frame it happens in; the scene keeps running and can still exit 0 /
+        # print PASS. Treat any SCRIPT ERROR line as a failure so "silent
+        # degradation" contracts can't go green by accident.
+        $status = "FAIL"; $reason = $matches[0].Trim()
     } elseif ($exitCode -ne 0) {
         $status = "FAIL"; $reason = "exit=$exitCode"
     } elseif ($log -match "SMOKE_TEST_RESULT:\s*PASS") {

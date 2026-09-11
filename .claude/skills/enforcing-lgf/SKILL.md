@@ -5,6 +5,8 @@ description: Enforces Logic Game Framework conventions for inkmon-godot GDScript
 
 # Logic Game Framework Conventions
 
+> **LGF core 重构进行中（P6–P9）**：API 以 `docs/plan/lgf-core-refactor-2026-09.md` 与代码为准。本文件与 addon `addons/logic-game-framework/CLAUDE.md` 是仅有的两个规则之家；API 细节看源码，不另写参考文档。
+
 ## Contents
 - [When to use](#when-to-use)
 - [Reference](#reference)
@@ -16,6 +18,7 @@ description: Enforces Logic Game Framework conventions for inkmon-godot GDScript
   - [5. Resolvers](#5-resolvers)
   - [6. PreEventConfig Handlers](#6-preeventconfig-handlers)
   - [7. GameWorld Dependency](#7-gameworld-dependency)
+  - [8. Action Placement (two kinds)](#8-action-placement-two-kinds)
 - [Standard Workflow](#standard-workflow)
 - [Validation Checklist](#validation-checklist)
 
@@ -27,17 +30,21 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 
 - **Conventions (detailed)**: See [reference/conventions-detail.md](reference/conventions-detail.md) — Full examples, reference chain diagrams, architecture
 - **Cast eligibility vs Condition**: See [reference/cast-eligibility-vs-condition.md](reference/cast-eligibility-vs-condition.md) — Where to put "can this skill be cast" config (metadata, NOT Condition). Read before adding any new cast-time filter (range / target kinds / faction / LOS).
-- **Entity & World**: See [reference/entity.md](reference/entity.md) — Actor, System, GameWorld, GameplayInstance
-- **Abilities**: See [reference/abilities.md](reference/abilities.md) — Ability, AbilitySet, AbilityConfig, Components, Builder API
-- **Actions**: See [reference/actions.md](reference/actions.md) — Action, ExecutionContext, TargetSelector, Resolvers
-- **Events**: See [reference/events.md](reference/events.md) — EventProcessor, MutableEvent, Intent, Modification
-- **Attributes**: See [reference/attributes.md](reference/attributes.md) — RawAttributeSet, AttributeModifier, Calculator, TagContainer
-- **Stdlib**: See [reference/stdlib.md](reference/stdlib.md) — Components (StatModifier, DynamicStatModifier, TimeDuration), Projectile
-- **AI Decision**: See [reference/ai-decision.md](reference/ai-decision.md) — `core/ai_decision/` pipeline (DecisionSnapshot / DecisionOption / OptionProvider / Reasoner / DecisionResult / DecisionOutcome / DecisionPipeline, plus the optional GOAP-lite `GoalBacktrackReasoner`). Read before writing any AI that picks between candidate actions.
-- **Example App**:
-  - [reference/example-app-overview.md](reference/example-app-overview.md) — Three-layer architecture, Core Events, cross-layer data flow
-  - [reference/example-app-game-logic.md](reference/example-app-game-logic.md) — Actor/Ability/Action patterns, AI strategy, config organization
-  - [reference/example-app-presentation.md](reference/example-app-presentation.md) — Replay pipeline, Visualizers, extension guide
+- **Architecture & design rules**: `addons/logic-game-framework/CLAUDE.md` (module dependencies, World owns Battle, 设计铁律).
+
+**Where to look** (no API reference docs — read the source header comments and the tests; paths are relative to `addons/logic-game-framework/`):
+
+| Topic | Source | Tests |
+|---|---|---|
+| Entity & World (Actor / BattleActor / System / GameplayInstance / WorldGameplayInstance / BattleProcedure / GameWorld) | `core/entity/Actor.gd`, `core/entity/battle_actor.gd`, `core/entity/System.gd`, `core/world/gameplay_instance.gd`, `core/entity/world_gameplay_instance.gd`, `core/entity/battle_procedure.gd`, `core/world/game_world.gd` | `tests/core/entity/battle_actor_test.gd`, `tests/core/world/world_test.gd`, `tests/core/world/refcount_release_test.gd`, `tests/core/abilities/instance_context_test.gd` |
+| Abilities (Ability / AbilitySet / AbilityConfig builder / ExecutionInstance / LifecycleContext / components / triggers / Condition / Cost / `can_activate`) | `core/abilities/core/ability.gd`, `core/abilities/core/ability_set.gd`, `core/abilities/core/ability_config.gd`, `core/abilities/core/ability_execution_instance.gd`, `core/abilities/core/ability_lifecycle_context.gd`, `core/abilities/core/ability_component.gd`, `core/abilities/components/`, `core/abilities/shared/trigger_config.gd`, `core/abilities/shared/condition.gd`, `core/abilities/shared/cost.gd`, `core/abilities/shared/ability_activation_query.gd` | `tests/core/abilities/` |
+| Actions & Resolvers (BaseAction / SkillLocalAction / ExecutionContext / ActionResult / TargetSelector / FlowAction / LooseTagAction / Resolvers) | `core/actions/Action.gd`, `core/actions/execution_context.gd`, `core/actions/action_result.gd`, `core/actions/target_selector.gd`, `core/actions/flow_action.gd`, `core/actions/loose_tag_action.gd`, `core/actions/ability_ref.gd`, `core/resolvers/resolvers.gd` | `tests/core/actions/`, `tests/core/resolvers/resolvers_test.gd` |
+| Events (EventProcessor / EventCollector / MutableEvent / Intent / Modification / HandlerContext / pre & post registrations / GameEvent) | `core/events/event_processor.gd`, `core/events/event_collector.gd`, `core/events/event_phase.gd`, `core/events/mutable_event.gd`, `core/events/intent.gd`, `core/events/modification.gd`, `core/events/handler_context.gd`, `core/events/pre_handler_registration.gd`, `core/events/post_handler_registration.gd`, `core/events/game_event.gd` | `tests/core/events/` |
+| Attributes & Tags (RawAttributeSet / generated sets / AttributeModifier / Calculator / TagContainer) | `core/attributes/raw_attribute_set.gd`, `core/attributes/base_generated_attribute_set.gd`, `core/attributes/attribute_modifier.gd`, `core/attributes/attribute_calculator.gd`, `core/tags/tag_container.gd`, generator `scripts/generate_attribute_sets.gd` | `tests/core/attributes/` |
+| Timeline & Playback (TimelineData / BattleRecorder / PlaybackData / recording utils) | `core/timeline/timeline_data.gd`, `core/playback/battle_recorder.gd`, `core/playback/playback_data.gd`, `core/playback/recording_context.gd`, `core/playback/recording_utils.gd` | `tests/core/timeline/` |
+| Stdlib (StatModifier / DynamicStatModifier / TimeDuration components, StageCue / LaunchProjectile actions, projectile system) | `stdlib/components/`, `stdlib/actions/`, `stdlib/projectile/` | `tests/stdlib/components/stat_modifier_component_test.gd` |
+| AI Decision (DecisionSnapshot / DecisionOption / OptionProvider / Reasoner / DecisionPipeline / GoalBacktrackReasoner) — the contracts (options sorted by id, `provide()` allocates fresh options, a Reasoner never returns null) are in the file headers | `core/ai_decision/` | `tests/core/ai_decision/decision_pipeline_test.gd` |
+| Example app (hex three-layer wiring, procedure, reactive world view, animator, skill scenarios) | `example/hex-atb-battle/README.md`, `example/hex-atb-battle/core/README.md`, `example/hex-atb-battle/frontend/README.md`, `example/hex-atb-battle/logic/hex_world_gameplay_instance.gd`, `example/hex-atb-battle/logic/hex_battle_procedure.gd`, `example/hex-atb-battle/frontend/world_view.gd`, `example/hex-atb-battle/frontend/battle_animator.gd` | `example/hex-atb-battle/tests/battle/skill_scenarios/` |
 
 ---
 
@@ -190,14 +197,33 @@ Framework directly references `GameWorld` Autoload. This is intentional — do n
 
 ---
 
+### 8. Action Placement (two kinds)
+
+Which kind an Action is decides where it lives:
+
+| Kind | Base | Where | `class_name` |
+|---|---|---|---|
+| **Public primitive** — a generic building block (damage / heal / apply buff / launch projectile / loose tag / stage cue …) that knows no specific skill | `Action.BaseAction` | a public action directory: `core/actions/`, `stdlib/actions/`, `example/*/logic/actions/` | yes |
+| **Skill-local** — a step that serves exactly one ability | `Action.SkillLocalAction`, constructed with the owner `config_id` (`execute()` asserts the running ability matches it; mismatch is `Log.assert_crash`, never a silent skip) | nested inside that skill's file as `class _XxxAction extends Action.SkillLocalAction` | **never** — and never placed in a public action directory |
+
+Don't add a public primitive for one skill's sake: a complex skill expresses its own process as skill-local actions that compose primitives and `FlowAction.if_`. Public action directories only hold generic primitives.
+
+Rules for both kinds:
+- `_init` calls `super._init(target_selector)`; targets come from the selector via `get_targets(ctx)` — never hard-code actor ids in an Action.
+- Child actions run through `Action.execute_child(parent, child, ctx)` (freeze / verify can't be skipped); a parent exposes its children via `get_child_actions()`.
+- `execution_state` keys carry a namespace (`<skill>.<field>`, via `ctx.set_execution_state` / `ctx.get_execution_state`); values are plain serializable data — no Actor / Resource / instance references. Long-lived state stays in `AbilitySet.tag_container` (§3).
+- Cross-time responses (projectile hit, summon, delayed hit) stay event-driven — no parallel callback system on Action.
+
+---
+
 ## Standard Workflow
 
 When implementing new game logic that touches the framework, follow these steps:
 
 1. **Identify scope** → Is this an Actor, Ability, Action, PreEvent, or System?
    - **New Actor**: Follow §2 (construct → register → `_on_id_assigned`)
-   - **New Ability**: Use `AbilityConfig.builder()`, see [reference/abilities.md](reference/abilities.md)
-   - **New Action**: Extend `Action.BaseAction`, ensure statelessness (§3)
+   - **New Ability**: Use `AbilityConfig.builder()` (`core/abilities/core/ability_config.gd`); copy a real one such as `example/hex-atb-battle/logic/abilities/active/poison.gd`
+   - **New Action**: pick the kind and location per §8, ensure statelessness (§3)
    - **New PreEvent handler**: Follow §6 (every path returns Intent)
 2. **Check shared vs owned** → Refer to §3 ownership table. If shared (`static var`), MUST NOT store mutable state in `self`.
 3. **Use Resolvers for dynamic params** → If an Action needs runtime values, use `Resolvers` factory (§5) instead of storing state.
@@ -218,3 +244,4 @@ Before considering implementation complete, verify:
 - [ ] `ctx.instance` narrowed through the project's `world(ctx)` for `ExecutionContext` must-have reads (lifecycle contexts and may-be-absent reads: typed assign + null check); no context / `instance` cached in fields or `execution_state`
 - [ ] Self-activation on grant is declared with `TriggerConfig.GRANTED_SELF`, not by how `grant_ability` is called
 - [ ] Post events go through `process_post_event(event_dict)` with no audience list; death policy lives in the actor's `is_event_responsive`; activation requests go through `ability_set.receive_event`
+- [ ] New Action is placed per §8: public primitive with `class_name` in an action directory, or skill-local `_XxxAction extends Action.SkillLocalAction` nested in the skill file without `class_name`

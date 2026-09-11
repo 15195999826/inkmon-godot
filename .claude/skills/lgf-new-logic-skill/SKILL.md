@@ -29,7 +29,7 @@ description: Use when implementing any skill/ability/buff/passive from the inkmo
 
 ### Step 0 — 进度与已落地清单**问机器,不问文档**
 
-原 `docs/skills/skill-implementation-progress.md` 已废除,职责拆解:
+单独的进度文档已废除,职责拆解:
 
 1. **哪些技能已落地** → 读 `all_skills.gd::_build_manifest()`(总花名册)或跑 SkillPreview 枚举;manifest lint(`hex/regression` 组)保证清单与注册/表演接线一致,不会烂
 2. **Pattern 速查** → 本 skill §4 映射表的「参考」列直接指向落地文件;模仿改写已落地技能永远优于照 design 文档骨架重写
@@ -230,7 +230,7 @@ i. (可选) pattern 传递验证: 新 session 让 AI 基于此技能做变体 (�
 
 ## 4. LGF 能力映射速查
 
-先读设计卡里的"LGF 拆解"一节,再对照这张表确认原语。详细用法读 `enforcing-lgf/reference/`。
+先读设计卡里的"LGF 拆解"一节,再对照这张表确认原语。详细用法按 `enforcing-lgf/SKILL.md` 的「Where to look」指针表读源码头注释与测试。
 
 | 想要的效果 | LGF 原语 | 参考(落地文件在 logic/abilities/ 下) |
 |---|---|---|
@@ -267,36 +267,11 @@ i. (可选) pattern 传递验证: 新 session 让 AI 基于此技能做变体 (�
 
 ### 5.1 最小 scenario 骨架
 
-```gdscript
-class_name MyNewSkillScenario
-extends SkillScenario
-
-func get_name() -> String:
-    return "MySkill does X"
-
-func get_scene_config() -> Dictionary:
-    return {
-        "map": {"rows": 3, "cols": 3},
-        "caster":  {"class": "WARRIOR", "pos": [0, 0]},
-        "enemies": [{"class": "WARRIOR", "pos": [1, 0], "hp": 1000}],
-        "target":  {"mode": "auto"},
-    }
-
-func get_active_skill() -> AbilityConfig:
-    return HexBattleMyNewSkill.ABILITY  # 从 submodule 里 import
-
-func get_max_ticks() -> int:
-    return 100   # 足够跑完完整流程
-
-func assert_replay(ctx: ScenarioAssertContext) -> void:
-    var target := ctx.enemy_id(0)
-    # 断言 replay 产出的事件序列 & 最终状态
-    ctx.assert_float_eq(ctx.total_damage_to(target), 50.0, "damage to target")
-```
+不抄模板,照真实范本改:技能 `logic/abilities/active/strike.gd` + 它的 scenario `tests/battle/skill_scenarios/strike_scenario.gd`(单体直伤,最小完整骨架)。骨架 = `class_name XxxScenario extends SkillScenario` + `get_name()` / `get_scene_config()` / `get_active_skill()` / `get_max_ticks()` / `assert_replay(ctx)` 五个方法,签名与 scene_config 字段以基类 `tests/battle/skill_scenarios/skill_scenario.gd` 为准。
 
 ### 5.2 ScenarioAssertContext 常用断言
 
-先读 `tests/skill_scenarios/scenario_assert_context.gd` 获取完整 API。常用:
+先读 `tests/battle/skill_scenarios/scenario_assert_context.gd` 获取完整 API。常用:
 - `ctx.filter_damage_events({...})` — 按 kv 过滤
 - `ctx.total_damage_to(actor_id)`
 - `ctx.assert_float_eq(actual, expected, message)`
@@ -370,13 +345,7 @@ func assert_replay(ctx: ScenarioAssertContext) -> void:
 
 ### 7.2 BUFF_REGISTRY 一行格式
 
-```gdscript
-HexBattleMyBuff.CONFIG_ID: {
-    "short": "X",                            # 1-2 字符头顶字母
-    "color": Color(0.9, 0.4, 0.2),           # 16 进制色彩区分别 buff
-    "primary_source": PrimarySource.STACKS,  # STACKS(读 ability.stacks) / SHIELD_REMAINING(护盾) / NONE(只 duration 不显数字)
-},
-```
+格式照抄 `frontend/visualizers/buff_visualizer.gd::BUFF_REGISTRY` 里任一现有条目:key 是 buff 的 `CONFIG_ID` 常量,值含 `short`(1-2 字符头顶字母)/ `color` / `primary_source`(`PrimarySource.STACKS` 读 ability.stacks、`SHIELD_REMAINING` 护盾余量、`NONE` 只显 duration)。
 
 **short / color 选取约定**:
 - 取 ability 名首字母大写(P=Poison、E=Expose、S=Shield、U=Surge、T=Thorn …)
