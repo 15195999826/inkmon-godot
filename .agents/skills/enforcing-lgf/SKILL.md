@@ -12,7 +12,7 @@ description: Enforces Logic Game Framework conventions for inkmon-godot GDScript
   - [1. Attribute Access](#1-attribute-access)
   - [2. Actor Creation & Registration](#2-actor-creation--registration)
   - [3. Shared Object Statelessness (CRITICAL)](#3-shared-object-statelessness-critical)
-  - [4. GameStateProvider](#4-gamestateprovider)
+  - [4. GameplayInstance Context](#4-gameplayinstance-context)
   - [5. Resolvers](#5-resolvers)
   - [6. PreEventConfig Handlers](#6-preeventconfig-handlers)
   - [7. GameWorld Dependency](#7-gameworld-dependency)
@@ -127,9 +127,13 @@ Debug: `logic_game_framework/debug/action_state_check = true` in Project Setting
 
 ---
 
-### 4. GameStateProvider
+### 4. GameplayInstance Context
 
-`IGameStateProvider` (`core/interfaces/i_game_state_provider.gd`) is a static duck-typing helper, not a class actors implement. `get_logic_time(provider: Variant) -> float` and `is_implemented(provider: Variant) -> bool` intentionally type the incoming `provider` as `Variant` — the framework only requires it to respond to `get_logic_time()` and never couples to a concrete provider class. This is intentional duck typing — do not "fix" it into a typed parameter.
+`ExecutionContext.instance` and `AbilityLifecycleContext.instance` are typed `GameplayInstance`. There is exactly one way the framework finds it: reverse lookup by the owner's actor id (`GameWorld.get_instance_of_actor`). No provider is threaded through call chains (`IGameStateProvider` and every trailing `game_state_provider` parameter are gone); an unregistered owner yields `null` — including grants made before `GameWorld.create_instance` has registered the instance, so a factory only constructs and `start()` / grants come after registration.
+
+- **Narrow in project code**: reads that require a world go through the project's `world(ctx)` helper (`as` + `Log.assert_crash` on mismatch, e.g. `HexBattleGameStateUtils.world`; a project adds one with its first must-have-world read — inkmon and dota2 have none yet). Lifecycle-context reads (Condition / Cost / trigger filter / PreEvent handler get an `AbilityLifecycleContext`, which the helper doesn't take) typed-assign and null-check, asserting in the null branch when the world is required. Reads that may legitimately run without a world use `var battle: HexWorldGameplayInstance = ctx.instance` and null-check (that implicit downcast is type-checked only in debug builds).
+- **Contexts are stack-scoped**: never store a context (or `context.instance`) in a Component / Ability / Action / ExecutionInstance field, and never put an instance or actor into `execution_state`. `instance` is a strong reference — caching it closes a cycle RefCounted can't collect.
+- **Self-activation is declared, not passed**: `grant_ability(ability)` always delivers `AbilityGranted` to the owner's set; whether an ability self-activates is decided by its own trigger (`TriggerConfig.GRANTED_SELF`).
 
 ---
 
@@ -180,7 +184,7 @@ Optional filter: `func(Dictionary, AbilityLifecycleContext) -> bool` — return 
 
 ### 7. GameWorld Dependency
 
-Framework directly references `GameWorld` Autoload. This is intentional — do not attempt to decouple.
+Framework directly references `GameWorld` Autoload. This is intentional — do not attempt to decouple. Instance lookup is part of that contract: contexts resolve `instance` through `GameWorld.get_instance_of_actor(owner_actor_id)`.
 
 ---
 
@@ -209,4 +213,5 @@ Before considering implementation complete, verify:
 - [ ] PreEventConfig handlers: EVERY code path returns an `Intent` (pass/modify/cancel)
 - [ ] Resolvers: dynamic values use `Resolvers.float_fn()` etc., not instance fields
 - [ ] No attempts to decouple `GameWorld` Autoload dependency
-- [ ] `IGameStateProvider.get_logic_time(provider: Variant)` taking `Variant` for `provider` is intentional duck typing — do not "fix"
+- [ ] `ctx.instance` narrowed through the project's `world(ctx)` for `ExecutionContext` must-have reads (lifecycle contexts and may-be-absent reads: typed assign + null check); no context / `instance` cached in fields or `execution_state`
+- [ ] Self-activation on grant is declared with `TriggerConfig.GRANTED_SELF`, not by how `grant_ability` is called

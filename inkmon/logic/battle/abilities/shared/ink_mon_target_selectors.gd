@@ -34,7 +34,7 @@ class AllEnemies:
 	func select(ctx: ExecutionContext) -> Array[String]:
 		if ctx.ability_ref == null or ctx.ability_ref.owner_actor_id.is_empty():
 			return []
-		var battle: InkMonWorldGI = ctx.game_state_provider
+		var battle: InkMonWorldGI = ctx.instance
 		if battle == null:
 			return []
 		var owner := battle.get_unit_actor(ctx.ability_ref.owner_actor_id)

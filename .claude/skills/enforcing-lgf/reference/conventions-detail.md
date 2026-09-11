@@ -6,7 +6,7 @@
 - [1. 属性访问规范](#1-属性访问规范)
 - [2. Actor 创建与注册规范](#2-actor-创建与注册规范)
 - [3. 实例化与状态约束 (CRITICAL)](#3-实例化与状态约束critical)
-- [4. GameStateProvider 的 Variant 设计](#4-gamestateprovider-的-variant-设计)
+- [4. GameplayInstance 上下文](#4-gameplayinstance-上下文)
 - [5. Resolvers — 参数解析器](#5-resolvers--参数解析器)
 - [6. PreEventConfig handler 规范](#6-preeventconfig-handler-规范)
 - [7. GameWorld 硬依赖](#7-gameworld-硬依赖)
@@ -185,14 +185,29 @@ ProjectSettings.set_setting("logic_game_framework/debug/action_state_check", tru
 
 ---
 
-## 4. GameStateProvider 的 Variant 设计
+## 4. GameplayInstance 上下文
 
-`IGameStateProvider`（`core/interfaces/i_game_state_provider.gd`）是静态鸭子类型检测工具类，不是 actor 要实现的具体接口，只提供两个方法：
+`ExecutionContext.instance` / `AbilityLifecycleContext.instance` 的类型是 `GameplayInstance`——框架传真基类，不再有 `Variant` provider（`IGameStateProvider` 与各签名尾随的 `game_state_provider` 参数已删除）。
 
-- `get_logic_time(provider: Variant) -> float` — 安全获取逻辑时间；`provider` 未实现协议时降级返回系统时间（`Time.get_ticks_msec()`）
-- `is_implemented(provider: Variant) -> bool` — 检查 `provider` 是否实现了 `get_logic_time()` 方法
+**找法只有一种**：按 owner 的 actor id 反查（`GameWorld.get_instance_of_actor`，与 `Actor.get_owner_gameplay_instance()` 同一机制）。AbilitySet 派发 / grant / `can_activate` 查询、`Ability` 的 on_remove / 叠层 / Break 钩子、`PreEventComponent` 的重建 context、`AbilityExecutionInstance` 建的每个 ExecutionContext（含 revoke / expire 触发的取消）、`NoInstanceComponent` 的事件与 lifecycle action 都走它；owner 未注册进 GameWorld 时为 `null`。
 
-两者的入参 `provider` **故意类型化为 `Variant`**：框架层不限定 game state provider 的具体类型（可能是 Dictionary、RefCounted、Node），只要求其"鸭子式"实现 `get_logic_time()`。这是有意的鸭子接口设计，不要"修复"成具体类型。
+```gdscript
+# ✅ 必须有世界（ExecutionContext）：项目 helper 收窄（as + 类型不符时 Log.assert_crash）
+#    lifecycle context（Condition / Cost / filter / PreEvent handler）没有 helper：typed assign 后判空，必须有世界就在判空分支里 assert
+var battle := HexBattleGameStateUtils.world(ctx)
+
+# ✅ 允许缺席、静默降级：基类隐式下转后判空
+var battle: HexWorldGameplayInstance = ctx.instance
+if battle == null:
+    return ActionResult.create_success_result([], {"skipped": "no_instance"})
+
+# ❌ 把 context / context.instance 存进 Component / Ability / Action / ExecutionInstance 的字段
+# ❌ 把 instance / actor 放进 execution_state
+```
+
+**为什么 context 必须栈作用域**：`instance` 是强引用。字段里一缓存，就接上 instance → actor → ability_set → ability → component → context → instance 的环——RefCounted 没有循环 GC，整张图从此不再释放。子对象回指 container 只许 String id 或 WeakRef（`AbilityComponent._ability_ref` / `System._instance_ref` / `BattleProcedure._world`）。procedure 子类要具体世界类型就协变覆盖 `_get_world()`（`return super._get_world() as XxxWorld`），不另存 world 字段——`world._active_battle` 强持 procedure，强回指即成环；procedure 持有的对象（controller / logger）也不存 world，由 procedure 当调用参数传入。
+
+**grant 恒投递 `AbilityGranted`**：`grant_ability(ability)` 不再有「传不传 provider 决定要不要通知」的隐式开关——自不自激活只由 ability 自己声明的 trigger（`TriggerConfig.GRANTED_SELF`）决定。
 
 ---
 

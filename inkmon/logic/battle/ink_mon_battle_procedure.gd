@@ -8,7 +8,6 @@ const MAX_TICKS := 10000
 var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
 
-var _world_instance: InkMonWorldGI = null
 var _result := ""
 
 
@@ -24,7 +23,6 @@ func _init(
 	for actor in right:
 		all_actors.append(actor)
 	super._init(world, all_actors)
-	_world_instance = world
 	left_team = left
 	right_team = right
 	_recording_enabled = opts.get("recording", true)
@@ -35,13 +33,13 @@ func tick_once() -> void:
 		return
 	_current_tick += 1
 
-	var world := _world_instance
+	var world := _get_world()
 	if world != null:
 		world.base_tick(_tick_interval)
 	var cur_logic_time := world.get_logic_time() if world != null else float(_current_tick) * _tick_interval
 
 	for actor in get_alive_units():
-		if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time, world):
+		if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time):
 			continue
 		actor.accumulate_atb(_tick_interval)
 		if actor.can_act():
@@ -68,8 +66,14 @@ func finish(result: String = "") -> Dictionary:
 	return super.finish(effective)
 
 
+## 协变收窄基类的 WeakRef 回指：world._active_battle 强持本 procedure，子类只经本方法触达 world，不另存 world 字段（会成环）。
+func _get_world() -> InkMonWorldGI:
+	return super._get_world() as InkMonWorldGI
+
+
 func _mark_in_combat(actor_id: String, active: bool) -> void:
-	var actor := _world_instance.get_unit_actor(actor_id) if _world_instance != null else null
+	var world := _get_world()
+	var actor := world.get_unit_actor(actor_id) if world != null else null
 	if actor == null or actor.ability_set == null:
 		return
 	if active:
@@ -98,7 +102,7 @@ func get_result() -> String:
 
 
 func _start_actor_action(actor: InkMonUnitActor, logic_time: float) -> void:
-	var decision := actor.ai_strategy.decide(actor, _world_instance)
+	var decision := actor.ai_strategy.decide(actor, _get_world())
 	if decision.is_skip():
 		actor.reset_atb()
 		return
@@ -111,7 +115,7 @@ func _start_actor_action(actor: InkMonUnitActor, logic_time: float) -> void:
 		logic_time
 	)
 
-	actor.ability_set.receive_event(event, _world_instance)
+	actor.ability_set.receive_event(event)
 	actor.reset_atb()
 
 

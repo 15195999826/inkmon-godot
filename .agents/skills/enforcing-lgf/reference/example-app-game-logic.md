@@ -132,12 +132,14 @@ const MAX_TICKS := 10000
 
 func tick_once() -> void:
     _current_tick += 1
+    var world := _get_world()  # covariant override below; the procedure has no world field
     world.base_tick(_tick_interval)
+    var cur_logic_time := world.get_logic_time()
     world.broadcast_projectile_events()
 
     # ATB freezes during execution — classic ATB, no accumulation while casting.
     for actor in get_alive_characters():
-        if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time, world):
+        if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time):
             continue
         actor.accumulate_atb(_tick_interval)
         if actor.can_act():
@@ -149,6 +151,11 @@ func tick_once() -> void:
         mark_finished()
     else:
         _check_battle_end()
+
+# Covariant narrowing over the base class's WeakRef. A stored world field would cycle with
+# world._active_battle and leak the whole world when the battle ends outside world.tick().
+func _get_world() -> HexWorldGameplayInstance:
+    return super._get_world() as HexWorldGameplayInstance
 ```
 
 `world.get_actor(actor_id) -> HexBattleActor` is the shared entry point damage/death pipelines use (treats character + environment uniformly); `world.get_character_actor(actor_id) -> CharacterActor` is the character-only entry point AI/heal/buff code uses (returns `null` on an environment actor).
@@ -284,7 +291,7 @@ var pre_event := HexBattlePreEvents.PreDamageEvent.create(
     source_actor_id, target_id, attack_damage,
     BattleEvents._damage_type_to_string(_damage_type)
 )
-var mutable: MutableEvent = event_processor.process_pre_event(pre_event.to_dict(), battle)
+var mutable: MutableEvent = event_processor.process_pre_event(pre_event.to_dict())
 if mutable.cancelled:
     continue  # Effect blocked by a passive
 var final_damage: float = mutable.get_current_value("damage")
@@ -481,7 +488,7 @@ Project-specific selectors in `logic/target_selectors.gd` (`class_name HexBattle
 
 - **Shared flow extraction**: `HexBattleDamageUtils` (`logic/utils/hex_battle_damage_utils.gd`, all-static) extracts the shield-resolve → push → deduct-HP → log → broken-shield-callbacks → death-check flow shared by `DamageAction` and `ReflectDamageAction`
 - **Separated broadcast**: `broadcast_post_damage()` is a separate static call so the caller controls timing — `DamageAction` needs on_hit/on_critical/on_kill callbacks to run *before* the post-damage broadcast; `ReflectDamageAction` posts immediately
-- **Type-safe state access**: `HexBattleGameStateUtils` (`logic/utils/hex_battle_game_state_utils.gd`) wraps actor/display-name/death lookups with typed methods
+- **Type-safe state access**: `HexBattleGameStateUtils` (`logic/utils/hex_battle_game_state_utils.gd`) — `world(ctx)` narrows `ctx.instance` to `HexWorldGameplayInstance` (asserts on mismatch), plus a display-name lookup
 - **Shared skill helpers** (`logic/abilities/shared/skill_helpers.gd`, `class_name HexBattleSkillHelpers`): pass `ability_activate_filter` / `projectile_hit_filter` as **function references** (no parentheses) to `TriggerConfig`; **call** `target_coord_from_event()` / `owner_position_resolver()` / `target_position_resolver()` / `caster_atk_damage(mult)` (each returns a fresh Resolver). `caster(ctx) -> CharacterActor` replaces the five-line "owner_id → null check → get_actor → is CharacterActor → cast" boilerplate that used to be copied into every resolver/action — note it deliberately does **not** check `is_dead()`, since some call sites only want the coordinate
 
 ### Config / Data Organization

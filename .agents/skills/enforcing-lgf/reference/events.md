@@ -22,11 +22,11 @@ Dual-phase event processing: Pre (modify/cancel) and Post (broadcast).
 - `register_pre_handler(registration: PreHandlerRegistration) -> Callable` — Returns unsubscribe function
 - `remove_handlers_by_ability_id(ability_id: String) -> void`
 - `remove_handlers_by_owner_id(owner_id: String) -> void`
-- `process_pre_event(event_dict: Dictionary, game_state_provider: Variant) -> MutableEvent`
+- `process_pre_event(event_dict: Dictionary) -> MutableEvent`
 
 **Post-Event (broadcast after execution):**
-- `process_post_event(event_dict: Dictionary, actor_ids: Array[String], game_state_provider: Variant) -> void`
-- `process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary, game_state_provider: Variant) -> void`
+- `process_post_event(event_dict: Dictionary, actor_ids: Array[String]) -> void`
+- `process_post_event_to_related(event_dict: Dictionary, actor_ids: Array[String], related_actor_ids: Dictionary) -> void`
 
 **Tracing:**
 - `get_traces() -> Array[Dictionary]` / `clear_traces() -> void`
@@ -160,7 +160,7 @@ Registration data for pre-event handlers.
 
 ### HandlerContext (extends RefCounted)
 
-- `owner_id: String` / `ability_id: String` / `config_id: String` / `game_state: Variant`
+- `owner_id: String` / `ability_id: String` / `config_id: String` — ids only, no instance: a `PreEventConfig` user handler receives an `AbilityLifecycleContext` rebuilt per dispatch (which carries `instance`); a raw `PreHandlerRegistration` handler that needs the world looks it up by `owner_id`
 
 ### EventProcessorConfig (extends RefCounted)
 

@@ -130,30 +130,40 @@ func _check_conditions(ctx: Dictionary) -> bool:
 
 ### Pattern
 
+No `I*` static probe class is live in the repo right now (both it had were retired — see the next
+section; inkmon's `IWorldQuery` is an instance facade, a different pattern), so this is a template,
+not a real class:
+
 ```gdscript
-class_name IGameStateProvider
-## Protocol: get_logic_time() -> float
+class_name ISaveable
+## Protocol: to_save_dict() -> Dictionary
 
-static func get_logic_time(provider: Variant) -> float:
-    if provider != null and provider is Object and provider.has_method("get_logic_time"):
-        return float(provider.get_logic_time())
-    return float(Time.get_ticks_msec())
+static func is_implemented(obj: Variant) -> bool:
+    return is_instance_valid(obj) and obj.has_method("to_save_dict")
 
-static func is_implemented(provider: Variant) -> bool:
-    return provider != null and provider is Object and provider.has_method("get_logic_time")
+static func to_save_dict(obj: Variant) -> Dictionary:
+    if not is_implemented(obj):
+        Log.assert_crash(false, "ISaveable", "not saveable: %s" % [obj])
+        return {}
+    return obj.to_save_dict()
 ```
 
-Note the `provider is Object` guard: the parameter is `Variant`, and `has_method` on a
-non-Object is a runtime error. The fallback returns a real clock, not `0.0` — logic time
-going backwards would break every auto-duration tag and cooldown comparison.
+Note the `is_instance_valid` guard: the parameter is `Variant`, `has_method` on a non-Object is a
+runtime error, and so is `obj is Object` on a freed instance — `is_instance_valid` is quietly false
+for null, non-Objects and freed instances. Format with `% [obj]` so an Array argument isn't unpacked
+as the format-argument list. Don't let a miss look like real data: a bare `{}` reads as "nothing to
+save", so the template reports the miss loudly first. The retired `IGameStateProvider` got this
+wrong — it fell back to the wall clock, which quietly made "logic time" depend on the machine
+running it.
 
-**Naming**: `I` + protocol name (e.g. `IGameStateProvider`). No `extends RefCounted` — static-only classes omit `extends`.
+**Naming**: `I` + protocol name (e.g. `ISaveable`). No `extends RefCounted` — static-only classes omit `extends`.
 
 ### When a base class shows up, the `I*` class goes away
 
-Once every implementer shares a base class, the protocol probe is dead weight — put the static
-query on the base class and delete the `I*`. `IAbilitySetOwner` was retired this way when
-`BattleActor` landed:
+Once every implementer shares a base class, the protocol probe is dead weight — use the base type
+directly and delete the `I*`. Both `I*` probes this repo had were retired that way:
+`IAbilitySetOwner` when `BattleActor` landed, and `IGameStateProvider` when the framework started
+passing a typed `GameplayInstance` (`ctx.instance`) instead of a `Variant` provider:
 
 ```gdscript
 # BAD: has_method probing, or an I* class whose implementers all share a base
@@ -174,7 +184,7 @@ if ability_set != null:
 
 ```gdscript
 # Used params: no prefix. Unused: _ prefix.
-func check(ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> bool:
+func check(ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> bool:
     return ctx.ability_set.has_tag(tag)
 ```
 

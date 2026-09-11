@@ -39,7 +39,7 @@ static func apply_damage(
 		result.all_events.append(death_dict)
 		result.target_killed = true
 		if alive_actor_ids.size() > 0:
-			GameWorld.event_processor.process_post_event(death_dict, alive_actor_ids, battle)
+			GameWorld.event_processor.process_post_event(death_dict, alive_actor_ids)
 		if battle != null:
 			InkMonBattleSetup.clear_actor_footprint(battle, target_actor)
 
@@ -52,4 +52,4 @@ static func broadcast_post_damage(
 	battle: InkMonWorldGI
 ) -> void:
 	if alive_actor_ids.size() > 0:
-		GameWorld.event_processor.process_post_event(damage_event_dict, alive_actor_ids, battle)
+		GameWorld.event_processor.process_post_event(damage_event_dict, alive_actor_ids)

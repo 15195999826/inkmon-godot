@@ -70,13 +70,12 @@ func run_battle() -> String:
 	
 	# 使用 GameWorld 创建 HexDemoWorldGameplayInstance 实例
 	var battle := GameWorld.create_instance(func() -> GameplayInstance:
-		var b := HexDemoWorldGameplayInstance.new()
-		b.start({
-			"logging": false,  # 不保存日志文件
-			"recording": true,  # 启用录像
-		})
-		return b
+		return HexDemoWorldGameplayInstance.new()
 	) as HexDemoWorldGameplayInstance
+	battle.start({
+		"logging": false,  # 不保存日志文件
+		"recording": true,  # 启用录像
+	})
 
 	# 运行战斗循环直到结束
 	var dt := 100.0  # 每个 tick 的时间步长（与 HexBattleProcedure.tick_interval 一致）

@@ -21,7 +21,7 @@ func _init(
 
 
 func execute(ctx: ExecutionContext) -> ActionResult:
-	var battle: InkMonWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.instance
 	var caster := battle.get_unit_actor(ctx.ability_ref.owner_actor_id) if battle != null and ctx.ability_ref != null else null
 	if battle == null or caster == null:
 		return ActionResult.create_success_result([])

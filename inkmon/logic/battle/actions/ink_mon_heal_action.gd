@@ -13,7 +13,7 @@ func _init(target_selector: TargetSelector, heal_amount: FloatResolver) -> void:
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var source_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
-	var battle: InkMonWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.instance
 	var heal_amount := _heal_amount.resolve(ctx)
 	var all_events: Array[Dictionary] = []
 	var alive_actor_ids := battle.get_alive_actor_ids() if battle != null else [] as Array[String]
@@ -30,6 +30,6 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		all_events.append(event_dict)
 		print("  [InkMonHeal] %s HP %.1f -> %.1f" % [target_actor.get_display_name(), old_hp, new_hp])
 		if alive_actor_ids.size() > 0:
-			GameWorld.event_processor.process_post_event(event_dict, alive_actor_ids, battle)
+			GameWorld.event_processor.process_post_event(event_dict, alive_actor_ids)
 
 	return ActionResult.create_success_result(all_events, { "heal_amount": heal_amount })

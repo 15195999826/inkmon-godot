@@ -1,4 +1,0 @@
-    170 Leaked instance: RefCounted
-     61 Leaked instance: GDScript
-     15 Leaked instance: WeakRef
-      1 Leaked instance: GDScriptNativeClass

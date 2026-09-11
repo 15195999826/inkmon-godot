@@ -124,7 +124,7 @@ Global singleton managing all gameplay instances.
 - `destroy() -> void`
 
 **Instance Management:**
-- `create_instance(factory: Callable) -> GameplayInstance`
+- `create_instance(factory: Callable) -> GameplayInstance` — The factory only constructs; the instance is registered after it returns, so `start()` / `add_actor` / grants go after this call (contexts resolve their instance by owner id through the registry and see `null` before registration)
 - `get_instance_by_id(id_value: String) -> GameplayInstance`
 - `get_instances_by_type(type_value: String) -> Array[GameplayInstance]`
 - `destroy_instance(id_value: String) -> bool`
@@ -248,7 +248,7 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 
 **Virtual Hooks:**
 - `_mark_in_combat(actor_id: String, active: bool) -> void` — No-op in base (plain `Actor` has no tag container); override per actor's actual tag API
-- `_get_world() -> WorldGameplayInstance` — Resolves the `WeakRef`; `null` if world was freed
+- `_get_world() -> WorldGameplayInstance` — Resolves the `WeakRef`; `null` if world was freed. Subclasses that need the concrete world type override it covariantly (`func _get_world() -> MyWorld: return super._get_world() as MyWorld`) and never store the world in a field: `world._active_battle` holds the procedure strongly, so a strong back-reference is a cycle that leaks the whole world whenever the battle ends outside `world.tick()`. Objects the procedure holds (controllers, loggers) take `world` as a call argument instead of storing it or the procedure
 - `_get_actor(actor_id: String) -> Actor` — `null` if world is gone or actor not found
 
 ---
@@ -258,6 +258,6 @@ The base class provides only the skeleton (participant tracking, `in_combat` tag
 Formats/parses the Actor ID convention `"{instance_id}:{local_id}"` (e.g. `"battle_001:hero_001"`) (actor_id.gd:1-11).
 
 - `static format(instance_id: String, local_id: String) -> String`
-- `static parse(actor_id: String) -> Dictionary` — `{ instance_id, local_id }`; no separator found → legacy-compat fallback `{ instance_id: "", local_id: actor_id }`
+- `static parse(actor_id: String) -> Dictionary` — `{ instance_id, local_id }`; no separator → `{ instance_id: "", local_id: actor_id }` (a bare id belongs to no instance, so instance lookup returns `null`)
 - `static is_valid(actor_id: String) -> bool` — Requires a separator that isn't at the very start/end (both parts non-empty)
-- `static extract_instance_id(actor_id: String) -> String` / `static extract_local_id(actor_id: String) -> String` — Convenience wrappers over `parse()`
+- `static extract_instance_id(actor_id: String) -> String` / `static extract_local_id(actor_id: String) -> String` — The two halves via `find` + `substr`, without building a Dictionary (instance lookup by owner id calls `extract_instance_id` on every dispatch); `parse()` is built from them

@@ -41,7 +41,7 @@ Condition 是**事件到达时的 reactive 判断**, 适合"该不该响应这�
 
 metadata 回答"这个技能能不能对这个目标用", **不**回答"冷却好了没 / 资源够不够 / 被沉默了没"—— 后者是已经配好的 Condition/Cost 门控。这份运行时真相以前 UI / AI / tooltip 拿不到: 要么带副作用地 dry-run 整套 cast 流程, 要么在业务层复刻一遍冷却/资源规则形成双源漂移。
 
-`AbilitySet.can_activate(ability, event_dict := {}, game_state_provider := null) -> Dictionary` 补上这个缺口: 零副作用、可重入的干跑 —— 不扣资源、不 push `AbilityActivateFailed`、不创建 execution, 按激活路径同序评估 `Condition.check` → `Cost.can_pay`, 返回 `{allowed, reason, failed_component_type}` (键与常量见 `AbilityActivationQuery`, 详见 [abilities.md](abilities.md#abilityactivationquery-static-utility))。
+`AbilitySet.can_activate(ability, event_dict := {}) -> Dictionary` 补上这个缺口: 零副作用、可重入的干跑 —— 不扣资源、不 push `AbilityActivateFailed`、不创建 execution, 按激活路径同序评估 `Condition.check` → `Cost.can_pay`, 返回 `{allowed, reason, failed_component_type}` (键与常量见 `AbilityActivationQuery`, 详见 [abilities.md](abilities.md#abilityactivationquery-static-utility))。
 
 **两条路各管各的, 不要混**:
 
@@ -62,8 +62,8 @@ metadata 回答"这个技能能不能对这个目标用", **不**回答"冷却�
 # WRONG: 把"能不能打 env"做成 condition
 class TargetAllowedCondition extends Condition:
     var allowed_kinds: Array[String]
-    func check(ctx, event_dict, game_state) -> bool:
-        var target := game_state.get_actor(event_dict["target_actor_id"])
+    func check(ctx, event_dict) -> bool:
+        var target := ctx.instance.get_actor(event_dict["target_actor_id"])
         return target.type in allowed_kinds
 
 config.conditions.append(TargetAllowedCondition.new(["Character"]))

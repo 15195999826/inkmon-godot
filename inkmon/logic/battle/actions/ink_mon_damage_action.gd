@@ -22,7 +22,7 @@ func _init(
 
 func execute(ctx: ExecutionContext) -> ActionResult:
 	var source_actor_id := ctx.ability_ref.owner_actor_id if ctx.ability_ref != null else ""
-	var battle: InkMonWorldGI = ctx.game_state_provider
+	var battle: InkMonWorldGI = ctx.instance
 	var targets := get_targets(ctx)
 	var all_events: Array[Dictionary] = []
 	var alive_actor_ids := battle.get_alive_actor_ids() if battle != null else [] as Array[String]
@@ -42,7 +42,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 			damage_type_str,
 			element
 		)
-		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre_event.to_dict(), battle)
+		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre_event.to_dict())
 		if mutable.cancelled:
 			continue
 

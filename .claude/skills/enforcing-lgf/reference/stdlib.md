@@ -1,13 +1,12 @@
 # Stdlib API
 
-Only [Components](#components) and [Systems](#systems) genuinely live under `stdlib/`. [Replay](#replay), [Timeline](#timeline), [Interfaces](#interfaces), and [Utils](#utils) are `core/` classes kept in this doc for lookup convenience — each section below has a `Location:` note with the real path.
+Only [Components](#components) and [Systems](#systems) genuinely live under `stdlib/`. [Replay](#replay), [Timeline](#timeline), and [Utils](#utils) are `core/` classes kept in this doc for lookup convenience — each section below has a `Location:` note with the real path.
 
 ## Contents
 - [Components](#components) (StatModifier, TimeDuration, DynamicStatModifier)
 - [Systems](#systems) (ProjectileSystem, CollisionDetector)
 - [Replay](#replay) (BattleRecorder, PlaybackData, RecordingUtils)
-- [Timeline](#timeline) (Timeline Autoload, TimelineData)
-- [Interfaces](#interfaces) (IGameStateProvider)
+- [Timeline](#timeline) (TimelineData)
 - [Utils](#utils) (Log, IdGenerator, StateCheck)
 
 ## Components
@@ -158,17 +157,6 @@ Each has `to_dict()` and `static from_dict()`.
 - `to_dict()` / `static from_dict(data: Dictionary)`
 
 Loop timelines carry the per-cycle time remainder over into the next round rather than zeroing it — see "Timeline behaviour" in [`abilities.md`](abilities.md#abilityexecutioninstance-extends-refcounted).
-
----
-
-## Interfaces
-
-*Location: `core/interfaces/` (not `stdlib/`).*
-
-### IGameStateProvider (static utility)
-
-- `static get_logic_time(provider: Variant) -> float`
-- `static is_implemented(provider: Variant) -> bool`
 
 ---
 

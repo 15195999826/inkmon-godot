@@ -730,7 +730,7 @@ func _begin_battle_with_current_teams() -> void:
 ## 备战单只: 全新 ability_set (持久 roster actor 跨战斗复用须清上场授予, 防重复 grant) + 重新装技能。
 func _prepare_actor_for_battle(actor: InkMonUnitActor) -> void:
 	actor.reset_battle_runtime()
-	actor.equip_abilities(self)
+	actor.equip_abilities()
 
 
 func tick(dt: float) -> void:

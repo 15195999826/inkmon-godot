@@ -60,18 +60,18 @@ Runtime ability instance with lifecycle management and component execution.
 While disabled, `receive_event()` and `tick_executions()` short-circuit at the top of `Ability` — `NoInstanceComponent`/`ActivateInstanceComponent` must **not** implement `on_passive_disabled`/`on_passive_enabled` themselves (event dispatch and timeline ticking already stop above them). Only externally-registered components (`StatModifierComponent`, `DynamicStatModifierComponent`) implement the two hooks, to retract/rebuild attribute modifiers.
 
 **Activation gate query** (`core/abilities/core/ability.gd:190`):
-- `can_activate(context: AbilityLifecycleContext, event_dict: Dictionary = {}, game_state_provider: Variant = null) -> Dictionary` — Zero-side-effect dry run of the activation gate. Mirrors `receive_event`'s top-level short-circuits first (not `STATE_GRANTED` → denied `FAILED_ABILITY`; `is_disabled()` → denied `FAILED_ABILITY`), then evaluates every active `ActiveUseComponent`'s gate and returns the first failure. An ability with no `ActiveUseComponent` passes vacuously — the query answers "will the gate stop me", not "is this a castable skill" (that stays a declarative `metadata` question, see [cast-eligibility-vs-condition.md](cast-eligibility-vs-condition.md)). Result shape: [`AbilityActivationQuery`](#abilityactivationquery-static-utility). Normally reached through `AbilitySet.can_activate`, which builds the lifecycle context
+- `can_activate(context: AbilityLifecycleContext, event_dict: Dictionary = {}) -> Dictionary` — Zero-side-effect dry run of the activation gate. Mirrors `receive_event`'s top-level short-circuits first (not `STATE_GRANTED` → denied `FAILED_ABILITY`; `is_disabled()` → denied `FAILED_ABILITY`), then evaluates every active `ActiveUseComponent`'s gate and returns the first failure. An ability with no `ActiveUseComponent` passes vacuously — the query answers "will the gate stop me", not "is this a castable skill" (that stays a declarative `metadata` question, see [cast-eligibility-vs-condition.md](cast-eligibility-vs-condition.md)). Result shape: [`AbilityActivationQuery`](#abilityactivationquery-static-utility). Normally reached through `AbilitySet.can_activate`, which builds the lifecycle context
 
 **Execution:**
-- `activate_new_execution_instance(p_timeline: TimelineData, p_tag_actions, p_on_timeline_start_actions, p_on_timeline_end_actions, p_trigger_event_dict, p_game_state_provider, p_on_cancel_actions: Array[Action.BaseAction] = []) -> AbilityExecutionInstance` — timeline is passed by reference (no registry lookup). `p_game_state_provider` is kept by the execution only as a `WeakRef`, so revoke/expire paths without an explicit provider can still run `on_cancel` cleanup without forming a battle ↔ execution reference cycle. An `on_execution_activated` listener may cancel the instance synchronously; the `on_timeline_start` actions are then skipped
+- `activate_new_execution_instance(p_timeline: TimelineData, p_tag_actions, p_on_timeline_start_actions, p_on_timeline_end_actions, p_trigger_event_dict, p_on_cancel_actions: Array[Action.BaseAction] = []) -> AbilityExecutionInstance` — timeline is passed by reference (no registry lookup). The execution holds no instance reference: every `ExecutionContext` it builds (tags, start/end, and `on_cancel` when revoke/expire cancels it) looks the owner's instance up by id. An `on_execution_activated` listener may cancel the instance synchronously; the `on_timeline_start` actions are then skipped
 - `get_executing_instances() -> Array[AbilityExecutionInstance]`
 - `has_executing_instance() -> bool` — Same answer as `get_executing_instances().size() > 0` without building the intermediate array (the battle loop asks once per actor per tick)
 - `get_all_execution_instances() -> Array[AbilityExecutionInstance]`
-- `cancel_all_executions(game_state_provider: Variant = null) -> void` — Cancels every instance (running their `on_cancel` actions) and clears the list; omitting the provider falls back to each instance's stored `WeakRef`
-- `tick_executions(dt: float, game_state_provider: Variant) -> Array[String]`
+- `cancel_all_executions() -> void` — Cancels every instance (running their `on_cancel` actions) and clears the list
+- `tick_executions(dt: float) -> Array[String]`
 
 **Events:**
-- `receive_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> void`
+- `receive_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> void`
 - `add_triggered_listener(callback: Callable) -> Callable`
 - `add_execution_activated_listener(callback: Callable) -> Callable`
 
@@ -129,7 +129,7 @@ Container for Abilities with tag management and grant/revoke operations.
 - `bind_owner(actor_id: String) -> void` — Sets `owner_actor_id` **and** `tag_container.owner_id` together. The AbilitySet is built before the actor has an id, so both copies start out empty and must be re-pointed at once or they drift. (`tag_container.owner_id` currently has no readers — it is the container's own record of whose it is, not a bug this method fixes.) `BattleActor._on_id_assigned()` calls it
 
 **Grant/Revoke:**
-- `grant_ability(ability: Ability, game_state_provider: Variant = null) -> void` — Passing a non-null `game_state_provider` synchronously broadcasts `AbilityGranted` to this ability_set's own abilities after grant (not the global event processor), so `TriggerConfig.GRANTED_SELF` can fire self-activating buffs
+- `grant_ability(ability: Ability) -> void` — Always delivers `AbilityGranted` synchronously to this ability_set's own abilities after grant (not the global event processor). Whether anything self-activates is declared by the ability's own triggers (`TriggerConfig.GRANTED_SELF`), never by the call site
 - `revoke_ability(ability_id: String, reason: String = REVOKE_REASON_MANUAL, expire_reason: String = "") -> bool`
 - `revoke_abilities_by_config_id(config_id: String, reason: String = REVOKE_REASON_MANUAL) -> int`
 - `revoke_abilities_by_ability_tag(tag: String, reason: String = REVOKE_REASON_MANUAL) -> int`
@@ -142,7 +142,7 @@ Container for Abilities with tag management and grant/revoke operations.
 - `find_abilities_by_ability_tag(tag: String) -> Array[Ability]`
 - `has_ability(config_id: String) -> bool`
 - `get_ability_count() -> int`
-- `can_activate(ability: Ability, event_dict: Dictionary = {}, game_state_provider: Variant = null) -> Dictionary` — The entry point UI / AI / tooltip should use for "can this be cast right now": builds the same lifecycle context `receive_event` dispatch uses, then delegates to `Ability.can_activate`. `ability` must belong to this AbilitySet (a cross-set query would lie about the owner — it crashes instead). `event_dict` is only a simulated input forwarded to `Condition.check` / `Cost.can_pay` (e.g. a preset `target_actor_id`); pass `{}` when there is no target context
+- `can_activate(ability: Ability, event_dict: Dictionary = {}) -> Dictionary` — The entry point UI / AI / tooltip should use for "can this be cast right now": builds the same lifecycle context `receive_event` dispatch uses, then delegates to `Ability.can_activate`. `ability` must belong to this AbilitySet (a cross-set query would lie about the owner — it crashes instead). `event_dict` is only a simulated input forwarded to `Condition.check` / `Cost.can_pay` (e.g. a preset `target_actor_id`); pass `{}` when there is no target context
 
 **Tags (delegates to TagContainer):**
 - `add_loose_tag(tag: String, stacks: int = 1) -> void`
@@ -153,13 +153,14 @@ Container for Abilities with tag management and grant/revoke operations.
 - `has_loose_tag(tag: String) -> bool` / `get_loose_tag_stacks(tag: String) -> int`
 
 **Tick & Events:**
-- `tick_runtime(dt: float, logic_time: float, game_state_provider: Variant) -> bool` — One frame of ability runtime, and the shape every turn/ATB battle loop should use: `tick` → compute blocking → `tick_executions` (skipped when nothing is executing). Returns whether a blocking execution occupied this frame. **Blocking is computed before `tick_executions` on purpose**: an execution that finishes inside this frame still owned it, and asking afterwards would let an actor both cast and charge ATB on its recovery frame. A real-time example that sequences its own phases (dota2) skips it and calls `has_executing_instances()` + `tick_executions()` directly
+- `tick_runtime(dt: float, logic_time: float) -> bool` — One frame of ability runtime, and the shape every turn/ATB battle loop should use: `tick` → compute blocking → `tick_executions` (skipped when nothing is executing). Returns whether a blocking execution occupied this frame. **Blocking is computed before `tick_executions` on purpose**: an execution that finishes inside this frame still owned it, and asking afterwards would let an actor both cast and charge ATB on its recovery frame. A real-time example that sequences its own phases (dota2) skips it and calls `has_executing_instances()` + `tick_executions()` directly
 - `has_executing_instances() -> bool` — Any ability currently executing (blocking or not)
 - `_is_blocking_execution(ability: Ability) -> bool` — Virtual, default `true` (everything blocks). Projects override it to express "always-on abilities don't freeze action" (both `BattleAbilitySet` and `InkMonBattleAbilitySet` use `not ability.has_ability_tag("intrinsic")`)
 - `tick(dt: float, logic_time: float = -1.0) -> void`
-- `tick_executions(dt: float, game_state_provider: Variant) -> Array[String]`
-- `receive_event(event_dict: Dictionary, game_state_provider: Variant) -> void`
+- `tick_executions(dt: float) -> Array[String]`
+- `receive_event(event_dict: Dictionary) -> void` — One lifecycle context per ability; the owner instance is looked up once per call
 - `get_event_processor() -> EventProcessor`
+- `get_owner_instance() -> GameplayInstance` — `GameWorld.get_instance_of_actor(owner_actor_id)`, re-resolved on every call (`null` when the owner isn't registered). Deliberately not cached or bound: the set is built before the actor has an id and projects rebuild it wholesale (inkmon `reset_battle_runtime`), so a bind-once reference would be missed on those paths
 - `get_logic_time() -> float`
 
 **Listeners:**
@@ -179,7 +180,7 @@ Base class for all ability components with lifecycle hooks.
 - `on_apply(context: AbilityLifecycleContext) -> void`
 - `on_remove(context: AbilityLifecycleContext) -> void`
 - `on_tick(dt: float) -> void`
-- `on_event(event_dict: Dictionary, context: AbilityLifecycleContext, game_state_provider: Variant) -> bool`
+- `on_event(event_dict: Dictionary, context: AbilityLifecycleContext) -> bool`
 - `on_stacks_changed(context: AbilityLifecycleContext, old_stacks: int, new_stacks: int) -> void` — Fires after `Ability.add_stacks`/`remove_stacks`/`set_stacks` actually changes `stacks` (no-op call if clamped to the same value). Must not call those methods again from inside the hook — `Ability` asserts against re-entrant nesting.
 - `on_ability_stack_refreshed() -> void` — Fires when `OVERFLOW_REFRESH` caps a stack add; duration-based components use it to reset their remaining time atomically with the stack refresh
 - `on_passive_disabled(context: AbilityLifecycleContext) -> void` — Phase B2 Break: fires once when the ability transitions into disabled (its first `add_disabled_source`). Only externally-registered components implement this (e.g. `StatModifierComponent` retracts its attribute modifiers); `NoInstanceComponent`/`ActivateInstanceComponent` must not, since `Ability` already short-circuits their dispatch
@@ -200,7 +201,7 @@ Base config class. Must implement `create_component() -> AbilityComponent`.
 
 ## AbilityLifecycleContext (extends RefCounted)
 
-Context passed through ability lifecycle methods.
+Context passed through ability lifecycle methods. **Stack-scoped**: never store it (or its `instance`) in a Component / Ability field — `instance` is a strong reference, so caching it closes an instance → actor → ability → component → context cycle.
 
 **Properties:**
 - `owner_actor_id: String`
@@ -208,6 +209,7 @@ Context passed through ability lifecycle methods.
 - `ability: Ability`
 - `ability_set: AbilitySet`
 - `event_processor: EventProcessor`
+- `instance: GameplayInstance` — The owner's instance, looked up by `owner_actor_id` (required 6th constructor argument); `null` when the owner isn't registered in `GameWorld`
 
 ---
 
@@ -224,8 +226,8 @@ Timeline-based execution instance for ability effects.
 - `get_elapsed() -> float` / `get_state() -> String`
 - `is_executing() -> bool` / `is_completed() -> bool` / `is_cancelled() -> bool`
 - `get_trigger_event() -> Dictionary`
-- `tick(dt: float, game_state_provider: Variant) -> Array[String]` — Returns completed tag names
-- `cancel(game_state_provider: Variant = null) -> void` — No-op unless still `STATE_EXECUTING`; sets `STATE_CANCELLED`, then synchronously runs the config's `on_cancel` actions. When no provider is passed it falls back to the `WeakRef` captured at construction, so revoke/expire cleanup still resolves the world
+- `tick(dt: float) -> Array[String]` — Returns completed tag names
+- `cancel() -> void` — No-op unless still `STATE_EXECUTING`; sets `STATE_CANCELLED`, then synchronously runs the config's `on_cancel` actions. Like every context this execution builds, the cancel context's `instance` is looked up from the ability owner's id, so revoke/expire cleanup resolves the world without anyone passing it in
 
 **Timeline behaviour** (`core/abilities/core/ability_execution_instance.gd`):
 - **Same-timestamp tags fire in definition order** — tags due in one tick are sorted by `(tag_time, definition index in TimelineData.tags)`. `Array.sort_custom` is unstable, so without the tie-break the execution order of same-instant tags depended on the sort implementation and broke replay determinism. Author order = execution order
@@ -332,8 +334,8 @@ Event trigger configuration.
 
 Shared objects — MUST NOT store mutable state. See conventions §3.
 
-- `check(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> bool`
-- `get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> String`
+- `check(_ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> bool`
+- `get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> String`
 - `get_condition_type() -> String` — Returns `"condition"` by default; built-ins override it for debug labeling (e.g. `HexBattleCooldownSystem.CooldownCondition` returns `"cooldown_ready"`)
 
 **Built-in:** `HasTagCondition`, `NoTagCondition`, `TagStacksCondition`, `AllConditions`, `AnyCondition`
@@ -346,9 +348,9 @@ Shared objects — MUST NOT store mutable state. See conventions §3.
 - `type: String` — Cost type identifier, default `"cost"`
 
 **Methods:**
-- `can_pay(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> bool`
-- `pay(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> void`
-- `get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary, _game_state: Variant) -> String`
+- `can_pay(_ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> bool`
+- `pay(_ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> void`
+- `get_fail_reason(_ctx: AbilityLifecycleContext, _event_dict: Dictionary) -> String`
 
 **Built-in:** `ConsumeTagCost`, `RemoveTagCost`, `AddTagCost`
 
@@ -362,7 +364,7 @@ Shared objects — MUST NOT store mutable state. See conventions §3.
 
 **Builders:** `static allowed() -> Dictionary` / `static denied(reason: String, failed_component_type: String) -> Dictionary` / `static is_allowed(result: Dictionary) -> bool`
 
-`ActiveUseComponent.can_activate(context, event_dict = {}, game_state_provider = null)` evaluates the gate in the same order the activation path does — all `Condition.check` first, then all `Cost.can_pay` — returning on the first failure with `get_fail_reason()` as `reason` (falling back to `condition.get_condition_type()` / `cost.type` when the reason is empty). It deliberately does **not** match triggers: a trigger says *when to dispatch an event to this component*, and a pre-cast query has no event to match; `event_dict` is only a simulated input. It pays nothing, pushes no `AbilityActivateFailed`, creates no execution, and is re-entrant.
+`ActiveUseComponent.can_activate(context, event_dict = {})` evaluates the gate in the same order the activation path does — all `Condition.check` first, then all `Cost.can_pay` — returning on the first failure with `get_fail_reason()` as `reason` (falling back to `condition.get_condition_type()` / `cost.type` when the reason is empty). It deliberately does **not** match triggers: a trigger says *when to dispatch an event to this component*, and a pre-cast query has no event to match; `event_dict` is only a simulated input. It pays nothing, pushes no `AbilityActivateFailed`, creates no execution, and is re-entrant.
 
 ### Getting an AbilitySet from an Actor
 

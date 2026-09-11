@@ -157,13 +157,13 @@ func _setup_from_save_data(data: Dictionary) -> void:
 			elements.append(str(raw_element))
 
 
-func equip_abilities(game_state_provider: Variant = null) -> void:
+func equip_abilities() -> void:
 	var move_ability := Ability.new(InkMonMove.ABILITY, get_id())
-	ability_set.grant_ability(move_ability, game_state_provider)
+	ability_set.grant_ability(move_ability)
 	_move_ability_id = move_ability.id
 
 	var basic_attack := Ability.new(InkMonBasicAttack.ABILITY, get_id())
-	ability_set.grant_ability(basic_attack, game_state_provider)
+	ability_set.grant_ability(basic_attack)
 	_basic_attack_ability_id = basic_attack.id
 
 	# primary skill = 当前 skill_slots[0] (单一真相; 局内进化改写 slot0 后此处即取到升级技能, 无陈旧缓存)。
@@ -172,16 +172,16 @@ func equip_abilities(game_state_provider: Variant = null) -> void:
 	if primary_skill != "" and primary_skill != InkMonBasicAttack.CONFIG_ID:
 		var skill_config := InkMonAllSkills.get_skill_config(primary_skill)
 		var skill_ability := Ability.new(skill_config, get_id())
-		ability_set.grant_ability(skill_ability, game_state_provider)
+		ability_set.grant_ability(skill_ability)
 		_skill_ability_id = skill_ability.id
 
 	var math_passive := Ability.new(InkMonDamageMathPassive.ABILITY, get_id())
-	ability_set.grant_ability(math_passive, game_state_provider)
+	ability_set.grant_ability(math_passive)
 
 	# 刻印: 每条 engraving grant 一个刻印被动 (LGF passive 强化技能输出, §8c)。
 	for _engraving in engravings:
 		var engraving_passive := Ability.new(InkMonEngravingPassive.ABILITY, get_id())
-		ability_set.grant_ability(engraving_passive, game_state_provider)
+		ability_set.grant_ability(engraving_passive)
 
 	# 装备数值 (adr/0004): 把当前装备 stat_mods 现场拼通用 ability grant 进加成层。reset_battle_runtime 换了
 	# 新 ability_set, 此处把装备 ability 重建到当前 ability_set (channel ② 富效果 future 也将在此就位);
@@ -381,7 +381,6 @@ func _refresh_equipment_abilities() -> void:
 			stat_mods, get_id(), item_config_id, int(snap.get("count", 1)))
 		if ability == null:
 			continue
-		# 不传 game_state_provider: 装备 ability 无 self-trigger 需求 (对齐 hex Phase G)。
 		ability_set.grant_ability(ability)
 		_equipment_ability_ids.append(ability.id)
 

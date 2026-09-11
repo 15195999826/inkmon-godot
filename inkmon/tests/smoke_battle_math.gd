@@ -97,7 +97,7 @@ func _test_mitigation_formula() -> String:
 	gi.add_actor(defender)
 	# 只授予被打方减伤 passive (最小事件面; 战斗里由 equip_abilities 对全体授予)。
 	var math_passive := Ability.new(InkMonDamageMathPassive.ABILITY, defender.get_id())
-	defender.ability_set.grant_ability(math_passive, gi)
+	defender.ability_set.grant_ability(math_passive)
 
 	var cases := [
 		# [damage_type, element, expected_mult, label]
@@ -113,7 +113,7 @@ func _test_mitigation_formula() -> String:
 		var case := case_value as Array
 		var pre := InkMonBattlePreEvents.PreDamageEvent.create(
 			attacker.get_id(), defender.get_id(), BASE_DAMAGE, str(case[0]), str(case[1]))
-		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre.to_dict(), gi)
+		var mutable: MutableEvent = GameWorld.event_processor.process_pre_event(pre.to_dict())
 		var final_damage: float = mutable.get_current_value("damage")
 		var expected: float = BASE_DAMAGE * float(case[2])
 		if absf(final_damage - expected) > EPS:

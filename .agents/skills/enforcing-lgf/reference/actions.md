@@ -68,7 +68,7 @@ Runtime context passed to `Action.execute()`.
 
 **Properties:**
 - `event_dict_chain: Array[Dictionary]` — Trigger event chain
-- `game_state_provider: Variant` — Game state access
+- `instance: GameplayInstance` — The owning instance, looked up from the ability owner's id (`null` when the owner isn't registered). Reads that must have a world narrow it through the project's `world(ctx)` helper (hex only today); reads that may run without one use a typed assign + null check (see SKILL.md §4). Stack-scoped: never cache the context or `instance` in a field or in `execution_state`
 - `event_collector: EventCollector` — For recording events
 - `ability_ref: AbilityRef` — Reference to owning ability
 - `execution_info: AbilityExecutionInfo` — Timeline execution metadata
