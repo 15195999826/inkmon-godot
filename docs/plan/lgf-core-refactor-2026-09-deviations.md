@@ -101,6 +101,15 @@
 - P8-6 / 改法 2 / `serialize` 资源形状 `{ "kind": "resource", "value" }`，`deserialize` 按 kind 还原成无上限资源（与 stat 一样不还原约束）。/ 为什么：计划只写「含资源值」，全仓无生产消费者。[假设]
 - P8-7 / 两问自查 / ① 新增 `_attribute_names` / `_resource_values` / `_resource_max_refs` 都是 RawAttributeSet 私有表，随 set 释放，不涉及 revoke / remove_actor / reset / shutdown / 换 AbilitySet 五个出口；② `_reclamp_resources` 遍历 `keys()` 副本且只改既有键的值，`snapshot_current_values` / `serialize` 遍历定义期后不变的 `_attribute_names`，生成器循环遍历 config 快照。
 
+## P9 grid 出 core
+
+- P9-1 / 测试 / 计划外加 stdlib 单测 `tests/stdlib/grid/grid_world_gameplay_instance_test.gd`（4 例，登记 TEST_PATHS）；其红阶段是新类未声明的 TEST LOAD FAILURE 而非断言红。/ 为什么：hex 钉子覆盖不到 String occupant、无 `hex_position` 的 actor、null 三条 stdlib 合同；新类无法按断言红（同 P8-4）。[假设]
+- P9-2 / 改法 4 / hex 死亡清占用从无守卫的 `grid.remove_occupant(pos)` 改为经 `clear_grid_footprint`「occupant 是自己才清」。/ 为什么：计划点名改调该方法；死者格 occupant 恒为自己（死亡不离格），hex scenario 69 例与 inkmon golden 不变，只是 overlay 死亡不再误清同格别人。
+- P9-3 / 改法 4 / `world_view._get_world()` 返回类型随 `bind_world` 一起收窄为 `GridWorldGameplayInstance`。/ 为什么：`hex_to_world` / `_on_grid_configured` 读 `world.grid`，core 基类已无此字段。[假设]
+- P9-4 / 改法 3、4 / 顺手改 5 处注释指针：`world_gameplay_instance.gd` / `world_view.gd` 的 `docs/README.md` → `CLAUDE.md`「World owns Battle」，`hex_world_gameplay_instance.gd` 的 `view-logic-reconciliation.md` → `tests/frontend/view_logic_reconciler.gd`，`piercing_line.gd` 与 hex `README.md` 的 `_clear_grid_footprint` → `clear_grid_footprint`。/ 为什么：P5.5 后续观察点名 P9 触及时改指规则之家；被删符号不留假引用。
+- P9-5 / 钉子 / 钉子只钉 hex 层今日行为（新 smoke `smoke_grid_footprint` 进 hex/regression，钉子 commit `53aa1d4`），未钉「`hex_position` 无效时旧 `remove_actor` 不扫预订」的边角（新实现无条件按 id 扫）。/ 为什么：计划已明写新形状；仓内无 actor 在无效坐标下持预订的路径。[假设]
+- P9-6 / 两问自查 / ① 唯一新表 = `GridWorldGameplayInstance.grid`（occupant / reservation）：`remove_actor` 经 `clear_grid_footprint` 清、inkmon `_reset_battle_state` 清 roster 足迹 + 移除临时单位、`SkillPreviewWorldGI.reset` 整板置 null、instance 结束随之释放（释放测试用例 2 加 grid weakref）；revoke / 换 AbilitySet 无关。② `clear_grid_footprint` 遍历 `get_all_coords()` 的新数组、只改 tile metadata；其余循环未新增。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。

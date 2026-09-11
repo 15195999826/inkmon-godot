@@ -24,7 +24,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		if actor == null or actor.is_dead() or not actor.hex_position.is_valid():
 			continue
 		var from_hex := actor.hex_position
-		if not battle.grid.move_occupant(from_hex, target_coord):
+		if not battle.get_battle_grid().move_occupant(from_hex, target_coord):
 			continue
 		actor.hex_position = target_coord.duplicate()
 		var event := InkMonBattleEvents.MoveCompleteEvent.create(

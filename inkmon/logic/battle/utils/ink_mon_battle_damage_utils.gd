@@ -38,7 +38,7 @@ static func apply_damage(
 		result.all_events.append(death_dict)
 		result.target_killed = true
 		battle.event_processor.process_post_event(death_dict)
-		InkMonBattleSetup.clear_actor_footprint(battle, target_actor)
+		battle.clear_grid_footprint(target_actor)
 
 	return result
 

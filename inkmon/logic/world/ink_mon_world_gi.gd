@@ -1,14 +1,14 @@
 class_name InkMonWorldGI
-extends WorldGameplayInstance
+extends GridWorldGameplayInstance
 ## 主游戏唯一的、长命的 world GI (World-owns-Battle) —— Logic 层根。
 ##
 ## 承载世界运行时 (adr/0001 统一 live-actor, 本 GI = 序列化根):player_actor + roster 活 actor +
 ## 主世界 overworld grid + 玩家/NPC world actors + npc 表 + (战斗期) InkMonBattleProcedure。
 ## 战斗是它内跑的短命 procedure, 不是独立 GI。
-## 持两套 grid (第一版临时方案, docs/main-game-architecture.md §1②):
-##   - overworld_grid: 主世界 hex 网格 wrapper (InkMonWorldGrid; 玩家行走 + NPC occupant)
-##   - battle grid: 战斗 hex 网格 (UGridMap.model, 每场战斗 configure)
-## `grid` (基类字段) = 当前 active 的那套; start_battle_procedure 切到 battle, 战斗结束切回 overworld。
+## 两套棋盘分工固定, 不翻转 (docs/main-game-architecture.md §1②):
+##   - overworld_grid: 主世界 hex 网格 wrapper (InkMonWorldGrid; 玩家行走 + NPC occupant), 主世界移动只读它
+##   - grid (stdlib GridWorldGameplayInstance 字段) = 战斗棋盘, 每场由 InkMonBattleSetup.configure_battle_grid
+##     重配; 战斗侧唯一读名 get_battle_grid(); 战斗外它是上一场棋盘或 null, 无人读。
 ## overworld grid / move controller 是 Logic(无 UI 依赖),故住 Logic 层、归 GI 持有。
 ##
 ## 持久: Host 开机建一次, 不 per-battle create→destroy; 连续多场战斗复用同一实例
@@ -60,7 +60,6 @@ const LOSS_EXP := 1
 var tick_count := 0
 var left_team: Array[InkMonUnitActor] = []
 var right_team: Array[InkMonUnitActor] = []
-var overworld_grid_model: GridMapModel = null
 ## 主世界角色(玩家 + NPC)= InkMonWorldActor,key = "player" 或 npc_id。
 ## 战斗单位不进此表(走 left_team/right_team);这些只是世界态实体,战斗对其隐形
 ## (不 equip ability、不注册 event handler,故战斗 tick / event 广播都碰不到)。
@@ -286,8 +285,6 @@ func _setup_overworld_runtime() -> void:
 	# 用 player_actor 持久坐标 (存档真相) 灌 grid occupant —— 不能用 get_player_coord() (此刻 grid 刚建、
 	# 占用未放, 会读回 (0,0) 丢掉存档坐标)。player_actor 随后在 _spawn_world_actors 进 registry。
 	overworld_grid.sync_occupants(_player_actor_coord(), npc_defs)
-	overworld_grid_model = overworld_grid.model
-	grid = overworld_grid.model
 	_register_world_systems()
 	_spawn_world_actors()
 	refresh_near_npc()
@@ -438,8 +435,8 @@ func apply_move_player(target_coord: Vector2i) -> void:
 
 ## tick 第二阶段(Movement System 调):推进每个移动中 world actor 的进度,逐格跨越。
 func advance_world_movement(dt: float) -> void:
-	# P5 双 grid 边界加固:主世界移动只读 overworld_grid(稳定),绝不读会在战斗期翻转到 battle grid
-	# 的基类 `grid`;且战斗期 base_tick 不跑(GI.tick 走 battle 分支)→ Movement 天然冻结,此处再兜一层。
+	# 主世界移动只读 overworld_grid(基类 grid 是战斗棋盘);战斗期 base_tick 不跑(GI.tick 走 battle 分支)
+	# → Movement 天然冻结,此处再兜一层。
 	if has_active_battle() or overworld_grid == null:
 		return
 	var player_crossed := false
@@ -739,26 +736,10 @@ func tick(dt: float) -> void:
 		tick_count = _inkmon_procedure.get_current_tick()
 
 
-## battle grid backend = UGridMap autoload。
-func configure_grid(config: GridMapConfig) -> void:
-	UGridMap.configure(config)
-	grid = UGridMap.model
-	grid_configured.emit(config)
-
-
-## 数据驱动版（T2 契约）：地图文件 → GridMapModel（initialize_from_tiles 产物）灌进
-## UGridMap 单例（一次一图，battle 进场重灌）。
-func configure_grid_model(model: GridMapModel) -> void:
-	UGridMap.configure_model(model)
-	grid = UGridMap.model
-	grid_configured.emit(model.get_config())
-
-
-func remove_actor(actor_id: String) -> bool:
-	var actor := super.get_actor(actor_id)
-	if actor != null and actor is InkMonBattleActor:
-		InkMonBattleSetup.clear_actor_footprint(self, actor as InkMonBattleActor)
-	return super.remove_actor(actor_id)
+## 战斗棋盘的唯一战斗侧读名 (accessor, 不是第二个字段): 每场由 InkMonBattleSetup.configure_battle_grid 重配,
+## 战斗外是上一场棋盘或 null。主世界走 overworld_grid, 不经此。
+func get_battle_grid() -> GridMapModel:
+	return grid
 
 
 ## registry lookup (adr/0001: 一切实体常驻 registry, 标准 lookup 须能取回 player/NPC/unit)。
@@ -876,20 +857,19 @@ func _on_battle_finished(timeline: Dictionary) -> void:
 			InkMonMissionSetup.record_mission_event(mission_state, InkMonQuestDef.TYPE_HUNT_COUNT)
 		elif _result != "right_win":
 			mission_state.pending_battle_node_id = -1
-	# 持久 world: 不 end() (那会单向销毁世界)。切回主世界 grid (若已 bind)。
+	# 持久 world: 不 end() (那会单向销毁世界)。棋盘留着 (上一场), 下一场开打前 _reset_battle_state 清占用后重配。
 	_inkmon_procedure = null
-	if overworld_grid_model != null:
-		grid = overworld_grid_model
 
 
 ## 清上一场战斗, 让本实例可被下一场复用。adr/0001:持久 roster actor **留 registry + 留 HP carryover**,
-## 只清其外部战斗态 (P021: handler / grid occupant / reservation) + 重置战斗运行时;临时对战单位整只移除。
+## 只清其外部战斗态 (handler / 上一场棋盘上的占用与预订) + 重置战斗运行时;临时对战单位整只移除
+## (remove_actor 自带清棋盘)。
 func _reset_battle_state() -> void:
 	for actor in get_all_units():
 		var aid := actor.get_id()
 		# handler 注销在 reset_battle_runtime (换 ability_set 前) 与 remove_actor 里各做一次, 这里不重复。
 		if roster.has(actor):
-			InkMonBattleSetup.clear_actor_footprint(self, actor)
+			clear_grid_footprint(actor)
 			actor.reset_battle_runtime()
 		else:
 			remove_actor(aid)

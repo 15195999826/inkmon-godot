@@ -70,12 +70,13 @@ func _lowest_hp_enemy_in_range(actor: InkMonUnitActor, skill: Ability, battle: I
 func _best_step_toward(actor: InkMonUnitActor, target_pos: HexCoord, battle: InkMonWorldGI) -> HexCoord:
 	var best: HexCoord = null
 	var best_distance := actor.hex_position.distance_to(target_pos)
-	for coord in battle.grid.get_neighbors(actor.hex_position):
-		if not battle.grid.has_tile(coord):
+	var board := battle.get_battle_grid()
+	for coord in board.get_neighbors(actor.hex_position):
+		if not board.has_tile(coord):
 			continue
-		if not battle.grid.is_passable(coord):
+		if not board.is_passable(coord):
 			continue
-		if battle.grid.is_reserved(coord):
+		if board.is_reserved(coord):
 			continue
 		var distance := coord.distance_to(target_pos)
 		if distance < best_distance:

@@ -83,7 +83,7 @@
 ### 命名
 
 - **概念分层(命名审计的轴)**:`InkMonWorld` = **世界容器** = overworld + battle + 持久层(活 actor registry / 序列化根,World-owns-Battle,§2);`overworld` = 容器内的"**行走域**",跟 battle 平级。⇒ overworld **不是残渣**,大体保留;容器层概念用 `World` 前缀(GI/Host/Command/Presentation/Actor 基类),纯 overworld 域专属的东西用 `overworld` 前缀(如只 overworld 用、battle 不碰的 `InkMonOverworldLiveDriver`;渲染核心本身是 battle/overworld 共享的 render2d,见 §2②)。审计 = 逐标识符判它住容器层还是域层,只改**站错层**的名字。
-- **`overworld_grid` 必留**:GI 持两套 grid(主世界 grid vs 战斗翻转 grid,§2②),`overworld_grid` 这名字正是区分二者的关键(`ink_mon_world_gi.gd` 主世界 movement 只读它,绝不读战斗期翻转的基类 `grid`)。**不做 overworld→world 全局 sed**。
+- **`overworld_grid` 必留**:GI 持两套 grid 且分工固定(主世界 `overworld_grid` vs 战斗棋盘 = stdlib `GridWorldGameplayInstance` 的基类 `grid`,§2②),`overworld_grid` 这名字正是区分二者的关键(`ink_mon_world_gi.gd` 主世界 movement 只读它);战斗侧唯一读名是 `get_battle_grid()`,二者从不翻转。**不做 overworld→world 全局 sed**。
 - 主世界**容器层**代码前缀统一 `InkMonWorld*`。
 - **物理目录 = 三层对齐(2026-06 重构)**:主游戏住顶层模块 `inkmon/` —— `inkmon/host`(composition root + 入口场景)/ `inkmon/logic`(`world` 容器层 · `battle` 域 · `services` = npc/content/item/save)/ `inkmon/presentation`(overworld view + UI)+ `inkmon/tools` · `inkmon/tests`;app shell `InkMonMain.tscn` + `ink_mon_main.gd` 提到 repo 根;`scenes/` 仅余 Web 桥 `Simulation.tscn`。⇒ "概念分层(overworld vs battle)" = 命名审计轴,"物理三层(logic/presentation/host)" = 目录轴,两轴正交并存(目录不再按历史 battle/main 二分)。
 - World actor 层级:LGF `BattleActor`(core,死亡锁存 + 两个默认返回 null 的 set getter + 录像默认订阅)→ `InkMonWorldActor`(持 `hex_position`)→ `InkMonBattleActor`(钉住强类型 `ability_set` 字段 + `get_attribute_set()` 抽象桩)→ `InkMonUnitActor`(持 `attribute_set` 实体)。玩家/NPC = `InkMonWorldActor`(直接,无 ability/timeline —— 继承来的两个 getter 恒 null、`is_dead()` 恒 false);`hex_position` 住 `InkMonWorldActor`(三者共有,也是 GI `actor_position_changed` 报告的东西)。
@@ -114,7 +114,7 @@
   - **回放期间世界冻结(设计已定,落地见 Host)**:玩家体验流 = 进战斗 →【主世界 tick 停】→ 看回放 → 结果 → **玩家确认离开** →【tick 恢复】。注意旧洞:battle 结束交 Presentation 播回放时若立即清 `_active_instance_id`,`_pump_world_ticks` 会在观看期间恢复跳动 —— 冻结必须覆盖整个观看期直到确认离开。
   - **主世界 = live**:`overworld/` 的 `InkMonOverworldLiveDriver` 订阅 WorldGI 信号(`actor_position_changed` 等)→ 每帧 pump 同一 render_world,无回放时钟。view-local(相机/idle/反馈/拾取/NPC 高亮)不进 render_world。
 
-> ⚠️ **唯一 world GI 持两套 grid(主世界 + 战斗)战斗期切 active = 第一版临时方案**,非定稿(未来再优化,非核心)。边界加固:主世界 movement 只读 `overworld_grid`(稳定),绝不读战斗期翻转的基类 `grid`;且战斗期 base_tick 不跑 → movement 天然冻结。
+> ✅ **双 grid 已定形(LGF P9,2026-09-12)**:唯一 world GI 持两套 grid、分工固定不翻转 —— 基类 `grid`(stdlib `GridWorldGameplayInstance`)= 战斗棋盘,每场由 `InkMonBattleSetup.configure_battle_grid` 重配、战斗侧只经 `get_battle_grid()` 读、战斗外是上一场棋盘(无人读);`overworld_grid` = 主世界,movement 只读它;inkmon 不再写 `UGridMap`。战斗期 base_tick 不跑 → movement 天然冻结。
 
 ### ③ 持久层 = 活 actor 自序列化(无独立 session 对象)
 
@@ -260,8 +260,8 @@
 
 ## 9. 待用户给设计后再定(未覆盖)
 
-- **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):**battle 与 overworld 对称,都不拆成域对象** —— `WorldGameplayInstance` 基类把 world-host 机器(`grid` / `add_actor`·`remove_actor` registry / `actor_position_changed` signal / `add_system`·`tick` / `start_battle`·`has_active_battle`)钉死在 GI 上、拿不走,且这套机器**同时**服务 battle 与 overworld 移动,故两者钉得一样死。两者杂活皆归 static service(battle:建队/布阵/发奖 → `InkMonBattleSetup`);两者皆**不**抽有状态 RefCounted 域对象(硬抽得傀儡)。overworld 唯一私有 transient 状态 = grid,已是独立对象 `InkMonWorldGrid`。GI 终态 = registry + 序列化根 + CQRS 基础设施 + world 宿主(battle + overworld 同一套基类机器)。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。战斗杂活已下沉 `InkMonBattleSetup`(GI 862→723);overworld 不再抽域对象。
+- **InkMonWorldGI god-object(#3)= routing 规则约束,非大重构**(决策见 [adr/0002](adr/0002-gi-organization-state-decides-form.md)):**battle 与 overworld 对称,都不拆成域对象** —— `WorldGameplayInstance` 基类(+ stdlib `GridWorldGameplayInstance`)把 world-host 机器(`grid` / `add_actor`·`remove_actor` registry / `actor_position_changed` signal / `add_system`·`tick` / `start_battle`·`has_active_battle`)钉死在 GI 上、拿不走,且这套机器**同时**服务 battle 与 overworld 移动,故两者钉得一样死。两者杂活皆归 static service(battle:建队/布阵/发奖 → `InkMonBattleSetup`);两者皆**不**抽有状态 RefCounted 域对象(硬抽得傀儡)。overworld 唯一私有 transient 状态 = grid,已是独立对象 `InkMonWorldGrid`。GI 终态 = registry + 序列化根 + CQRS 基础设施 + world 宿主(battle + overworld 同一套基类机器)。god-object 不靠一次拆解消除,靠"新逻辑按 state 性质 routing(不需保留态→static 纯函数 / 需保留且 transient→GI 持的 RefCounted / 需保留且持久→data shape,非 service)"约束其增长。战斗杂活已下沉 `InkMonBattleSetup`(GI 862→723);overworld 不再抽域对象。
 - **PlayerActor 内的无类型 Dict 袋子**:`InkMonPlayerActor` 的 `gold`/`medals` 已 typed;待定的是 `progression`(+原 `overworld` flags)无类型 Dict 袋子要不要进一步类型化。**触发条件(2026-06-10 评审)**:`game-vision.md` 游戏循环成文、progression 字段集稳定后再 typed 化;之前不动(字段没稳就 typed = 给沙子刻字,且现状无持续成本)。
-- **主世界双 grid 共存的最终形态**:第一版临时方案 = 唯一 world GI 持两套 grid 切 active(§2② 注),未来优化。**触发条件(2026-06-10 评审,同日修订)**:原绑"回放呈现排期"已过期 —— adr/0005-0007 同日落地回放但只动表演层,未触及逻辑层双 grid;维持挂起,新触发 = 下次改**战斗 grid 语义**(布阵 / 位置类机制扩展 / PvP 战场)时一并定终态;当下已被边界加固兜住(movement 只读 `overworld_grid` + 战斗期 base_tick 冻结),不流血。
+- **主世界双 grid 共存的最终形态(已解决,LGF P9 2026-09-12)**:唯一 world GI 持两套 grid、分工固定不翻转(§2② 注):基类 `grid`(stdlib `GridWorldGameplayInstance`)= 战斗棋盘,`get_battle_grid()` 是唯一战斗侧读名;`overworld_grid` = 主世界。不再有"切 active",inkmon 不再写 `UGridMap`。本条关闭。
 - **`f(species, level)` 属性公式**:lab 标"等级是否线性加属性=待定";v1 先最简单线性(`apply_derived_stats` 的 `LEVEL_GROWTH`),公式调整不影响持久切片结构。**触发条件(2026-06-10 评审)**:等 lab 侧数值设计,godot 被动跟随;无架构影响。
 - **刻印的实现框架**:存储形状已定;实现走 LGF 被动 ability(hook 目标技能事件)还是挂在 skill_slot 上的 modifier,留实现时定。

@@ -67,7 +67,7 @@ func _run() -> String:
 		return _fail("wild battle should be active after request_wild_battle")
 	if gi.get_battle_map_doc().is_empty():
 		return _fail("wild battle must carry a generated map doc")
-	if gi.grid.get_all_coords().size() != 61:
+	if gi.get_battle_grid().get_all_coords().size() != 61:
 		return _fail("wild battle grid should be the radius-4 template board (61 tiles)")
 	if gi.right_team.size() != wild_payload.size():
 		return _fail("wild team size must match node payload (%d != %d)" % [gi.right_team.size(), wild_payload.size()])

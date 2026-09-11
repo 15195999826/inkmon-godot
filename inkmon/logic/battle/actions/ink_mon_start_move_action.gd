@@ -23,7 +23,7 @@ func execute(ctx: ExecutionContext) -> ActionResult:
 		var actor := battle.get_battle_actor(target_id) if battle != null else null
 		if actor == null or actor.is_dead() or not actor.hex_position.is_valid():
 			continue
-		if not battle.grid.reserve_tile(target_coord, target_id):
+		if not battle.get_battle_grid().reserve_tile(target_coord, target_id):
 			continue
 		var event := InkMonBattleEvents.MoveStartEvent.create(
 			target_id,
