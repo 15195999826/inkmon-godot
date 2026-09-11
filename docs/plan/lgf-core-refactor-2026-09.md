@@ -446,7 +446,7 @@ grep -o "Leaked instance: [A-Za-z0-9_]*" ".claude/tmp/leak/$s.txt" | sort | uniq
 | P5.5 文档清场 | 已完成 2026-09-12 | `dc6da26` | `d8574859` | 验收：86 scene 全 PASS（launcher 已判 SCRIPT ERROR，人工 grep 日志只剩 core 单测两条既知基线）/ 处置表逐行落地 / 释放测试 · 直方图不适用。偏离见 deviations 文件 P5.5-1–8 |
 | P6 Action/Config 收口 | 已完成 2026-09-12 | `6daabbc` | `f67c010b` | 验收：86 scene 全 PASS（core 单测 218→209：删 tag_action / validator 两套 11 例，加钉子 1 例 + ActiveUseConfig 层级 1 例；hex scenario 69 不变）/ 释放测试绿 / 四份直方图与基线逐字节一致 / inkmon golden 指纹不变 / 钉子未重烤（hex stance 是先 component_config 后 active_use 的写法，builder `active_use` 恒前置）。钉子 commit `f2c71b9`。偏离见 deviations 文件 P6-1–8 |
 | P7 key snake_case | 已完成 2026-09-12 | `a9f4b50` | `abbe892f` | 验收：86 scene 全 PASS（core 单测 209→214：casing 守门 5 例；hex scenario 69 不变）/ 释放测试绿 / 四份直方图与基线逐字节一致 / 完成定义 grep 零命中 / inkmon golden 按「改前 JSON 递归套 key 映射 == 改后 JSON」比对相等后重烤（hash 638978954→3014638374，result / ticks / frames 全等）/ 钉子即这份比对（脚本与两份 JSON 在 `.claude/tmp/p7/` 不入库，无 submodule 钉子 commit）。偏离见 deviations 文件 P7-1–7 |
-| P8 资源型属性 | 未开始 | | | |
+| P8 资源型属性 | 已完成 2026-09-12 | `1360b9e` | `2f7576c9` | 验收：86 scene 全 PASS（core 单测 214→220：hp modifier 用例改 atk、删 2 例跨属性 clamp、加 7 例资源 + 1 例生成器契约；hex scenario 69 不变）/ 释放测试绿 / 四份直方图与基线逐字节一致（P6–P8 收尾一次）/ inkmon golden 指纹不变（3014638374，钉子未重烤）/ 完成定义 grep 零命中 / 11 份生成 set 重生成，只有含 hp 的 3 份变化且只 hp 行 / 新行为测试先红（既有 API 用例断言红、新 API 用例运行期缺方法红）后绿 / 无 submodule 钉子 commit（计划：不用新加）。偏离见 deviations 文件 P8-1–7 |
 | P9 grid 出 core | 未开始 | | | |
 | P10 整体审与收口 | 未开始 | | | 2026-09-12 新增；四条设计题留用户拍板 |
 
