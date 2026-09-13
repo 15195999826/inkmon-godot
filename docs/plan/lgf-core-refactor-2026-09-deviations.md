@@ -130,6 +130,15 @@
 - P10.5-5 / 规则之家 / addon `CLAUDE.md` 加「grant 前先登记、owner 由 set 盖章、过期者由运行它的路径回收」一条、hp 条补「上限变化怎么跟是游戏层策略」；SKILL.md §2 / §4 / hp 段 / 检查清单同步。/ 为什么：§2 规则之家；max_hp 那句是用户拍板「表现由游戏决定，core 只给原语」。
 - P10.5-6 / 第 1 关 / `all` 别名 127 scene 全 PASS（主链验收的 89 之超集，含 simnav / dota2lab 全组）；core 单测 225→226；日志零 SCRIPT ERROR、刻意基线只剩 recursion 一条；inkmon golden 指纹不变。四份泄漏直方图未重烤。/ 为什么：改动无新引用——post handler lambda 仍只捕获两个 id，revoke 走既有路径，grant 只多两个断言与两次字段赋值。[假设]
 
+## 随机战斗差分与固化（2026-09-14）
+
+- RD-1 / 方法 / 在独立 worktree 跑重构前基线（主仓 `bbe5d9a7` + addons `8e56bba`），headless 探针按 seed 跑 `HexRandomDemoWorldGameplayInstance`，逐 seed 比对 console.log（逐字节）、录像事件流（只归一化 key / kind 拼写、`recorded_at`、生成 id 序号化）与 loadout 摘要；比对器过突变测试（改数值 / 删事件 / 换序均红）。/ 为什么：用户要求确认战斗日志与行为同重构前一致。
+- RD-2 / 结果 / demo 自带 20 个 seed：日志逐字节相同、事件流与胜负帧数全同。覆盖率组 30 个 seed（进攻位 1）：22 个全同，8 个首次分叉归四类——A 尸体荆棘反弹 DOT（P5 死者响应规则 × hex 尸体照样 tick，已登记）、B 过期清扫不再搭广播的同帧顺序（P5 行为变化 ①）、C max_hp 下降时立即发 hp 读值封顶通知（P8/P10；旧实现是懒缓存，hp 会滞留在上限之上直到下次写入）、D 遍历快照使 grant 当帧的周期 buff 不在同帧 tick、第二次 tick 落在精确周期第 20 帧而非第 19 帧。50 个 seed 胜负全同。
+- RD-3 / 拍板 ① / hex `HexBattleProcedure.tick_once` 补 tick 循环跳过 `is_dead()`：尸体不 tick——DOT 不结算、周期 buff 不倒计时、荆棘不反弹；连带死前已开始的技能执行不再落地（差分里 900083 / 900113 / 900223 各有一记「死后余波」命中消失，胜负未变）。hex 28 scene 全 PASS。/ 为什么：用户 2026-09-14 拍板；skill-preview procedure 早已是「死者不 tick」，主战斗补齐。[假设] 在飞执行随尸体一起冻结而非显式 cancel，待用户确认。
+- RD-4 / D 处置 / 未改代码：HEAD 的精确周期是对的，基线把 grant 那一帧重复计入；副作用是含周期 buff 的单位 ATB 时机最多偏 1 tick。记 §6 后续观察，golden 钉住 HEAD 行为。/ 为什么：P5 快照遍历的未登记副作用，用户询问后建议保留。
+- RD-5 / 固化 / 新增 `tests/battle/smoke_random_battle_golden`（组 `hex/random-golden`，required）：10 个 seed（50 seed 差分 dump 上贪心 set cover，两个走 demo 原规则、八个走 `offensive_slots=1`），每场取归一化录像 + loadout 的 sha256 与 `random_battle_golden.json` 比对，并断言 manifest 全部 53 个 config 有证据（主动技能有 execution、随机池被动被装载、buff / 召唤物 / 内建有 execution / trigger / grant 任一；`buff_inspire` 录像前挂上，豁免）。重烤 `-- rebake`，须先解释。配套：`HexRandomDemoWorldGameplayInstance` 加 `offensive_slots` config 键；`HexDemoWorldGameplayInstance` 加 `save_replay` 键。/ 为什么：用户接受提议——技能逻辑执行顺序是两个月设计成果，要有长期守门。
+- RD-6 / 覆盖率事实 / demo 3v3 时 `ceil(3×0.67)=3` 个进攻位让治疗 / 结界 / 两种护盾 / 涌动 / 姿态 / 图腾 / 净化 / 换位 9 个技能永不进 loadout，自带 20 seed 只覆盖 20/29 主动技能；`offensive_slots=1` 后 30 seed 全覆盖。/ 影响：`smoke_random_frontend_20_runs` 的 BUFF_SKILLS 分析分支实际从未执行过。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。
