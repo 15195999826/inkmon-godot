@@ -14,9 +14,9 @@
       ],
       "env": {}
     },
-    "texture-gen": {
+    "media-gen": {
       "command": "node",
-      "args": ["${USERPROFILE}/.claude/mcp-servers/texture-gen/server.js"],
+      "args": ["${USERPROFILE}/.claude/mcp-servers/media-gen/server.js"],
       "env": {}
     }
   }
