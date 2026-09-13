@@ -1,6 +1,7 @@
 extends Node
 ## Phase 1 (adr/0001 统一 live-actor): InkMonUnitActor 自序列化 + 派生 + HP carryover +
-## 装备加成层 (adr/0004) + InkMonPlayerActor 持久切片。纯 additive 验证，不接 GI/battle flow。
+## 装备加成层 (adr/0004) + InkMonPlayerActor 持久切片。纯 additive 验证，不接 battle flow；
+## 装备 ability 的 grant 要求 owner 已登记进 instance (AbilitySet.grant_ability 断言)，两处装备用例用空 GameplayInstance 承载。
 ##
 ## 契约：
 ## - from_unit_config → level=1/exp=0/hp==max_hp（满血）。
@@ -126,7 +127,7 @@ func _check_round_trip_with_level_and_carryover() -> String:
 ## adr/0004: 装备 stat_mods 走加成层 (modifier), 不焊进 base。断言 breakdown.base 不含装备、
 ## add_base_sum 含 +5、current = base+5、可溯源到 item; 脱下复原; to_dict 仍只存 config_id。
 func _check_equipment_modifier_layer() -> String:
-	var actor := InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)
+	var actor := _spawn_unit("actor_serialization_equip_layer")
 	var base := InkMonSpeciesCatalog.get_base_stats(actor.species)
 	var base_ad := float(base["ad"])
 
@@ -176,6 +177,7 @@ func _check_equipment_modifier_layer() -> String:
 		return "unequip should restore ad to base (got %.2f expected %.2f)" % [actor.attribute_set.ad, base_ad]
 	if not actor.attribute_set.get_raw().get_modifiers("ad").is_empty():
 		return "unequip should leave no equipment modifier on ad"
+	GameWorld.destroy_instance(actor.get_gameplay_instance_id())
 	return ""
 
 
@@ -210,7 +212,7 @@ func _check_player_actor_round_trip() -> String:
 func _check_equipment_max_hp_refresh_keeps_hp() -> String:
 	ItemSystem.reset_session()
 	ItemSystem.configure_domain(InkMonItemDomain.new(), _MaxHpGearCatalog.new())
-	var actor := InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)
+	var actor := _spawn_unit("actor_serialization_equip_max_hp")
 	var base := InkMonSpeciesCatalog.get_base_stats(actor.species)
 	var geared_max := float(base["max_hp"]) * InkMonUnitActor.growth_scale(actor.level) + _MaxHpGearCatalog.GEAR_MAX_HP
 
@@ -237,8 +239,15 @@ func _check_equipment_max_hp_refresh_keeps_hp() -> String:
 		return "apply_derived_stats must keep a full unit full when gear carries max_hp (hp=%.2f max=%.2f)" % [actor.attribute_set.hp, actor.attribute_set.max_hp]
 	if absf(actor.attribute_set.max_hp - geared_max) > 0.01:
 		return "repeated apply_derived_stats must not stack or drop the gear max_hp (got %.2f expected %.2f)" % [actor.attribute_set.max_hp, geared_max]
+	GameWorld.destroy_instance(actor.get_gameplay_instance_id())
 	_reset_item_runtime()
 	return ""
+
+
+## 装备 ability 经 grant 进加成层，grant 要求 owner 已登记：用一个空 GameplayInstance 承载这只单位（用完 destroy）。
+func _spawn_unit(instance_id: String) -> InkMonUnitActor:
+	var instance := GameWorld.create_instance(GameplayInstance.new(instance_id))
+	return instance.add_actor(InkMonUnitActor.new(InkMonUnitConfig.LEFT_CINDER_KIT)) as InkMonUnitActor
 
 
 ## 只给本 smoke 用的物品目录: 真实 fixture 目录之外再加一件 max_hp 装备。

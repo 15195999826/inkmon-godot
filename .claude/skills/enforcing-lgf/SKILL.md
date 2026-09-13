@@ -54,7 +54,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 
 Direct access for reads, no getter/setter wrappers. Methods with business logic are fine.
 
-`hp` is a **resource** (`"kind": "resource"` in the attribute config): write it with `set_hp` / `add_hp` — there is no `set_hp_base`, the value is clamped to `[minValue, max_hp]` on write, and reads are capped by the current `max_hp` without touching the stored value (a transient `max_hp` drop — re-equip, Break — lowers `hp` only while it lasts). Stat attributes keep `set_*_base` + modifiers. The generated properties are read-only projections: `attribute_set.hp = x` is silently dropped.
+`hp` is a **resource** (`"kind": "resource"` in the attribute config): write it with `set_hp` / `add_hp` — there is no `set_hp_base`, the value is clamped to `[minValue, max_hp]` on write, and reads are capped by the current `max_hp` without touching the stored value (a transient `max_hp` drop — re-equip, Break — lowers `hp` only while it lasts). How `hp` follows a `max_hp` change (cap only, cut for good, proportional) is the game's policy, not core's: implement anything beyond the cap in game code via `on_max_hp_changed` or at the game's own recompute point with `set_hp`. Stat attributes keep `set_*_base` + modifiers. The generated properties are read-only projections: `attribute_set.hp = x` is silently dropped.
 
 ```gdscript
 # DO
@@ -97,6 +97,8 @@ func _on_id_assigned() -> void:
 ```
 
 `get_owner_gameplay_instance()` uses stored `_instance_id` + `GameWorld.get_instance_by_id()` to avoid RefCounted circular references.
+
+Grant only after `add_actor()`: `grant_ability` asserts the owner is registered (post subscriptions, pre registrations and the context's `instance` are all resolved by owner id — a grant before registration would silently miss its subscriptions). The set stamps `ability.owner_actor_id` at grant: construct with `""` or with the owner's id, never another actor's (a mismatch asserts); `source_actor_id` is the one that may differ (the buff's caster).
 
 A world that needs a hex board extends stdlib `GridWorldGameplayInstance` (`grid`, `configure_grid` / `configure_grid_model`, `clear_grid_footprint`; its `remove_actor` clears the board before leaving the registry) — core `WorldGameplayInstance` has no grid, `_get_map_config()` is its only map hook, and a world without a board (dota2) extends it directly. An actor stands on the board by declaring `hex_position: HexCoord` (`IGridOccupant`); a dead actor that stays in the world only leaves the board (`clear_grid_footprint`), never the registry.
 
@@ -142,13 +144,14 @@ Debug: `logic_game_framework/debug/action_state_check = true` in Project Setting
 
 ### 4. GameplayInstance Context
 
-`ExecutionContext.instance` and `AbilityLifecycleContext.instance` are typed `GameplayInstance`. There is exactly one way the framework finds it: reverse lookup by the owner's actor id (`GameWorld.get_instance_of_actor`). No provider is threaded through call chains (`IGameStateProvider` and every trailing `game_state_provider` parameter are gone); an unregistered owner yields `null` — including grants made before `GameWorld.create_instance(instance)` has registered the instance, so construct → register → `start()` / grants.
+`ExecutionContext.instance` and `AbilityLifecycleContext.instance` are typed `GameplayInstance`. There is exactly one way the framework finds it: reverse lookup by the owner's actor id (`GameWorld.get_instance_of_actor`). No provider is threaded through call chains (`IGameStateProvider` and every trailing `game_state_provider` parameter are gone); an owner whose instance is gone yields `null`, and a grant before registration is refused (`grant_ability` asserts), so construct → `GameWorld.create_instance(instance)` → `add_actor` → `start()` / grants.
 
 - **Narrow in project code**: reads that require a world go through the project's `world(ctx)` helper (`as` + `Log.assert_crash` on mismatch, e.g. `HexBattleGameStateUtils.world`; a project adds one with its first must-have-world read — inkmon and dota2 have none yet). Lifecycle-context reads (Condition / Cost / trigger filter / PreEvent handler get an `AbilityLifecycleContext`, which the helper doesn't take) typed-assign and null-check, asserting in the null branch when the world is required. Reads that may legitimately run without a world use `var battle: HexWorldGameplayInstance = ctx.instance` and null-check (that implicit downcast is type-checked only in debug builds).
 - **Contexts are stack-scoped**: never store a context (or `context.instance`) in a Component / Ability / Action / ExecutionInstance field, and never put an instance or actor into `execution_state`. `instance` is a strong reference — caching it closes a cycle RefCounted can't collect.
 - **Self-activation is declared, not passed**: `grant_ability(ability)` always delivers `AbilityGranted` to the owner's set; whether an ability self-activates is decided by its own trigger (`TriggerConfig.GRANTED_SELF`).
 - **Event infrastructure lives on the instance**: `instance.event_processor` / `instance.event_collector`; `ctx.event_collector` and `context.event_processor` are read-only views derived from `instance`. `GameWorld` is only the instance registry (no `event_processor` / `event_collector` / `init` / `destroy`; its single lifecycle verb is the idempotent `shutdown()`).
 - **Post events are subscriptions**: `process_post_event(event_dict)` takes no audience. An ability subscribes in `apply_effects` for every kind its components' triggers name (`get_post_event_kinds()`) and unsubscribes in `remove_effects`; a component that overrides `on_event` without declaring kinds only gets directed deliveries. Whether a dead / stunned owner still reacts is the actor's `is_event_responsive(event_dict, phase)` (pre and post), never a list the caller builds. `ability_activate` / `ability_granted` are directed (`EventProcessor.DIRECT_DELIVERY_KINDS`): deliver them with `ability_set.receive_event`, never `process_post_event`.
+- **Expiry is reclaimed by the path that ran it**: an ability that `expire()`s itself while being run — in `tick` / `tick_executions` / directed delivery (`_process_abilities`) or inside its own post handler — is revoked by that same path in the same pass. Call `revoke_ability` yourself only for external removal (cleanse, unequip, replace, a shield broken by damage); never on death. `expire` = the ability ends itself and drops its effects, `revoke` = the set strikes it off and notifies; two steps by design (no back-reference), not one.
 - **Event dict keys and kind literals are snake_case**: every key an event `to_dict()` / factory emits (`GameEvent`, `ProjectileEvents`, `PlaybackData`, the `RawAttributeSet` listener dict, ability / component `serialize()`) and every `kind` string matches `^[a-z0-9_]+$` — read them through the constants and `from_dict()`, never a camelCase spelling; `tests/core/events/event_key_casing_test.gd` gates it.
 
 ---
@@ -250,6 +253,8 @@ Before considering implementation complete, verify:
 - [ ] Resolvers: dynamic values use `Resolvers.float_fn()` etc., not instance fields
 - [ ] No attempts to decouple `GameWorld` Autoload dependency
 - [ ] `ctx.instance` narrowed through the project's `world(ctx)` for `ExecutionContext` must-have reads (lifecycle contexts and may-be-absent reads: typed assign + null check); no context / `instance` cached in fields or `execution_state`
+- [ ] Grants happen after `add_actor()`; abilities are constructed with `""` or the owner's own id, never another actor's
+- [ ] `revoke_ability` is called only for external removal; an ability that expires itself is reclaimed by the path that ran it
 - [ ] Self-activation on grant is declared with `TriggerConfig.GRANTED_SELF`, not by how `grant_ability` is called
 - [ ] Post events go through `process_post_event(event_dict)` with no audience list; death policy lives in the actor's `is_event_responsive`; activation requests go through `ability_set.receive_event`
 - [ ] New Action is placed per §8: public primitive with `class_name` in an action directory, or skill-local `_XxxAction extends Action.SkillLocalAction` nested in the skill file without `class_name`
