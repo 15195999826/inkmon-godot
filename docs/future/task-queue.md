@@ -98,6 +98,12 @@
 - **约束**：「录像顺序 = 调用栈真实顺序」「Playback 不重建逻辑层」两条铁律不动；web 桥外部消费方（JS/cloud）兼容优先；先提案后代码。
 - **相关**：`addons/logic-game-framework/core/playback/battle_recorder.gd`（头注释 + events_only 实现）、LGF `docs/README.md` §World owns Battle (c)、主仓 `docs/adr/0005-presentation-true-2d-isometric-hex.md`。
 
+### 3c. 清 LGF core 重构的 §6 后续观察（fable）【📋 未启动，登记于 2026-09-14】
+- **来源**：[`docs/plan/lgf-core-refactor-2026-09.md`](../plan/lgf-core-refactor-2026-09.md) §6「后续观察」。本轮重构（P1–P10 + 四题拍板 + 随机战斗差分，2026-09-14 收口，两仓已 push）执行纪律是「范围外发现记一行、不顺手修」，十个阶段加一次整体审累积出这张表。
+- **现状**：38 条，构成 = 早于本轮的既有问题 23 条 / 本轮衍生或明确保留的设计选择 11 条 / 基线参考数字 2 条（不是待办）/ 环境偶发 2 条。每条是「一行发现 + 一句修向提示」，**不是 spec**：条目大小从「删一个兜底」到「actor id 改由工厂派发」跨度极大，风险与验收面也不同。已关闭的条目在 [`lgf-core-refactor-2026-09-deviations.md`](../plan/lgf-core-refactor-2026-09-deviations.md) 的「已关闭的后续观察」节。
+- **启动时 fable 做什么**：**先分诊，不要开工**。① 逐条复核是否仍复现——本轮改动已顺带消掉一部分，表上未必都更新了；② 按「能一批修完的 chore / 要单独设计并拍板的 / 只是信息不动」分桶，每桶给出条目清单与一句代价估计；③ 把分桶结果交用户拍板，由用户决定这次动哪一桶。批准后才进执行。
+- **约束**：不整轮吞下 38 条；一桶一轮、一轮两仓各一个 commit；执行沿用本轮已验证的验收机械（钉子先行 → 新行为测试先红后绿 → 全量组 + 释放测试 → 两关自查 → 规则之家 → 不 push）；`hex/random-golden` 与 inkmon golden 指纹漂移一律先解释再重烤；范围外的新发现照旧记回 §6，不顺手修。
+
 ---
 
 ## 关联：现有 future 文档
