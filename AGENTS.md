@@ -131,18 +131,17 @@ godot --headless --path . <scene.tscn> > /tmp/godot_out.txt 2>&1
 
 ## 规范与踩坑
 
-项目自带 Codex Skill（`.agents/skills/`，按需加载，不常驻 context；Claude mirror 在 `.claude/skills/`）：
+项目自带 Claude Skill（`.claude/skills/`，按需加载，不常驻 context）：
 
 - **`gdscript-coding`** — 通用 GDScript 编码规范（类型、shadowing、I* pattern、`Log.assert_crash` 等 14 条）；踩坑见同目录 `reference/troubleshooting.md`
-- **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver 等）；详细 API 在 `reference/*.md`
+- **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver、Action 目录规则等）；API 看源码，SKILL.md 有「Where to look」指针表
 - **`sim-nav-map`** — `addons/sim-nav-map` 背景速记：现役 `dota2-rts-pathfinding-lab`、已删除的旧 `rts-pathfinding-lab`/`0ad-rts-pathfinding-lab` 边界，以及 0 A.D. 本地源码优先规则
 
 配套 Claude slash command（`.claude/commands/`）：
 
 - `/review-gdscript <path>` — 按 14 条规范批量审 `.gd` 文件
-- `/update-lgf-skill` — 根据 LGF addon 新提交增量更新 `enforcing-lgf` 文档
 
-LGF 原始架构文档：`addons/logic-game-framework/AGENTS.md` 和同级 `docs/`。
+LGF 架构与设计铁律：`addons/logic-game-framework/CLAUDE.md`（与 `enforcing-lgf` skill 并列的两个规则之家，无其他 LGF 文档；同级 `AGENTS.md` 只是指向它的指针）。
 
 修改 `.gd` 文件 / 接触 LGF 类时 skill 会自动触发，不要在此文件复述规范内容。
 
