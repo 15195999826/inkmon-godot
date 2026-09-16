@@ -133,11 +133,10 @@ Headless 单 smoke 包含 Godot 启动 + scene 加载 + sim 跑完 + ObjectDB cl
 
 ## 规范与踩坑
 
-项目自带三个 Claude Skill（`.claude/skills/`，按需加载，不常驻 context）：
+项目自带两个 Claude Skill（`.claude/skills/`，按需加载，不常驻 context）：
 
 - **`gdscript-coding`** — 通用 GDScript 编码规范（类型、shadowing、I* pattern、`Log.assert_crash` 等 14 条）；踩坑见同目录 `reference/troubleshooting.md`
 - **`enforcing-lgf`** — Logic Game Framework 约定（Actor 生命周期、共享对象无状态、Intent 返回、Resolver、Action 目录规则等）；API 看源码，SKILL.md 有「Where to look」指针表
-- **`lgf-new-logic-skill`** — 实现新 skill / ability / buff / passive 时的 "去哪写、怎么 wire 进 submodule、怎么测" 指南（搭配上面两个使用）
 
 配套 slash command（`.claude/commands/`）：
 
