@@ -200,7 +200,7 @@ skill 已被加载意味着已经决定要用了,下表只负责把用户的具�
 #### Data Locality 数据局部性
 - 意图: 按 CPU 缓存友好方式组织数据(连续数组/SoA),让"处理顺序"和"内存顺序"一致以避免 cache miss
 - 症状: 每帧遍历几千上万个对象但性能很差 profiler 显示 cache miss 高; OOP 设计里每个 Entity 持有 Component 指针,update 时到处追指针; 数据本身没变快但访问模式变烂; 粒子/单位/Tile 大量同类对象需要批量更新
-- 不用: 对象数 < 几百性能不是瓶颈别上; 为优化牺牲抽象/继承/多态前先 profile 确认 cache miss 真的是问题; **项目已有 PackedArray / typed Array / ECS 框架 / UGridMap flat storage / Godot ServerAPI 时优先复用,不要为局部热点单独造 SoA**
+- 不用: 对象数 < 几百性能不是瓶颈别上; 为优化牺牲抽象/继承/多态前先 profile 确认 cache miss 真的是问题; **项目已有 PackedArray / typed Array / ECS 框架 / GridMapModel flat storage / Godot ServerAPI 时优先复用,不要为局部热点单独造 SoA**
 - 组合: 与 Component 模式联用做 ECS(每种 Component 一条连续数组); 配 Object Pool 让同类对象在内存里挨着; 冷热分割(热字段 inline,冷字段指针外移); 粒子/敌人按 active 状态排序避免分支预测失败
 - 原文: https://gpp.tkchu.me/data-locality.html
 
@@ -221,7 +221,7 @@ skill 已被加载意味着已经决定要用了,下表只负责把用户的具�
 #### Spatial Partition 空间分区
 - 意图: 按位置组织对象进数据结构,把"找附近对象"从 O(n²) 降到 O(n log n) 或 O(n)
 - 症状: 几百个单位每帧两两距离检测卡顿; 碰撞检测随单位数量平方增长; AOE/视野/声源范围/鼠标拾取/视锥剔除空间查询慢
-- 不用: 对象数 n 不大(< 几十)裸循环够; 对象很少移动维护代价 > 查询收益; 内存比 CPU 紧张; **项目已有 UGridMap/NavMesh/SpatialHash 时直接复用不要再起一套**
+- 不用: 对象数 n 不大(< 几十)裸循环够; 对象很少移动维护代价 > 查询收益; 内存比 CPU 紧张; **项目已有 GridMapModel/NavMesh/SpatialHash 时直接复用不要再起一套**
 - 组合: 网格分区天然配 Data Locality(同格内存挨着); 大世界 + 不均匀分布用层次分区(四叉树/八叉树/BSP/k-d); 静态地形 vs 动态单位常用不同分区
 - 原文: https://gpp.tkchu.me/spatial-partition.html
 
