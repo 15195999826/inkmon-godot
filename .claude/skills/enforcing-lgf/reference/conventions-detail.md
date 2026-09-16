@@ -54,7 +54,7 @@ func take_damage(amount: float) -> void:
 
 `Actor` 是中性基类（id / team / 位置 / 录像钩子），不假设任何玩法。**只要 actor 持有
 AbilitySet，就继承 `BattleActor`**（`core/entity/battle_actor.gd`）：死亡锁存、`_on_id_assigned`
-的 id 同步、录像默认订阅、`serialize()` 全都现成，框架层也才能用 `BattleActor.ability_set_of(actor)`
+的 id 同步、录像默认订阅全都现成，框架层也才能用 `BattleActor.ability_set_of(actor)`
 真类型拿到它。
 
 基类**不**声明 `ability_set` / `attribute_set` 字段——子类各持强类型字段，用协变返回覆盖

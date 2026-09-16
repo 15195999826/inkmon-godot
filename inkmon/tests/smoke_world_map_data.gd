@@ -75,7 +75,7 @@ func _run() -> String:
 	if map_json == "{}":
 		GameWorld.shutdown()
 		return "save must contain non-empty world_map"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi2 := _new_gi()
 	if not gi2.from_dict(save):
 		GameWorld.shutdown()
@@ -83,7 +83,7 @@ func _run() -> String:
 	if gi2.world_map == null or JSON.stringify(gi2.world_map.to_dict()) != map_json:
 		GameWorld.shutdown()
 		return "world geography must be byte-identical after load (permanently fixed world)"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi3 := _new_gi()
 	if gi3.from_dict({"version": InkMonWorldGI.SAVE_VERSION - 1}):
 		GameWorld.shutdown()
@@ -93,7 +93,7 @@ func _run() -> String:
 		return "discard path (new_game fallback) must still generate world_map"
 	# 物品预检丢弃: 存档引用当前 catalog 不识别的 item config = 内容数据世代不符 →
 	# 同 version 不符待遇 (丢弃重开, 不 crash) —— Continue 载旧世代档闪退的回归守卫。
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var bad_item_save := save.duplicate(true)
 	var bad_player := bad_item_save.get("player", {}) as Dictionary
 	bad_player["bag"] = [{"config_id": "item_9999", "count": 1, "slot_index": -1}]

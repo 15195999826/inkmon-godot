@@ -348,7 +348,7 @@ func reset_session() -> Dictionary:
 	_mission_flow_pending = false
 	_replay_active = false
 	_mission_battle_lost = false
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	_create_world_gi()
 	_world_gi.new_game()
 	_presentation.reset_ui_state(true)
@@ -403,7 +403,7 @@ func load_game(save_path: String = DEFAULT_SAVE_PATH) -> Dictionary:
 	_mission_flow_pending = false
 	_replay_active = false
 	_mission_battle_lost = false
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	_create_world_gi()
 	var save_loaded := _world_gi.from_dict(data if data != null else {})
 	# load 读档:轻清 UI(保留 move_result/ui_message/events,对齐重构前 load 行为)。

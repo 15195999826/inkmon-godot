@@ -30,7 +30,7 @@ func _run() -> String:
 	var gi := _new_gi()
 	gi.new_game()
 	var d1 := gi.to_dict()
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi_rt := _new_gi()
 	gi_rt.from_dict(d1)
 	var d2 := gi_rt.to_dict()
@@ -39,7 +39,7 @@ func _run() -> String:
 		return "gi.to_dict→from_dict→to_dict must be deep-equal (idempotent round-trip)"
 
 	# 2. 移动 → 玩家位置 (运行真相 = avatar/grid occupant) 进 to_dict。
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi2 := _new_gi()
 	gi2.new_game()
 	var start := gi2.get_player_coord()
@@ -61,7 +61,7 @@ func _run() -> String:
 	if not bool(write_result.get("ok", false)):
 		GameWorld.shutdown()
 		return "InkMonSaveFile.write should succeed: %s" % str(write_result.get("message", ""))
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 
 	var read_result := InkMonSaveFile.read(SAVE_PATH)
 	if not bool(read_result.get("ok", false)):

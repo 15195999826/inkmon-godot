@@ -181,7 +181,7 @@ func _assert_save_round_trip(gi: InkMonWorldGI) -> String:
 ## adr/0001 死单位留 registry/HP=0 进存档: 0 血单位 round-trip 后 is_dead() 与 HP=0 须保持一致
 ## (回归守卫: from_dict 新建 actor _is_dead 默认 false, set_current_hp(0) 须按 HP 重建 downed)。
 func _assert_downed_state_survives_round_trip() -> String:
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	var victim := gi.roster[1]
@@ -206,7 +206,7 @@ func _assert_downed_state_survives_round_trip() -> String:
 func _assert_battle_on_live_roster() -> String:
 	# 活 roster 原地战斗: request_training_battle 左队 = roster actor (无投影), 打弱假人 → 左胜 → 奖励落活 actor。
 	# 清掉前面 round-trip 累积的 GI 实例, 隔离本场战斗的 tick_all。
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	var lead := gi.roster[0]
@@ -251,7 +251,7 @@ func _assert_battle_on_live_roster() -> String:
 ## equip_abilities 重 grant): 旧装备 ability 随旧 ability_set 被丢, 其 modifier 仍在常驻 attribute_set 上,
 ## _refresh_equipment_abilities 须按 source 清旧再重 grant, 否则每场 +5 累加或装备丢失。
 func _assert_equipment_survives_cross_battle() -> String:
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	var lead := gi.roster[0]
@@ -306,7 +306,7 @@ func _assert_old_save_discarded() -> String:
 ## adr/0001 "一切实体常驻 registry": 标准 lookup (gi.get_actor / GameWorld.get_actor) 须能取回
 ## 非战斗 actor (player/NPC = InkMonWorldActor), 不被窄化成 null (回归守卫: get_actor 曾误返 InkMonBattleActor)。
 func _assert_registry_lookup() -> String:
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	var player_id := gi.player_actor.get_id()
@@ -328,7 +328,7 @@ func _assert_registry_lookup() -> String:
 ## 回归守卫 (adr/0001 持久复用 actor 暴露): 局内进化改写 skill_slots[0] (X->X2) 后, 下一场复用战斗
 ## equip 的必须是升级技能 (从 skill_slots[0] 派生), 不是构造期缓存的旧技能。旧投影模型每战重投影无此问题。
 func _assert_in_session_evolution_equips_upgraded_skill() -> String:
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	var gi := _new_gi()
 	gi.new_game()
 	var mon := gi.roster[1]  # 默认 roster[1] = cinder_kit (primary = fireball)

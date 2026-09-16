@@ -441,12 +441,3 @@ func get_attribute_snapshot() -> Dictionary:
 	snap["personality"] = personality
 	snap["elements"] = elements.duplicate()
 	return snap
-
-
-func serialize() -> Dictionary:
-	var base := super.serialize()
-	base["unit_key"] = unit_key
-	base["source_entry_id"] = source_entry_id
-	base["personality"] = personality
-	base["atb_gauge"] = _atb_gauge
-	return base

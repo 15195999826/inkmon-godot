@@ -34,11 +34,3 @@ func _get_position() -> Vector3:
 
 func is_moving() -> bool:
 	return moving_to.is_valid()
-
-
-## hex_position 住这一层, 它的序列化也住这一层 (BattleActor.serialize 只管通用字段,
-## 位置形态是项目知识)。无效位置存 {}, round-trip 保"未放置"不被钳成 (0,0)。
-func serialize() -> Dictionary:
-	var base := super.serialize()
-	base["hex_position"] = hex_position.to_dict() if hex_position.is_valid() else {}
-	return base

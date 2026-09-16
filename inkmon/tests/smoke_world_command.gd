@@ -66,7 +66,7 @@ func _test_move_command() -> String:
 		gi.tick(FIXED_DT)
 	if gi.get_player_coord() != Vector2i(1, 0):
 		return "submit(MoveCommand) + ticks should walk player to (1,0), got %s" % str(gi.get_player_coord())
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""
 
 
@@ -88,7 +88,7 @@ func _test_buy_command_is_async_and_signals() -> String:
 		return "BuyCommand drain should spend %d gold" % MINOR_RUNE_PRICE
 	if results.size() != 1 or not bool(results[0].get("ok", false)):
 		return "BuyCommand should emit exactly one ok command_applied result"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""
 
 
@@ -103,7 +103,7 @@ func _test_cultivation_command() -> String:
 	gi.tick(FIXED_DT)
 	if lead.level != level_before + 1:
 		return "cultivation NpcActionCommand drain should level the lead"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""
 
 
@@ -123,7 +123,7 @@ func _test_trainer_intent_surfaces_without_gi_flow() -> String:
 		return "trainer command result must carry start_battle flow intent"
 	if gi.has_active_battle():
 		return "GI must NOT start battle itself — flow (start battle) belongs to Host"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""
 
 
@@ -141,7 +141,7 @@ func _test_battle_freezes_command_drain() -> String:
 		return "player world actor should exist during battle"
 	if player.is_moving():
 		return "battle-time base_tick must NOT drain world commands (world frozen during battle)"
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""
 
 
@@ -190,5 +190,5 @@ func _test_iworldquery_facade() -> String:
 			continue
 		if not allowed.has(method_name):
 			return "IWorldQuery exposes non-whitelisted public method: %s (isolation)" % method_name
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return ""

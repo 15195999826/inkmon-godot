@@ -124,7 +124,7 @@ func _run_scenario() -> Dictionary:
 		"near_events": near_events,
 		"near_final": near_final,
 	}
-	GameWorld.destroy_all_instances()
+	GameWorld.shutdown()
 	return result
 
 

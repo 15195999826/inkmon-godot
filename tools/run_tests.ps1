@@ -240,6 +240,12 @@ function Finish-Scene($r) {
     # Start-Process -PassThru .bat in PS 7+ on Windows can leave Process.ExitCode null
     # even after WaitForExit, so we don't trust the Process object for this.
     $exitCode = if ($log -match "__GODOT_EXIT_CODE=(\d+)") { [int]$matches[1] } else { -1 }
+    # A scene may declare how many SCRIPT ERRORs it triggers on purpose
+    # (TestFramework.expect_script_errors -> "EXPECTED_SCRIPT_ERRORS: n" in the log);
+    # only that exact count passes, so an unexpected error in the same scene (or an
+    # assert that never fired) still fails. Undeclared scenes: any SCRIPT ERROR fails.
+    $expectedScriptErrors = if ($log -match "EXPECTED_SCRIPT_ERRORS:\s*(\d+)") { [int]$matches[1] } else { 0 }
+    $scriptErrors = ([regex]::Matches($log, "SCRIPT ERROR:")).Count
 
     $status = "PASS"
     $reason = ""
@@ -247,12 +253,14 @@ function Finish-Scene($r) {
         $status = "TIMEOUT"; $reason = "exceeded $($r.TimeoutMs)ms"
     } elseif ($log -match "SMOKE_TEST_RESULT:\s*FAIL\s*-?\s*(.*)") {
         $status = "FAIL"; $reason = $matches[1].Trim()
-    } elseif ($log -match "SCRIPT ERROR:[^\r\n]*") {
+    } elseif ($scriptErrors -ne $expectedScriptErrors) {
         # A GDScript runtime error (including a failed assert) only aborts the
         # frame it happens in; the scene keeps running and can still exit 0 /
-        # print PASS. Treat any SCRIPT ERROR line as a failure so "silent
-        # degradation" contracts can't go green by accident.
-        $status = "FAIL"; $reason = $matches[0].Trim()
+        # print PASS. Treat any undeclared SCRIPT ERROR line as a failure so
+        # "silent degradation" contracts can't go green by accident.
+        $firstLine = if ($log -match "SCRIPT ERROR:[^\r\n]*") { $matches[0].Trim() } else { "" }
+        $status = "FAIL"
+        $reason = if ($expectedScriptErrors -gt 0) { "SCRIPT ERROR x$scriptErrors, expected $expectedScriptErrors $firstLine".Trim() } else { $firstLine }
     } elseif ($exitCode -ne 0) {
         $status = "FAIL"; $reason = "exit=$exitCode"
     } elseif ($log -match "SMOKE_TEST_RESULT:\s*PASS") {
