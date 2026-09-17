@@ -18,7 +18,10 @@ extends Node
 ## snapshot 指纹; 行为面不变 (result/ticks/frames 与旧金样全等, 已用地图改动回滚实验归因)。
 ## 2026-09-12 hash 回填: LGF P7 事件 dict key / kind 字面量改 snake_case 改变 JSON 文本;
 ## 行为面不变 (改前 JSON 递归套 key 映射后与改后 JSON 逐字段相等, result/ticks/frames 全等)。
-const GOLDEN_HASH := 3014638374
+## 2026-09-17 hash 回填: LGF 后续观察 A2 改录像形状 —— ability_granted payload 去掉与 id 重复的 instance_id 键
+## (5 条); finish() 清 in_combat 的 8 条 tag_changed 录进末帧 (第 159 帧 8 → 16 事件)。行为面不变
+## (逐帧差分只有这两类, result/ticks/frames 全等)。
+const GOLDEN_HASH := 3099257976
 const GOLDEN_RESULT := "left_win"
 const GOLDEN_TICKS := 159
 const GOLDEN_EVENT_FRAMES := 78
