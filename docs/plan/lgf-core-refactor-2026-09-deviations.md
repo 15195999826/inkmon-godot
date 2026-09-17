@@ -215,6 +215,29 @@
 - FU5-19 / 两问自查 / ① 新增注册：`actor_removed` 连接，`_detach_from_world`（finish / abort 共用）断开，单测钉住；无新表 / 缓存。② 循环：两个 procedure 的 registry 循环走快照 + 在册检查；`unregister_actor` 晚于 `on_despawn` 的回调遍历，不在其迭代中改表。
 - FU5-20 / 范围外新发现（记 §6，未修）/ ① hex 主循环存活名单含本帧稍早被击杀者，尸体当帧仍 tick / 充能；② 周期 buff 的 loop execution 冻结持有者 ATB（中毒 / 涌动期间零起手，dump 实证）；③ Stun 的取消动作注释称取消 move，实现只认 `active` tag。
 
+## 后续观察 A2 新记回的三条（2026-09-17，followups 第 7 轮：尸体当帧不 tick / ATB 冻结只认行动 / Stun 取消注释；addons `0e5de9c`）
+
+- FU7-1 / 拍板 / 用户 2026-09-17 逐条拍板 A / A / A：① 主循环逐个判 `is_dead()` ② ATB 阻塞改白名单、只认行动类 ③ 改注释。② 拍板前用 A2 的 dump 补了实证：带 `passive_demon_form` 的角色整场零行动（900211 / 900223）；用户确认本意即「只有主动行动才冻结行动条」。
+- FU7-2 / 条目 1 / `HexBattleProcedure.tick_once` 主循环每个 actor 前判 `is_dead()` 跳过；尸体在飞的行动仍由补 tick 循环同帧 cancel。`SkillPreviewProcedure` 参战者循环同形一并改 [假设：同一缺陷，同 FU5-10]。
+- FU7-3 / 条目 1 测试 / `smoke_tick_loop_removal` +2 幕先红后绿（红因断言）：hex 幕三条——尸体当帧 keyframe fire 1 次 / 充能 1 次 / 起手 1 次 Move；preview 幕——尸体当帧 keyframe fire 1 次。
+- FU7-4 / 条目 1 golden / 5 seed 漂移，胜负 / 帧数全同。少掉尸体当帧的起手：900083 第 35 帧、900097 第 123 帧、900223 第 52 帧各一次 `skill_strike`（4–5 条事件），900127 第 52 帧一次 Move（3 条）；每处该 actor 的 `death` 都排在同帧更前。/ 预期：尸体不再起手。
+- FU7-5 / 条目 1 golden（续）/ 少掉尸体在飞 keyframe 的产物：900127 末帧 1 条 `projectile_launched`（死后射出的箭）；900211 第 152 帧尸体那一刀（`damage` 30 等 3 条），受击者血线 60→30→10→0 变 60→40→0，仍死于第 158 帧。其余 5 seed 与 inkmon 逐字节同。
+- FU7-6 / 条目 2 / `BattleAbilitySet._is_blocking_execution` 改白名单 `active` | `action`（新常量 `HexBattleSkillTags.TAG_ACTION`），`intrinsic` 豁免随之多余、删。/ 用户确认的本意：只有花行动条换来的行动才冻结 ATB。
+- FU7-7 / 条目 2 lint / manifest lint 断言 4 加「有 active_use 必带 `active`、Move 必带 `action`」，`action` 由描述词表移入承重常量。/ 白名单的漏标方向是「行动在飞照常充能、还能再起手」，同样无报错。
+- FU7-8 / 条目 2 连带 / `SkillPreviewProcedure` 判 idle 原吃 `tick_runtime` 的返回值，改问新加的 `has_pending_execution()`（旧判据：除 intrinsic 外有在飞 execution）——预览要等 DOT 跳完。[假设] 取值点挪到 `tick()` 前，hex 现有内容下结果相同。
+- FU7-9 / 条目 2 测试 / 新 smoke `smoke_action_tags`（hex/regression）：幕 1 中毒 / 涌动 / 恶魔形态持有者 3 帧后 ATB = 30（改前 0.0，红因断言）；幕 2 钉子：真实 Move / Strike 在飞的每一帧不充能、跑完后下一帧恢复（改前即绿）。
+- FU7-10 / 条目 2 golden / 5 seed 漂移，正是带周期 timeline 的 5 个，另 5 个逐字节同。首个分叉帧都是持有者恢复行动的第一下：571031 第 37 帧、900113 第 72 帧、900191 第 74 帧（中毒者起手技能），900211 第 15 帧、900223 第 10 帧（恶魔形态持有者首次 Move）。
+- FU7-11 / 条目 2 golden（续）/ 此后战局改写（胜方 / 帧数）：571031 right/110→left/88；900113 left/152→right/113；900191 right/111→left/132；900211 right/158→right/144；900223 left/185→right/122。53 config 覆盖率断言仍过。
+- FU7-12 / 条目 2 golden 预期 / 改前实测：中毒者从中毒到死零行动（571031 第 23–68 帧、900113 第 52–112 帧）；恶魔形态持有者整场零行动；900223 的涌动者 185 帧只行动 4 次、全是给自己续涌动。改后三类持有者在 buff 窗口内照常起手。
+- FU7-13 / 条目 3 / 只改注释：`HexBattleCancelActiveExecutionsAction` 头注释写明只认 `active`、不打断在飞 Move（前端凭 `move_start` 播整段位移，中途取消会让表现与棋盘错位），`stun_buff` 同步。golden 零漂移（10 seed 逐字节同）。
+- FU7-14 / 条目 3 钉子 / `smoke_action_tags` 幕 3：眩晕落下时在飞 Strike 被取消、那一击不命中，在飞 Move 照常落地；变异验证：取消范围扩到 `action` tag 即红。/ 条目 2 引入「行动 = active | action」后，两张清单容易被顺手统一。
+- FU7-15 / 指纹 / hex sha256 前 8 位，重烤前→后：571031 `e3ded245`→`258ad325`；900083 `9a4fb41c`→`bb7e6e4c`；900097 `d36cef13`→`86a37094`；900113 `8b87ba15`→`aeda683b`；900127 `295ea16c`→`ae5d8feb`。
+- FU7-16 / 指纹（续）/ 900191 `b1b28ba2`→`0d027487`；900211 `77209e26`→`5ae69972`；900223 `3726af3b`→`66a7bcb7`；671159 `cc285a2d`、900131 `fc96e04f` 不变。inkmon `GOLDEN_HASH` 3099257976 不变（冻结未动）。
+- FU7-17 / 方法 / 沿用 A2 探针（`.claude/tmp/a2/`；本轮输出在 `.claude/tmp/fu7/`，不入库）：基线 → 条目 1 → 2 → 3 各 dump 一次与上一步比，基线与 A2 终态逐字节同。条目 1 另加「抹掉 execution / projectile 序号」的比对，排除少一条 execution 引起的序号平移。
+- FU7-18 / 验收 / `all` 132 scene 全 PASS（+1 `smoke_action_tags`；core 单测 255、hex scenario 69 不变），释放测试随组绿；直方图未重烤 [假设：无新持引用]。规则之家：hex README 设计铁律加「ATB 冻结只认行动」，补「尸体不 tick 从死亡那一帧起」与 Stun 取消范围。
+- FU7-19 / 两问自查 / ① 新增表 / 注册 / 缓存：无。② 循环：两个 procedure 的参战者循环各加一条 `is_dead()` 早跳；`has_pending_execution` 只读遍历 ability 列表，不回调用户代码。
+- FU7-20 / 范围外新发现（记 §6，未修）/ inkmon `InkMonBattleAbilitySet._is_blocking_execution` 同形，且 `ink_mon_poison_buff` 正是 GRANTED_SELF 周期 timeline——inkmon 战斗里中毒同样定身；随 inkmon 冻结归重设计（task-queue 2e）。
+
 ## 已关闭的后续观察
 
 > 从 §6「后续观察」搬来，原文保留，末尾括注关闭依据。
@@ -263,3 +286,6 @@
 - **action / condition / cost 的 `TYPE` 类型 id 拼写混杂**（P7 发现，未动）：core 自带的是 snake（`"base"` / `"noop"` / `"skill_local"`），其余是 camel（`"launchProjectile"` / `"stageCue"` / `"looseTagApply"` / `"looseTagRemove"` / `"hasTag"` / `"noTag"` / `"tagStacks"` / `"consumeTag"` / `"removeTag"` / `"addTag"`）。不是事件 key / kind，全仓无人按字面量匹配，只进 `serialize()` 的 `type` 值；要统一另开 chore。（2026-09-17 A2 已落地：十个 id 改 snake_case，`event_key_casing_test` 守门，golden 零漂移，见 FU5-7，本条关闭。）
 - **`AbilityGranted` payload 里 `id` 与 `instance_id` 双写**（P7 发现）：`battle_recorder._record_existing_actor_abilities` 与 `recording_utils` 的 granted 回调各在 `ability.serialize()` 上再塞一份 `instance_id`，消费方（hex buff / shield visualizer、`smoke_random_frontend_20_runs`）读 `instance_id` 再兜底 `id`。可收成一个键。（2026-09-17 A2 已落地：收成 `id` 一个键，两处注入删除，三个消费方与四个夹具同步，golden 按「只少这一个键」比对后重烤，见 FU5-5–6，本条关闭。）
 - **`register_dynamic_dep` 不发 `_notify_changes`**（P10 整体审范围外，既有）：Vigor / Vitality grant 改变 max_hp / atk（以及由此封顶的 hp 读值）不出 `AttributeChanged`；资源上限经 `update_modifier` / `register_dynamic_dep` 变化的封顶路径也无单测（P10 只补了 `add_modifier` / `remove_modifiers_by_source` 入口）。（2026-09-17 A2 已落地：`register_dynamic_dep` 求解后 `_notify_changes`；单测 +2 覆盖 `update_modifier` 与 `register_dynamic_dep` 两条封顶路径，见 FU5-3–4，本条关闭。）
+- **hex 主循环的存活名单含本帧稍早被击杀者**（2026-09-17 A2 发现，既有）：`HexBattleProcedure.tick_once` 主循环遍历的 `get_alive_characters()` 是循环开始时建的数组，排在击杀者之后的角色当帧被打死后仍跑一次 `tick_runtime`（在飞的 Move / 技能 keyframe 当帧照常 fire——Move 对已清占用的起点 `move_occupant` 失败并 push_error UNEXPECTED）、照常充能，ATB 满还可能起手新行动（A2 起这条死后行动会在同帧的补 tick 循环里被 cancel）。「尸体不 tick」只从下一帧起成立；10 个 golden seed 日志零 UNEXPECTED。修向：主循环每个 actor 前判 `is_dead()`；会动 golden，先解释再重烤。（2026-09-17 第 7 轮已落地：用户拍板 A——主循环逐个判 `is_dead()`，尸体从死亡那一帧起就不再 tick / 充能 / 起手，skill-preview 参战者循环同形一并改；`smoke_tick_loop_removal` +2 幕先红后绿，golden 5 seed 按解释重烤，见 FU7-2–5，本条关闭。）
+- **周期 buff 的 loop execution 冻结持有者的 ATB**（2026-09-17 A2 发现，既有）：`BattleAbilitySet._is_blocking_execution` 只豁免 `intrinsic`，中毒 DOT / 涌动这类 GRANTED_SELF 周期 timeline 也算阻塞——golden dump 里带 `buff_poison` / `buff_surge` 的单位在 buff 期间零次起手（900113 某角色第 52–111 帧；900223 给自己挂涌动后 4 秒不动）。等于「中毒 = 定身」「涌动 = 自我定身」，多半不是设计意图；inkmon 的 `_is_blocking_execution` 同一写法（冻结，只记）。修向：阻塞只认「行动」类 ability（`active` / `action` tag），或 buff 周期 execution 标非阻塞；会大幅改 golden，要拍板。（2026-09-17 第 7 轮已落地：用户拍板 A——ATB 阻塞改白名单、只认 `active` / `action`，manifest lint 守漏标，skill-preview 判 idle 改问 `has_pending_execution`；新 smoke `smoke_action_tags`，golden 5 seed 按解释重烤，见 FU7-6–12。inkmon 同形半条另记新条目、随 inkmon 冻结，本条关闭。）
+- **`HexBattleCancelActiveExecutionsAction` 注释与行为不符**（2026-09-17 A2 发现，既有，low）：头注释称 Stun 会取消目标在飞的 skill / strike / move，实现只认 `active` tag，而 Move 的 tag 是 `["action", "move"]`——眩晕不打断在飞的移动。改注释还是给 Move 补判据，要先确认想要哪个。（2026-09-17 第 7 轮：用户拍板 A 改注释——眩晕只取消带 `active` tag 的在飞主动技能、不打断在飞 Move，`smoke_action_tags` 幕 3 钉住，golden 零漂移，见 FU7-13–14，本条关闭。）
