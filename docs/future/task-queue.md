@@ -73,6 +73,12 @@
 ### 2c.（再其次，低优先级）剩余问题
 - 用户原话："那些问题没有 fable 我也能搞定，优先级不高"。**暂不展开。**
 
+### 2e. inkmon 主游戏整体重新设计（用户 + fable）【📋 登记于 2026-09-17，未启动】
+- **来源**：用户 2026-09-17 在 LGF 后续观察分诊中拍板：「inkmon 相关的代码我们不做任何处理，这个项目我需要重新设计」。
+- **现状**：`inkmon/` 自 2026-09-17 起**冻结**——不做设计与行为改动；只允许 core API 改名/删除连带的机械改动（调用点改名、已死 `super` 覆盖删除、golden 重烤）。原挂在 inkmon 上的后续观察（`"intrinsic"` 常量化、board_reset weakref、0 血 carryover 占格、`Lambda capture freed`、B-1 的换集前 `revoke_abilities_where`、第 7 轮新记的周期 buff 冻结持有者 ATB——中毒 = 定身）全部并入本条，见 [`lgf-followups-2026-09-triage.md`](../plan/lgf-followups-2026-09-triage.md) §0 / §4 / §5 的 5b。
+- **启动时做什么**：用户 + fable grill，先定范围与目标，再出方案；本条只登记，不预设方向。
+- **约束**：启动前 LGF 侧先按 3c 收口（✅ 2026-09-17 已收口），重设计从干净的 core 起步；守 adr/0001 / 0002 除非重设计明确推翻。
+
 ### 2d. AI Runtime Control Service —— 外部 AI 像玩家一样操作主游戏（fable）
 - **现状**：设计边界已锁，完整设计见 [`ai-runtime-control-service.md`](ai-runtime-control-service.md)（`PlayerActionPort` 三分 WorldAction/ViewAction/HostAction + `InkMonAiObservationProjector` 出 state+ASCII screen+available_actions + WebSocket/JSON + 薄 MCP adapter；含 §7 五步实现顺序 + §8 open questions）。
 - **启动前置（硬门）**：**inkmon 基础游戏循环做完 / 可玩之后**才启动（用户明确要求排在基础循环之后）。
@@ -85,24 +91,33 @@
 ## 线 3 — LGF 框架（`addons/logic-game-framework/`）
 
 ### 3. 修遗留问题 + 优化 hex-atb-battle 架构（fable）【✅ 完成 2026-07-03】
-- **提案与执行记录**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md)（头部含 6 轮 commit 锚点与偏差记录）。
+- **提案与执行记录**：[`addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-known-debt-and-hex-architecture-proposal.md)（头部含 6 轮 commit 锚点与偏差记录；该提案文档已随 2026-09 LGF 文档清场删除，历史归 git log）。
 - **结果**：6 条债务全部了断（D1 recorder 家族迁 core/playback + REFRESH 组件钩子；D2 投射物迁 stdlib/projectile——原「反向依赖 ProjectileSystem」描述经查证不实；D3 裁决落地 = dict 总线转正 + 端点强类型化（AbilityActivate 补齐消灭全仓 6 处手写、删死类、visualizer 常量化/from_dict）；D4 最小 rename ReplayData→PlaybackData/load_replay→load_playback（web 桥协议零波及）；D5 门控 29 技能迁 bundle helper + SkillValidator 豁免字符串潜伏 bug 修正；D6 维持不修——触发条款未满足）。hex 架构优化：H1 hex core/ 双向依赖归位（core/ 只剩共享事件）；H2 skill_preview 6607→5083 行（Inventory/Timeline 双子控制器最小档，完整档与 item_preview 合并留观察）；H3 一致性清理（actor-kind/kind 常量化、双日志合一、亡灵注释）。
 - **过程纪律**：每轮 = 实现 → 全量测试 → V1 一致性 review（agent 对照计划核对 diff）→ codex review（修 findings）→ commit；六轮累计 codex 2 findings / V1 3 处遗漏全部修复归零。
 - **仍挂账（观察项，另立轮次）**：timeline 骨架 helper、BaseAction→PrimitiveAction 归类批量迁移、logic/ai + battle_logger 测试空白、dota2 事件模式统一（原留 1c；1c 已搁置，继续挂账）。录像 v3 已升级为正式条目 3b（见下）；skill 文档结构性同步 ✅ 已完成（2026-07-03，enforcing-lgf 12 文档全量校准 +807/-328，update.json 基线重锚——旧基线因 addons 仓合并断链）。
 
 ### 3b. 录像格式 v3 — split world_snapshot + event_timeline（fable）【✅ 完成 2026-07-03】
-- **提案与执行记录**：[`2026-07-03-playback-v3-format.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-playback-v3-format.md)（头部含执行偏差 ①-⑨）—— 7 项拍板全部落地：录像 = `{meta, world_snapshot{actors,mapConfig,positionFormats}, timeline}`、无 version、快照由 `WorldGameplayInstance.capture_world_snapshot()` 产出（`should_record_actor()` 范围钩子——codex 抓到常驻世界会把 overworld 玩家/NPC 拍进战斗回放，已修）、旧双路径删除、三 procedure override 全删、actor 订阅保留（attributeChanged 是 inkmon render2d 消费的真管道——events-only 注释系误导）。全量 65/65 绿，golden 重烤（逻辑零漂移）；V1 + codex 双 review 归零。**JS 端解析器欠账**（web 发布启用时同步，SimulationManager 注释在案）；大小优化三方案继续挂账。
+- **提案与执行记录**：[`2026-07-03-playback-v3-format.md`](../../addons/logic-game-framework/docs/proposals/2026-07-03-playback-v3-format.md)（头部含执行偏差 ①-⑨；该提案文档已随 2026-09 LGF 文档清场删除，历史归 git log）—— 7 项拍板全部落地：录像 = `{meta, world_snapshot{actors,mapConfig,positionFormats}, timeline}`、无 version、快照由 `WorldGameplayInstance.capture_world_snapshot()` 产出（`should_record_actor()` 范围钩子——codex 抓到常驻世界会把 overworld 玩家/NPC 拍进战斗回放，已修）、旧双路径删除、三 procedure override 全删、actor 订阅保留（attributeChanged 是 inkmon render2d 消费的真管道——events-only 注释系误导）。全量 65/65 绿，golden 重烤（逻辑零漂移）；V1 + codex 双 review 归零。**JS 端解析器欠账**（web 发布启用时同步，SimulationManager 注释在案）；大小优化三方案继续挂账。
 - **动机**：「世界 owns 战斗」的录像侧收尾——世界常驻持有 actor 后，战斗录像原则上只该记事件流；v2 的 initialActors/mapConfig 快照与 WorldGI 职责重叠。可搭车裁决录像大小优化 3 方案（`battle_recorder.gd` 头注释：事件白名单过滤 / 高频事件节流 / 二进制格式）。
 - **现状（2026-07-03 核实）**：core 钩子已铺——`BattleRecorder.start_recording_events_only()` 已实现且是 `BattleProcedure._start_recorder()` 的默认；但**零生产使用者**，三个 procedure 全 override 回旧版全快照路径：hex（`hex_battle_procedure.gd:69`，注释明言等 v3 落地再切）、skill-preview（`skill_preview_procedure.gd:65`）、**inkmon 主游戏（`ink_mon_battle_procedure.gd:34`，adr/0005 显式决策：全量录像让 2D 回放 animator 能从录像独立重建开战阵容）**。`PROTOCOL_VERSION` 停 "2.0"，web/JS 桥消费 v2 顶层 key。
 - **启动时 fable 做什么**：先出格式提案过目——① world_snapshot 的定义与归属（录像同文件字段 / 分离产物 / 播放时复用现有 world）；② 播放侧改造：A 层 Playback 与 inkmon 2D animator 的 initialActors 依赖怎么迁，**须与 adr/0005「从录像独立重建阵容」的意志对表**（v3 对 inkmon 的正确答案可能是 world_snapshot 承载阵容，而非放弃快照）；③ web/JS 桥协议兼容（PROTOCOL_VERSION 升 "3.0" 或双格式并存）；④ 大小优化 3 方案是否搭车。批准后再切三个 procedure。
 - **约束**：「录像顺序 = 调用栈真实顺序」「Playback 不重建逻辑层」两条铁律不动；web 桥外部消费方（JS/cloud）兼容优先；先提案后代码。
-- **相关**：`addons/logic-game-framework/core/playback/battle_recorder.gd`（头注释 + events_only 实现）、LGF `docs/README.md` §World owns Battle (c)、主仓 `docs/adr/0005-presentation-true-2d-isometric-hex.md`。
+- **相关**：`addons/logic-game-framework/core/playback/battle_recorder.gd`（头注释 + events_only 实现）、LGF `CLAUDE.md`「World owns Battle」节（原 `docs/README.md` §World owns Battle (c)，该文档已随 2026-09 文档清场删除）、主仓 `docs/adr/0005-presentation-true-2d-isometric-hex.md`。
 
-### 3c. 清 LGF core 重构的 §6 后续观察（fable）【📋 未启动，登记于 2026-09-14】
+### 3c. 清 LGF core 重构的 §6 后续观察（fable）【✅ 完成 2026-09-17】
 - **来源**：[`docs/plan/lgf-core-refactor-2026-09.md`](../plan/lgf-core-refactor-2026-09.md) §6「后续观察」。本轮重构（P1–P10 + 四题拍板 + 随机战斗差分，2026-09-14 收口，两仓已 push）执行纪律是「范围外发现记一行、不顺手修」，十个阶段加一次整体审累积出这张表。
-- **现状**：38 条，构成 = 早于本轮的既有问题 23 条 / 本轮衍生或明确保留的设计选择 11 条 / 基线参考数字 2 条（不是待办）/ 环境偶发 2 条。每条是「一行发现 + 一句修向提示」，**不是 spec**：条目大小从「删一个兜底」到「actor id 改由工厂派发」跨度极大，风险与验收面也不同。已关闭的条目在 [`lgf-core-refactor-2026-09-deviations.md`](../plan/lgf-core-refactor-2026-09-deviations.md) 的「已关闭的后续观察」节。
+- **现状（登记时 2026-09-14）**：38 条，构成 = 早于本轮的既有问题 23 条 / 本轮衍生或明确保留的设计选择 11 条 / 基线参考数字 2 条（不是待办）/ 环境偶发 2 条。每条是「一行发现 + 一句修向提示」，**不是 spec**：条目大小从「删一个兜底」到「actor id 改由工厂派发」跨度极大，风险与验收面也不同。已关闭的条目在 [`lgf-core-refactor-2026-09-deviations.md`](../plan/lgf-core-refactor-2026-09-deviations.md) 的「已关闭的后续观察」节。
 - **启动时 fable 做什么**：**先分诊，不要开工**。① 逐条复核是否仍复现——本轮改动已顺带消掉一部分，表上未必都更新了；② 按「能一批修完的 chore / 要单独设计并拍板的 / 只是信息不动」分桶，每桶给出条目清单与一句代价估计；③ 把分桶结果交用户拍板，由用户决定这次动哪一桶。批准后才进执行。
 - **约束**：不整轮吞下 38 条；一桶一轮、一轮两仓各一个 commit；执行沿用本轮已验证的验收机械（钉子先行 → 新行为测试先红后绿 → 全量组 + 释放测试 → 两关自查 → 规则之家 → 不 push）；`hex/random-golden` 与 inkmon golden 指纹漂移一律先解释再重烤；范围外的新发现照旧记回 §6，不顺手修。
+- **进度（2026-09-17，用户 + fable）**：分诊 + B 桶 10 条逐条拍板完成，记录在 [`docs/plan/lgf-followups-2026-09-triage.md`](../plan/lgf-followups-2026-09-triage.md)（分桶总表 / B 桶拍板 / 规则之家新增两条判据 / 执行顺序与各轮 hash）。本轮新约束：**inkmon 冻结**（见 2e），只允许机械改动；核心 = LGF + example 设计好。B-8 作废、B-9 改为删 `lgf-new-logic-skill`。执行按桶分轮，同日七轮全部落地（按落地顺序列出；每轮两仓各一 commit，执行方不 push、由用户手动 push）：
+  - 第 3 轮 B-9 删 skill：addons `7182e8f` / 主仓 `93caa156`（表演层接入清单迁 hex frontend README）。
+  - 第 1 轮 B-core（B-1 / B-3 / B-4 / B-6）：addons `09ac4ee` / 主仓 `df17d9a0`，deviations FU1-1～8；配套 launcher 按 `EXPECTED_SCRIPT_ERRORS: n` 恰好放行。
+  - 第 2 轮 B-hex（B-2 / B-7 / B-5 / B-10）：addons `a66d3d9` / 主仓 `12362171`，deviations FU2-1～13；`hex/random-golden` 按解释重烤（B-2 预期漂移：5 seed 只差 `projectile_despawn` 位置）。
+  - 第 4 轮 A1 十一条：addons `df86d90` / 主仓 `2c8beba9`，deviations FU4-1～12；`all` 130/130，golden 零漂移。
+  - 第 6 轮 执行中新记回的三条（`revoke_ability` 按对象除名 / `base_tick` 走系统表快照 / 用户拍板 A 删 `u_grid_map.gd`）：addons `ebf97c8` / 主仓 `7a31bdaf`，deviations FU6-1～8；隔离 worktree `all` 130/130（core 单测 246），golden 零漂移；§6 这三条关闭（22 → 19）。
+  - 第 5 轮 A2 六条：addons `d15162f` / 主仓 `3c6c0b84`，deviations FU5-1～20；`all` 131/131（core 单测 255，hex/regression +1 `smoke_tick_loop_removal`）；`hex/random-golden` 与 inkmon golden 逐条差分归因后重烤（末帧 +in_combat 清除的 `tag_changed` / `ability_granted` 少 `instance_id` 键 / seed 900083 +3 条 `attribute_changed` / 两个 seed 各少 1 条已离场 actor 的 `ability_removed`；type id 与快照遍历零漂移，胜负 / 帧数全同，inkmon 指纹 3014638374 → 3099257976）；§6 六条关闭、新记三条待拍板（hex 主循环存活名单含本帧已死者 / 周期 buff 冻结 ATB / Stun 取消动作注释不符）（19 → 16）。
+  - 第 7 轮 A2 新记回的三条（用户逐条拍板 A / A / A：hex 主循环逐个判 `is_dead()` / ATB 阻塞改白名单只认 `active` · `action` / Stun 取消动作只改注释）：addons `0e5de9c` / 主仓 `3fa7578e`，deviations FU7-1～20；`all` 132/132（core 单测 255，hex/regression +1 `smoke_action_tags`）；`hex/random-golden` 逐条差分归因后重烤（① 五个 seed 少掉尸体当帧的起手与在飞 keyframe、胜负 / 帧数全同；② 五个带中毒 / 涌动 / 恶魔形态的 seed 从持有者首次恢复行动起分叉、四个胜负翻转；③ 零漂移），inkmon 指纹不变；§6 三条关闭、新记一条 inkmon 同形半条（16 → 14，余下均为 inkmon 冻结 / 基线参考 / 信息 / 候选刀 / 环境偶发，LGF 侧无待办）。
+  - **收口（2026-09-17）**：§6 从 38 条收到 14 条——前四轮关闭 19、新记 3（`revoke_ability` 下标左移 / `u_grid_map.gd` 孤儿脚本 / `base_tick` 遍历中 `add_system`，见 triage §4）→ 22；第 6 轮关闭这 3 条 → 19；第 5 轮关闭 6、新记 3 → 16；第 7 轮关闭这 3 条、新记 1 → 14（累计 38 + 7 新记 − 31 关闭，与 deviations「已关闭的后续观察」节 2026-09-17 关闭的 31 条对得上）。余 14 条 = triage C 桶 11 + D 桶 2 + 第 7 轮新记的 inkmon 同形半条 1，按性质 = inkmon 冻结 5（含 D 桶的 `Lambda capture freed`，随 2e）/ 基线参考数字 2 / 信息 · 已定 5 / 候选刀 1（actor id 工厂派发，未排期）/ 环境偶发 1（`smoke_skill_validator` 退出期 AV，遇到时单跑复核）；**LGF 侧无待办，3c 关闭**。inkmon 半条与 B-1 采纳随 2e。
 
 ---
 
@@ -119,8 +134,8 @@
 | （美术管线） | [`plan/tile-texture-auto-fit-tool-plan.md`](../plan/tile-texture-auto-fit-tool-plan.md) |
 | 1a/1b | `addons/sim-nav-map/examples/**/docs/*-plan.md` |
 | 1c | `addons/logic-game-framework/example/dota2-auto-battle/README.md` |
-| 3 | `addons/logic-game-framework/docs/README.md`（已知债务）· `.../example/hex-atb-battle/README.md` |
+| 3 | LGF `CLAUDE.md`「已知债务」节（原 `docs/README.md`，已随 2026-09 文档清场删除）· `.../example/hex-atb-battle/README.md` |
 
 ---
 
-> **状态**（2026-07-04 刷新）：✅ 完成 = 1a · 1b · 1d · 2a · 线 3 · 3b；⏸️ 搁置 = 1c；◐ 半定 = 2b（大地图半边已定，剩战斗地图 Phase 2 定）；📋 待启动 = 2c · 2d。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
+> **状态**（2026-09-17 刷新）：✅ 完成 = 1a · 1b · 1d · 2a · 线 3 · 3b · 3c；⏸️ 搁置 = 1c；◐ 半定 = 2b（大地图半边已定，剩战斗地图 Phase 2 定）；📋 待启动 = 2c · 2d · 2e（inkmon 重设计，2c/2d 随之重估）。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
