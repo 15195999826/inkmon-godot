@@ -70,6 +70,22 @@
 - 回归：kards-tavern `logic/all` 9 + `static/all` 3 + `net/all` 10 场全 PASS（含 `smoke_projectiles` 213 checks、`smoke_battle_determinism`、lockstep 2 / 4 / 8 人哈希一致），六次探针日志无 `SCRIPT ERROR`；presentation 组要窗口，SSH 会话里没跑。
 - 项目侧迁移细节见 handoff 文档末尾 §9（同一 commit）。
 
+#### 刀 D 复测（2026-09-23，公司电脑；kards-tavern `275aa86`，addons `d750caf` → `c16dab3`）
+
+同一探针、同一机器、同一数据。AFTER 列是 `8a02545` 当天的数字；刀 D 列各跑两遍；最后一列是临时把 `kt_battle_procedure.gd` 里单位那行 `advance_and_is_acting` 换成 `pass` 跑一遍（量完立即恢复，未提交），量「单位技能集推进」整条路径现在还剩多少：
+
+| 每 tick（ms） | AFTER：`d750caf` + precheck | 刀 D：`c16dab3`（含三张卡） | 单位推进整条跳过 |
+|---|---|---|---|
+| mid（17 人/方，450 tick） | 0.82 / 0.85 | 0.79 / 0.78 | 0.76 |
+| mixed（82 人/方，427 tick） | 3.49 / 3.47 | 3.48 / 3.49 | 3.37 |
+| infantry（108 人/方，450 tick） | 5.24 / 5.18 | 5.26 / 5.19 | 4.99 |
+| infantry 分帧 step(60) 最坏（ms/step） | 440 / 451 | 430 / 433 | 409 |
+
+- 刀 D 在 kards 这个规模上**无可测差异**：mixed / infantry 与 AFTER 持平（两遍差 < 2%），mid 低约 0.05 ms。整条单位推进路径跳掉也只省 0.2–0.25 ms/tick（infantry ≤ 5%、mixed 3%、mid 3%）——这条路径现在就值这么多，没油水了。
+- 与 §7「1.9 → 0.4–0.6」预估对不上的原因：handoff §5 的 1.9 ms 是临时埋点按段计时、在 270 人/方（540 单位）量的；按单位数折到 108 人/方（216 单位）该约 0.8 ms，而 A/B 表明改前改后总量一样、改后整条 ≤ 0.25，即改前这条也已不到约 0.35 ms（270 容量的数据已不存在，那 1.9 无法复现）。kards 逻辑层没有任何计时组件（无 `TimeDurationComponent` / `add_component`，SSH `git grep` 核过），快速路径是真触发的，省下的只是几次空遍历，wall-clock 里看不出来。
+- 回归：`logic/all` 9 + `static/all` 3 + `net/all` 10 场全 PASS（在 `5b9cb5e`、`c16dab3` 两个点各跑一轮）；kards 没有 golden / 存 hash 的断言，lockstep 2 / 4 / 8 人哈希两端一致，5b9cb5e 多出的冷却到期 TagChanged 事件不需重烤；三次探针日志无 `SCRIPT ERROR`；presentation 组要窗口，SSH 没跑。
+- 项目侧改动只有卡①的 4 处机械改名（`kt_battle_procedure.gd` 65 / 75 / 76、`kt_ability_set.gd` 7 行覆盖 + 头注释「阻塞 ATB」→「算行动」）。addons 这几条提交还没 push，是 `git bundle` scp 到公司电脑再 fetch 的。
+
 ## 5. kards-tavern 侧待办（用户 push addons 之后）
 
 > ✅ 2026-09-23 全部落地：kards-tavern `8a02545`（数字见 §4.1，项目侧细节见 handoff §9）。逐条结果：
@@ -90,7 +106,7 @@
 
 ## 7. 刀 D · `AbilitySet.tick` 快速路径（2026-09-23，handoff §5 第二条）
 
-落地 commit：godot-addons `c74d9d2`（基于 `d750caf`）。kards-tavern bump 到它即含刀 A/B/C/D，项目代码零改动。
+落地 commit：godot-addons `c74d9d2`（基于 `d750caf`）。kards-tavern bump 到它即含刀 A/B/C/D，项目代码零改动。✅ kards-tavern `275aa86`（2026-09-23）已 bump 到 `c16dab3`（含刀 D + 下面三张卡），项目侧只有卡①的 4 处机械改名；复测数字见 §4.1「刀 D 复测」。
 
 - 真实路径：一个只有常驻 StatModifier buff 的单位，每 tick 经 `tick_runtime` → `tick` 做约 6 次分配（tag 清理建 3 个容器 + lambda + `expired` 数组 + `duplicate` 快照）和 10–15 次空调用（每个 ability 两次 `is_expired`、每个 component `is_active` + 空 `on_tick`、每个 ability `has_executing_instance`）。
 - 改法（用户拍板：组合、判断式）：
@@ -99,9 +115,9 @@
   - `AbilitySet.tick` 每帧扫真实 `_abilities` 问 `needs_tick()`，没有就不走 `_process_abilities`——早退不遍历也就不需要快照，与「会回调用户代码的遍历走快照」铁律不冲突；有就原样走（快照照旧）。
   - `tick_executions` 开头「没有 execution 在飞直接返回」（只影响 dota2 / scenario harness 这类直接开门 2 的调用方；`tick_runtime` 本就先扫一遍）；`TagContainer.cleanup_expired_tags` 空列表直接返回。
 - 为什么不是 `needs_tick` 声明 + grant/revoke 计数（最初提的 A 案）：声明是与函数分开的开关，忘一个就静默不 tick；计数是要随 `_abilities` 同步的簿记。用户拍板改判断式；不用继承标记类（`TickingComponent`）是因为单继承下能力不能叠加。代价：每帧多 N 次 `needs_tick()`（N = 身上 ability 数，kards 单位 1–3 个）。
-- 预估：单位这条约 1.9 ms/tick → 约 0.4–0.6 ms；真实数字等 kards `perf_battle.tscn` 复测。
+- 预估：单位这条约 1.9 ms/tick → 约 0.4–0.6 ms；真实数字等 kards `perf_battle.tscn` 复测。✅ 复测（kards `275aa86`）：总 ms/tick 与改前持平（infantry 5.2 / mixed 3.5 / mid 0.8），整条单位推进路径跳掉也只省 ≤ 0.25 ms——1.9 那档在 108 人/方规模上本就不成立，细节见 §4.1「刀 D 复测」。
 - 验证：`all-required` 21 场 + `hex/all` `dota2autobattle/smoke` `inkmon/m1` 40 场全 PASS；hex `random-golden`（10 seeds）与 inkmon `smoke_battle_golden` 位一致；`core/unit` 271（新增 `ability_tick_fast_path_test` ×6）。
 - 顺带发现（未改，另开卡）：
-  - ✅ 已修（2026-09-23，用户拍板 A；addons `5b9cb5e`）：`TagContainer.cleanup_expired_tags` 的 old count 曾在时钟拨过之后才算（`get_tag_stacks` 只数 `expires_at > now`），计时 tag 到期从不广播 `TagChanged`，旁边算好的 `removed_counts` 没人用。改为单趟分拣：一条都没到期直接返回；有到期的 old = 拨钟后数到的 + 本次到期条数，到期那一趟 tick 每个受影响 tag 广播一次（同趟多条一起到期层数一次跳到位）。录像多出到期事件：hex random-golden 10 seed 逐帧差分只多 52 条 `cooldown:*` 1→0（其余事件顺序 / summary / meta / snapshot 全等）→ 重烤；inkmon `smoke_battle_golden` 只多 25 条 `inkmon_cooldown:*` 1→0（有事件的帧 78→88，result / ticks / snapshot 全等）→ hash 回填 `1086644275`。hex 前端（`battle_animator` / 冷却 UI）与 inkmon presentation 都不消费 `tag_changed`，多出的事件目前只有 recorder / `playback_log_printer` 读到。单测：`ability_tick_fast_path_test` 原 TagContainer 用例补到期断言 + 新增到期广播用例。验证：隔离 worktree（addons 658d813 / 主仓 4329060e + 本刀）`all-required hex/all inkmon/m1` 48 场全 PASS。kards-tavern bump 过 5b9cb5e 后录像同样多出冷却到期事件。
+  - ✅ 已修（2026-09-23，用户拍板 A；addons `5b9cb5e`）：`TagContainer.cleanup_expired_tags` 的 old count 曾在时钟拨过之后才算（`get_tag_stacks` 只数 `expires_at > now`），计时 tag 到期从不广播 `TagChanged`，旁边算好的 `removed_counts` 没人用。改为单趟分拣：一条都没到期直接返回；有到期的 old = 拨钟后数到的 + 本次到期条数，到期那一趟 tick 每个受影响 tag 广播一次（同趟多条一起到期层数一次跳到位）。录像多出到期事件：hex random-golden 10 seed 逐帧差分只多 52 条 `cooldown:*` 1→0（其余事件顺序 / summary / meta / snapshot 全等）→ 重烤；inkmon `smoke_battle_golden` 只多 25 条 `inkmon_cooldown:*` 1→0（有事件的帧 78→88，result / ticks / snapshot 全等）→ hash 回填 `1086644275`。hex 前端（`battle_animator` / 冷却 UI）与 inkmon presentation 都不消费 `tag_changed`，多出的事件目前只有 recorder / `playback_log_printer` 读到。单测：`ability_tick_fast_path_test` 原 TagContainer 用例补到期断言 + 新增到期广播用例。验证：隔离 worktree（addons 658d813 / 主仓 4329060e + 本刀）`all-required hex/all inkmon/m1` 48 场全 PASS。kards-tavern bump 过 5b9cb5e 后录像同样多出冷却到期事件。✅ kards `275aa86`：没有 golden / 存 hash 断言，lockstep 哈希两端一致，22 场 PASS，不需重烤。
   - hex `BattleAbilitySet.get_cooldown_remaining` / `reset_cooldown` 调的 `TagContainer.get_auto_duration_remaining` / `remove_auto_duration_tag` 不存在，两个方法无人调用（死代码，调了就崩）。✅ 2026-09-23 已修（addons `c16dab3` + 主仓本 commit）：`TagContainer` 补公开 `get_auto_duration_remaining` / `remove_auto_duration_tag`（+ `tests/core/tags/tag_container_test` ×6），hex 两个方法代码不动直接接上；inkmon 同名方法机械改走公开 API，不再摸 `_auto_duration_tags`。`remove` 只删活层，已到期未清理的层留给 `cleanup_expired_tags` 发到期广播（与到期广播那刀对齐，单测钉住）。
-  - `tick_runtime` 命名与语义不符：它是「推进两扇门 + 回答『算行动的 execution 是否在飞』」，用户要求新名字不带 `tick_`；`_is_blocking_execution` 就是「哪些 execution 算行动」的项目定义，可一并改名。 ✅ 2026-09-23 已改（用户拍板 A：保留包装、改复合名）：`AbilitySet.tick_runtime` → `advance_and_is_acting`、`_is_blocking_execution` → `_is_acting_execution`（hex `BattleAbilitySet` / inkmon `InkMonBattleAbilitySet` / 测试子类的覆盖同名改；顺序不变量「is_acting 在 tick_executions 之前算」不动），addons `658d813`；`all-required hex/all inkmon/m1` 全 PASS，hex `random-golden` 与 inkmon `smoke_battle_golden` 位一致（在隔离 worktree 验，避开同树 peer 未提交的 TagChanged 改动）。kards-tavern 待 bump 时改：`game/src/logic/battle/kt_battle_procedure.gd` 65 / 75 / 76 行三处 `tick_runtime` → `advance_and_is_acting`，`game/src/logic/actors/kt_ability_set.gd` 7 行覆盖 `_is_blocking_execution` → `_is_acting_execution`。
+  - `tick_runtime` 命名与语义不符：它是「推进两扇门 + 回答『算行动的 execution 是否在飞』」，用户要求新名字不带 `tick_`；`_is_blocking_execution` 就是「哪些 execution 算行动」的项目定义，可一并改名。 ✅ 2026-09-23 已改（用户拍板 A：保留包装、改复合名）：`AbilitySet.tick_runtime` → `advance_and_is_acting`、`_is_blocking_execution` → `_is_acting_execution`（hex `BattleAbilitySet` / inkmon `InkMonBattleAbilitySet` / 测试子类的覆盖同名改；顺序不变量「is_acting 在 tick_executions 之前算」不动），addons `658d813`；`all-required hex/all inkmon/m1` 全 PASS，hex `random-golden` 与 inkmon `smoke_battle_golden` 位一致（在隔离 worktree 验，避开同树 peer 未提交的 TagChanged 改动）。kards-tavern 待 bump 时改：`game/src/logic/battle/kt_battle_procedure.gd` 65 / 75 / 76 行三处 `tick_runtime` → `advance_and_is_acting`，`game/src/logic/actors/kt_ability_set.gd` 7 行覆盖 `_is_blocking_execution` → `_is_acting_execution`。✅ 已改（kards `275aa86`，同一提交 bump 到 `c16dab3`）。
