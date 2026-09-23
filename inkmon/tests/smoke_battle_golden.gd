@@ -21,10 +21,13 @@ extends Node
 ## 2026-09-17 hash 回填: LGF 后续观察 A2 改录像形状 —— ability_granted payload 去掉与 id 重复的 instance_id 键
 ## (5 条); finish() 清 in_combat 的 8 条 tag_changed 录进末帧 (第 159 帧 8 → 16 事件)。行为面不变
 ## (逐帧差分只有这两类, result/ticks/frames 全等)。
-const GOLDEN_HASH := 3099257976
+## 2026-09-23 hash 回填: LGF TagContainer 计时 tag 到期那一趟 tick 开始广播 TagChanged (此前 old==new 永不广播)
+## —— 25 条 inkmon_cooldown:* 1 → 0 录进录像 (事件 300 → 325, 有事件的帧 78 → 88)。行为面不变
+## (逐帧差分只多这一类事件, 其余事件逐帧顺序全等, world_snapshot/result/ticks 全等)。
+const GOLDEN_HASH := 1086644275
 const GOLDEN_RESULT := "left_win"
 const GOLDEN_TICKS := 159
-const GOLDEN_EVENT_FRAMES := 78
+const GOLDEN_EVENT_FRAMES := 88
 
 
 func _ready() -> void:
