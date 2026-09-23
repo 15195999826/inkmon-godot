@@ -84,6 +84,24 @@
 
 - handoff 4.3 的 (kind, owner) 索引：订阅者成百上千才值。
 - handoff §6 C++ / §7 多线程：不做；`IdGenerator` 的线程安全（lomolib）等 kards-tavern 真要按场并行再加。
-- handoff §5 `AbilitySet.tick_runtime` 快速路径（540 个单位每 tick 约 2 ms）：另开一刀，先看 `Ability.tick` 每 tick 到底干了什么再设计早退条件。
+- handoff §5 `AbilitySet.tick_runtime` 快速路径（540 个单位每 tick 约 2 ms）：已落地，见 §7。
 - `actor_position_changed` 由项目层 emit、stdlib 只声明：可考虑 stdlib 提供 `move_actor` 包装统一 emit，非本轮。
 - `GridTileData.duplicate()` 拷贝 occupant 但不进索引（只在 `set_tile` 时进）：拿复制品另建模型时走 `set_tile` 即可。
+
+## 7. 刀 D · `AbilitySet.tick` 快速路径（2026-09-23，handoff §5 第二条）
+
+落地 commit：godot-addons `c74d9d2`（基于 `d750caf`）。kards-tavern bump 到它即含刀 A/B/C/D，项目代码零改动。
+
+- 真实路径：一个只有常驻 StatModifier buff 的单位，每 tick 经 `tick_runtime` → `tick` 做约 6 次分配（tag 清理建 3 个容器 + lambda + `expired` 数组 + `duplicate` 快照）和 10–15 次空调用（每个 ability 两次 `is_expired`、每个 component `is_active` + 空 `on_tick`、每个 ability `has_executing_instance`）。
+- 改法（用户拍板：组合、判断式）：
+  - `AbilityComponent` 删掉按名字调用的 `on_tick` 钩子，新增 `get_tick_callable() -> Callable`；要随时间推进的 component 交出自己的函数（自己判 `is_active`）。交出去的就是函数本身，没有第二个开关。仓内只有 `TimeDurationComponent` 交函数；kards-tavern 没有自定义 `on_tick`（SSH `git grep` 核过），零迁移。
+  - `Ability` 构造时收齐 `_tickers`（component 列表构造后不变），`needs_tick()` 据此回答。
+  - `AbilitySet.tick` 每帧扫真实 `_abilities` 问 `needs_tick()`，没有就不走 `_process_abilities`——早退不遍历也就不需要快照，与「会回调用户代码的遍历走快照」铁律不冲突；有就原样走（快照照旧）。
+  - `tick_executions` 开头「没有 execution 在飞直接返回」（只影响 dota2 / scenario harness 这类直接开门 2 的调用方；`tick_runtime` 本就先扫一遍）；`TagContainer.cleanup_expired_tags` 空列表直接返回。
+- 为什么不是 `needs_tick` 声明 + grant/revoke 计数（最初提的 A 案）：声明是与函数分开的开关，忘一个就静默不 tick；计数是要随 `_abilities` 同步的簿记。用户拍板改判断式；不用继承标记类（`TickingComponent`）是因为单继承下能力不能叠加。代价：每帧多 N 次 `needs_tick()`（N = 身上 ability 数，kards 单位 1–3 个）。
+- 预估：单位这条约 1.9 ms/tick → 约 0.4–0.6 ms；真实数字等 kards `perf_battle.tscn` 复测。
+- 验证：`all-required` 21 场 + `hex/all` `dota2autobattle/smoke` `inkmon/m1` 40 场全 PASS；hex `random-golden`（10 seeds）与 inkmon `smoke_battle_golden` 位一致；`core/unit` 271（新增 `ability_tick_fast_path_test` ×6）。
+- 顺带发现（未改，另开卡）：
+  - `TagContainer.cleanup_expired_tags` 的 old count 在时钟拨过之后才算（`get_tag_stacks` 只数 `expires_at > now`），计时 tag 到期从不广播 `TagChanged`，旁边算好的 `removed_counts` 没人用——修它会往录像里加事件，要重烤两处 golden，先拍板再修。
+  - hex `BattleAbilitySet.get_cooldown_remaining` / `reset_cooldown` 调的 `TagContainer.get_auto_duration_remaining` / `remove_auto_duration_tag` 不存在，两个方法无人调用（死代码，调了就崩）。
+  - `tick_runtime` 命名与语义不符：它是「推进两扇门 + 回答『算行动的 execution 是否在飞』」，用户要求新名字不带 `tick_`；`_is_blocking_execution` 就是「哪些 execution 算行动」的项目定义，可一并改名。
