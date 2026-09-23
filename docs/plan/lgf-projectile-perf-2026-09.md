@@ -84,9 +84,9 @@
 - 刀 D 在 kards 这个规模上**无可测差异**：mixed / infantry 与 AFTER 持平（两遍差 < 2%），mid 低约 0.05 ms。整条单位推进路径跳掉也只省 0.2–0.25 ms/tick（infantry ≤ 5%、mixed 3%、mid 3%）——这条路径现在就值这么多，没油水了。
 - 与 §7「1.9 → 0.4–0.6」预估对不上的原因：handoff §5 的 1.9 ms 是临时埋点按段计时、在 270 人/方（540 单位）量的；按单位数折到 108 人/方（216 单位）该约 0.8 ms，而 A/B 表明改前改后总量一样、改后整条 ≤ 0.25，即改前这条也已不到约 0.35 ms（270 容量的数据已不存在，那 1.9 无法复现）。kards 逻辑层没有任何计时组件（无 `TimeDurationComponent` / `add_component`，SSH `git grep` 核过），快速路径是真触发的，省下的只是几次空遍历，wall-clock 里看不出来。
 - 回归：`logic/all` 9 + `static/all` 3 + `net/all` 10 场全 PASS（在 `5b9cb5e`、`c16dab3` 两个点各跑一轮）；kards 没有 golden / 存 hash 的断言，lockstep 2 / 4 / 8 人哈希两端一致，5b9cb5e 多出的冷却到期 TagChanged 事件不需重烤；三次探针日志无 `SCRIPT ERROR`；presentation 组要窗口，SSH 没跑。
-- 项目侧改动只有卡①的 4 处机械改名（`kt_battle_procedure.gd` 65 / 75 / 76、`kt_ability_set.gd` 7 行覆盖 + 头注释「阻塞 ATB」→「算行动」）。addons 这几条提交还没 push，是 `git bundle` scp 到公司电脑再 fetch 的。
+- 项目侧改动只有卡①的 4 处机械改名（`kt_battle_procedure.gd` 65 / 75 / 76、`kt_ability_set.gd` 7 行覆盖 + 头注释「阻塞 ATB」→「算行动」）。addons 这几条提交当时还没 push，是 `git bundle` scp 到公司电脑再 fetch 的。2026-09-23 晚 addons `c16dab3` / 主仓 `fd117cda` 已推 origin/master；kards-tavern `275aa86` 那个仓没有 remote（GitHub 上也无同名仓），用户拍板保持纯本地、不建远端不 push。
 
-## 5. kards-tavern 侧待办（用户 push addons 之后）
+## 5. kards-tavern 侧待办（addons 已于 2026-09-23 晚 push 到 `c16dab3`；kards-tavern 仓本身拍板纯本地不 push）
 
 > ✅ 2026-09-23 全部落地：kards-tavern `8a02545`（数字见 §4.1，项目侧细节见 handoff §9）。逐条结果：
 
