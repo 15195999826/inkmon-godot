@@ -39,7 +39,7 @@ func tick_once() -> void:
 	var cur_logic_time := world.get_logic_time() if world != null else float(_current_tick) * _tick_interval
 
 	for actor in get_alive_units():
-		if actor.ability_set.tick_runtime(_tick_interval, cur_logic_time):
+		if actor.ability_set.advance_and_is_acting(_tick_interval, cur_logic_time):
 			continue
 		actor.accumulate_atb(_tick_interval)
 		if actor.can_act():

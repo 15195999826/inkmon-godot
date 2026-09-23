@@ -4,7 +4,7 @@ extends AbilitySet
 
 ## 内建能力 (常驻 passive / 规则桥) 的 execution 不冻结 ATB —— 它们全程在跑,
 ## 当成阻塞会让单位永远轮不到行动。
-func _is_blocking_execution(ability: Ability) -> bool:
+func _is_acting_execution(ability: Ability) -> bool:
 	return not ability.has_ability_tag("intrinsic")
 
 
