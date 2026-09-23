@@ -55,13 +55,30 @@
 | `dota2autobattle/smoke` + `dota2lab/smoke` + `core/skill-preview-env`（13 场） | 全 PASS |
 | ultra-grid-map `tests/test_grid_map.gd`（`--script` 模式） | 6/6 PASS，含新加反向索引段 |
 
+### 4.1 kards-tavern 复测（2026-09-23，公司电脑；kards-tavern `8a02545`）
+
+探针 `game/tests/logic/perf_battle.tscn`。**规模与 handoff 基线不同**：handoff 的 20.3 / 30.4 量于小型单位容量 30（每方 203 / 270 人），kards-tavern `93e46dd`（09-23）已把 `match_config.json` 容量改成 12 / 4 / 2，同一探针现在是 mid 17 / mixed 82 / infantry 108 人每方。所以在同一台机器、同一数据上做三态 A/B，各跑两遍（两遍差 < 3%）：
+
+| 每 tick（ms） | BEFORE：`0e5de9c` + filter | MID：`d750caf` + filter（只有刀 A/C） | AFTER：`d750caf` + precheck | AFTER ÷ BEFORE |
+|---|---|---|---|---|
+| mid（17 人/方，450 tick） | 1.26 / 1.26 | 0.92 / 0.93 | 0.82 / 0.85 | 0.66 |
+| mixed（82 人/方，427 tick） | 6.00 / 5.90 | 4.45 / 4.57 | 3.49 / 3.47 | 0.58 |
+| infantry（108 人/方，450 tick） | 9.10 / 9.04 | 6.70 / 6.69 | 5.24 / 5.18 | 0.57 |
+| infantry 分帧 step(60) 最坏（ms/step） | 840 / 812 | 623 / 607 | 440 / 451 | 0.54 |
+
+- 刀 A/C 单独约 26%（infantry 9.1 → 6.7），刀 B 再约 16 个点（→ 5.2），合计每 tick 省 43%；§0「30.4 → 约 20」那档（270 人）数据已不存在，没法再量，方向一致（两刀省的都是每颗弹 / 每次派发的固定开销，规模越大占比越高）。
+- 回归：kards-tavern `logic/all` 9 + `static/all` 3 + `net/all` 10 场全 PASS（含 `smoke_projectiles` 213 checks、`smoke_battle_determinism`、lockstep 2 / 4 / 8 人哈希一致），六次探针日志无 `SCRIPT ERROR`；presentation 组要窗口，SSH 会话里没跑。
+- 项目侧迁移细节见 handoff 文档末尾 §9（同一 commit）。
+
 ## 5. kards-tavern 侧待办（用户 push addons 之后）
 
-1. `C:\GodotProjects\kards-tavern` 把 submodule bump 到 `d750caf`（或更新）。
-2. 普攻命中组件 `kt_basic_attack.gd:42`：`TriggerConfig.new(GameEvent.PROJECTILE_HIT_EVENT, _own_shot())` → `TriggerConfig.new(GameEvent.PROJECTILE_HIT_EVENT).precheck(_own_shot_precheck)`，precheck 比 `source_actor_id == h.owner_id and ability_config_id == h.config_id`。溅射 / 爆头 / 碾压 / lend_lease / upgrade_promote 的 `_own_*` 同理：只比 id 的进 precheck，要读目标血量之类的留 filter（或拆两段）。
-3. `KtBattleWorld` **不需要** override `clear_grid_footprint`；handoff 4.6 的两个项目层绕法都不用。
-4. `place_occupant` 现在拒绝已在棋盘上的占用者：若有「同一棋子 place 两次」的写法会报错并返回 false，改成 `move_occupant`。
-5. 复测 `godot_console --headless --path game tests/logic/perf_battle.tscn`，看 `PERF full[mixed]` / `PERF full[infantry]`（基线 20.3 / 30.4 ms/tick，预期 infantry 约 20）；`game/tests/logic/smoke_projectiles.tscn` 应全绿。
+> ✅ 2026-09-23 全部落地：kards-tavern `8a02545`（数字见 §4.1，项目侧细节见 handoff §9）。逐条结果：
+
+1. ✅ submodule bump 到 `d750caf`。
+2. ✅ `kt_basic_attack.gd`：`TriggerConfig.new(GameEvent.PROJECTILE_HIT_EVENT).precheck(_own_shot_precheck)`，比 `source_actor_id == h.owner_id and ability_config_id == h.config_id`，直接读 dict 不建对象。溅射（source id + source_kind + damage > 0）与碾压（killer id）条件全是事件字段，整段进 precheck、filter 删除；爆头拆两段（precheck 比 id / kind / is_kill，filter 只剩读目标血量）。**lend_lease / upgrade_promote_all 保持 filter**：比的是持有者席位 / piece_instance_id，都要取 actor（HandlerContext 只有三个 id），且是对局侧低频事件。`kt_armor_piercing` 走 `PreEventConfig` 的 pre 阶段 filter，不在 precheck 机制内。
+3. ✅ `KtBattleWorld` 未 override `clear_grid_footprint`，handoff 4.6 两个绕法都没用。
+4. ✅ 全仓 `place_occupant` 只在 `_place_piece` 对新棋子调一次（hydrate / 空降），没有重复 place；移动走 `move_occupant`。`piece_actor.gd` 头注释去掉已删除的 `IGridOccupant`。
+5. ✅ 复测见 §4.1；`smoke_projectiles` 全绿（213 checks）。
 
 ## 6. 不做 / 后续
 
