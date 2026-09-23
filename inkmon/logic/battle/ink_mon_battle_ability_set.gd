@@ -13,14 +13,7 @@ func is_on_cooldown(ability_config_id: String) -> bool:
 
 
 func get_cooldown_remaining(ability_config_id: String) -> float:
-	var tag := _get_cooldown_tag(ability_config_id)
-	var remaining := 0.0
-	var now := tag_container.get_logic_time()
-	for entry in tag_container._auto_duration_tags:
-		if str(entry.get("tag", "")) != tag:
-			continue
-		remaining = maxf(remaining, float(entry.get("expires_at", now)) - now)
-	return maxf(remaining, 0.0)
+	return tag_container.get_auto_duration_remaining(_get_cooldown_tag(ability_config_id))
 
 
 func start_cooldown(ability_config_id: String, duration: float) -> void:
@@ -28,12 +21,7 @@ func start_cooldown(ability_config_id: String, duration: float) -> void:
 
 
 func reset_cooldown(ability_config_id: String) -> void:
-	var tag := _get_cooldown_tag(ability_config_id)
-	var kept: Array[Dictionary] = []
-	for entry in tag_container._auto_duration_tags:
-		if str(entry.get("tag", "")) != tag:
-			kept.append(entry)
-	tag_container._auto_duration_tags = kept
+	tag_container.remove_auto_duration_tag(_get_cooldown_tag(ability_config_id))
 
 
 func _get_cooldown_tag(ability_config_id: String) -> String:
