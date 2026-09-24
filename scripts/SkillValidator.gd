@@ -211,7 +211,7 @@ func _extract_ability_config(config: AbilityConfig) -> Dictionary:
 
 	# 提取触发式组件 (ActivateInstanceConfig) 的 actions。
 	# 投射物技能 (fireball / precise_shot / chain_lightning) 的真实命中伤害住在这里
-	# (component_config(ActivateInstanceConfig).trigger(PROJECTILE_HIT_EVENT,...).on_timeline_start([DamageAction])),
+	# (component_config(ActivateInstanceConfig).trigger(TriggerConfig.new(PROJECTILE_HIT_EVENT, owner_alive_filter).direct()).on_timeline_start([DamageAction])),
 	# 不在 active_use 里。不提取这层就会让 validation summary 完全看不到投射物伤害。
 	# ActiveUseConfig 也是 ActivateInstanceConfig，它的 actions 已在上面按 tag 名提取，这里跳过。
 	for comp in config.components:
