@@ -23,7 +23,18 @@
 
 ## PL2 搬家 + 改名 + 扩展缝
 
-（未开始）
+- PL2-1 / 目录 `frontend/visualizers/` 连同 `default_registry.gd` 一起 git mv 到 `frontend/translators/` / 计划只列 class_name + 文件名；`Visualizer` 一词退役后目录名留着就是死词，README 接入清单的路径随之同步。
+- PL2-2 / `ActorVisualState.position`、`VisualMoveAction.from_position / to_position`、`VisualState.set_actor_position` 全改 `Vector2`；`VisualStateQuery` 删 PL1 保留的 `get_actor_hex_position`；move / displacement 翻译员把 `HexCoord.from_dict` 结果转 `Vector2(q, r)` 再装卡 / `presentation/` 不许出现 `HexCoord`（lint 断言）；hex 翻译员没有一个读它，golden / reconciler / facing view 各自 `roundi` 取整即等价，golden 零漂移。
+- PL2-3 / 方法改名三处：`as_context → as_query`、`get_world_time → get_time_ms`、`get_actor_axial → get_actor_position`（Director 同名）；`initialize_from_replay` / `reset_to` 不动 / 返回 `VisualStateQuery` 的方法不该叫 context；`world` / `axial` 随 RenderWorld / hex 词退役；replay 不是退役词（D6 自己用 `ReplayDirector`）。
+- PL2-4 / 一次性效果簿记合成 `VisualState._effects: kind → {id → Effect}` 一张表 + `spawn / update / remove / expire_effects` 四个原语；飘字 / overlay 到期由账本静默忘记，`effect_removed` 只由 attack_vfx / projectile 的 handler 在 progress 1 显式发 / D4 私有卡片（cone overlay）要能入账，账本就不能按种类各开簿子；§4 不做的是 `EffectState` + dirty flush 那套，这里只是存储容器。计数口径与旧四组信号逐一相同，golden 零漂移，不重烤。
+- PL2-5 / `VisualUpdater.tick_time` = 到期清理 + hp 追赶，Director 每 tick 无条件调（旧码 `cleanup` 只在 `has_changes` 时跑） / D7 定义如此；效果到期与卡片完成同 tick 或更晚，完成那帧已把 flash / tint / shake 写成终值，无条件清理只让簿子准时出账，视觉与 golden 无差；cone overlay 的簿子从此到期出账（旧码存到 reset 才清）。
+- PL2-6 / `VisualEffectPayload.AttackVfx` 加 `scale_factor / alpha`、`Projectile` 加 `position`，随 `effect_updated` 带出；`Effect` 基类持 id / start_time / duration / D5 把逐种类参数的 `*_updated` 收成 `effect_updated(kind, id, progress, payload)`，逐种类的当前值只能挂在 payload（账本里那条记录本身，不复制）上。
+- PL2-7 / `VisualUpdater.apply_actions` 对未登记的 kind `Log.assert_crash` / 旧 `match` 对未知枚举静默跳过；kind 开放后「忘了 register_handler」是最可能的接入错误，静默会让卡片无声消失。
+- PL2-8 / 单测同步改名，新增 `presentation_lint_test.gd`（禁词 / 依赖方向 / 无前缀 class_name / .uid），`visualizer_coordinates_test → hex_translator_coordinates_test` 仍挂 `tests/presentation`（测 hex 翻译员，PL1-7 的归属题），`visual_updater_test` 多两条（私有 kind handler、飘字到期静默） / 计划要 lint 断言；hex 翻译员坐标口径没有别的 unit 挂点（hex tests 全是 smoke 场景）。
+- PL2-9 / 三个白盒 smoke（buff_pipeline / facing_indicator / regeneration）的 `_run_frame` 改走 `VisualUpdater`，并按 Director 顺序补 `advance_time` + `tick_time`（旧码不推账本时间、cleanup 用 time 0）；buff_ui / shield_ui 直接调 `VisualUpdater.apply_buff_state / apply_shield_state` / 记账规则搬到 Updater 后 `_apply_*` 私有方法不在了；补 advance_time 让 smoke 与 Director 同一条 tick 路径，断言只看 buffs / facing / target_hp 不受影响。
+- PL2-10 / hex `frontend/README.md` 与 hex 根 README 术语 / 路径 / 信号面同步，不重排章节 / 完成定义要求 `frontend` 目录零 `Visualizer`；PL4 再精简结构（沿 PL1-8）。
+- PL2-11 / 主仓 §6 状态行的主仓 SHA 用单独 docs 提交回填（沿 PL0-4） / 提交无法自引用自己的 SHA。
+- PL2-12 / 全量验收在隔离 worktree `../inkmon-godot-pl2`（两仓 HEAD + 只覆盖本阶段路径）跑，两仓提交只走显式路径 / 同一工作区有定向投递第二刀会话在改 core（本阶段中途已提交 addons 2e9a89b），按并行会话纪律把全量组搬去隔离树。
 
 ## PL3 Director 骨架 + live 入口
 
