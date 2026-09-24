@@ -178,7 +178,7 @@
 - PL3 记：`[Frontend:FrameDiag]`（unit_view / animator）与 `[Presentation:ReplayDirector]` 诊断打印无人消费（全仓零 grep），候选清理。→ **分诊轮已删**：7 处 print 连同只为它们存在的常量 / 计数器 / `_analyze_event_coverage` / `_environment_kind`（deviations TR-2）；addons `878c5b1`。
 - PL4 记：`example/hex-atb-battle/tests/frontend/smoke_regeneration_visualizer.tscn`（文件名 + 根节点名 `SmokeRegenerationVisualizer`）仍带退役词 `Visualizer`——不在 PL2 完成定义的 grep 范围（`tests/` 不在 `frontend/`），改名要连 `test_groups.json`；PL5 收口顺手或留着。→ **PL5 已改名** `smoke_regeneration_translator`（根节点 `SmokeRegenerationTranslator`，manifest 同步）。
 - PL4 记：hex `frontend/README.md`「项目背景」仍称本目录「Godot 3D 表演层」并与 `../inkmon-web/lib/battle-replay/` 对照「1:1 架构」——web 端是否也按 adr/0013 词表走未核实，等用户拍板后再改。→ **登记待拍板**（[分诊文档](lgf-presentation-lift-triage.md) §2 列 A / B / C 选项，本轮不动）。
-- PL4 记：`docs/README.md` 2.2 的 ADR 索引只列到 0008（0009–0013 未列），adr/0013 找不到入口；范围外，不动。→ **分诊轮已补**（0009–0013 五条；主仓 `MAIN_SHA`）。
+- PL4 记：`docs/README.md` 2.2 的 ADR 索引只列到 0008（0009–0013 未列），adr/0013 找不到入口；范围外，不动。→ **分诊轮已补**（0009–0013 五条；主仓 `5eb15969`）。
 - PL5 记：`VisualState.seed_actor` 给 hp 不给 max_hp 时 max_hp 缺省 1、hp 照存 → hp > max_hp（照 inkmon 现版口径抄）；hp 条会超 100%、下一张 hp delta 夹到 [0, 1]。「max_hp 缺省取 hp」更自洽，2e 接入时定，本轮不动。→ **登记，等 inkmon 2e**（本轮硬约束）。
 - PL5 记：`VisualDirector.pump` 的 `advance_time(int(delta_ms))` 逐趟截断小数毫秒，60 fps 下账本时钟比步进器慢约 4%：效果到期只晚不早（view 自管寿命、簿记按卡片 id 去重，无可见差异）。要修就让账本时间走 float 或在 Director 攒余数，会动 payload 的 `start_time` 类型，留候选。→ **登记候选**（触发 = 出现可见的到期误差；改法二选一：账本时间走 float / Director 攒余数）。
 - PL5 记：hex `FrontendAttackVFXView.update_progress(progress, _scale_factor, alpha)` 收了 payload 的 `scale_factor` 不用（自己按 progress 算淡出），`VisualEffectPayload.AttackVfx.scale_factor` 目前只有单测在读；view 层的事，不急。→ **登记**（view 层候选）。

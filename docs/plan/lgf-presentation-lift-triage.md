@@ -1,7 +1,7 @@
 # LGF 表演管线上提 §6 后续观察 — 分诊与拍板（2026-09-24）
 
 > 来源：[`lgf-presentation-lift-plan.md`](lgf-presentation-lift-plan.md) §6「后续观察」22 条（PL0–PL5 执行期的范围外发现，按计划纪律没顺手修；其中 3 条执行期已由 PL5 关闭并标记）。先例：[`lgf-followups-2026-09-triage.md`](lgf-followups-2026-09-triage.md)。
-> 本文是「分诊 → 分桶 → 用户拍板 → 一轮落地」的产出。**执行状态（2026-09-24 收口）：用户拍板 B（A 桶确定性小项 + 斩杀特效毫秒修正），一轮落地——addons `878c5b1` / 主仓 `MAIN_SHA`（主仓 SHA 由随后的 docs 提交回填）；§6 从 22 条收到 7 条登记项（1 条待拍板 + 1 条等 inkmon 2e + 5 条候选 / 不动），LGF 侧无待办。**验收沿计划 §2（`-Required` + 四组全量 + inkmon 守卫 + leak 直方图 + golden），两仓各一个 commit，执行方不 push。
+> 本文是「分诊 → 分桶 → 用户拍板 → 一轮落地」的产出。**执行状态（2026-09-24 收口）：用户拍板 B（A 桶确定性小项 + 斩杀特效毫秒修正），一轮落地——addons `878c5b1` / 主仓 `5eb15969`（主仓 SHA 由随后的 docs 提交回填）；§6 从 22 条收到 7 条登记项（1 条待拍板 + 1 条等 inkmon 2e + 5 条候选 / 不动），LGF 侧无待办。**验收沿计划 §2（`-Required` + 四组全量 + inkmon 守卫 + leak 直方图 + golden），两仓各一个 commit，执行方不 push。
 
 ## 0. 本轮约束（用户 2026-09-24 拍板）
 
@@ -43,4 +43,4 @@
 1. A 桶四项落地 → `hex/frontend` 10 / 10 PASS，golden 三 seed 指纹不变（证明 A 零漂移）。
 2. B-1 落地 → golden 不带 rebake 跑一次拿新 dump 与基线逐行差分（结果同 §2 B-1 验收）→ `-- rebake` → 复跑 PASS。
 3. 全量验收：`-Required` 21 / 21 PASS；`hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 / 78 PASS；`git status --porcelain -- inkmon/` 为空；leak 直方图 `hex-frontend.hist.txt` 仍为空与基线逐字节一致。
-4. 提交：addons `878c5b1`（`fix(lgf)`，显式路径：`presentation/core/replay_director.gd` / `animation_config.gd`、hex `frontend/battle_animator.gd` / `scene/unit_view.gd` / `translators/stage_cue_translator.gd`、hex `tests/frontend/` 三个 smoke + `presentation_golden.json`）/ 主仓 `MAIN_SHA`（submodule 指针 + 本文 + 计划 §6 每条处置标记 + deviations TR-1～4 + `docs/README.md` 2.2）；不 push。
+4. 提交：addons `878c5b1`（`fix(lgf)`，显式路径：`presentation/core/replay_director.gd` / `animation_config.gd`、hex `frontend/battle_animator.gd` / `scene/unit_view.gd` / `translators/stage_cue_translator.gd`、hex `tests/frontend/` 三个 smoke + `presentation_golden.json`）/ 主仓 `5eb15969`（submodule 指针 + 本文 + 计划 §6 每条处置标记 + deviations TR-1～4 + `docs/README.md` 2.2）；不 push。
