@@ -151,7 +151,7 @@
 
 | 阶段 | 状态 | addons SHA | 主仓 SHA | 备注 |
 |---|---|---|---|---|
-| PL0 钉子先行 | 已完成 2026-09-24 | `bc385e6` | 见下一条 docs 提交回填 | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 285→312：ActionScheduler 5 / VisualizerRegistry 4 / RenderWorld 记账 12 / 事件直改 6；`hex/frontend` +1 `smoke_presentation_golden`）/ golden 三个 seed 各三次运行指纹与 dump 逐字节一致（651143 / 900127 / 900191，指纹 466926191 / 4212318930 / 2532673107）/ leak 基线 `hex-frontend.hist.txt` 为空（零泄漏）/ inkmon 守卫空。不改任何 `frontend/` 源码。偏离见 deviations 文件 PL0-1–5 |
+| PL0 钉子先行 | 已完成 2026-09-24 | `bc385e6` | `fac6aaf6`（本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 285→312：ActionScheduler 5 / VisualizerRegistry 4 / RenderWorld 记账 12 / 事件直改 6；`hex/frontend` +1 `smoke_presentation_golden`）/ golden 三个 seed 各三次运行指纹与 dump 逐字节一致（651143 / 900127 / 900191，指纹 466926191 / 4212318930 / 2532673107）/ leak 基线 `hex-frontend.hist.txt` 为空（零泄漏）/ inkmon 守卫空。不改任何 `frontend/` 源码。偏离见 deviations 文件 PL0-1–5 |
 | PL1 坐标对齐 | 未开始 | | | |
 | PL2 搬家 + 改名 + 扩展缝 | 未开始 | | | |
 | PL3 Director 骨架 + live 入口 | 未开始 | | | |
