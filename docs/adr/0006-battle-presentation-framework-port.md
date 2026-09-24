@@ -1,5 +1,10 @@
 # 0006: 战斗表演层 = 平移 hex frontend 表演框架（拷进 inkmon 做等轴 2D）
 
+> **标注（2026-09-24，adr/0013）**：本 ADR 「暂弃」的「抽数据无关核心到共享层」选项已被
+> [adr/0013](0013-presentation-pipeline-lift-to-lgf.md) 采纳——共享表演包上提为 LGF `presentation/`
+> 标配层，坐标约定取本 ADR 落地的「核心只出逻辑 axial、像素转换在 view 边界」。「拷进 inkmon」决策
+> 对 inkmon 现有代码继续有效（冻结期间一行不动，见 task-queue 2e），对新项目不再是范式。
+
 [adr/0005](0005-presentation-true-2d-isometric-hex.md) 决定战斗表现走真 2D 等轴并"新写 2D battle animator"。落地的首版（`inkmon/presentation/battle_2d/`）是个**扁平占位 animator**：`match`-on-kind 直接操作 2D 节点，没有可扩展的表演框架。
 
 本 ADR 决定：把 hex-atb-battle frontend 那套**数据无关的表演框架**（visualizer 注册表 / action_scheduler / render_world 快照 / 声明式 VisualAction / actor render_state）**拷进 inkmon 改成等轴 2D**，取代扁平 animator。用户已在 hex frontend 设计好整套表演原语（伤害飘字、受击闪白、移动缓动、弹道、buff/盾条、朝向…），平移即复用这份设计，让逻辑层每出一个新事件机制，只需在框架槽位补对应原语，而非改 animator。

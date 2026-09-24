@@ -119,6 +119,13 @@
   - 第 7 轮 A2 新记回的三条（用户逐条拍板 A / A / A：hex 主循环逐个判 `is_dead()` / ATB 阻塞改白名单只认 `active` · `action` / Stun 取消动作只改注释）：addons `0e5de9c` / 主仓 `3fa7578e`，deviations FU7-1～20；`all` 132/132（core 单测 255，hex/regression +1 `smoke_action_tags`）；`hex/random-golden` 逐条差分归因后重烤（① 五个 seed 少掉尸体当帧的起手与在飞 keyframe、胜负 / 帧数全同；② 五个带中毒 / 涌动 / 恶魔形态的 seed 从持有者首次恢复行动起分叉、四个胜负翻转；③ 零漂移），inkmon 指纹不变；§6 三条关闭、新记一条 inkmon 同形半条（16 → 14，余下均为 inkmon 冻结 / 基线参考 / 信息 / 候选刀 / 环境偶发，LGF 侧无待办）。
   - **收口（2026-09-17）**：§6 从 38 条收到 14 条——前四轮关闭 19、新记 3（`revoke_ability` 下标左移 / `u_grid_map.gd` 孤儿脚本 / `base_tick` 遍历中 `add_system`，见 triage §4）→ 22；第 6 轮关闭这 3 条 → 19；第 5 轮关闭 6、新记 3 → 16；第 7 轮关闭这 3 条、新记 1 → 14（累计 38 + 7 新记 − 31 关闭，与 deviations「已关闭的后续观察」节 2026-09-17 关闭的 31 条对得上）。余 14 条 = triage C 桶 11 + D 桶 2 + 第 7 轮新记的 inkmon 同形半条 1，按性质 = inkmon 冻结 5（含 D 桶的 `Lambda capture freed`，随 2e）/ 基线参考数字 2 / 信息 · 已定 5 / 候选刀 1（actor id 工厂派发，未排期）/ 环境偶发 1（`smoke_skill_validator` 退出期 AV，遇到时单跑复核）；**LGF 侧无待办，3c 关闭**。inkmon 半条与 B-1 采纳随 2e。
 
+### 3d. 刀 9 表演管线上提——hex frontend 表演框架抽进 LGF `presentation/`（fable）【📋 计划已定 2026-09-24，可立即开工】
+- **来源**：[`docs/plan/lgf-core-refactor-2026-09.md`](../plan/lgf-core-refactor-2026-09.md) §4 第一条「刀 9 另开计划，前提是先对齐 hex 3D 与 inkmon 2D 两份分叉」；十刀锐评（2026-09-10）后一直未登记，2026-09-24 补登。
+- **拍板（2026-09-24，用户 + fable，读真实代码对比两份分叉后）**：① 2e 留不留这条管线 → **启动时再定**；② kards-tavern → **用得上，等框架改完由用户单独去接**，共享表演包定位为 **LGF 标配层**；③ 范围 → **B：只抽 hex 半边**，坐标约定改成 inkmon 那套（核心只出逻辑 `Vector2`，投影在 view 边界），inkmon 冻结不动。技术题（目录 `presentation/`、词表 `VisualDirector` / `Translator` / `ActionStepper` / `VisualState` / `VisualUpdater`、卡片种类与信号扩展缝）由 fable 定，见计划 §1.2。记录：[`docs/adr/0013`](../adr/0013-presentation-pipeline-lift-to-lgf.md)（取代 adr/0006「暂弃共享」+ glossary 1.2「各自重写」）。
+- **计划**：[`docs/plan/lgf-presentation-lift-plan.md`](../plan/lgf-presentation-lift-plan.md)——PL0 钉子（表演 golden + 单测 + leak 基线）→ PL1 坐标对齐（hex 原地）→ PL2 搬家 + 改名 + 扩展缝 → PL3 Director 骨架 + live 入口 → PL4 文档与规则之家 → PL5 整体审。每阶段 fresh context、两仓各一 commit、不 push；启动 prompt 在计划 §5。
+- **约束**：`inkmon/` 一行不改（每阶段 `git status --porcelain -- inkmon/` 为空 + `inkmon/all` 绿）；`hex/random-golden` 与 inkmon golden 不许重烤；不接 kards（计划 §7 给接入清单，用户自己做）；不做 effects map 统一（候选后续）。
+- **收口后**：用户手动 push 两仓 → 去 kards 按 §7 接 → 2e 启动时用 U1 决定 inkmon 那份拷贝的去留。
+
 ---
 
 ## 关联：现有 future 文档
@@ -135,7 +142,8 @@
 | 1a/1b | `addons/sim-nav-map/examples/**/docs/*-plan.md` |
 | 1c | `addons/logic-game-framework/example/dota2-auto-battle/README.md` |
 | 3 | LGF `CLAUDE.md`「已知债务」节（原 `docs/README.md`，已随 2026-09 文档清场删除）· `.../example/hex-atb-battle/README.md` |
+| 3d | [`plan/lgf-presentation-lift-plan.md`](../plan/lgf-presentation-lift-plan.md) · [`adr/0013`](../adr/0013-presentation-pipeline-lift-to-lgf.md) |
 
 ---
 
-> **状态**（2026-09-17 刷新）：✅ 完成 = 1a · 1b · 1d · 2a · 线 3 · 3b · 3c；⏸️ 搁置 = 1c；◐ 半定 = 2b（大地图半边已定，剩战斗地图 Phase 2 定）；📋 待启动 = 2c · 2d · 2e（inkmon 重设计，2c/2d 随之重估）。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。
+> **状态**（2026-09-24 刷新）：✅ 完成 = 1a · 1b · 1d · 2a · 线 3 · 3b · 3c；⏸️ 搁置 = 1c；◐ 半定 = 2b（大地图半边已定，剩战斗地图 Phase 2 定）；📋 待启动 = 2c · 2d · 2e（inkmon 重设计，2c/2d 随之重估）· **3d（刀 9 表演管线上提，计划已定，可立即开工）**。启动某项时，把该项从"登记"推进为"进行中"，产出物（review / 方案 / 提案）另起文档或落到对应区域，本文件只维护队列态。

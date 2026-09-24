@@ -9,7 +9,7 @@
 **1.2 示例(example)** — LGF 之上两个独立可跑示例,共享 LGF core:
 - **hex-atb-battle** — 回合制 + hex grid + Timeline 技能。定位 = **技能系统展示 + AI 技能沙盒**(逻辑层零玩家输入;消费方 = AI-vs-AI demo + skill-preview 沙盒 + SkillValidator),**不是**要平衡的可玩对战。
 - **dota2-auto-battle** — 实时固定 tick 30Hz / ARAM 单中路自动战斗 / controller-intent 模型 / sim-nav movement adapter(首个垂直切片)。
-- **对主游戏的定位 = 实现参考,绝不直接引用(铁律,2026-06-10)**:主游戏(`inkmon/` / repo 根 shell)不 preload / 不 extends 任何 example 代码——逻辑与表演皆然。表演层刻意**不**总结成框架复用(心智负担 > 重写成本),各项目各自重写,哪怕近乎重复实现。
+- **对主游戏的定位 = 实现参考,绝不直接引用(铁律,2026-06-10)**:主游戏(`inkmon/` / repo 根 shell)不 preload / 不 extends 任何 example 代码——逻辑与表演皆然。表演层框架自 2026-09-24 起上提为 LGF `presentation/`(见 [adr/0013](adr/0013-presentation-pipeline-lift-to-lgf.md),计划 [`plan/lgf-presentation-lift-plan.md`](plan/lgf-presentation-lift-plan.md)),各项目只写**事件源 + 翻译员 + 视图**;example 内残留的表演件(hex `Frontend*` 视图 / 翻译员 / Animator)仍属 example,同样不得引用。
 
 **1.3 主游戏** — 在 LGF 之上自建的那一层(hex 行走世界 + 战斗 + 存档),git 历史代号 "L2"。架构见 `main-game-architecture.md`。
 
