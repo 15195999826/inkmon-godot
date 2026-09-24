@@ -75,4 +75,24 @@ hit / miss / pierce 三处：`event_collector.push(event)`（录像照旧、一�
 | `core/unit`（LGF 单测） | **285 / 285 ✅**，含新增 `DeliverToAbility` ×6（direct trigger 不进广播注册表、只在定向通道触发、同 kind 广播 trigger 只在广播通道触发；死掉的 owner 照收且 `is_event_responsive` 一次都没被问、filter 能拒；收件人不在了（错 id / 已 revoke / owner 已 remove）返回 false 不报错、深度归零；投递内 expire 当场 revoke 且 `abilityRevoked` 恰一次；嵌套投递到 max_depth 停）+ projectile system「旁观广播订阅者零触发」×1，原有 hit / miss / pierce 三条改走回执后照过 |
 | `all-required hex/all inkmon/m1`（48 场） | **全 PASS**；hex `smoke_random_battle_golden`「unchanged over 10 seeds」、inkmon `smoke_battle_golden`「fingerprint matches」——录像形状与触发都没变，即语义不变的证明（人死弹灭在 hex 由 `owner_alive_filter` 接住、原来由 `is_event_responsive` 接住，两条路结果一致） |
 
-- kards-tavern 第一步（公司电脑，单独 commit）：bump；`kt_basic_attack.gd` 命中 trigger `.direct()`、删 `_own_shot_precheck`、`_launch` 填 `source_ability_id`；`PieceActor.is_event_responsive` 里 `projectile_hit` 那一项已无人问（定向投递不问门），删掉；`logic/all static/all net/all` 全绿、`smoke_projectiles`（开火方全灭后弹照样落地）不变；探针 A/B 同机交替各两遍。（数字落地后回填。）
+### 3.1 kards-tavern 第一步（2026-09-24，公司电脑；kards-tavern `23eac79`，addons `c16dab3` → `bd20c8d`）
+
+✅ 已落地（addons 未 push，走 git bundle 送到公司电脑再 fetch）。项目侧改动：`kt_basic_attack.gd` 命中 trigger 改 `TriggerConfig.new(PROJECTILE_HIT_EVENT).direct()`、删 `_own_shot_precheck`、`_launch` 多传 ability 实例 id 并在 launch 参数填 `source_ability_id`（人死弹照落不挂 filter）；`piece_actor.gd` `is_event_responsive` 死者放行列表删 `PROJECTILE_HIT_EVENT`（命中不再经这道门，`pre_damage` / `damage_applied` 保留）；`kt_projectile_system.gd` 头注释同步。kards 全仓没有裸发的弹（`ProjectileActor.launch` 只在 `_launch` 一处，表演层的 `launch` 是另一个类）。
+
+| 组 | 结果 |
+|---|---|
+| `logic/all` 9 + `static/all` 3 + `net/all` 10 | **22 场全 PASS**（含 `smoke_projectiles`、`smoke_battle_determinism`、lockstep 2 / 4 / 8）；工作区里同时有 kards 侧另一会话未提交的改动（数据表 / 碾压 / 几个 smoke），测试是连着它们一起跑的 |
+
+探针 `perf_battle.tscn` 同机（OLD = addons `c16dab3` + `275aa86` 版三文件；NEW 先跑两遍、切 OLD 跑两遍、切回 NEW 再跑一遍；每次切版本都 `--import`）：
+
+| 每 tick（ms） | OLD | NEW | NEW ÷ OLD |
+|---|---|---|---|
+| mid（17 人/方，450 tick） | 0.75 / 0.75 | 0.73 / 0.74 / 0.74 | 0.98 |
+| mixed（82 人/方，414.8 tick） | 3.23 / 3.23 | 3.13 / 3.13 / 3.16 | 0.97 |
+| infantry（108 人/方，450 tick） | 5.50 / 5.21 | 5.00 / 5.04 / 5.02 | 0.94（按 OLD 较低的 5.21 算 0.96） |
+| infantry 分帧 step(60) 最坏（ms/step） | 458 / 461 | 439.5 / 439.6 / 439.8 | 0.96 |
+
+- 第一步只是把 18 条 `projectile_hit` 注册上的 precheck 换成一次直达，省 3–4%，符合预期（09-23 handoff 估的扇出大头本来就已被 precheck 压掉）。真正的收益在第二步：单位持有进攻技能后订阅者约 216 条，按旧路每 tick 约 5000 次 precheck（handoff §1 估 4–6 ms/tick），按新路仍是每次命中一次直达，不随单位数涨。
+- ticks/battle 三档新旧全等（450 / 414.8 / 450）：战斗走向没变，与 `smoke_battle_determinism` / lockstep 哈希一致互证。
+- 三次探针日志无 `SCRIPT ERROR`。presentation 组要窗口，SSH 会话里没跑。
+- kards-tavern 仓纯本地不 push（2026-09-23 拍板）。第二步（单位持有进攻技能、修订 ADR-0010 第 3 条）单独立项，不在本刀范围。
