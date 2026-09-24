@@ -113,7 +113,7 @@ func _start_actor_action(actor: InkMonUnitActor, logic_time: float) -> void:
 		logic_time
 	)
 
-	actor.ability_set.receive_event(event)
+	_get_world().event_processor.deliver_to_ability(event, actor.get_id(), decision.ability_instance_id)
 	actor.reset_atb()
 
 
