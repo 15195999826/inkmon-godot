@@ -59,4 +59,11 @@
 
 ## PL5 整体审与收口
 
-（未开始）
+- PL5-1 / `/code-review` 在本会话内按 skill 的 8 角度（3 正确性 + 3 清理 + 高度 + 规范）high 档跑，报 10 条后修 ≥ medium 与零风险的 low，不 spawn 子 agent、修完不复审 / 计划写「fable 做 `/code-review`」，skill 指令本身要求 finder 在当前 context 跑；审的范围按计划取 `bc385e6..HEAD -- presentation example/hex-atb-battle/frontend tests`，同区间的定向投递刀 `2e9a89b` 触到的 `tests/core` 四个文件不属本计划、不审。
+- PL5-2 / `ReplayDirector` 加 `_ended_reported` 标记：`playback_ended` / 停播只报一次，`load_playback` / `reset` 归 false / 判断式（开趟 `was_ended` 与收趟比翻转）做不到零帧录像的首次报告——它从加载起就是 ended、没有翻转可判，标记专门论证后采用。PL3 后续观察那条关闭。
+- PL5-3 / `ReplayDirector.play / reset / step` 没有录像时无动作；`load_playback` 改走 `reset_to` / 旧 hex Director 同样会 `reset_to(null)` 空指针（demo 在 Start Battle 前按 Play / Space / Reset），animator 注释早已承诺「未 load 时 no-op」——不是回归，进了框架就该守住；`reset_to` 让换片与 reset 同样归零账本时间。LGF `CLAUDE.md` 词表 ReplayDirector 行补一句。
+- PL5-4 / `VisualUpdater.apply_move` 不在账上的 actor 整张忽略（PL3 后续观察关闭）；`_expire` 改成一趟扫寿命簿分组 + 闪白 / 染色真归零才标脏 / 每 tick 每 actor 两个闭包扫描是热路径浪费；归零不标脏会让 live 中途 `cancel_for_actor` 的 actor 视图停在闪白态。正常完成的卡片最后一次 apply 已写零位、到期总不早于完成，golden 三 seed 指纹不变，不重烤。
+- PL5-5 / `VisualDirector.pump` 只读视图一趟建一次 / 视图是账本字典的活引用（`visual_state_events_test` 钉「同一个 query 读到直改后的新值」），逐事件重建纯浪费。
+- PL5-6 / `smoke_regeneration_visualizer` → `smoke_regeneration_translator`（.gd / .uid / .tscn `git mv`，根节点 `SmokeRegenerationTranslator`，`test_groups.json` 同步）；`smoke_frontend_main` 头注释 `ActionScheduler` → `ActionStepper` / PL4 后续观察交 PL5 顺手；退役词不该留在活场景名里。
+- PL5-7 / 两条 low 不修：`seed_actor` 给 hp 不给 max_hp 时 hp > max_hp（照 inkmon 现版口径，2e 接入时定）；`advance_time(int(delta_ms))` 账本时钟按趟截断（60 fps 慢约 4%，效果到期只晚不早、view 自管寿命，无可见差异）/ 计划只要求修 ≥ medium；两条都记 §6 后续观察。
+- PL5-8 / 主仓 §6 状态行的主仓 SHA 用单独 docs 提交回填 / 沿 PL0-4：提交无法自引用自己的 SHA。
