@@ -67,3 +67,10 @@
 - PL5-6 / `smoke_regeneration_visualizer` → `smoke_regeneration_translator`（.gd / .uid / .tscn `git mv`，根节点 `SmokeRegenerationTranslator`，`test_groups.json` 同步）；`smoke_frontend_main` 头注释 `ActionScheduler` → `ActionStepper` / PL4 后续观察交 PL5 顺手；退役词不该留在活场景名里。
 - PL5-7 / 两条 low 不修：`seed_actor` 给 hp 不给 max_hp 时 hp > max_hp（照 inkmon 现版口径，2e 接入时定）；`advance_time(int(delta_ms))` 账本时钟按趟截断（60 fps 慢约 4%，效果到期只晚不早、view 自管寿命，无可见差异）/ 计划只要求修 ≥ medium；两条都记 §6 后续观察。
 - PL5-8 / 主仓 §6 状态行的主仓 SHA 用单独 docs 提交回填 / 沿 PL0-4：提交无法自引用自己的 SHA。
+
+## 分诊轮（§6 后续观察分诊，2026-09-24，用户拍板 B）
+
+- TR-1 / 三个白盒 smoke 改喂 `pump` 走的是 `ReplayDirector.load_playback`（零帧录像重建台面）+ 直接 `pump(STEP_MS, events)`，不是 `VisualDirector.new` + 私有 `_state.initialize_from_replay` / `VisualDirector` 不暴露台面重建入口，`load_playback` 是唯一公开路径；沿 golden「账本 / 步进器只走 Director 的公开读法」。原 `_run_frame` 逐事件打印翻译出的卡片数随之取消（翻译在 pump 内，观察面只剩账本）。
+- TR-2 / 删 `[Presentation:ReplayDirector]` 打印时连 `_analyze_event_coverage()`（加载时事件覆盖分析）与两个 WARN 常量一起删；删 `[Frontend:FrameDiag]` 时连 `SPAWN_VIEW_COST_WARN_MS` / `FLOATING_TEXT_COST_WARN_MS` / `POSITION_GAP_WARN` / `MAX_POSITION_GAP_LOGS` / `_position_gap_log_count` / `_should_log_position_gap` 与只剩赋值没人读的 `_environment_kind` 一起删 / 这些只为打印存在，留着就是死代码；「哪些 kind 没翻译员」要看时现问 `TranslatorRegistry.has_translator_for`（regeneration smoke 就这么用）。
+- TR-3 / `EXECUTE_KILL_VFX_DURATION / DELAY` 0.8 / 0.15 → 800.0 / 150.0（毫秒），hex 表演 golden 重烤一次 / 预期漂移 = 仅 seed 651143（三 seed 里只有它出斩杀）：第 18 帧两张卡 `delay / dur` 0.15 / 0.80 → 150 / 800；step 18 的 fx 行少 `+attack_vfx=1 -attack_vfx=1`（不再同步建了又删）与一条 `+floating_text`；step 19 多 `+attack_vfx=1 +floating_text=1`（150 ms 延迟落到下一步）；step 27 多 `-attack_vfx=1`（800 ms 到期出账）；帧数 / 步数 / 卡片数 / 结局与录像 sha 全同，900127 / 900191 dump 逐字节同。指纹 466926191 → 2927815786。hex/random-golden 与 inkmon golden 未动。
+- TR-4 / 主仓 SHA 用单独 docs 提交回填 / 沿 PL0-4：提交无法自引用自己的 SHA。
