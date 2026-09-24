@@ -12,7 +12,14 @@
 
 ## PL1 坐标对齐
 
-（未开始）
+- PL1-1 / 投射物 duration 口径从「像素距离 / 速度」改为「逻辑平面 axial 距离 / 速度」 / 翻译员没有棋盘几何算不了像素距离；hex 逻辑层 ProjectileSystem 本就在 (q, r, 0) 空间飞、speed 是这个平面的，改后与逻辑飞行时间同口径反而更准。size 1 下 axial 距离恒小于像素距离，golden 6 张 300 ms 下限卡片不漂；数值由 `visualizer_coordinates_test` 钉住。
+- PL1-2 / cone overlay 的 angle-cone 引导线不改 axial，作为 `guide_segments` 按逻辑层 2D 平面坐标原样透传（view 端 y→Z） / 逻辑层 `compute_edge_segments` 用棋盘世界坐标算旋转射线，翻译员无棋盘几何反算不了 axial；改逻辑层会动录像（逻辑 golden 禁重烤）。cells / 外沿按计划改 axial，外沿端点用三格中心质心（仿射映射下就是共用顶点），不需要棋盘。
+- PL1-3 / bump 的 direction 不归一化：= 停住格→撞向格的 axial 一步，max_offset 改为格距比例 0.30 / axial 平面无度规，归一化会让六个方向投影后长短不一；不归一化 + 比例经线性投影恰等于今日「hex 间距 × 0.30」，视觉零漂移。squish 收成 (水平, 竖直) 二维，3D view 展成 (x, y, x)。
+- PL1-4 / 投影收成一个 static 工具 `FrontendHexProjection`（`frontend/scene/hex_projection.gd`），animator / unit_view / cone view 共用 / 计划写「animator / world_view / scene 各新增 `_project`」；同一段双线性抄三份是漂移温床。`world_view.hex_to_world` 本就是 view 层投影、未动；animator 的 `_project` 只是薄包装，棋盘几何由 animator 在 `load` 时从录像 map_config 建。
+- PL1-5 / reconciler 改成两层比：账本 hex 直接比逻辑 hex；unit_view 节点位置比逻辑 hex 经 `world_view.hex_to_world` 投影后的世界坐标 / 计划只写「expected_alive_pos 改比较 hex 坐标」；节点 settle 漂移只能在世界坐标里比，保留；账本 hex 直比是零投影的新钉子，投影只剩 view 边界一处。
+- PL1-6 / `FrontendVisualizerContext` 新增 `has_actor` / 投射物翻译员要区分「账本没这个 actor」与「站在 (0,0)」；旧码用 `== ZERO` 判空，世界原点上的 actor 会退回读事件字段（把 (q, r, 0) 当世界坐标）的隐性 bug 一并消掉。
+- PL1-7 / hex 翻译员坐标口径单测放 `tests/presentation/visualizer_coordinates_test.gd`（挂 `core/unit`） / PL0 §6 记「投射物距离口径要另用单测钉」；沿用 PL0 把 Frontend* 单测放 tests/presentation 的先例。影响：PL2 路径同步多一个文件，且它测的是 hex 翻译员（PL2 后留 hex），归属届时定。
+- PL1-8 / hex `frontend/README.md` 流程图三行同步（`projectile_updated(pos)` / `_project(...)`） / 改 API 的同一提交不留过期示意；PL4 精简 README 时照旧处理。
 
 ## PL2 搬家 + 改名 + 扩展缝
 

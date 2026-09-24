@@ -2,7 +2,7 @@
 
 > 2026-09-24 用户 + fable 讨论定稿。范围：`addons/logic-game-framework/`（新建 `presentation/` + hex 示例 `frontend/` 改造 + `tests/`）+ 主仓 `docs/` / `CLAUDE.md`。**`inkmon/` 零改动**（冻结，见 task-queue 2e）。
 > 来源：[`lgf-core-refactor-2026-09.md`](lgf-core-refactor-2026-09.md) §4 第一条「刀 9 表演管线上提：另开计划，前提是先对齐 hex 3D 与 inkmon 2D 两份分叉」。拍板记录见 [adr/0013](../adr/0013-presentation-pipeline-lift-to-lgf.md)。
-> 状态：**PL0 已完成（2026-09-24），PL1 起未启动**。每阶段完成后在 §6 填 submodule / 主仓 SHA。
+> 状态：**PL0、PL1 已完成（2026-09-24），PL2 起未启动**。每阶段完成后在 §6 填 submodule / 主仓 SHA。
 > 执行方式：与 core 重构同款——每阶段 fresh context、一个原子提交对（addons + 主仓）、失败即停、无人值守不 push。验收机械沿用 core 计划 §2，差异见本文 §2。
 
 ---
@@ -152,7 +152,7 @@
 | 阶段 | 状态 | addons SHA | 主仓 SHA | 备注 |
 |---|---|---|---|---|
 | PL0 钉子先行 | 已完成 2026-09-24 | `bc385e6` | `fac6aaf6`（本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 285→312：ActionScheduler 5 / VisualizerRegistry 4 / RenderWorld 记账 12 / 事件直改 6；`hex/frontend` +1 `smoke_presentation_golden`）/ golden 三个 seed 各三次运行指纹与 dump 逐字节一致（651143 / 900127 / 900191，指纹 466926191 / 4212318930 / 2532673107）/ leak 基线 `hex-frontend.hist.txt` 为空（零泄漏）/ inkmon 守卫空。不改任何 `frontend/` 源码。偏离见 deviations 文件 PL0-1–5 |
-| PL1 坐标对齐 | 未开始 | | | |
+| PL1 坐标对齐 | 已完成 2026-09-24 | `7c2ae56` | （本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 312→316：新增 `visualizer_coordinates_test` 投射物 / bump / cone / 飘字坐标口径 4 条）/ golden 三 seed 指纹零漂移（466926191 / 4212318930 / 2532673107，dump 逐字节同 PL0）/ leak 直方图仍为空与基线一致 / 完成定义 grep `frontend/core actions visualizers` 零 `Vector3|GridLayout` / inkmon 守卫空。两问自查：新增的唯一缓存是 animator `_grid_layout`（RefCounted，每次 `load` 随录像重建、无回指，随节点释放）；新增循环只遍历本地数组 / payload 数组，无回调重入。偏离见 deviations 文件 PL1-1–8 |
 | PL2 搬家 + 改名 + 扩展缝 | 未开始 | | | |
 | PL3 Director 骨架 + live 入口 | 未开始 | | | |
 | PL4 文档与规则之家 | 未开始 | | | |
@@ -165,6 +165,9 @@
 - PL0 记：`FrontendStageCueVisualizer.EXECUTE_KILL_VFX_DURATION = 0.8` / `EXECUTE_KILL_VFX_DELAY = 0.15` 疑似按秒写——表演层时间单位是 ms，斩杀特效 0.8 ms 内建了又删（golden 651143 第 18 帧 `attack_vfx delay=0.15 dur=0.80`，同步 +1/-1）。改值会动 golden，等用户拍板后重烤。
 - PL0 记：三个 golden seed 的 6 张投射物卡 duration 全被 300 ms 下限夹住（demo 地图 hex size 1，世界距离 / 20 单位每秒 ≤ 300 ms）——golden 钉不住 `FrontendProjectileAction.calculate_duration` 的距离公式；PL1 改投射物距离口径（D2）时另用单测钉今日「世界距离 / 速度」的数值，或加一个大地图 seed。
 - PL0 记：`FrontendVisualAction.ActionType.MELEE_STRIKE` 无翻译员产出、RenderWorld 无分支，golden 的 KIND_NAMES 里那一条是死项；PL2 D4 内置 11 种 kind 本就不含它，改名时顺手不带。
+- PL1 记：hex 逻辑层把投射物位置打包成 `Vector3(q, r, 0)`（`HexBattleSkillHelpers.owner_position_resolver`），`ProjectileSystem` 的飞行时间 / `hit_distance` 都按 axial 平面欧氏度量（各向异性：六个邻格里 (1,-1) 比 (1,0) 远 41%）；表演层 PL1 起与它同口径。逻辑层若改成 hex 步数度量，翻译员 `calculate_duration` 那一处同步即可。
+- PL1 记：`FrontendAnimationConfig.projectile_default_speed` 与 `FrontendProjectileAction.get_trail_length` 无人调用（速度从事件读、拖尾长度 view 自己定），PL2 改名时顺手不带。
+- PL1 记：`FrontendFacingIndicatorView` 仍自己拿 `GridLayout` 算朝向向量（邻格像素差），可改用 `FrontendHexProjection.delta_to_world` 统一投影入口，视觉无差；view 层的事，不急。
 
 ## 7. 消费方接入清单（给 kards / 2e 的 inkmon）
 
