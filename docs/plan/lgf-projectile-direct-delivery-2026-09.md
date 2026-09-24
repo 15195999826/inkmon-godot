@@ -119,7 +119,7 @@ hit / miss / pierce 三处：`event_collector.push(event)`（录像照旧、一�
 
 录像形状与事件序不变：以前非收件的 ability 只是白跑一遍匹配、没有副作用；两处 golden 位一致是验收项（§4.4）。
 
-### 4.3 落地（godot-addons `2e9a89b` / 主仓 `<MAIN_HASH>`）
+### 4.3 落地（godot-addons `2e9a89b` / 主仓 `ad8750a5`）
 
 | 层 | 文件 | 改动 |
 |---|---|---|
