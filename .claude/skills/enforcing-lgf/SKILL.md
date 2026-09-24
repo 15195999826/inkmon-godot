@@ -30,7 +30,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 
 - **Conventions (detailed)**: See [reference/conventions-detail.md](reference/conventions-detail.md) — Full examples, reference chain diagrams, architecture
 - **Cast eligibility vs Condition**: See [reference/cast-eligibility-vs-condition.md](reference/cast-eligibility-vs-condition.md) — Where to put "can this skill be cast" config (metadata, NOT Condition). Read before adding any new cast-time filter (range / target kinds / faction / LOS).
-- **Architecture & design rules**: `addons/logic-game-framework/CLAUDE.md` (module dependencies, World owns Battle, 设计铁律).
+- **Architecture & design rules**: `addons/logic-game-framework/CLAUDE.md` (module dependencies, World owns Battle, Presentation layer, 设计铁律).
 
 **Where to look** (no API reference docs — read the source header comments and the tests; paths are relative to `addons/logic-game-framework/`):
 
@@ -44,6 +44,7 @@ Apply when writing or modifying GDScript that touches the Logic Game Framework: 
 | Timeline & Playback (TimelineData / BattleRecorder / PlaybackData / recording utils) | `core/timeline/timeline_data.gd`, `core/playback/battle_recorder.gd`, `core/playback/playback_data.gd`, `core/playback/recording_context.gd`, `core/playback/recording_utils.gd` | `tests/core/timeline/` |
 | Stdlib (StatModifier / DynamicStatModifier / TimeDuration components, StageCue / LaunchProjectile actions, projectile system) | `stdlib/components/`, `stdlib/actions/`, `stdlib/projectile/` | `tests/stdlib/components/stat_modifier_component_test.gd` |
 | AI Decision (DecisionSnapshot / DecisionOption / OptionProvider / Reasoner / DecisionPipeline / GoalBacktrackReasoner) — the contracts (options sorted by id, `provide()` allocates fresh options, a Reasoner never returns null) are in the file headers | `core/ai_decision/` | `tests/core/ai_decision/decision_pipeline_test.gd` |
+| Presentation (VisualDirector / ReplayDirector / Translator / TranslatorRegistry / VisualAction + built-in `Visual*Action` cards / ActionStepper / VisualState / VisualStateQuery / VisualUpdater / VisualEffectPayload) — vocabulary, the 8-step `pump`, the 7 signals and the consumer checklist are in `CLAUDE.md` "Presentation layer" | `presentation/core/visual_director.gd`, `presentation/core/replay_director.gd`, `presentation/core/translator.gd`, `presentation/core/translator_registry.gd`, `presentation/actions/visual_action.gd`, `presentation/core/action_stepper.gd`, `presentation/core/visual_state.gd`, `presentation/core/visual_state_query.gd`, `presentation/core/visual_updater.gd`, `presentation/core/visual_effect_payload.gd` | `tests/presentation/` (unit, in `core/unit`), `example/hex-atb-battle/tests/frontend/smoke_presentation_golden.tscn` (golden) |
 | Example app (hex three-layer wiring, procedure, reactive world view, animator, skill scenarios) | `example/hex-atb-battle/README.md`, `example/hex-atb-battle/core/README.md`, `example/hex-atb-battle/frontend/README.md`, `example/hex-atb-battle/logic/hex_world_gameplay_instance.gd`, `example/hex-atb-battle/logic/hex_battle_procedure.gd`, `example/hex-atb-battle/frontend/world_view.gd`, `example/hex-atb-battle/frontend/battle_animator.gd` | `example/hex-atb-battle/tests/battle/skill_scenarios/` |
 
 ---

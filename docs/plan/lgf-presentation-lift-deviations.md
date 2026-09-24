@@ -51,7 +51,11 @@
 
 ## PL4 文档与规则之家
 
-（未开始）
+- PL4-1 / hex `frontend/README.md` 除计划点名的「框架设计 / 四层管线 / 核心类说明」外还删了「流程图」（阶段一是已删 `FrontendBattleReplayScene` 的历史示意、阶段二是 `pump` 体逐步复述）「事件类型」「录像数据格式」（`position: {hex: {q, r}}` 与录像实际 `[q, r, 0]` 不符）「使用方法」；阶段三的 hex 接线图与「添加自定义翻译员」并入新「hex 接线」「扩展」两节，目录结构按真实树重写，wire 节里的 `main.gd` 死指针改成 `demo_frontend.gd` / 过期示意与框架复述留着就是第二份真相；README 只讲 hex 项目件。
+- PL4-2 / `enforcing-lgf` SKILL.md「Where to look」加一行 Presentation（源码 + 单测 + golden），Reference 段的 CLAUDE.md 指针加「Presentation layer」 / 计划只要求「若列了 frontend 路径同步」（三个 frontend 路径都还在，无死链）；指针表按 topic 列，表演层已是框架件却没有行，读者找不到入口。
+- PL4-3 / 逻辑层注释 `BuffVisualizer` → `BuffTranslator` 七处（`core/events/game_event.gd` / `core/playback/recording_utils.gd` / hex `surge.gd` / `surge_buff.gd` / `surge_tick_action.gd` / `poison_scenario.gd` / `surge_scenario.gd`），`perl -i -pe` 保行尾 / PL2 后续观察点名交 PL4 顺手扫；仅注释，零行为。
+- PL4-4 / 提交类型用 `docs(lgf)` / `docs:`，不用协议模板的 `refactor` / 本阶段零行为改动（文档 + 注释）；git log 是变更追溯入口，Conventional Commits 类型要真。
+- PL4-5 / 主仓 §6 状态行的主仓 SHA 用单独 docs 提交回填 / 沿 PL0-4：提交无法自引用自己的 SHA。
 
 ## PL5 整体审与收口
 

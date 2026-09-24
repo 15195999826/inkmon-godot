@@ -8,7 +8,7 @@ Godot 4.6 回合制 / ATB 战斗模拟框架。Hex grid + Timeline 技能系统�
 
 1. **Core Logic** — 纯模拟，无渲染（`addons/logic-game-framework/core/`）
 2. **Game Logic** — 战斗规则/机制（`addons/logic-game-framework/example/<example>/core/` + `logic/`）
-3. **Presentation** — VFX / 弹道 / 动画（`addons/logic-game-framework/example/<example>/frontend/`）
+3. **Presentation** — 表演管线框架件（`addons/logic-game-framework/presentation/`：Director / 翻译员基类 / 卡片 / 步进器 / 账本 / 更新器，adr/0013）；各项目只写事件源 + 翻译员 + 视图（hex 示例在 `addons/logic-game-framework/example/hex-atb-battle/frontend/`）
 
 事件驱动：`event_processor.gd` 管 pre/post handlers；技能用 timeline keyframe 驱动 actions（hex 例子）；实时类例子（dota2）用固定 tick + `attack_cooldown` 替代 timeline 调度。
 
