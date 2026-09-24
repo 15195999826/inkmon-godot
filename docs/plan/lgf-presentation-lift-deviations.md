@@ -38,7 +38,16 @@
 
 ## PL3 Director 骨架 + live 入口
 
-（未开始）
+- PL3-1 / 翻译员注册表经构造函数注入（`VisualDirector._init(registry, animation_config = null)`），四件在 `_init` 建 / D6 只说 Director「持 registry」；hex 不再有 Director 子类可覆盖工厂，注入是唯一不靠入树顺序的办法（PL2 后续观察那条一并解决）。golden 的记录包装改走构造注入，不再碰 `_registry` 私有字段。
+- PL3-2 / `frame_changed` 在帧时钟循环里按帧发，事件翻译挪到循环之后的 `pump` 里一趟做 / D6 把「事件直改 → 翻译 → 入 stepper」定义在 pump 内；`frame_changed` 监听者只更新 UI 标签、不读步进器，观察面无差，golden 一步一帧零漂移。
+- PL3-3 / 不带 `@export initial_speed / auto_play` 与 `fire_tile` 专用 FrameDiag 打印进框架；诊断打印前缀改 `[Presentation:ReplayDirector]` / 前两者无消费方，且 auto_play 分支引用不存在的 `BattleRecord.is_empty()`；fire_tile 是 hex 项目词，animator `spawn_view` 已按 config_id 打印同一事实；前缀全仓无人 grep。
+- PL3-4 / `seed_actor` 同 id 忽略返回 null（inkmon 现版静默覆盖），并多发一条 `actor_spawned` / 与 `spawn_actor` 同口径：覆盖会让 view 层懒建对同一 id 双发；inkmon 自己在 view 层 `get_avatar` 判空挡了这条路，框架里收成一条口径。
+- PL3-5 / 删 `VisualState.set_actor_hp / set_actor_dead`，`set_actor_position` 保留归入 live 入口 / PL2 后续观察点名定去留：前两者 hex / inkmon 生产码零调用；inkmon live 只用 set_actor_position 做 snap。单测「视图跟账本走」改用 set_actor_position 钉。
+- PL3-6 / `ReplayDirector._exit_tree` 清帧表、置空录像再 `super()`；`load_playback` 缺 meta 断言、`tick_interval ≤ 0` 退回 100 / 两问自查①的对称出口；`tick_interval` 为 0 会让帧时钟 while 死循环，旧码写死常量 100 没这个坑。
+- PL3-7 / 单测不止计划的两个文件：`action_stepper_test` +2（cancel_for_actor / has_actor_action）、`visual_state_events_test` +1（seed / set_actor_position / despawn） / live 入口是本阶段新进框架的合同，按 PL0 惯例每条合同就近钉。
+- PL3-8 / `skill_preview.gd` 无需改；`skill_preview_dev_agent_ops.gd` / `smoke_buff_pipeline.gd` 只同步注释里的 `LOGIC_TICK_MS` / `BattleDirector._tick` 死词 / 计划写「skill_preview.gd 引用同步」，实查它只经 `FrontendBattleAnimator`（API 未动），零 Director 引用。
+- PL3-9 / hex `frontend/README.md` 流程图 / 目录树 / 核心类说明 §1 同步到 VisualDirector / ReplayDirector，不重排章节 / 沿 PL1-8 / PL2-10：改 API 的同一提交不留过期示意；PL4 再精简。
+- PL3-10 / 主仓 §6 状态行的主仓 SHA 用单独 docs 提交回填 / 沿 PL0-4：提交无法自引用自己的 SHA。
 
 ## PL4 文档与规则之家
 

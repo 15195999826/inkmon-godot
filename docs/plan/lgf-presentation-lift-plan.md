@@ -2,7 +2,7 @@
 
 > 2026-09-24 用户 + fable 讨论定稿。范围：`addons/logic-game-framework/`（新建 `presentation/` + hex 示例 `frontend/` 改造 + `tests/`）+ 主仓 `docs/` / `CLAUDE.md`。**`inkmon/` 零改动**（冻结，见 task-queue 2e）。
 > 来源：[`lgf-core-refactor-2026-09.md`](lgf-core-refactor-2026-09.md) §4 第一条「刀 9 表演管线上提：另开计划，前提是先对齐 hex 3D 与 inkmon 2D 两份分叉」。拍板记录见 [adr/0013](../adr/0013-presentation-pipeline-lift-to-lgf.md)。
-> 状态：**PL0–PL2 已完成（2026-09-24），PL3 起未启动**。每阶段完成后在 §6 填 submodule / 主仓 SHA。
+> 状态：**PL0–PL3 已完成（2026-09-24），PL4 起未启动**。每阶段完成后在 §6 填 submodule / 主仓 SHA。
 > 执行方式：与 core 重构同款——每阶段 fresh context、一个原子提交对（addons + 主仓）、失败即停、无人值守不 push。验收机械沿用 core 计划 §2，差异见本文 §2。
 
 ---
@@ -154,7 +154,7 @@
 | PL0 钉子先行 | 已完成 2026-09-24 | `bc385e6` | `fac6aaf6`（本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 285→312：ActionScheduler 5 / VisualizerRegistry 4 / RenderWorld 记账 12 / 事件直改 6；`hex/frontend` +1 `smoke_presentation_golden`）/ golden 三个 seed 各三次运行指纹与 dump 逐字节一致（651143 / 900127 / 900191，指纹 466926191 / 4212318930 / 2532673107）/ leak 基线 `hex-frontend.hist.txt` 为空（零泄漏）/ inkmon 守卫空。不改任何 `frontend/` 源码。偏离见 deviations 文件 PL0-1–5 |
 | PL1 坐标对齐 | 已完成 2026-09-24 | `7c2ae56` | `faf96a47`（本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 312→316：新增 `visualizer_coordinates_test` 投射物 / bump / cone / 飘字坐标口径 4 条）/ golden 三 seed 指纹零漂移（466926191 / 4212318930 / 2532673107，dump 逐字节同 PL0）/ leak 直方图仍为空与基线一致 / 完成定义 grep `frontend/core actions visualizers` 零 `Vector3|GridLayout` / inkmon 守卫空。两问自查：新增的唯一缓存是 animator `_grid_layout`（RefCounted，每次 `load` 随录像重建、无回指，随节点释放）；新增循环只遍历本地数组 / payload 数组，无回调重入。偏离见 deviations 文件 PL1-1–8 |
 | PL2 搬家 + 改名 + 扩展缝 | 已完成 2026-09-24 | `a0c9330` | `97519924`（本行由随后的 docs 提交回填） | 验收（隔离 worktree `../inkmon-godot-pl2`，两仓 HEAD + 本阶段路径）：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 316→319：ActionStepper 5 / TranslatorRegistry 4 / VisualUpdater 13 / VisualState 6 / hex 翻译员坐标 4 / presentation lint 2）/ golden 三 seed 指纹零漂移（466926191 / 4212318930 / 2532673107，dump 逐字节同 PL1）/ leak 直方图仍为空与基线一致 / 完成定义 grep：`presentation` + hex `frontend` 零 `Visualizer`，`presentation/` 零 HexCoord / BattleEvents / HexFacing / Vector3 / GridLayout（lint 单测常驻）/ inkmon 守卫空。两问自查：新增的表 = `VisualState._effects`（`initialize_from_replay` 清，`reset_to` / `load_playback` 经它清，Director `_exit_tree` 置空）与 `VisualUpdater._handlers`（随 Director 生命周期，`_exit_tree` 置空，hex 只在 `_ready` 登记一次）；新增循环 `expire_effects` / `_expire` / `_lerp_hp` 都遍历 `keys()` / `get_actor_ids()` 快照，`apply_actions` 遍历步进器交出的结果数组。偏离见 deviations 文件 PL2-1–12 |
-| PL3 Director 骨架 + live 入口 | 未开始 | | | |
+| PL3 Director 骨架 + live 入口 | 已完成 2026-09-24 | `5a60ae2` | （本行由随后的 docs 提交回填） | 验收：`-Required` 21 scene + `hex/all dota2autobattle/smoke inkmon/all core/skill-preview-env` 78 scene 全 PASS（core 单测 319→332：VisualDirector 5 / ReplayDirector 5 / ActionStepper +2 / VisualState +1）/ golden 三 seed 指纹零漂移（466926191 / 4212318930 / 2532673107，dump 逐字节同 PL2）/ leak 直方图仍为空与基线一致 / 完成定义：hex `frontend/core/` 已删、`presentation/` 零禁词（lint 常驻）、全仓零 `FrontendBattleDirector` 引用/ inkmon 守卫空。两问自查：新增的表 = `ReplayDirector._frame_data_map` + `_record`（`load_playback` 重建、`_exit_tree` 清空置空；`reset` 有意保留录像）与 `VisualState.seed_actor` 入账项（`initialize_from_replay` / `despawn_actor` 清，despawn 连在飞插值与脏标记一起抹）；Director 四件 `_init` 建、`_exit_tree` 拆（沿旧 Director）。新增循环：`cancel_for_actor` 先收 id 再删（两趟）、`has_actor_action` 只读、`_advance` 的 while 只攒时间、`pump` 遍历调用方交来的本趟事件数组（ReplayDirector 每趟新建），回调改不到。偏离见 deviations 文件 PL3-1–10 |
 | PL4 文档与规则之家 | 未开始 | | | |
 | PL5 整体审与收口 | 未开始 | | | |
 
@@ -171,6 +171,11 @@
 - PL2 记：`BuffVisualizer` 一词仍留在逻辑层注释里：`core/events/game_event.gd`、`core/playback/recording_utils.gd`、hex `logic/abilities/active/surge.gd` / `buffs/surge_buff.gd` / `actions/surge_tick_action.gd`、`tests/battle/skill_scenarios/{poison,surge}_scenario.gd`——不在 PL2 清单（其中两个是定向投递刀同日在改的文件），PL4 文档阶段顺手扫成 `BuffTranslator`。
 - PL2 记：`VisualState.set_actor_hp / set_actor_position / set_actor_dead` 三个直接状态更新只有单测在用（production 无消费方）；PL3 照 inkmon 抄 `seed_actor / despawn_actor` 时一并定去留。
 - PL2 记：`FrontendBattleDirector` 的组件在 `_ready` 才建（`updater` 也是），animator 只能在 `add_child` 之后 `register_handler`；PL3 抽 `VisualDirector` 时把 registry / stepper / state / updater 挪到 `_init` 建，让「建好 Director 再登记私有卡片」不依赖入树顺序。
+- PL3 记：`ReplayDirector.step()` 在 `playback_ended` 之后每调一次都重发 `playback_ended` / `playback_state_changed(false)`（`_process` 路径被 `_is_playing` 挡住，手动步进没挡；沿旧 `_tick`）；golden 停在首个 ended 不受影响。改成只发一次动播放语义，PL5 整体审时定。
+- PL3 记：`VisualUpdater.apply_move` 先写在飞插值再查 actor 是否在账上，despawn 后 / 未知 actor 的 move 卡会给 `_interpolated_positions` 留一条幽灵项直到下次 `initialize_from_replay`；live 项目 despawn 前 `cancel_for_actor` 即可避开，框架侧候选加 `has_actor` 守卫。
+- PL3 记：三个白盒 smoke（buff_pipeline / facing_indicator / regeneration）手抄的 `_run_frame` 现在可直接喂 `VisualDirector.pump`（PL2-9 时框架尚无 Director），候选顺手改，本轮不动。
+- PL3 记：Director 四件在 `_init` 建、`_exit_tree` 拆（沿旧 Director）——移出树再加回即不可用；现无消费方这么用，若要支持改成 `NOTIFICATION_PREDELETE` 拆或干脆不拆（Node 目标的信号连接随 free 自动断，无 RefCounted 环）。
+- PL3 记：`[Frontend:FrameDiag]`（unit_view / animator）与 `[Presentation:ReplayDirector]` 诊断打印无人消费（全仓零 grep），候选清理。
 
 ## 7. 消费方接入清单（给 kards / 2e 的 inkmon）
 
