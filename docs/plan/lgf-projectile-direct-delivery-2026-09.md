@@ -152,6 +152,24 @@ hit / miss / pierce 三处：`event_collector.push(event)`（录像照旧、一�
 
 同一套改动在共享树上先跑过一次 `core/unit`：285 条全过、0 失败；launcher 报 exit=5 是 peer 未提交的 `tests/presentation/*` 五个套件重命名后 `run_tests.gd` 旧路径加载失败，与本刀无关。
 
-### 4.5 kards-tavern 侧待办
+### 4.5 kards-tavern 第二步（2026-09-24，公司电脑；kards-tavern `c2847f1`，addons `bd20c8d` → `2e9a89b`）
 
-kards `game/src/logic/battle/kt_battle_procedure.gd` 的 `_activate_basic_attack` 今天调 `AbilitySet.receive_event`（handoff §1）。bump addons 到 `2e9a89b` 时要改成 `instance.event_processor.deliver_to_ability(event, piece_id, ability.id)`，一处机械改动；kards 自己若有手写「是不是叫我」的激活 precheck 一并删（内置 `ABILITY_ACTIVATE` 已是 direct）。其余（`projectile_hit` 的 `.direct()`、回执）第一步已落地（§3.1），不受本刀影响。
+✅ 已落地（addons 未 push，走 git bundle `bd20c8d..2e9a89b` 送到公司电脑再 fetch）。项目侧改动只有一处：`kt_battle_procedure.gd` 的 `_activate_basic_attack` 从 `piece.ability_set.receive_event(event)` 改成 `_get_world().event_processor.deliver_to_ability(event, piece.get_id(), ability.id)`（头注释同步）。kards 全仓（`game/` 下不含 addons）再无 `receive_event` 调用；没有手写的「是不是叫我」激活 precheck（`kt_basic_attack` 用内置 `TriggerConfig.ABILITY_ACTIVATE`）；四张战略卡的 `GRANTED_SELF` 不受 grant 通知收窄影响（没有监听「兄弟被 grant」的 trigger）。
+
+| 组 | 结果 |
+|---|---|
+| `logic/all` 9 + `static/all` 3 + `net/all` 10 | **22 场全 PASS**（含 `smoke_projectiles`、`smoke_battle_determinism`、lockstep 2 / 4 / 8）；工作区仍有 kards 侧另一会话未提交的改动（status.md 47 行调攻击节奏的数据表 / 碾压 / 几个 smoke），连着一起跑 |
+
+探针 `perf_battle.tscn` 同机交替 A/B（OLD = addons `bd20c8d` + `23eac79` 版 procedure，即 §3.1 的 NEW；NEW 先跑两遍、切 OLD 跑两遍、切回 NEW 再跑两遍；每次切版本都 `--import`）：
+
+| 每 tick（ms） | OLD | NEW | NEW ÷ OLD |
+|---|---|---|---|
+| mid（17 人/方，450 tick） | 0.75 / 0.75 | 0.74 / 0.75 / 0.75 / 0.75 | 1.00 |
+| mixed（82 人/方，414.8 tick） | 3.27 / 3.25 | 3.20 / 3.20 / 3.23 / 3.23 | 0.99 |
+| infantry（108 人/方，450 tick） | 5.23 / 5.24 | 5.22 / 5.18 / 5.25 / 5.23 | 1.00 |
+| infantry 分帧 step(60) 最坏（ms/step） | 462.6 / 461.5 | 457.4 / 454.8 / 471.1 / 461.6 | ≈1.00 |
+
+- 本刀对 kards 性能中性（±1%，在两遍差 <3% 的噪声内）：激活请求每个棋子每次攻击才一条、grant 只在编成时发，改走 processor 多的那一次 `rebuild_for_recipient` 不构成开销；命中链第一步已经直达。
+- 同一份 OLD 代码今天比 §3.1 那天慢约 4%（infantry 5.23 vs 5.00–5.04），是机器状态不是代码——跨日绝对值不能直接对照，要看同机交替的 A/B。
+- ticks/battle 三档新旧全等（450 / 414.8 / 450）；六次探针日志无 `SCRIPT ERROR`。presentation 组要窗口，SSH 会话里没跑。
+- kards 侧记录：handoff `game/docs/handoff/2026-09-24-lgf-projectile-direct-delivery.md` §7（该文件仍是 grill 会话的未跟踪文件，未随 `c2847f1` 提交）；kards-tavern 仓纯本地不 push。下一步候选仍是 handoff §4 的「第二步：玩法重构」（单位持有进攻技能），单独立项。
